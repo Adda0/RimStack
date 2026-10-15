@@ -1,0 +1,52 @@
+name: weekly
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  push:
+    branches: [main]
+    paths: ["Cargo.lock", "**/Cargo.toml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: rustsec/audit-check@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  versions:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+      - id: moved
+        run: |
+          {
+            echo "said<<END"
+            python3 -I tools/ci-versions.py
+            echo "END"
+          } >> "$GITHUB_OUTPUT"
+      - uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.CI_BOT_TOKEN || github.token }}
+          branch: ci-versions
+          delete-branch: true
+          commit-message: "CI: newer Qt, aqtinstall or linuxdeploy"
+          title: "CI: newer Qt, aqtinstall or linuxdeploy"
+          body: |
+            Moved by `tools/ci-versions.py`:
+
+            ${{ steps.moved.outputs.said }}
+          labels: dependencies

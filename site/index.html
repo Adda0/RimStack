@@ -1,0 +1,688 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RimStack</title>
+<meta name="description" content="A fast, free RimWorld mod manager that sorts your mods by reading what is inside them.">
+<meta property="og:title" content="RimStack">
+<meta property="og:description" content="A fast, free mod manager for RimWorld.">
+<meta property="og:image" content="https://theforgotten69.github.io/RimStack/img/social.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<style>
+:root {
+  --bg: #fbf8f2; --panel: #fff; --ink: #231f1a; --ink2: #5e564b; --line: #e3dccf;
+  --accent: #2f6fa3; --accent-ink: #fff; --warm: #b4702f;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1c1916; --panel: #26221e; --ink: #f2ebdd; --ink2: #b9ae9d; --line: #3a342c;
+    --accent: #4f8fc0; --accent-ink: #0f1a24; --warm: #d9a066;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1c1916; --panel: #26221e; --ink: #f2ebdd; --ink2: #b9ae9d; --line: #3a342c;
+  --accent: #4f8fc0; --accent-ink: #0f1a24; --warm: #d9a066;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+a { color: var(--accent); }
+.wrap { max-width: 980px; margin: 0 auto; padding: 0 16px; }
+header.top { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.15rem; color: var(--ink); text-decoration: none; }
+.brand img { width: 34px; height: 34px; }
+header.top nav a { margin-left: 18px; color: var(--ink2); text-decoration: none; }
+header.top nav a:hover { color: var(--ink); }
+.hero { text-align: center; padding: 48px 0 32px; }
+.hero h1 { font-size: clamp(2.2rem, 6vw, 3.4rem); line-height: 1.1; margin: 0 0 14px; }
+.hero p { font-size: 1.2rem; color: var(--ink2); max-width: 36em; margin: 0 auto 26px; }
+.btn { display: inline-block; padding: 12px 22px; border-radius: 10px; font-weight: 600; text-decoration: none; margin: 4px; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); }
+.btn.plain { border: 1px solid var(--line); color: var(--ink); background: var(--panel); }
+.stats { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px 40px; margin-top: 34px; }
+.stats div { display: flex; flex-direction: column; }
+.stats b { font-size: 2rem; color: var(--warm); }
+.stats span { color: var(--ink2); font-size: 0.9rem; }
+.shot { margin: 34px auto 0; max-width: 900px; }
+.shot img { width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--line); display: block; }
+h2 { font-size: 1.6rem; margin: 64px 0 18px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+.card h3 { margin: 0 0 6px; font-size: 1.05rem; color: var(--warm); }
+.card p { margin: 0; color: var(--ink2); font-size: 0.97rem; }
+.shots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 640px) { .shots { grid-template-columns: minmax(0, 1fr); } }
+.shots img { width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--line); }
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; font-size: 0.95rem; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 0.85rem; color: var(--ink2); text-transform: uppercase; letter-spacing: .04em; }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 600; }
+.note { color: var(--ink2); font-size: 0.95rem; max-width: 46em; }
+ol.steps { padding-left: 1.2em; }
+a.card { display: block; color: var(--ink); text-decoration: none; }
+a.card:hover { border-color: var(--accent); }
+a.card p::after { content: " →"; color: var(--accent); }
+code, kbd { font: 0.88em ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; background: var(--panel); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; }
+kbd { border-bottom-width: 2px; white-space: nowrap; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+[id] { scroll-margin-top: 64px; }
+.guide-banner { display: grid; gap: 6px; margin: 40px 0 0; padding: 28px 30px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); border-left: 6px solid var(--accent); color: var(--ink); text-decoration: none; }
+.guide-banner:hover { border-color: var(--accent); }
+.guide-banner .eyebrow { font-size: 0.8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--warm); font-weight: 700; }
+.guide-banner b { font-size: clamp(1.4rem, 3.5vw, 2rem); line-height: 1.2; }
+.guide-banner span { color: var(--ink2); }
+.guide-banner .go { color: var(--accent); font-weight: 700; font-size: 1.1rem; margin-top: 6px; }
+header.top nav a.nav-guide { padding: 6px 14px; border-radius: 8px; background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+header.top nav a.nav-guide:hover { color: var(--accent-ink); }
+.side { display: flex; flex-direction: column; gap: 14px; position: fixed; inset: 0 auto 0 0; width: 280px; max-width: 85vw; padding: 22px 16px 28px 20px; overflow-y: auto; overscroll-behavior: contain; background: var(--panel); border-right: 1px solid var(--line); font-size: 0.93rem; z-index: 20; }
+.scrim { position: fixed; inset: 0; background: rgba(0, 0, 0, .45); z-index: 15; }
+.menu-btn { display: none; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+@media (min-width: 1100px) {
+  .page { margin-left: 280px; }
+  header.top .brand { visibility: hidden; }
+}
+@media (max-width: 1099px) {
+  .side { transform: translateX(-105%); visibility: hidden; transition: transform .2s ease, visibility 0s linear .2s; }
+  .side.open { transform: none; visibility: visible; transition: transform .2s ease; box-shadow: 0 0 40px rgba(0, 0, 0, .35); }
+  .menu-btn { display: inline-flex; }
+  header.top { position: sticky; top: 0; z-index: 10; background: var(--bg); gap: 12px; }
+  header.top .brand { margin-right: auto; }
+  [id] { scroll-margin-top: 72px; }
+}
+@media (max-width: 700px) {
+  header.top nav a:not(.nav-guide) { display: none; }
+  header.top nav a.nav-guide { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .side, .side.open { transition: none; } }
+.side-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.1rem; color: var(--ink); text-decoration: none; }
+.side-brand img { width: 30px; height: 30px; }
+.side-download { display: block; text-align: center; padding: 9px 12px; border-radius: 9px; background: var(--accent); color: var(--accent-ink); font-weight: 600; text-decoration: none; }
+.side nav p { margin: 14px 0 6px 8px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: .08em; color: var(--ink2); }
+.side ul { list-style: none; margin: 0; padding: 0; }
+.side .tree > li { margin-bottom: 4px; }
+.side .tree ul { margin: 2px 0 8px 12px; padding-left: 10px; border-left: 1px solid var(--line); }
+.side a { display: block; padding: 3px 8px; border-radius: 6px; color: var(--ink2); text-decoration: none; }
+.side a:hover { color: var(--ink); background: var(--bg); }
+.side .top-links a, .side a.top-link { font-weight: 700; color: var(--ink); }
+.side a[aria-current="true"] { background: var(--accent); color: var(--accent-ink); }
+.panel { padding-top: 8px; }
+.panel > * { max-width: 760px; }
+.panel > figure, .panel > .split, .panel > .cards, .panel > .tablewrap { max-width: none; }
+.panel h2.panel-title { font-size: 1.9rem; margin: 64px 0 6px; }
+.panel h3 { font-size: 1.25rem; margin: 40px 0 10px; }
+.panel h4 { font-size: 1.05rem; margin: 24px 0 8px; color: var(--warm); }
+.panel .lede { font-size: 1.1rem; color: var(--ink2); margin: 0 0 20px; }
+.panel figure { margin: 22px 0; }
+.panel figure img { display: block; width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--line); }
+.panel figcaption { margin-top: 8px; font-size: 0.92rem; color: var(--ink2); }
+.panel ul.points, .panel ol.steps { padding-left: 1.3em; }
+.panel li { margin: 6px 0; }
+.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 300px); gap: 28px; align-items: start; }
+.split figure { margin: 0 !important; }
+@media (max-width: 820px) { .split { grid-template-columns: minmax(0, 1fr); } .split figure { max-width: 360px; } }
+.callout { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--warm); border-radius: 10px; padding: 14px 18px; margin: 20px 0; }
+.callout p { margin: 0; }
+.callout p + p { margin-top: 8px; }
+.callout strong { color: var(--warm); }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin: 20px 0; }
+.cards a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; color: var(--ink); text-decoration: none; }
+.cards a:hover { border-color: var(--accent); }
+.cards b { display: block; color: var(--warm); margin-bottom: 4px; }
+.cards span { color: var(--ink2); font-size: 0.95rem; }
+.panel td:first-child { white-space: nowrap; font-weight: 400; }
+footer { margin: 72px 0 40px; padding-top: 22px; border-top: 1px solid var(--line); color: var(--ink2); font-size: 0.92rem; }
+</style>
+</head>
+<body id="top">
+<aside class="side" id="side" aria-label="Contents">
+  <a class="side-brand" href="#top"><img src="icon.svg" alt="">RimStack</a>
+  <a class="side-download" href="https://github.com/TheForgotten69/RimStack/releases">Download</a>
+  <nav aria-label="Page">
+    <ul class="top-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#live">Live, always</a></li>
+    </ul>
+    <p>Guide</p>
+      <ul class="tree">
+      <li><a class="top-link" href="#start">Getting started</a>
+        <ul>
+          <li><a href="#start-first-run">The first run</a></li>
+          <li><a href="#start-window">The window</a></li>
+          <li><a href="#start-writes">What RimStack writes</a></li>
+          <li><a href="#start-search">Search and commands</a></li>
+          <li><a href="#start-keys">Keyboard</a></li>
+          <li><a href="#start-live">Live, with nothing to refresh</a></li>
+          <li><a href="#start-language">Language and look</a></li>
+        </ul>
+      </li>
+      <li><a class="top-link" href="#mods">Mods</a>
+        <ul>
+          <li><a href="#mods-lists">Two lists</a></li>
+          <li><a href="#mods-categories">Categories</a></li>
+          <li><a href="#mods-save">Save, Undo, Redo</a></li>
+          <li><a href="#mods-sort">Sort</a></li>
+          <li><a href="#mods-problems">Problems</a></li>
+          <li><a href="#mods-details">A mod's details</a></li>
+          <li><a href="#mods-filter">Filters</a></li>
+          <li><a href="#mods-conflicts">Texture conflicts</a></li>
+          <li><a href="#mods-several">Several mods at once</a></li>
+          <li><a href="#mods-tags">Tags, notes, groups</a></li>
+          <li><a href="#mods-saved-lists">Saved lists and the clipboard</a></li>
+          <li><a href="#mods-history">History</a></li>
+          <li><a href="#mods-broken">Find the broken mod</a></li>
+        </ul>
+      </li>
+      <li><a class="top-link" href="#downloads">Downloads</a>
+        <ul>
+          <li><a href="#downloads-add">Add mods</a></li>
+          <li><a href="#downloads-updates">Updates</a></li>
+          <li><a href="#downloads-missing">Missing</a></li>
+          <li><a href="#downloads-steamcmd">SteamCMD</a></li>
+          <li><a href="#downloads-changed">Changed since the game last started</a></li>
+        </ul>
+      </li>
+      <li><a class="top-link" href="#textures">Textures</a>
+        <ul>
+          <li><a href="#textures-convert">Converting</a></li>
+          <li><a href="#textures-removing">Removing</a></li>
+          <li><a href="#textures-check">Check all mods</a></li>
+          <li><a href="#textures-conflicts">Two mods, one texture</a></li>
+        </ul>
+      </li>
+      <li><a class="top-link" href="#saves">Saves</a>
+        <ul>
+          <li><a href="#saves-list">The list</a></li>
+          <li><a href="#saves-details">A save's details</a></li>
+          <li><a href="#saves-backups">Backups</a></li>
+        </ul>
+      </li>
+      <li><a class="top-link" href="#logs">Logs</a>
+        <ul>
+          <li><a href="#logs-views">Three views</a></li>
+          <li><a href="#logs-launches">Launches</a></li>
+          <li><a href="#logs-broken">When no mod is named</a></li>
+        </ul>
+      </li>
+      <li><a class="top-link" href="#settings">Settings</a>
+        <ul>
+          <li><a href="#settings-game">Game and folders</a></li>
+          <li><a href="#settings-appearance">Appearance</a></li>
+          <li><a href="#settings-sorting">Sorting</a></li>
+          <li><a href="#settings-rimstack">RimStack</a></li>
+        </ul>
+      </li>
+      </ul>
+    <ul class="top-links">
+      <li><a href="#install">Install</a></li>
+    </ul>
+  </nav>
+</aside>
+<div class="scrim" hidden></div>
+<div class="page">
+<div class="wrap">
+  <header class="top">
+    <button class="menu-btn" type="button" aria-controls="side" aria-expanded="false"><span aria-hidden="true">☰</span> Menu</button>
+    <a class="brand" href="#top"><img src="icon.svg" alt="">RimStack</a>
+    <nav>
+      <a href="#features">Features</a>
+      <a class="nav-guide" href="#guide">Guide</a>
+      <a href="#install">Install</a>
+      <a href="https://github.com/TheForgotten69/RimStack">GitHub</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <h1>Up in 0.2 seconds.<br>Sorts by what is inside your mods.</h1>
+    <p>A free, native RimWorld mod manager that stays live: what changes on disk shows up by itself, with nothing to refresh. It reads the mods' compiled code instead of trusting whatever rules their authors wrote down.</p>
+    <a class="btn primary" href="https://github.com/TheForgotten69/RimStack/releases">Download</a>
+    <a class="btn plain" href="#guide">Read the guide</a>
+    <a class="btn plain" href="https://github.com/TheForgotten69/RimStack">View on GitHub</a>
+    <div class="stats">
+      <div><b>0.2 s</b><span>RimStack to your mod list</span></div>
+      <div><b>7.0 s</b><span>RimSort 1.15.0, same install</span></div>
+      <div><b>~35&times;</b><span>faster</span></div>
+    </div>
+    <div class="shot"><img src="img/mods.png" alt="RimStack's Mods screen: the load order in categories, with Sort ready to move three mods"></div>
+    <p class="note" style="margin:14px auto 0">Same machine, same install (1,853 mods, 101 active), launch to mod list on screen. RimSort is the average of three runs. Native, not a script. Run both on your own install.</p>
+  </section>
+
+  <a class="guide-banner" href="#guide">
+    <span class="eyebrow">Guide</span>
+    <b>Every panel, every button, explained.</b>
+    <span>Mods · Sort · Problems · Texture conflicts · Downloads · Textures · Saves · Logs · Settings · Keyboard</span>
+    <span class="go">Open the guide →</span>
+  </a>
+
+  <section id="live">
+    <h2>Live, always</h2>
+    <p class="note">You never press Refresh. While the window is open, RimStack looks at your mods, saves and the game every two seconds and updates what it shows by itself, without moving the list you are working on.</p>
+    <div class="grid">
+      <div class="card"><h3>Steam downloads and updates</h3><p>Subscribe, unsubscribe or let Steam update a mod: it appears, goes, or shows its new version in the lists.</p></div>
+      <div class="card"><h3>Mods changed by hand</h3><p>A folder copied into Mods, an <code>About.xml</code> edited, a Git checkout pulled: read again at once.</p></div>
+      <div class="card"><h3>The game's own list</h3><p>If the game or another tool rewrites <code>ModsConfig.xml</code>, RimStack offers that list. It never takes it over yours on its own.</p></div>
+      <div class="card"><h3>Saves and logs</h3><p>A new save appears in Saves. When the game stops, its log is read and its errors grouped in Logs.</p></div>
+      <div class="card"><h3>The game running</h3><p>Play turns into Running while RimWorld is open, and comes back when it closes.</p></div>
+      <div class="card"><h3>Every setting</h3><p>Theme, language, text size, font, your own colours and translations apply the moment you change them.</p></div>
+    </div>
+  </section>
+
+  <section id="features">
+    <h2>Sorts by what is inside</h2>
+    <p class="note">Most managers sort with the rules mod authors wrote down. Plenty of mods never wrote any, so you sort by hand and guess. RimStack opens the compiled DLLs and reads them. It never runs anything. It sees which game methods each mod patches with Harmony (prefix, postfix, transpiler, finalizer) and uses that to find load order rules nobody declared. Every move Sort makes comes with its reason, and nothing is applied until you say so.</p>
+    <div class="grid">
+      <div class="card"><h3>Reads the code</h3><p>Harmony patches and XML patches become load order rules, shown as "Detected from files".</p></div>
+      <div class="card"><h3>Automatic categories</h3><p>Loaders, game and DLC, libraries, content, patches, textures, interface, performance. From what is in the mod, never its name. Override any of them.</p></div>
+      <div class="card"><h3>Only changes your mod order</h3><p>The one file it writes is your mod list, and the old one is kept beside it. It does not touch the game.</p></div>
+    </div>
+
+    <h2>What else</h2>
+    <div class="grid">
+      <a class="card" href="#mods-problems"><h3>Explains problems</h3><p>Missing requirements, clashes, wrong game version, duplicates, with the fix next to it.</p></a>
+      <a class="card" href="#mods-conflicts"><h3>Texture conflicts</h3><p>Two mods ship the same texture? Compare them side by side and pick one.</p></a>
+      <a class="card" href="#textures"><h3>PNG to DDS built in</h3><p>No extra tool. Every file it makes is recorded, and only those are ever removed.</p></a>
+      <a class="card" href="#mods-broken"><h3>Find the broken mod</h3><p>Switches half your mods off, you play, and it narrows down to the one. Your list comes back after.</p></a>
+      <a class="card" href="#logs"><h3>Reads the game's errors</h3><p>Groups them and names the mod from the stack trace.</p></a>
+      <a class="card" href="#saves"><h3>Saves</h3><p>See which mods a save was made with, which are missing, and open it with that list.</p></a>
+      <a class="card" href="#downloads-updates"><h3>Updates</h3><p>Workshop mods that are behind, and a heads up when a new RimStack is out, stable or nightly.</p></a>
+      <a class="card" href="#start-first-run"><h3>Coming from RimSort?</h3><p>It imports your rules, tags and notes on first run.</p></a>
+      <div class="card"><h3>Multi-language and fast</h3><p>Native, not a script. Built with 2,000 mods in mind.</p></div>
+    </div>
+  </section>
+
+  <section id="guide">
+    <h2>Guide</h2>
+    <p class="note">Every part of the window, what it does, and what it writes. Nothing here needs reading before you start: RimStack explains itself as you go.</p>
+    <section class="panel" id="start">
+<h2 class="panel-title">Getting started</h2>
+<p class="lede">RimStack manages one thing, the order and choice of your RimWorld mods, and explains every step. This guide walks through each part of the window.</p>
+
+<div class="cards">
+  <a href="#mods"><b>Mods</b><span>The load order, Sort, problems, texture conflicts and finding a broken mod.</span></a>
+  <a href="#downloads"><b>Downloads</b><span>Adding mods from links, updates, and what the load order is missing.</span></a>
+  <a href="#textures"><b>Textures</b><span>Converting PNG to DDS so the game loads faster.</span></a>
+  <a href="#saves"><b>Saves</b><span>Which mods each save needs, and loading its list.</span></a>
+  <a href="#logs"><b>Logs</b><span>The game's errors, grouped, with the mod they point at.</span></a>
+  <a href="#settings"><b>Settings</b><span>Folders, how Play starts the game, appearance and sorting.</span></a>
+</div>
+
+<h3 id="start-first-run">The first run</h3>
+<p>RimStack finds RimWorld, your config folder and your Workshop mods through Steam. If it can't, it asks for the folder. The first run is one short page in five steps: what was found, the community data to fetch, how Sort should work, the look, and Start. Your current mod list is kept as it is.</p>
+<figure><img src="img/first1.webp" alt="First run, Community data step: four community databases, each with a checkbox" loading="lazy" width="1200" height="717"><figcaption>Community data: player-kept rules and lists, fetched from GitHub when you press Start, and after that only when you ask.</figcaption></figure>
+<p>If you used RimSort before, the first run offers to import your own rules, tags and notes. RimSort's files are only read.</p>
+<figure><img src="img/first2.webp" alt="First run, Sorting step: each mod's own rules always, community rules, patch and def hints" loading="lazy" width="1200" height="717"><figcaption>Sorting: each mod's own rules always count. Community rules and hints read from the files are your choice, and you can change them in Settings later.</figcaption></figure>
+
+<h3 id="start-window">The window</h3>
+<ul class="points">
+  <li><b>Top bar.</b> The six sections, the search box (<kbd>Ctrl</kbd> <kbd>K</kbd>), the Lists menu and <b>Play</b>. A badge on Play counts what is in the way of a good launch, such as errors or unsaved changes. Pressing Play then lists them, with the fix for each, or lets you play anyway.</li>
+  <li><b>Status bar.</b> When the game was last started and how many different errors its log shows. Click it to open Logs. <b>History</b> lists what RimStack changed, and <b>Keys</b> lists every shortcut.</li>
+  <li><b>Sections.</b> <kbd>Ctrl</kbd> <kbd>1</kbd> to <kbd>6</kbd> switch between Mods, Downloads, Textures, Saves, Logs and Settings.</li>
+</ul>
+
+<h3 id="start-writes">What RimStack writes</h3>
+<div class="callout">
+  <p><strong>Nothing reaches the game before Save.</strong> Moving, activating, sorting and loading a list all change the list in RimStack only, and each step can be undone.</p>
+  <p>Save writes one file, the game's <code>ModsConfig.xml</code>. The file as it was is copied beside it first, as <code>.rimstack-backup</code>. The very first time, it is also copied as <code>.rimstack-original</code>, and Settings can bring that list back.</p>
+</div>
+<p>Three other things write, and only when you ask:</p>
+<ul class="points">
+  <li><b>Texture conversion</b> writes a <code>.dds</code> beside each <code>.png</code>. Every file is recorded, and only those are ever removed. See <a href="#textures">Textures</a>.</li>
+  <li><b>Choosing a texture</b> when two mods ship the same one renames the losing file inside its mod so the game skips it, and records it so it can be put back. See <a href="#mods-conflicts">texture conflicts</a>.</li>
+  <li><b>Play</b> copies your newest save to RimStack's own folder before it starts the game.</li>
+</ul>
+
+<h3 id="start-search">Search and commands</h3>
+<div class="split">
+  <div>
+    <p><kbd>Ctrl</kbd> <kbd>K</kbd> opens one box for everything: type part of a mod's name, a command such as <i>Sort</i>, <i>Find the broken mod</i> or <i>Copy the load order as text</i>, or the name of a setting. Commands that do nothing right now are left out.</p>
+    <p>Inside the Mods screen, <kbd>Ctrl</kbd> <kbd>F</kbd> filters the load order instead. See <a href="#mods-filter">filters</a>.</p>
+  </div>
+  <figure><img src="img/search.webp" alt="The search box listing commands, each with its group" loading="lazy" width="584" height="424"></figure>
+</div>
+
+<h3 id="start-keys">Keyboard</h3>
+<div class="split">
+  <div>
+    <p>Press <kbd>?</kbd> anywhere for this sheet. The ones worth learning first:</p>
+    <div class="tablewrap"><table>
+      <tbody>
+        <tr><td><kbd>Ctrl</kbd> <kbd>S</kbd></td><td>Save the load order</td></tr>
+        <tr><td><kbd>Ctrl</kbd> <kbd>Z</kbd> · <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Z</kbd></td><td>Undo · Redo</td></tr>
+        <tr><td><kbd>Enter</kbd></td><td>Activate or deactivate the selected mod</td></tr>
+        <tr><td><kbd>Alt</kbd> <kbd>Up</kbd> · <kbd>Alt</kbd> <kbd>Down</kbd></td><td>Move the mod one place</td></tr>
+        <tr><td><kbd>T</kbd> · <kbd>N</kbd></td><td>Type the mod's tags · its note</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>Close, cancel, clear the selection</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+  <figure><img src="img/keys.webp" alt="The keyboard sheet: everywhere, load order, a list of mods, texture comparison" loading="lazy" width="588" height="577"></figure>
+</div>
+
+<h3 id="start-live">Live, with nothing to refresh</h3>
+<p>RimStack looks at your mod folders, saves, the game's log and its <code>ModsConfig.xml</code> every two seconds while the window is open. A mod Steam just downloaded or updated shows up by itself, a new save appears in Saves, and the log of a game that just closed is read in Logs. If something outside RimStack rewrites the game's mod list, you are offered it, never forced.</p>
+
+<h3 id="start-language">Language and look</h3>
+<p>English, Deutsch, Español, Français, Italiano, Polski and Português. A language, theme, text size or font chosen in Settings applies at once, with the window open.</p>
+    </section>
+    <section class="panel" id="mods">
+<h2 class="panel-title">Mods</h2>
+<p class="lede">Your load order, the mods you are not using, and what RimStack knows about each one.</p>
+
+<h3 id="mods-lists">Two lists</h3>
+<p><b>Inactive</b> holds every installed mod you are not using. <b>Active</b> is the load order, top to bottom, under category headings. Click a heading to fold it.</p>
+<ul class="points">
+  <li><b>Activate:</b> double-click a mod or press <kbd>Enter</kbd>. RimStack places it where its rules allow. Do the same on an active mod to deactivate it.</li>
+  <li><b>Place it yourself:</b> drag it. A line shows where it lands. <kbd>Alt</kbd> <kbd>Up</kbd> and <kbd>Alt</kbd> <kbd>Down</kbd> move the selected mod one place.</li>
+  <li><b>Select several:</b> <kbd>Ctrl</kbd>-click and <kbd>Shift</kbd>-click, then act on them together. See <a href="#mods-several">several mods</a>.</li>
+  <li><b>Hide</b> folds the Inactive list to a rail at the left edge, where one button opens it over the load order. <b>Pin</b> puts it back.</li>
+</ul>
+<p>The <b>View</b> menu chooses the columns. Settings has row sizes: Compact, Roomy, and With pictures, which shows each mod's preview.</p>
+
+<h3 id="mods-categories">Categories</h3>
+<p>RimStack files every mod under one category from what is inside it, never from its name: loaders, game and DLC, libraries, content, patches, textures, interface, performance. Categories load in a fixed order, which is a large part of a sensible load order with no rules at all. Choose another one for any mod under <b>Filed under</b> in its About tab, and your choice stands over RimStack's.</p>
+
+<h3 id="mods-save">Save, Undo, Redo</h3>
+<p>Every change happens in RimStack first. <b>Save</b> (<kbd>Ctrl</kbd> <kbd>S</kbd>) lights up when the list differs from the game's file, and writes it. <kbd>Ctrl</kbd> <kbd>Z</kbd> and <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Z</kbd> undo and redo every list change. If the game's file changes outside RimStack, you are offered its list instead of having it taken for you.</p>
+
+<h3 id="mods-sort">Sort</h3>
+<p>Sort never changes the list by itself. It shows the order your rules ask for, with every move and the rule behind it, and you choose <b>Apply</b> or <b>Discard</b>.</p>
+<figure><img src="img/sort.webp" alt="The Mods screen with Sort · 6 moves waiting above the load order" loading="lazy" width="1200" height="675"><figcaption><b>Sort · 6 moves</b> says six mods are out of place. Pressing it shows each move and its reason first, and nothing changes until you choose Apply.</figcaption></figure>
+<p>The rules come from four places, strongest first:</p>
+<ol class="steps">
+  <li><b>Your own rules,</b> such as "load after" or "load before", added in a mod's Load order tab.</li>
+  <li><b>Community rules</b> kept by players, for mods whose files don't say enough (optional, from <a href="#settings-sorting">Settings</a>).</li>
+  <li><b>Each mod's own rules</b> from its <code>About.xml</code>. A required mod is also loaded first, which the game itself doesn't insist on.</li>
+  <li><b>Hints read from the files:</b> a mod whose patches or defs point at another mod's defs, and the game code each mod patches with Harmony. RimStack reads the compiled DLLs and runs nothing. A hint gives way to every other rule.</li>
+</ol>
+<p>Among the orders that keep every rule, Sort picks the one closest to your current list, so nothing moves without a reason. When rules contradict each other, the weakest one is dropped and named.</p>
+
+<h3 id="mods-problems">Problems</h3>
+<div class="split">
+  <div>
+    <p>The count above the load order covers errors (the game will trip on them) and warnings (it runs, but something may not work). The arrows beside it step from one mod with a problem to the next, and <b>All problems</b> opens the whole list, grouped by kind.</p>
+    <p>RimStack checks for:</p>
+    <ul class="points">
+      <li>a missing requirement, with Download beside it</li>
+      <li>two mods that don't go together</li>
+      <li>a mod made for another game version</li>
+      <li>a mod installed twice</li>
+      <li>a broken rule, or a mod above the game or a DLC it needs</li>
+      <li>textures provided twice</li>
+    </ul>
+    <p>Any warning can be ignored from the mod's menu or its details. "Made for another game version" can be ignored for every mod at once, until the game updates.</p>
+  </div>
+  <figure><img src="img/problems.webp" alt="The problems panel: 45 warnings for mods made for another game version, with Ignore all and Find the broken mod" loading="lazy" width="362" height="330"></figure>
+</div>
+
+<h3 id="mods-details">A mod's details</h3>
+<div class="split">
+  <div>
+    <p>Select a mod to see its picture, author, source, version and size, with <b>Deactivate</b>, <b>Open folder</b> and its Workshop page. Three tabs:</p>
+    <ul class="points">
+      <li><b>About</b> starts with what needs your attention before you play, then texture conflicts, tags and note, and the description.</li>
+      <li><b>Load order</b> gives its position, what it loads after and before and which rule says so, and buttons to add your own rule.</li>
+      <li><b>Files</b> lists what the mod contains and any files RimStack hid in it.</li>
+    </ul>
+    <p>With nothing selected, this side shows the whole list: whether it is playable, what is worth reviewing, and what is kept.</p>
+  </div>
+  <figure><img src="img/loadorder.webp" alt="The Load order tab: position 2 of 101 in Loaders, Load after and Load before buttons, and what it loads before" loading="lazy" width="362" height="782"></figure>
+</div>
+<p>Right-click a row (or press the <kbd>Menu</kbd> key) for the mod's menu: copy its name or package id, open its pages, add a tag, ignore a warning, copy a Workshop mod to the game's own Mods folder to freeze it, unsubscribe, or move it to the bin.</p>
+
+<h3 id="mods-filter">Filters</h3>
+<p><kbd>Ctrl</kbd> <kbd>F</kbd> filters both lists. Type part of a name, or one of these. The box suggests them as you type:</p>
+<div class="tablewrap"><table>
+  <thead><tr><th>Filter</th><th>Shows the mods</th></tr></thead>
+  <tbody>
+    <tr><td><code>is:error</code> · <code>is:warning</code></td><td>with a problem</td></tr>
+    <tr><td><code>is:conflict</code></td><td>sharing textures with another</td></tr>
+    <tr><td><code>is:changed</code></td><td>moved or activated since the last save</td></tr>
+    <tr><td><code>is:new</code></td><td>installed since the game was last started</td></tr>
+    <tr><td><code>is:recent</code></td><td>updated by Steam in the last week</td></tr>
+    <tr><td><code>is:updated</code></td><td>with a newer version, after checking for updates</td></tr>
+    <tr><td><code>is:local</code></td><td>not from the Workshop</td></tr>
+    <tr><td><code>is:duplicate</code></td><td>installed more than once</td></tr>
+    <tr><td><code>is:notinsave</code></td><td>active, and not in the newest save</td></tr>
+    <tr><td><code>has:code</code></td><td>that ship compiled code</td></tr>
+    <tr><td><code>patches:</code></td><td>that patch this method of the game</td></tr>
+    <tr><td><code>tag:</code> · <code>author:</code></td><td>with this tag · by this author</td></tr>
+  </tbody>
+</table></div>
+
+<h3 id="mods-conflicts">Texture conflicts</h3>
+<p>When two active mods ship the same texture, the one lower in the load order wins all of them. To choose texture by texture, open <b>Compare</b> from either mod's About tab.</p>
+<figure><img src="img/compare.webp" alt="The texture comparison: the shared texture list on the left, both versions side by side, Keep this one under each" loading="lazy" width="1200" height="717"><figcaption>Side by side, as a slider, or as the difference between the two. <kbd>1</kbd> and <kbd>2</kbd> keep the left or the right one, and <kbd>Up</kbd> and <kbd>Down</kbd> go through the list.</figcaption></figure>
+<ul class="points">
+  <li><b>Win all</b> adds one of your rules so this mod loads after the other and wins everything.</li>
+  <li><b>Keep this one</b> against the load order hides the other mod's file by renaming it to <code>.rimstack-hidden</code> inside its folder, so the game skips it. Nothing is deleted. History and the mod's Files tab bring it back.</li>
+  <li>If Steam restores a hidden file when it updates the mod, RimStack hides it again.</li>
+</ul>
+
+<h3 id="mods-several">Several mods at once</h3>
+<figure><img src="img/several.webp" alt="Four mods selected: the side shows them, and a bar below offers Deactivate, Tag, Group, Ignore version warning, To top and To bottom" loading="lazy" width="1000" height="683"><figcaption>With several mods selected, the bar below the list acts on all of them.</figcaption></figure>
+
+<h3 id="mods-tags">Tags, notes, groups</h3>
+<p>Press <kbd>T</kbd> to type tags for the selected mod, and <kbd>N</kbd> for a note. A mod's first tag groups it: inside a category, mods with the same first tag stay side by side under its name. <b>Group</b> in the mod's menu, or in the bar for several mods, sets that first tag.</p>
+
+<h3 id="mods-saved-lists">Saved lists and the clipboard</h3>
+<p>The <b>Lists</b> menu at the top keeps named copies of your load order. <b>Use</b> one to bring it back, or <b>Update</b> it with the current list. <b>Copy the load order</b> puts it on the clipboard as text, one mod a line. <b>Use the copied list</b> turns a list someone pasted to you, as names or Workshop links, into your load order. Nothing is written before Save.</p>
+
+<h3 id="mods-history">History</h3>
+<p><b>History</b>, in the status bar, lists what RimStack changed: the load order as it was before each change, and textures it hid. Each can be brought back, and a load order brought back is written only on Save.</p>
+
+<h3 id="mods-broken">Find the broken mod</h3>
+<p>When something breaks and you don't know which mod causes it, RimStack can halve the list until one mod is left:</p>
+<ol class="steps">
+  <li>Start <b>Find the broken mod</b> from the problems panel, Logs, or <kbd>Ctrl</kbd> <kbd>K</kbd>. Your newest save is copied first.</li>
+  <li>Half of the suspects are switched off. Press <b>Save and play</b>, and check in the main menu or a test colony. Don't load or save your real colony during a round.</li>
+  <li>Come back and say <b>Works now</b> or <b>Still broken</b>. Repeat until one mod remains.</li>
+  <li>Keep <b>My list without it</b>, or go back to <b>My list as it was</b>.</li>
+</ol>
+    </section>
+    <section class="panel" id="downloads">
+<h2 class="panel-title">Downloads</h2>
+<p class="lede">Adding mods, keeping them current, and seeing what changed.</p>
+<figure><img src="img/downloads.webp" alt="The Downloads screen: the Add mods field, cards for Updates, Missing and SteamCMD, and the mods changed since the game last started" width="1200" height="317"></figure>
+
+<h3 id="downloads-add">Add mods</h3>
+<p>Paste Workshop links, a collection link, mod ids or Git links into <b>Add mods</b>, several at once, and press <b>Look up</b>. Each one found is listed with its name, and you choose how to get it:</p>
+<ul class="points">
+  <li><b>Subscribe in Steam.</b> Steam must be running. It downloads the mods and keeps them up to date afterwards.</li>
+  <li><b>Download with SteamCMD.</b> Into the game's own Mods folder, without subscribing, so Steam won't update them.</li>
+  <li><b>Clone</b> a Git link into the game's Mods folder. Checking for updates then asks its repository.</li>
+</ul>
+
+<h3 id="downloads-updates">Updates</h3>
+<p><b>Check now</b> asks Steam for the current version of each installed Workshop mod. Only their Workshop ids are sent. It also asks Git for new commits on each mod kept as a Git checkout. What it finds shows under <b>Newer versions</b>. <b>Update in Steam</b> has Steam download them right away; left alone, Steam does it the next time it starts.</p>
+<p>A Git checkout has its own <b>Update</b>, which moves it forward to the remote and stops if the folder has changes of its own.</p>
+
+<h3 id="downloads-missing">Missing</h3>
+<p>Mods the load order needs and that are not installed, each with its fix. These are the same requirements the Mods screen counts as errors.</p>
+
+<h3 id="downloads-steamcmd">SteamCMD</h3>
+<p>Valve's own downloader, for getting a mod without subscribing. <b>Install</b> fetches it from Valve into RimStack's data folder. It runs with a home folder of its own, so it can't touch Steam's settings.</p>
+
+<h3 id="downloads-changed">Changed since the game last started</h3>
+<p>Every mod Steam updated or installed since your last launch, newest first, for active mods, inactive ones or all. <b>Fetch change notes</b> brings in what each author wrote about the update. The button beside a mod opens its notes on the Workshop. If the game breaks after an update, this is the list to read first.</p>
+    </section>
+    <section class="panel" id="textures">
+<h2 class="panel-title">Textures</h2>
+<p class="lede">The game loads a DDS texture faster than a PNG, and with less memory. RimStack converts them for you, with no extra tool.</p>
+<figure><img src="img/textures.webp" alt="The Textures screen: 15 177 of 16 005 textures have a DDS, three mods to convert, a table of mods with texture counts and sizes" width="1200" height="717"></figure>
+
+<h3 id="textures-convert">Converting</h3>
+<p>The top line counts how many of your active mods' textures already have a DDS, and what converting costs and saves on disk. <b>Convert remaining</b> writes a <code>.dds</code> beside every <code>.png</code> that has none, inside each mod's own folder. The PNG files are not changed. Each row can also be converted on its own, or skipped.</p>
+<ul class="points">
+  <li>Textures with transparency are written as BC7, the others as DXT1, with mipmaps.</li>
+  <li>Stopping finishes the mod it is on. What is done stays done.</li>
+  <li><b>Rebuild out of date</b> converts again where a PNG changed after its DDS was made.</li>
+  <li>Steam may delete the DDS files when it updates a mod. They then show as not converted again.</li>
+</ul>
+
+<h3 id="textures-removing">Removing</h3>
+<div class="callout"><p><strong>Only what RimStack made.</strong> Every file it writes is recorded. <b>Remove converted</b> deletes only those files, and only if they haven't changed since. A DDS the mod author shipped is never touched.</p></div>
+
+<h3 id="textures-check">Check all mods</h3>
+<p>Reads the header of every DDS file of your installed mods, including the author's own, and finds the ones the game would refuse: not really a DDS, cut short, a format the game has no reader for, or compressed at a size that isn't a multiple of four. Each one it finds can be renamed to <code>.dds.rimstack-bad</code>, so the game loads the PNG beside it instead.</p>
+
+<h3 id="textures-conflicts">Two mods, one texture</h3>
+<p>Choosing between two mods that ship the same texture is done on the Mods screen. See <a href="#mods-conflicts">texture conflicts</a>.</p>
+    </section>
+    <section class="panel" id="saves">
+<h2 class="panel-title">Saves</h2>
+<p class="lede">Every save, compared with your load order before you load it.</p>
+<figure><img src="img/saves.webp" alt="The Saves screen: three saves with their mod counts and differences, the selected one detailed on the right" width="1200" height="717"></figure>
+
+<h3 id="saves-list">The list</h3>
+<p>Each save shows when it was played, the game version, how many mods it used, and short marks for how it differs from your load order now: mods not active, another game version, mods added, a different order. Marks that can break a save are coloured. Mods added or moved are not.</p>
+
+<h3 id="saves-details">A save's details</h3>
+<ul class="points">
+  <li>The colony: name, colonists, settlements, storyteller, difficulty, scenario and seed.</li>
+  <li><b>Differences from the current list:</b> mods the save was played with that are not installed, or not active now, mods active now that it was not played with, and whether the shared mods are in another order.</li>
+  <li><b>Use this save's mod list</b> makes it your load order on the Mods screen. Save writes it.</li>
+  <li><b>Save its list as…</b> keeps it under <a href="#mods-saved-lists">saved lists</a>.</li>
+</ul>
+
+<h3 id="saves-backups">Backups</h3>
+<p>When you press Play, the newest save is copied to RimStack's own folder first. The last five are kept. <b>Open the backups folder</b>, on this screen, shows them.</p>
+    </section>
+    <section class="panel" id="logs">
+<h2 class="panel-title">Logs</h2>
+<p class="lede">The game's log can run to thousands of lines. RimStack groups it into the errors that matter and names the mod behind each one.</p>
+<figure><img src="img/logs-errors.webp" alt="The Errors view: five distinct errors, each with how often it was logged and the mod it points at" width="1000" height="371"><figcaption>One error that repeats counts once, with how many times it was logged.</figcaption></figure>
+
+<h3 id="logs-views">Three views</h3>
+<ul class="points">
+  <li><b>Errors.</b> Each distinct error, how often it was logged, and the mod its stack trace points at. Click the mod to go to it. The details show the stack trace, <b>Show in log</b>, and <b>Copy report</b>, which copies the error, its stack trace, the game version and the likely mod as text for asking for help.</li>
+  <li><b>Mods.</b> The mods the errors point at, with how many errors each and how often.</li>
+  <li><b>Log.</b> The whole log, searchable, with an E or W in the margin for each error or warning.</li>
+</ul>
+<figure><img src="img/logs-mods.webp" alt="The Mods view of Logs: four mods with the number of errors each and how often they were logged" loading="lazy" width="1200" height="717"></figure>
+
+<h3 id="logs-launches">Launches</h3>
+<p>The game keeps the logs of its last two launches. RimStack also records each launch it starts: its load order and how it went. Settings decides how many logs to keep. For a recorded launch you can see whether its load order is the same as now, and <b>Use its list</b> to make it your load order again.</p>
+<p><b>Since the last clean launch</b> lists what changed between the last launch without errors and now.</p>
+
+<h3 id="logs-broken">When no mod is named</h3>
+<p>Some errors name no mod, and no active mod's code is in their stack trace. For those, <b>Find the broken mod</b> halves your list until one mod is left. See <a href="#mods-broken">how it works</a>.</p>
+    </section>
+    <section class="panel" id="settings">
+<h2 class="panel-title">Settings</h2>
+<p class="lede">Every setting applies as soon as you change it, without a restart. <b>Find a setting</b> at the top of the list searches them all.</p>
+
+<h3 id="settings-game">Game and folders</h3>
+<ul class="points">
+  <li><b>Folders.</b> The game, its config and saves, and Workshop mods, found through Steam. Type another folder to use it. RimStack checks it after a pause and refuses one that isn't right. Empty the box to have it found again.</li>
+  <li><b>Play starts the game</b> through Steam, or directly from its folder for a copy that isn't Steam's. <b>Launch arguments</b> are passed to the game, as in Steam's own launch options.</li>
+  <li><b>Load order.</b> The file Save writes, and the copies kept beside it.</li>
+  <li><b>Git.</b> Whether Git is installed, and whether Workshop mods kept as Git checkouts are checked for updates too.</li>
+</ul>
+
+<h3 id="settings-appearance">Appearance</h3>
+<figure><img src="img/settings-look.webp" alt="Settings, Appearance: theme, language, colours, font, text size, mod rows, motion, contrast, first-run hints and links" loading="lazy" width="1200" height="717"></figure>
+<ul class="points">
+  <li><b>Theme:</b> Rim, Dark, OLED or Light. <b>Colours</b> reads your own colours for a theme from <code>theme.json</code>.</li>
+  <li><b>Language,</b> and <b>Edit translations</b> to change any text in your language.</li>
+  <li><b>Font</b> and <b>Text size</b>. Rows, buttons and bars grow with the text.</li>
+  <li><b>Mod rows:</b> Compact, Roomy, or With pictures.</li>
+  <li><b>Motion</b> Reduced: nothing slides, fades or spins. <b>Contrast</b> High: grey text and thin lines get stronger, and panels get an outline.</li>
+  <li><b>Workshop pages open in</b> your browser or in Steam.</li>
+</ul>
+
+<h3 id="settings-sorting">Sorting</h3>
+<figure><img src="img/settings-sort.webp" alt="Settings, Sorting: community rules, patch and def hints, community databases and game version mismatch" loading="lazy" width="1200" height="717"></figure>
+<ul class="points">
+  <li><b>Community rules</b> on or off, and whether <b>patch and def hints</b> are used by Sort or only shown.</li>
+  <li><b>Community databases,</b> fetched from GitHub when you ask: the Community Rules Database, No Version Warning (mods that work on this game version without saying so), Use This Instead (maintained replacements for abandoned mods) and the Steam Workshop Database (names of mods that are not installed). Each can be switched off.</li>
+  <li><b>Game version mismatch:</b> warn, ignore for this game version, or ignore.</li>
+</ul>
+
+<h3 id="settings-rimstack">RimStack</h3>
+<ul class="points">
+  <li><b>When the game misbehaves:</b> <b>Verify with Steam</b> has Steam compare every game file with its own copy. <b>Set aside</b> moves every mod's settings file out of the game's Config folder into a dated folder of RimStack's, so mods start from their defaults. Moving the files back restores them.</li>
+  <li><b>List from before RimStack:</b> brings back the load order the game had before RimStack first saved.</li>
+  <li><b>Logs kept,</b> and the folders RimStack keeps its records, settings and diagnostics in.</li>
+  <li><b>Updates of RimStack itself:</b> look for a new version at each start, Stable or Nightly. It only tells you; it installs nothing by itself.</li>
+</ul>
+    </section>
+  </section>
+
+  <section id="install">
+    <h2>Install</h2>
+    <p class="note">Grab the file for your system from the <a href="https://github.com/TheForgotten69/RimStack/releases">Releases page</a>. RimStack finds RimWorld through Steam, and asks for the folder if it can't.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>System</th><th>File</th></tr></thead>
+        <tbody>
+          <tr><td>Windows</td><td>Installer (<code>-setup.exe</code>) or zip</td></tr>
+          <tr><td>macOS</td><td>dmg, Apple silicon only</td></tr>
+          <tr><td>Linux</td><td>AppImage</td></tr>
+          <tr><td>Arch (AUR)</td><td>Coming soon</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 style="margin-top:32px">The apps are not signed yet</h3>
+    <p class="note">Signing costs money, so for now Windows and macOS will warn you. The files are fine, here is how to get past it once.</p>
+    <div class="grid">
+      <div class="card"><h3>Windows</h3><p>SmartScreen says "Windows protected your PC". Click <b>More info</b>, then <b>Run anyway</b>.</p></div>
+      <div class="card"><h3>macOS</h3><p>Drag RimStack to Applications and try to open it once. Then open <b>System Settings, Privacy &amp; Security</b>, scroll down and click <b>Open Anyway</b>. On older macOS, right-click the app and choose <b>Open</b>.</p></div>
+      <div class="card"><h3>Linux</h3><p>Make the AppImage executable and run it: <code>chmod +x RimStack-*.AppImage</code>.</p></div>
+    </div>
+  </section>
+
+
+  <footer>
+    RimStack is free software under the GPL-3.0-or-later.
+    <a href="#guide">Guide</a> ·
+    <a href="https://github.com/TheForgotten69/RimStack">Source</a> ·
+    <a href="https://github.com/TheForgotten69/RimStack/issues">Issues</a>
+  </footer>
+</div>
+</div>
+<script>
+(() => {
+  const side = document.getElementById("side");
+  const button = document.querySelector(".menu-btn");
+  const scrim = document.querySelector(".scrim");
+  const drawer = window.matchMedia("(max-width: 1099px)");
+  const close = (back) => {
+    side.classList.remove("open");
+    scrim.hidden = true;
+    button.setAttribute("aria-expanded", "false");
+    if (back) button.focus();
+  };
+  button.addEventListener("click", () => {
+    const open = !side.classList.contains("open");
+    side.classList.toggle("open", open);
+    scrim.hidden = !open;
+    button.setAttribute("aria-expanded", String(open));
+    if (open) side.querySelector("a").focus();
+  });
+  scrim.addEventListener("click", () => close(true));
+  side.addEventListener("click", e => { if (e.target.closest("a") && drawer.matches) close(false); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && side.classList.contains("open")) close(true); });
+  drawer.addEventListener("change", () => close(false));
+})();
+(() => {
+  const links = new Map([...document.querySelectorAll(".side nav a")].map(a => [a.getAttribute("href").slice(1), a]));
+  const targets = [...links.keys()].map(id => document.getElementById(id)).filter(Boolean);
+  if (!("IntersectionObserver" in window) || targets.length === 0) return;
+  let current = null;
+  const seen = new IntersectionObserver(entries => {
+    const top = entries.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+    if (!top) return;
+    if (current) current.removeAttribute("aria-current");
+    current = links.get(top.target.id);
+    current.setAttribute("aria-current", "true");
+    current.scrollIntoView({ block: "nearest", behavior: "auto" });
+  }, { rootMargin: "0px 0px -70% 0px" });
+  targets.forEach(t => seen.observe(t));
+})();
+</script>
+</body>
+</html>

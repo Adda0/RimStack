@@ -1,0 +1,90 @@
+// Entries: { text, icon, off, danger, run }, { line: true } for a divider,
+// or { title } for a caption.
+pragma ComponentBehavior: Bound
+import QtQuick
+import QtQuick.Controls.Basic
+import RimStack.Ui
+
+Popup {
+    // It leaves at once: while a menu fades out the window's shortcuts do not answer.
+    enter: PopIn {}
+    id: menu
+    property var entries: []
+    // The entry the arrow keys are on; -1 for none.
+    property int at: -1
+    function step(by) {
+        let next = at
+        for (let tries = 0; tries < entries.length; tries++) {
+            next = (next + by + entries.length) % entries.length
+            const entry = entries[next]
+            if (!entry.line && !entry.title && !entry.off) {
+                at = next
+                return
+            }
+        }
+    }
+    onOpened: { at = -1; contentItem.forceActiveFocus() }
+
+    // Clamped to the window here: the entries are not laid out yet when openAt runs.
+    property point wanted
+    x: Math.max(4, Math.min(wanted.x, parent.width - width - 4))
+    y: Math.max(4, Math.min(wanted.y, parent.height - height - 4))
+    function openAt(item, x, y, entries) {
+        menu.entries = entries
+        wanted = item.mapToItem(parent, x, y)
+        open()
+    }
+
+    parent: Overlay.overlay
+    padding: Theme.gapTiny
+    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+    background: Rectangle { radius: Theme.cornerLarge; color: Theme.bar; border.width: 1; border.color: Theme.line }
+    contentItem: Column {
+        Keys.onDownPressed: menu.step(1)
+        Keys.onUpPressed: menu.step(-1)
+        Keys.onReturnPressed: if (menu.at >= 0) { const chosen = menu.entries[menu.at]; menu.close(); chosen.run() }
+        Repeater {
+            model: menu.entries
+            Item {
+                id: entry
+                required property var modelData
+                required property int index
+                readonly property bool line: !!modelData.line
+                readonly property bool off: !!modelData.off
+                readonly property bool caption: !!modelData.title
+                implicitWidth: line ? 1 : caption ? heading.implicitWidth + 20 : words.implicitWidth + 46
+                width: Math.max(implicitWidth, parent.width)
+                height: line ? 9 : caption ? 22 : 26
+                Text { id: heading; visible: entry.caption; x: 9; anchors.verticalCenter: parent.verticalCenter; color: Theme.ink3; font.pixelSize: Theme.caption; font.weight: Font.Medium; text: Theme.say(entry.modelData.title || "") }
+                Rectangle { visible: entry.line; y: 4; x: 4; width: parent.width - 8; height: 1; color: Theme.line }
+                Rectangle {
+                    visible: !entry.line && !entry.caption
+                    anchors.fill: parent
+                    radius: Theme.corner
+                    color: (over.hovered || menu.at === entry.index) && !entry.off ? Theme.accent : "transparent"
+                    opacity: entry.off ? 0.4 : 1
+                    Accessible.role: Accessible.MenuItem
+                    Accessible.name: entry.modelData.text || ""
+                    Rectangle { x: 10; anchors.verticalCenter: parent.verticalCenter; visible: !!entry.modelData.colour; width: 10; height: 10; radius: 5; color: entry.modelData.colour || "transparent" }
+                    Icon { x: 8; anchors.verticalCenter: parent.verticalCenter; visible: !!entry.modelData.icon; name: entry.modelData.icon || ""; size: 14; color: words.color }
+                    Text {
+                        id: words
+                        x: 30
+                        anchors.verticalCenter: parent.verticalCenter
+                        color: (over.hovered || menu.at === entry.index) && !entry.off ? Theme.accentInk : entry.modelData.danger ? Theme.err : Theme.ink
+                        font.pixelSize: Theme.body
+                        text: Theme.say(entry.modelData.text || "")
+                    }
+                    HoverHandler { id: over }
+                    TapHandler {
+                        enabled: !entry.off
+                        onTapped: {
+                            menu.close()
+                            entry.modelData.run()
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=RimStack
+GenericName=Mod manager
+Comment=Mod manager for RimWorld
+Exec=rimstack
+Icon=rimstack
+Categories=Game;Utility;
+StartupWMClass=rimstack
+Terminal=false

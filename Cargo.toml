@@ -1,0 +1,15 @@
+[workspace]
+resolver = "2"
+members = ["crates/core", "crates/app"]
+
+[workspace.package]
+edition = "2021"
+rust-version = "1.85"
+license = "GPL-3.0-or-later"
+version = "1.0.0"
+
+[profile.dist]
+inherits = "release"
+lto = "thin"
+codegen-units = 1
+strip = true

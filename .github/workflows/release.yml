@@ -1,0 +1,150 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Version tag to release (v0.9.1); empty for the beta prerelease"
+        required: false
+        default: ""
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_PROFILE_RELEASE_STRIP: "true"
+  RIMSTACK_PROFILE: release
+  QT_VERSION: "6.12.0"
+  AQT_SOURCE: "git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/linux-setup
+      - name: Package
+        run: packaging/linux/package.sh
+      - uses: actions/upload-artifact@v7
+        with:
+          name: package-linux
+          path: target/packages/*
+          if-no-files-found: error
+
+  windows:
+    runs-on: windows-latest
+    env:
+      SIGNED: ${{ secrets.WINDOWS_CERT != '' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          aqtsource: ${{ env.AQT_SOURCE }}
+          arch: win64_msvc2022_64
+          cache: true
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Inno Setup, for the installer
+        run: choco install innosetup --no-progress -y
+      - name: The signing certificate, when there is one
+        if: env.SIGNED == 'true'
+        env:
+          WINDOWS_CERT: ${{ secrets.WINDOWS_CERT }}
+        shell: pwsh
+        run: |
+          $file = Join-Path $env:RUNNER_TEMP "sign.pfx"
+          [IO.File]::WriteAllBytes($file, [Convert]::FromBase64String($env:WINDOWS_CERT))
+          "SIGN_CERT=$file" | Out-File -FilePath $env:GITHUB_ENV -Append
+      - name: Package
+        shell: pwsh
+        env:
+          SIGN_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+        run: |
+          $env:PATH = "C:\Program Files (x86)\Inno Setup 6;$env:PATH"
+          packaging\windows\package.ps1
+      - uses: actions/upload-artifact@v7
+        with:
+          name: package-windows
+          path: target/packages/*
+          if-no-files-found: error
+
+  macos:
+    runs-on: macos-latest
+    env:
+      SIGNED: ${{ secrets.MAC_CERT != '' }}
+      NOTARIZED: ${{ secrets.MAC_NOTARY_APPLE_ID != '' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          aqtsource: ${{ env.AQT_SOURCE }}
+          cache: true
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: The icon tool, for the package
+        run: brew install librsvg
+      - name: The signing certificate, when there is one
+        if: env.SIGNED == 'true'
+        env:
+          MAC_CERT: ${{ secrets.MAC_CERT }}
+          MAC_CERT_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
+        run: |
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          password=$(uuidgen)
+          security create-keychain -p "$password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$password" "$keychain"
+          echo "$MAC_CERT" | base64 --decode > "$RUNNER_TEMP/sign.p12"
+          security import "$RUNNER_TEMP/sign.p12" -P "$MAC_CERT_PASSWORD" -A -t cert -f pkcs12 -k "$keychain"
+          security set-key-partition-list -S apple-tool:,apple: -k "$password" "$keychain"
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+      - name: The notarization profile, when there are credentials
+        if: env.SIGNED == 'true' && env.NOTARIZED == 'true'
+        env:
+          MAC_NOTARY_APPLE_ID: ${{ secrets.MAC_NOTARY_APPLE_ID }}
+          MAC_NOTARY_PASSWORD: ${{ secrets.MAC_NOTARY_PASSWORD }}
+          MAC_NOTARY_TEAM: ${{ secrets.MAC_NOTARY_TEAM }}
+        run: |
+          xcrun notarytool store-credentials rimstack --apple-id "$MAC_NOTARY_APPLE_ID" \
+            --password "$MAC_NOTARY_PASSWORD" --team-id "$MAC_NOTARY_TEAM"
+          echo "MAC_NOTARY_PROFILE=rimstack" >> "$GITHUB_ENV"
+      - name: Package
+        env:
+          MAC_SIGN_IDENTITY: ${{ secrets.MAC_SIGN_IDENTITY }}
+        run: packaging/macos/package.sh
+      - uses: actions/upload-artifact@v7
+        with:
+          name: package-macos
+          path: target/packages/*
+          if-no-files-found: error
+
+  release:
+    needs: [linux, windows, macos]
+    if: always() && contains(needs.*.result, 'success')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: package-*
+          path: packages
+          merge-multiple: true
+      - name: Move the beta to this commit, with its packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag || 'beta' }}
+        run: packaging/release.sh packages "$GITHUB_SHA" "$TAG"

@@ -1,0 +1,31 @@
+[package]
+name = "rimstack-app"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+version.workspace = true
+
+[[bin]]
+name = "rimstack"
+path = "src/main.rs"
+
+[dependencies]
+rimstack-core = { path = "../core" }
+cxx = "1"
+cxx-qt = "0.10"
+cxx-qt-lib = { version = "0.10", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rayon = "1"
+trash = "5"
+# Local time for the names of kept lists; already built for cxx-qt-lib.
+chrono = "0.4"
+# The languages the system is set to, to start in one of them (MIT/Apache-2.0).
+sys-locale = "0.3"
+
+[build-dependencies]
+cxx-qt-build = { version = "0.10", features = ["link_qt_object_files"] }
+
+[dev-dependencies]
+tempfile = "3"
+image = { version = "0.25", default-features = false, features = ["png"] }
