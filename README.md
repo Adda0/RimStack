@@ -88,12 +88,12 @@ RimStack finds RimWorld through Steam. If it can't, it asks you for the folder.
 
 Signing costs money, so for now Windows and macOS will warn you. The files are fine, here is how to get past it once.
 
-**Windows.** SmartScreen shows "Windows protected your PC". Click **More info**, then **Run anyway**.
+**Windows.** SmartScreen shows "Windows protected your PC". Click **More info**, then **Run anyway**. For the zip, right-click it, choose **Properties**, tick **Unblock**, then extract. If Smart App Control is on (Windows 11), it blocks unsigned programs with no way past it except turning Smart App Control off.
 
-**macOS.** It says the app can't be checked for malicious software.
-1. Drag RimStack to Applications and try to open it once.
+**macOS.** It says Apple could not verify the app is free of malware.
+1. Drag RimStack to Applications and open it once.
 2. Open **System Settings, Privacy & Security**, scroll down, and click **Open Anyway** next to RimStack.
-3. On older macOS you can also right-click the app and choose **Open**.
+3. If macOS says the app is damaged, run this in Terminal: `xattr -dr com.apple.quarantine /Applications/RimStack.app`
 
 **Linux.** Make the AppImage executable and run it: `chmod +x RimStack-*.AppImage`.
 
