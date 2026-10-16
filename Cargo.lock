@@ -1188,7 +1188,7 @@ dependencies = [
 
 [[package]]
 name = "rimstack-app"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "chrono",
  "cxx",
@@ -1208,7 +1208,7 @@ dependencies = [
 
 [[package]]
 name = "rimstack-core"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "chrono",
  "dunce",
