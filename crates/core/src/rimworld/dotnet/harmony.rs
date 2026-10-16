@@ -86,8 +86,10 @@ impl<'a> Assembly<'a> {
         // UTF-16, then one byte that is not part of the text.
         let text = bytes.get(used..used + length.checked_sub(1)?)?;
         let units = text
-            .chunks_exact(2)
-            .map(|pair| u16::from_le_bytes([pair[0], pair[1]]));
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .map(|&pair| u16::from_le_bytes(pair));
         String::from_utf16(&units.collect::<Vec<u16>>()).ok()
     }
 

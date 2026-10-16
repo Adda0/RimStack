@@ -9,7 +9,7 @@ use crate::rimworld::game::When;
 use crate::rimworld::workshopdb::Names;
 use crate::say;
 use crate::say_n;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Trouble {
@@ -17,6 +17,8 @@ pub struct Trouble {
     pub words: Sentence,
     pub short: Sentence,
     pub fix: Fix,
+    /// What `Note::ignored` holds to ignore it; empty for a game version, which has `Fix::Trust`.
+    pub key: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -173,6 +175,18 @@ pub fn troubles(
         None => (id.to_string(), Fix::Search(id.to_string())),
     };
     let in_words = |problem: Problem| -> Trouble {
+        let key = match &problem {
+            Problem::Requires { id, .. } => {
+                format!(
+                    "needs:{}",
+                    crate::rimworld::id::fold(&crate::rimworld::id::split_steam(id).0)
+                )
+            }
+            Problem::Incompatible { with } => {
+                format!("not-with:{}", crate::rimworld::id::fold(&mods[*with].id))
+            }
+            Problem::GameVersion { .. } => String::new(),
+        };
         let (words, short, fix) = match &problem {
             Problem::Requires {
                 id,
@@ -212,6 +226,7 @@ pub fn troubles(
             words,
             short,
             fix,
+            key,
         }
     };
     let mut all: Vec<Vec<Trouble>> = found
@@ -225,10 +240,38 @@ pub fn troubles(
                 words: say!("On the list, but not installed."),
                 short: say!("Not installed"),
                 fix: missing(&m.id).1,
+                key: "missing".to_string(),
             });
         }
     }
     all
+}
+
+/// Takes out the problems ignored, by folded package id; an incompatibility ignored on
+/// either side is gone from both.
+pub fn without_ignored(
+    all: &mut [Vec<Trouble>],
+    mods: &[Mod],
+    ignored: &HashMap<String, HashSet<String>>,
+) {
+    let folded: Vec<String> = mods
+        .iter()
+        .map(|m| crate::rimworld::id::fold(&m.id))
+        .collect();
+    let ignores = |at: usize, key: &str| {
+        ignored
+            .get(&folded[at])
+            .is_some_and(|keys| keys.contains(key))
+    };
+    for (me, own) in all.iter_mut().enumerate() {
+        own.retain(|t| {
+            let other_side = match t.fix {
+                Fix::Deactivate(with) => ignores(with, &format!("not-with:{}", folded[me])),
+                _ => false,
+            };
+            t.key.is_empty() || !(ignores(me, &t.key) || other_side)
+        });
+    }
 }
 
 pub fn code(facts: &Facts) -> Vec<Sentence> {
@@ -369,6 +412,7 @@ mod tests {
             words: Sentence::default(),
             short: Sentence::default(),
             fix,
+            key: String::new(),
         };
         assert!(warned_for_version(&[
             trouble(Fix::None),
@@ -445,6 +489,44 @@ mod tests {
     }
 
     #[test]
+    fn an_ignored_problem_is_taken_out_and_an_incompatibility_from_both_sides() {
+        let (_tmp, library) = two_mods();
+        let mut found = troubles(
+            &library,
+            &library.active,
+            Versions::CheckedBut(&HashSet::new()),
+            &Names::new(),
+        );
+        assert_eq!(found[0][0].key, "needs:gone.lib");
+        assert_eq!(found[2][0].key, "missing");
+        let not_with = |with: usize| Trouble {
+            error: true,
+            words: Sentence::default(),
+            short: Sentence::default(),
+            fix: Fix::Deactivate(with),
+            key: format!(
+                "not-with:{}",
+                crate::rimworld::id::fold(&library.active[with].id)
+            ),
+        };
+        found[0].push(not_with(1));
+        found[1].push(not_with(0));
+        let ignored = HashMap::from([
+            (
+                "a.fine".to_string(),
+                HashSet::from(["not-with:a.old".to_string()]),
+            ),
+            (
+                "not.here".to_string(),
+                HashSet::from(["missing".to_string()]),
+            ),
+        ]);
+        without_ignored(&mut found, &library.active, &ignored);
+        assert_eq!(found[0].len(), 2, "its need and its version stay");
+        assert!(found[1].is_empty() && found[2].is_empty());
+    }
+
+    #[test]
     fn the_game_s_own_parts_are_not_warned_about_for_the_version_they_list() {
         let tmp = tempfile::tempdir().unwrap();
         let about = "<ModMetaData><packageId>ludeon.rimworld.royalty</packageId><name>Royalty</name><supportedVersions><li>1.6</li></supportedVersions></ModMetaData>";
@@ -497,6 +579,7 @@ mod tests {
             words: Sentence::default(),
             short: Sentence::default(),
             fix,
+            key: String::new(),
         };
         let needs = |id: &str| trouble(true, Fix::Activate(id.to_string()));
         let counted = tally(&[

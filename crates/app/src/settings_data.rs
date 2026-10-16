@@ -190,14 +190,12 @@ impl qobject::SettingsData {
         if changes.contains(settings) {
             self.as_mut().set_report(to_qml(&app.settings_report()));
         }
-        if changes.contains(Changes::SETTINGS | Changes::COMMUNITY) {
+        if changes.contains(Changes::SETTINGS | Changes::COMMUNITY | Changes::LANGUAGE) {
             self.as_mut().set_databases(to_qml(&app.databases()));
         }
         if changes.contains(Changes::LANGUAGE) {
             self.as_mut().set_languages(to_qml(&app.languages()));
-            let table = app.speak();
-            crate::words::show_in(crate::words::Words::of(&table));
-            self.as_mut().set_words(to_qml(&table));
+            self.as_mut().set_words(to_qml(&app.speak()));
         }
         if changes.contains(Changes::THEME) {
             self.recolour();

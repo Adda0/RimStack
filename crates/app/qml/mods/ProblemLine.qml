@@ -11,6 +11,9 @@ GridLayout {
     // { action, target, label }: what `Mods.applyFix` is given.
     property var fix: ({})
     property int modId: -1
+    // Empty when it cannot be ignored; with the mod's package id, what `Hub.mods.ignoreProblem` is given.
+    property string ignore
+    property string packageId
     // The action on a line of its own, under the words.
     property bool stacked: false
     columnSpacing: Theme.gap
@@ -28,12 +31,29 @@ GridLayout {
         HoverHandler { enabled: line.name !== "" && line.modId >= 0; cursorShape: Qt.PointingHandCursor }
         TapHandler { enabled: line.name !== "" && line.modId >= 0; onTapped: Mods.showMod(line.modId) }
     }
-    Btn {
+    Row {
         Layout.alignment: Qt.AlignTop
         Layout.row: Number(line.stacked)
         Layout.column: 2 - Number(line.stacked)
-        visible: !!line.fix.action && !Hub.mods.previewing
-        text: Theme.say(line.fix.label || "")
-        onClicked: Mods.applyFix(line.modId, line.fix)
+        spacing: Theme.gapSmall
+        visible: !Hub.mods.previewing
+        Btn {
+            visible: !!line.fix.action
+            text: Theme.say(line.fix.label || "")
+            onClicked: Mods.applyFix(line.modId, line.fix)
+        }
+        Btn {
+            visible: !!line.ignore
+            compact: true
+            icon: "eye-off"
+            spoken: Theme.say("Ignore this problem")
+            tip: Theme.say("No warning about this problem again; the mod's details can bring it back")
+            onClicked: {
+                // The line goes with the problem; the undo keeps its own copy.
+                const [packageId, key] = [line.packageId, line.ignore]
+                Hub.mods.ignoreProblem(packageId, key, true)
+                Notices.offer(Theme.say("The problem is ignored"), Theme.say("Undo"), () => Hub.mods.ignoreProblem(packageId, key, false))
+            }
+        }
     }
 }

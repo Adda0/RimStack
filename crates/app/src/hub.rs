@@ -255,13 +255,23 @@ impl Given {
 }
 
 /// Runs on the adapter's own thread.
-pub(crate) fn hear<T>(app: &App, thread: CxxQtThread<T>, heard: fn(Pin<&mut T>, Changes))
+pub(crate) fn hear<T>(app: &Arc<App>, thread: CxxQtThread<T>, heard: fn(Pin<&mut T>, Changes))
 where
     T: Threading + 'static,
 {
     let thread = Mutex::new(thread);
+    let speaking = Arc::downgrade(app);
     app.listen(move |changes| {
-        let _ = thread.held().queue(move |me| heard(me, changes));
+        let speaking = speaking.clone();
+        let _ = thread.held().queue(move |me| {
+            if let Some(app) = speaking
+                .upgrade()
+                .filter(|_| changes.contains(Changes::LANGUAGE))
+            {
+                crate::words::show_in(crate::words::Words::of(&app.speak()));
+            }
+            heard(me, changes)
+        });
     });
 }
 

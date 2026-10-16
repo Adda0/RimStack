@@ -118,13 +118,25 @@ fn main() {
         "src/textures_data.rs",
         "src/downloads_data.rs",
     ]);
+    let msvc = std::env::var("CARGO_CFG_TARGET_ENV").is_ok_and(|env| env == "msvc");
     // SAFETY: one more source for the same compiler, nothing set that the generated code relies on.
     let builder = unsafe {
         builder.cc_builder(|cc| {
             cc.file("src/application.cpp");
+            // qmlcachegen writes the QML's texts into C++ as UTF-8; without this MSVC
+            // reads them in the system's code page and a ✓ shows as âœ“. Qt's CMake sets it.
+            if msvc {
+                cc.flag("/utf-8");
+            }
         })
     };
     println!("cargo::rerun-if-changed=src/application.cpp");
     println!("cargo::rerun-if-changed=src/application.h");
     builder.build();
+    // The program's own icon, which Windows shows for its shortcuts and on the taskbar.
+    embed_resource::compile("assets/rimstack.rc", embed_resource::NONE)
+        .manifest_required()
+        .expect("the icon is compiled into the Windows program");
+    println!("cargo::rerun-if-changed=assets/rimstack.rc");
+    println!("cargo::rerun-if-changed=assets/rimstack.ico");
 }

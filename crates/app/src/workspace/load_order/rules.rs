@@ -9,7 +9,7 @@ use rimstack_core::mods::ordering::{self, Sources};
 use rimstack_core::mods::rules::Rule;
 use rimstack_core::mods::sort;
 use rimstack_core::rimworld::{loadfolders, paths::Source};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 type Kept = (Vec<Option<ModId>>, Vec<ModId>, Vec<infer::Inferred>);
 
@@ -119,12 +119,16 @@ pub fn sorted_by_category(
 }
 
 pub fn troubles(app: &App, library: &Library, mods: &[Mod]) -> (Vec<Vec<Trouble>>, Vec<bool>) {
-    let excused: HashSet<String> = app
-        .notes()
-        .reading()
-        .version_ok()
-        .map(String::from)
-        .collect();
+    let (excused, ignored): (HashSet<String>, HashMap<String, HashSet<String>>) = {
+        let notes = app.notes().reading();
+        let ignored = notes
+            .ignored()
+            .map(|(id, keys)| (id.to_string(), keys.iter().cloned().collect()));
+        (
+            notes.version_ok().map(String::from).collect(),
+            ignored.collect(),
+        )
+    };
     let mut trusted = (*app.works_on()).clone();
     trusted.extend(excused.iter().cloned());
     let off = {
@@ -145,8 +149,7 @@ pub fn troubles(app: &App, library: &Library, mods: &[Mod]) -> (Vec<Vec<Trouble>
         false => describe::Versions::CheckedBut(&excused),
     };
     let workshop = app.workshop_names();
-    (
-        describe::troubles(library, mods, versions, &workshop),
-        describe::version_ignored(library, mods, by_you),
-    )
+    let mut found = describe::troubles(library, mods, versions, &workshop);
+    describe::without_ignored(&mut found, mods, &ignored);
+    (found, describe::version_ignored(library, mods, by_you))
 }

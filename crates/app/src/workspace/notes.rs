@@ -21,17 +21,27 @@ impl App {
             .iter()
             .filter_map(|&id| library.get(id)?.key())
             .collect();
+        drop(loaded);
+        self.change_notes_of(&keys, changes, change)
+    }
+
+    fn change_notes_of(
+        &self,
+        keys: &[String],
+        changes: Changes,
+        change: impl Fn(&mut Note),
+    ) -> bool {
         if keys.is_empty() {
             return false;
         }
         let mut all = self.notes().writing();
         let mut differs = false;
         for key in keys {
-            let before = all.get(&key).cloned().unwrap_or_default();
+            let before = all.get(key).cloned().unwrap_or_default();
             let mut note = before.clone();
             change(&mut note);
             differs |= note != before;
-            all.set(&key, note);
+            all.set(key, note);
         }
         if !differs {
             return false;
@@ -87,6 +97,22 @@ impl App {
     pub fn set_version_ok(&self, ids: &[ModId], ok: bool) {
         let changes = Changes::NOTES | Changes::PROBLEMS;
         self.change_notes(ids, changes, |note| note.version_ok = ok);
+    }
+
+    /// `key` as `Trouble::key` gives it.
+    pub fn ignore_problem(&self, package_id: &str, key: &str, ignore: bool) {
+        let changes = Changes::NOTES | Changes::PROBLEMS;
+        self.change_notes_of(&[package_id.to_string()], changes, |note| {
+            note.ignored.retain(|k| k != key);
+            if ignore {
+                note.ignored.push(key.to_string());
+            }
+        });
+    }
+
+    pub fn warn_again(&self, ids: &[ModId]) {
+        let changes = Changes::NOTES | Changes::PROBLEMS;
+        self.change_notes(ids, changes, |note| note.ignored.clear());
     }
 
     /// A rule of your own: `then` loads after `first`.

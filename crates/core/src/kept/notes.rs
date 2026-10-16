@@ -13,6 +13,8 @@ pub struct Note {
     pub version_ok: bool,
     /// By `Category::key`; empty leaves it to RimStack.
     pub category: String,
+    /// Problems not to warn about, by `Trouble::key`.
+    pub ignored: Vec<String>,
 }
 
 impl Note {
@@ -76,6 +78,10 @@ impl Notes {
                     .and_then(Value::as_str)
                     .unwrap_or("")
                     .to_string(),
+                ignored: v
+                    .get("ignored")
+                    .and_then(Value::as_array)
+                    .map_or(Vec::new(), |t| t.iter().filter_map(tag).collect()),
             };
             // An older file's `sub` is read as the first tag.
             if let Some(sub) = v.get("sub").and_then(Value::as_str) {
@@ -103,6 +109,9 @@ impl Notes {
                 if !n.category.is_empty() {
                     entry["category"] = json!(n.category);
                 }
+                if !n.ignored.is_empty() {
+                    entry["ignored"] = json!(n.ignored);
+                }
                 (k.clone(), entry)
             })
             .collect();
@@ -119,7 +128,8 @@ impl Notes {
     pub fn set(&mut self, package_id: &str, note: Note) {
         let key = id::fold(package_id);
         let says_nothing = note.tags.is_empty() && note.text.trim().is_empty();
-        if says_nothing && !note.version_ok && note.category.is_empty() {
+        let keeps = note.version_ok || !note.category.is_empty() || !note.ignored.is_empty();
+        if says_nothing && !keeps {
             self.by_id.remove(&key);
         } else {
             self.by_id.insert(key, note);
@@ -130,6 +140,12 @@ impl Notes {
     pub fn version_ok(&self) -> impl Iterator<Item = &str> {
         let trusted = self.by_id.iter().filter(|(_, n)| n.version_ok);
         trusted.map(|(k, _)| k.as_str())
+    }
+
+    /// By folded package id, each with the problems ignored for it.
+    pub fn ignored(&self) -> impl Iterator<Item = (&str, &[String])> {
+        let some = self.by_id.iter().filter(|(_, n)| !n.ignored.is_empty());
+        some.map(|(k, n)| (k.as_str(), n.ignored.as_slice()))
     }
 
     pub fn len(&self) -> usize {
@@ -188,6 +204,16 @@ mod tests {
         };
         notes.set("B.B", trusted);
         assert_eq!(notes.version_ok().collect::<Vec<_>>(), ["b.b"]);
+        let ignoring = Note {
+            ignored: vec!["missing".into()],
+            ..Note::default()
+        };
+        notes.set("C.c", ignoring);
+        assert_eq!(
+            notes.ignored().count(),
+            1,
+            "a note with only an ignored problem is kept"
+        );
         notes.write(&path).unwrap();
         assert_eq!(Notes::read(&path), notes);
         std::fs::write(&path, "nope").unwrap();

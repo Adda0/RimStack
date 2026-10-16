@@ -312,6 +312,28 @@ impl qobject::ModsData {
         self.show();
     }
 
+    pub(super) fn ignore_problem(
+        mut self: Pin<&mut Self>,
+        package_id: &QString,
+        key: &QString,
+        yes: bool,
+    ) {
+        let app = self.app();
+        app.ignore_problem(&package_id.to_string(), &key.to_string(), yes);
+        self.as_mut().order_mut().recheck(&app);
+        self.show();
+    }
+
+    pub(super) fn warn_again(mut self: Pin<&mut Self>, given: &QVariant) {
+        let Some(ids) = ids(given) else {
+            return self.refuse_list();
+        };
+        let app = self.app();
+        app.warn_again(&ids);
+        self.as_mut().order_mut().recheck(&app);
+        self.show();
+    }
+
     pub(super) fn keep_note(mut self: Pin<&mut Self>, mod_id: i32, tags: &QString, note: &QString) {
         let Some(id) = id(mod_id) else {
             return;

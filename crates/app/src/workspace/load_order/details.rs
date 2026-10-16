@@ -46,6 +46,9 @@ pub struct ProblemSaid {
     words: Sentence,
     short: Sentence,
     fix: FixSaid,
+    /// With `ignore`, what `App::ignore_problem` is given; empty when it cannot be ignored.
+    package_id: String,
+    ignore: String,
 }
 
 impl ProblemSaid {
@@ -59,6 +62,8 @@ impl ProblemSaid {
             words: trouble.words.clone(),
             short: trouble.short.clone(),
             fix: FixSaid::of(&trouble.fix),
+            package_id: m.id.clone(),
+            ignore: trouble.key.clone(),
         }
     }
 }
@@ -113,6 +118,7 @@ pub struct Details {
     note: String,
     category_chosen: String,
     version_ok: bool,
+    problems_ignored: usize,
     made_for: Option<String>,
     replaced_by: Option<String>,
     replaced_by_id: Option<String>,
@@ -209,6 +215,7 @@ impl LoadOrder {
             preview: m.preview.as_ref().map(|p| p.to_string_lossy().into_owned()),
             tags: note.tags.join(", "),
             version_ok: note.version_ok,
+            problems_ignored: note.ignored.len(),
             replaced_by: replaced.map(|new| new.name.clone()),
             replaced_by_id: replaced.map(|new| new.workshop_id.clone()),
             replaced_by_versions: replaced.map(|new| new.versions.join(", ")),

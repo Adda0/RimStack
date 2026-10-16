@@ -23,7 +23,7 @@ Column {
     }
 
     Card {
-        visible: side.problems.length > 0 || !!Mods.info.unreadable || !!Mods.info.versionOk
+        visible: side.problems.length > 0 || !!Mods.info.unreadable || !!Mods.info.versionOk || Mods.info.problemsIgnored > 0
         title: Theme.say("Before you play")
         tone: side.problems.some(p => p.error) || Mods.info.unreadable ? Theme.err : Theme.warn
         spacing: Theme.gap
@@ -35,6 +35,8 @@ Column {
                 error: modelData.error
                 words: modelData.words
                 fix: modelData.fix
+                ignore: modelData.ignore
+                packageId: modelData.packageId
                 modId: Mods.selectedId
             }
         }
@@ -53,6 +55,14 @@ Column {
             Icon { name: "eye-off"; size: 14; color: Theme.ink3 }
             Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.fill("Made for RimWorld {}; the warning is ignored.", (Mods.info.madeFor || "")) }
             Btn { text: Theme.say("Warn again"); onClicked: Mods.trust(Mods.selectedId, false) }
+        }
+        RowLayout {
+            visible: Mods.info.problemsIgnored > 0
+            width: parent.width
+            spacing: Theme.gap
+            Icon { name: "eye-off"; size: 14; color: Theme.ink3 }
+            Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.plural(Mods.info.problemsIgnored || 0, "{} problem is ignored.", "{} problems are ignored.") }
+            Btn { text: Theme.say("Warn again"); onClicked: Hub.mods.warnAgain([Mods.selectedId]) }
         }
     }
 

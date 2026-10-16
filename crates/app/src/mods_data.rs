@@ -128,6 +128,12 @@ pub mod qobject {
         #[qinvokable]
         fn trust(self: Pin<&mut ModsData>, ids: &QVariant, yes: bool);
         #[qinvokable]
+        #[cxx_name = "ignoreProblem"]
+        fn ignore_problem(self: Pin<&mut ModsData>, package_id: &QString, key: &QString, yes: bool);
+        #[qinvokable]
+        #[cxx_name = "warnAgain"]
+        fn warn_again(self: Pin<&mut ModsData>, ids: &QVariant);
+        #[qinvokable]
         #[cxx_name = "keepNote"]
         fn keep_note(self: Pin<&mut ModsData>, mod_id: i32, tags: &QString, note: &QString);
         /// Stored after a pause in the typing, or by `keepDrafts`; the mod is the one the edit was made for.

@@ -21,7 +21,9 @@ image = { version = "0.25", default-features = false, features = ["png"] }
 image_dds = "0.7.2"
 # Read gzip files (already used by the PNG decoder) (MIT/Apache-2.0).
 flate2 = "1"
-libloading = "0.8"
+# Read saves a mod wrote compressed with zstd; decoding only, in Rust (MIT).
+ruzstd = "0.9"
+libloading = "0.9"
 # Which form a count takes in each language, from CLDR (Unicode-3.0). The
 # ICU4X family is already built for `ureq`'s URL handling.
 icu_plurals = "2.3"

@@ -4,7 +4,7 @@ use crate::said;
 use crate::rimworld::id;
 use roxmltree::Document;
 use std::collections::HashSet;
-use std::io::Read;
+use std::io::{BufRead, Read};
 use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
 
@@ -31,10 +31,26 @@ pub struct SaveFile {
 /// Reading stops at `</meta>`, or here: a save is tens of megabytes.
 const HEADER_LIMIT: usize = 4 * 1024 * 1024;
 
+/// The file as the game wrote it, or as a mod compressed it: zstd or gzip, told
+/// by their first bytes.
+fn opened(path: &Path) -> std::io::Result<Box<dyn Read>> {
+    const ZSTD: &[u8] = &[0x28, 0xb5, 0x2f, 0xfd];
+    const GZIP: &[u8] = &[0x1f, 0x8b];
+    let mut file = std::io::BufReader::new(std::fs::File::open(path)?);
+    let first = file.fill_buf()?;
+    Ok(if first.starts_with(ZSTD) {
+        Box::new(ruzstd::decoding::StreamingDecoder::new(file).map_err(std::io::Error::other)?)
+    } else if first.starts_with(GZIP) {
+        Box::new(flate2::read::GzDecoder::new(file))
+    } else {
+        Box::new(file)
+    })
+}
+
 pub fn read_header(path: &Path) -> Result<Header, Error> {
     const END: &[u8] = b"</meta>";
     let failed = |e: std::io::Error| Error::file(path, e);
-    let mut file = std::fs::File::open(path).map_err(failed)?;
+    let mut file = opened(path).map_err(failed)?;
     let mut start = Vec::new();
     let mut chunk = [0u8; 64 * 1024];
     let end = loop {
@@ -461,6 +477,29 @@ mod tests {
         let body = START.replacen("<modIds>", &format!("{padding}<modIds>"), 1);
         let header = read_header(&save_in(dir.path(), "a.rws", &body)).unwrap();
         assert_eq!(header.mod_ids.len(), 2);
+    }
+
+    #[test]
+    fn a_save_compressed_by_a_mod_is_read_too() {
+        use std::io::Write;
+        let dir = tempfile::tempdir().unwrap();
+        let body = format!("\u{feff}{START}{}", "<junk".repeat(100_000));
+        let zstd = ruzstd::encoding::compress_to_vec(
+            body.as_bytes(),
+            ruzstd::encoding::CompressionLevel::Fastest,
+        );
+        let mut gzip = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::fast());
+        gzip.write_all(body.as_bytes()).unwrap();
+        for (name, bytes) in [("z.rws", zstd), ("g.rws", gzip.finish().unwrap())] {
+            let path = dir.path().join(name);
+            std::fs::write(&path, bytes).unwrap();
+            let header = read_header(&path).unwrap();
+            assert_eq!(
+                header.mod_ids,
+                ["brrainz.harmony", "ludeon.rimworld"],
+                "{name}"
+            );
+        }
     }
 
     #[test]

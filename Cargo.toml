@@ -4,7 +4,7 @@ members = ["crates/core", "crates/app"]
 
 [workspace.package]
 edition = "2021"
-rust-version = "1.85"
+rust-version = "1.88"
 license = "GPL-3.0-or-later"
 version = "1.0.0"
 

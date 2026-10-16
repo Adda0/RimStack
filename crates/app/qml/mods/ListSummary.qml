@@ -56,6 +56,8 @@ Column {
                 name: modelData.name
                 words: modelData.words
                 fix: modelData.fix
+                ignore: modelData.ignore
+                packageId: modelData.packageId
                 modId: modelData.modId
             }
         }

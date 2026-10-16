@@ -299,10 +299,13 @@ mods.details: object
         page: nothing or text
         target: text
       group: text
+      ignore: text
       modId: number
       name: text
+      packageId: text
       short: text
       words: text
+  problemsIgnored: number
   replacedBy: nothing
   replacedById: nothing
   replacedByVersions: nothing
@@ -397,10 +400,13 @@ mods.detailsOf: object
         page: nothing or text
         target: text
       group: text
+      ignore: text
       modId: number
       name: text
+      packageId: text
       short: text
       words: text
+  problemsIgnored: number
   replacedBy: nothing
   replacedById: nothing
   replacedByVersions: nothing
@@ -478,8 +484,10 @@ mods.overview: object
         page: nothing or text
         target: text
       group: text
+      ignore: text
       modId: number
       name: text
+      packageId: text
       short: text
       words: text
   troubleGroups: list
@@ -494,8 +502,10 @@ mods.overview: object
             page: nothing or text
             target: text
           group: text
+          ignore: text
           modId: number
           name: text
+          packageId: text
           short: text
           words: text
       name: text
@@ -510,8 +520,10 @@ mods.overview: object
         page: nothing or text
         target: text
       group: text
+      ignore: text
       modId: number
       name: text
+      packageId: text
       short: text
       words: text
   trusted: list

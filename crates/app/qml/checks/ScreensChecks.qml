@@ -57,6 +57,19 @@ Item {
             ok: () => (Mods.overview.toGet || []).length >= 1
         },
         {
+            section: 1,
+            what: "a needed mod's problem ignored is gone, and back with the undo",
+            ready: () => true,
+            ok: () => {
+                const count = () => (Mods.overview.toGet || []).length
+                const [before, needed] = [count(), Mods.overview.toGet[0]]
+                Hub.mods.ignoreProblem(needed.packageId, needed.ignore, true)
+                const ignored = count() === before - 1
+                Hub.mods.ignoreProblem(needed.packageId, needed.ignore, false)
+                return needed.ignore !== "" && ignored && count() === before
+            }
+        },
+        {
             section: 5,
             what: "Settings shows the folders in use, worked out in Rust",
             ready: () => true,
@@ -209,8 +222,9 @@ Item {
         repeat: true
         onTriggered: {
             waited += 1
-            const shown = french ? Theme.say("Save") === "Enregistrer" && !Hub.settings.report.english
-                                 : Theme.say("Save") === "Save" && Hub.settings.report.english
+            const fromRust = Hub.settings.databases.some(d => d.use.indexOf(Theme.say("Names of mods that are not installed")) >= 0)
+            const shown = fromRust && (french ? Theme.say("Save") === "Enregistrer" && !Hub.settings.report.english
+                                              : Theme.say("Save") === "Save" && Hub.settings.report.english)
             if (!shown && waited < 30)
                 return
             checks.check(french ? "a language chosen is used without a restart" : "and English again", shown)

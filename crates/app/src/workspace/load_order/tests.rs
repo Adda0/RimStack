@@ -56,6 +56,34 @@ fn a_mod_taken_across_is_one_step_that_undo_takes_back() {
 }
 
 #[test]
+fn an_error_ignored_is_gone_until_warned_again() {
+    let (tmp, app) = installed();
+    let about = "<ModMetaData><packageId>Ann.Roads</packageId><name>Ann.Roads</name><modDependencies><li><packageId>gone.lib</packageId></li></modDependencies></ModMetaData>";
+    std::fs::write(tmp.path().join("game/Mods/roads/About/About.xml"), about).unwrap();
+    let mut order = LoadOrder::read(&app, true, false);
+    let id = roads(&order, Side::Inactive);
+    order.take(&app, Side::Inactive, 0, None);
+    let errors = |order: &LoadOrder| {
+        order
+            .troubles()
+            .iter()
+            .flatten()
+            .filter(|t| t.error)
+            .count()
+    };
+    assert_eq!(errors(&order), 1);
+    let key = order.troubles()[1][0].key.clone();
+    app.ignore_problem("Ann.Roads", &key, true);
+    order.recheck(&app);
+    assert_eq!(errors(&order), 0);
+    let details = serde_json::to_value(order.details(&app, id)).unwrap();
+    assert_eq!(details["problemsIgnored"], 1);
+    app.warn_again(&[id]);
+    order.recheck(&app);
+    assert_eq!(errors(&order), 1);
+}
+
+#[test]
 fn a_mod_made_for_another_game_version_offers_to_trust_it_once_active() {
     let (tmp, app) = installed();
     roads_made_for_an_older_game(&tmp);
