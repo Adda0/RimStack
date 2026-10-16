@@ -218,16 +218,17 @@ mod_rows.at: object
   loadPart: number
   loadTime: text
   local: bool
+  madeFor: text
   modId: number
   modIndex: number
   movedFrom: number
   name: text
   number: number
+  outdated: bool
   picture: text
   source: number
   tags: text
   trouble: number
-  troubleQuiet: bool
   troubleText: text
   twin: bool
   version: text

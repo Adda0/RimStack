@@ -153,7 +153,7 @@ pub struct ModRowsRust {
 }
 
 /// From the first role Qt leaves free.
-const ROLES: [&str; 27] = [
+const ROLES: [&str; 28] = [
     "isHeader",
     "isSub",
     "again",
@@ -168,7 +168,6 @@ const ROLES: [&str; 27] = [
     "modId",
     "movedFrom",
     "trouble",
-    "troubleQuiet",
     "troubleText",
     "tags",
     "local",
@@ -181,6 +180,8 @@ const ROLES: [&str; 27] = [
     "whyMoved",
     "groupSize",
     "twin",
+    "outdated",
+    "madeFor",
 ];
 const FIRST_ROLE: i32 = 257;
 
@@ -217,19 +218,20 @@ fn cell(row: &RowView, field: usize) -> Option<Cell<'_>> {
         11 => Number(row.mod_id),
         12 => Number(row.moved_from),
         13 => Number(row.trouble),
-        14 => Flag(row.trouble_quiet),
-        15 => Said(&row.trouble_text),
-        16 => Text(&row.tags),
-        17 => Flag(row.local),
-        18 => Text(&row.picture),
-        19 => Text(&row.load_time),
-        20 => Part(row.load_part),
-        21 => Flag(row.version_ignored),
-        22 => Flag(row.fresh),
-        23 => Number(row.source),
-        24 => Said(&row.why_moved),
-        25 => Number(row.group_size),
-        26 => Flag(row.twin),
+        14 => Said(&row.trouble_text),
+        15 => Text(&row.tags),
+        16 => Flag(row.local),
+        17 => Text(&row.picture),
+        18 => Text(&row.load_time),
+        19 => Part(row.load_part),
+        20 => Flag(row.version_ignored),
+        21 => Flag(row.fresh),
+        22 => Number(row.source),
+        23 => Said(&row.why_moved),
+        24 => Number(row.group_size),
+        25 => Flag(row.twin),
+        26 => Flag(row.outdated),
+        27 => Text(&row.made_for),
         _ => return None,
     })
 }

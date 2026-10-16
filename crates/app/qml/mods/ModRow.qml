@@ -26,7 +26,6 @@ Item {
     required property int trouble
     required property string tags
     required property string troubleText
-    required property bool troubleQuiet
     required property int groupSize
     required property bool local
     required property string picture
@@ -35,6 +34,8 @@ Item {
     // Its start-up time as a part of the slowest mod's, 0 to 1.
     required property real loadPart
     required property bool fresh
+    required property bool outdated
+    required property string madeFor
     required property string whyMoved
     required property bool twin
     readonly property bool comfortable: columns && Theme.stored.comfortable
@@ -88,6 +89,16 @@ Item {
         radius: row.isHeader && !row.isSub && !row.again ? 1.5 : 0
         color: row.categoryColour
         opacity: row.again ? 0.3 : 0.6
+    }
+
+    // The edge line keeps the tint from passing for the hover highlight.
+    Item {
+        visible: row.outdated && !row.current
+        anchors.fill: parent
+        anchors.leftMargin: Theme.gap
+        anchors.rightMargin: Theme.gapSmall
+        Rectangle { anchors.fill: parent; color: Theme.warn; opacity: 0.14 }
+        Rectangle { width: 2; height: parent.height; color: Theme.warn }
     }
 
     Rectangle {
@@ -237,6 +248,7 @@ Item {
                 font.pixelSize: Theme.body
                 text: row.name
             }
+            Chip { visible: row.outdated; onAccent: row.current; tone: Theme.warn; text: row.madeFor; tip: Theme.say("Made for another game version") }
             Chip { visible: row.fresh; onAccent: row.current; tone: Theme.ok; text: Theme.say("New"); tip: Theme.say("Installed since the game was last started from RimStack") }
             Row {
                 id: tagRow
@@ -314,14 +326,14 @@ Item {
             Chip {
                 id: saying
                 readonly property int kind: row.movedFrom > 0 ? 1 : cells.mark ? 2 : row.trouble > 0 ? 3 : 0
-                readonly property bool bare: !row.listView.wide || (kind === 3 && row.troubleQuiet)
+                readonly property bool bare: !row.listView.wide
                 visible: kind !== 0
                 anchors.right: parent.right
                 anchors.rightMargin: quick.chosen ? Theme.sized(26) : 0
                 anchors.verticalCenter: parent.verticalCenter
                 maxWidth: parent.width - anchors.rightMargin
                 onAccent: row.current
-                tone: kind === 1 ? Theme.moved : kind === 3 && row.trouble === 2 ? Theme.err : kind === 3 && row.troubleQuiet ? Theme.ink3 : Theme.warn
+                tone: kind === 1 ? Theme.moved : kind === 3 && row.trouble === 2 ? Theme.err : Theme.warn
                 icon: kind === 1 ? (row.movedFrom > row.number ? "arrow-up" : "arrow-down") : kind === 2 ? "image" : row.trouble === 2 ? "circle-alert" : "triangle-alert"
                 text: bare && kind !== 1 ? "" : kind === 1 ? Theme.count(row.movedBy) : kind !== 2 ? row.troubleText : cells.mark.loses ? Theme.say("loses textures") : Theme.say("wins textures")
                 tip: kind === 1 ? Theme.fill(row.whyMoved.length > 0 ? "Sort moves it from {} to {}: {}" : "Sort moves it from {} to {}", row.movedFrom, row.number, row.whyMoved)

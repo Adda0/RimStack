@@ -40,7 +40,6 @@ pub struct RowView {
     pub moved_from: i32,
     /// 0 nothing, 1 a warning, 2 an error.
     pub trouble: i32,
-    pub trouble_quiet: bool,
     pub trouble_text: Sentence,
     pub tags: String,
     pub local: bool,
@@ -49,6 +48,9 @@ pub struct RowView {
     /// Against the slowest mod, from 0 to 1.
     pub load_part: f64,
     pub version_ignored: bool,
+    pub outdated: bool,
+    /// Empty when not outdated.
+    pub made_for: String,
     pub fresh: bool,
     /// 0 Workshop, 1 local, 2 a Git checkout, 3 the game's own.
     pub source: i32,
@@ -75,7 +77,6 @@ impl RowView {
             mod_id: -1,
             moved_from: 0,
             trouble: 0,
-            trouble_quiet: false,
             trouble_text: Sentence::default(),
             tags: String::new(),
             local: false,
@@ -83,6 +84,8 @@ impl RowView {
             load_time: String::new(),
             load_part: 0.0,
             version_ignored: false,
+            outdated: false,
+            made_for: String::new(),
             fresh: false,
             source: 0,
             why_moved: Sentence::default(),
@@ -195,7 +198,12 @@ impl LoadOrder {
             }
             _ => 0.0,
         };
-        let first = own.iter().find(|t| t.error).or(own.first());
+        // A game version is shown as `made_for`.
+        let shown = || own.iter().filter(|t| t.fix != Fix::Trust);
+        let first = shown().find(|t| t.error).or(shown().next());
+        let made_for = self.outdated[side_index(side)]
+            .get(index)
+            .and_then(Option::as_ref);
         let preview = side == Side::Active;
         RowView {
             key: RowKey::Mod(
@@ -223,12 +231,10 @@ impl LoadOrder {
             } else {
                 0
             },
-            trouble: own
-                .iter()
+            trouble: shown()
                 .map(|t| if t.error { 2 } else { 1 })
                 .max()
                 .unwrap_or(0),
-            trouble_quiet: !own.is_empty() && own.iter().all(|t| t.fix == Fix::Trust),
             trouble_text: first.map_or_else(Sentence::default, |t| t.short.clone()),
             tags: m.tags.join(", "),
             local: m.local,
@@ -236,6 +242,8 @@ impl LoadOrder {
             load_time: load_time.unwrap_or_default(),
             load_part,
             version_ignored: preview && self.version_ignored.get(index).copied().unwrap_or(false),
+            outdated: made_for.is_some(),
+            made_for: made_for.cloned().unwrap_or_default(),
             fresh: m.installed.is_some_and(|i| fresh.contains(&i)),
             source,
             why_moved: if preview {

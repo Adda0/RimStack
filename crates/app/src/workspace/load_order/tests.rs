@@ -98,6 +98,30 @@ fn a_mod_made_for_another_game_version_offers_to_trust_it_once_active() {
 }
 
 #[test]
+fn a_mod_made_for_another_game_version_is_marked_on_either_side_until_trusted() {
+    let (tmp, app) = installed();
+    roads_made_for_an_older_game(&tmp);
+    let mut order = LoadOrder::read(&app, true, false);
+    let id = roads(&order, Side::Inactive);
+    let marked = |order: &LoadOrder| {
+        let rows = order.rows(&app, Side::Inactive);
+        rows.iter()
+            .any(|r| r.mod_id == id.to_qml() && r.outdated && r.made_for == "1.5")
+    };
+    assert!(marked(&order));
+    app.set_version_ok(&[id], true);
+    order.recheck(&app);
+    assert!(!marked(&order));
+    app.set_version_ok(&[id], false);
+    order.recheck(&app);
+    order.take(&app, Side::Inactive, 0, None);
+    let active = order.rows(&app, Side::Active);
+    assert!(active
+        .iter()
+        .any(|r| r.mod_id == id.to_qml() && r.made_for == "1.5"));
+}
+
+#[test]
 fn saving_writes_the_load_order_and_marks_it_saved() {
     let (tmp, app) = installed();
     let mut order = LoadOrder::read(&app, true, false);
@@ -168,7 +192,7 @@ fn every_row_has_a_key_of_its_own_and_a_mod_row_its_id() {
         .iter()
         .find(|r| r.name.to_string() == "Ann.Roads")
         .unwrap();
-    assert!(roads.mod_id >= 0 && roads.number == 2 && roads.trouble > 0);
+    assert!(roads.mod_id >= 0 && roads.number == 2 && roads.outdated);
 }
 
 #[test]

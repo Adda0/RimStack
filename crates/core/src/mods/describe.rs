@@ -1,6 +1,7 @@
 use crate::base::sentence::Sentence;
 use crate::base::translate::named;
 use crate::mods::checks::{self, Problem};
+use crate::mods::details;
 use crate::mods::library::Library;
 use crate::mods::list::Mod;
 use crate::mods::rules::{Kind, Rule};
@@ -129,13 +130,45 @@ pub enum Versions<'a> {
     Ignored,
 }
 
+impl Versions<'_> {
+    fn trusts(self, package_id: &str) -> bool {
+        match self {
+            Versions::CheckedBut(trusted) => {
+                trusted.contains(&crate::rimworld::id::fold(package_id))
+            }
+            Versions::Ignored => true,
+        }
+    }
+}
+
+// The game's own parts are of the game's version whatever they list: a test build
+// ships expansions that still name the last one.
+fn official(library: &Library, m: &Mod) -> bool {
+    let installed = m.installed.and_then(|i| library.get(i));
+    installed.is_some_and(|i| i.source == crate::rimworld::paths::Source::Official)
+}
+
+/// The newest version listed by each mod `troubles` warns of as made for another game version.
+pub fn outdated(library: &Library, mods: &[Mod], versions: Versions) -> Vec<Option<String>> {
+    let abouts = library.abouts(mods);
+    let found = checks::check(&abouts, &library.game_version, |key| library.name_of(key));
+    let each = found.into_iter().zip(&abouts).zip(mods);
+    each.map(|((problems, about), m)| {
+        let supports = problems.into_iter().find_map(|p| match p {
+            Problem::GameVersion { supports } => Some(supports),
+            _ => None,
+        })?;
+        let excused = official(library, m) || about.is_some_and(|a| versions.trusts(&a.package_id));
+        let newest = details::newest(&supports).map(String::from);
+        newest.filter(|_| !excused)
+    })
+    .collect()
+}
+
 pub fn version_ignored(library: &Library, mods: &[Mod], versions: Versions) -> Vec<bool> {
     let abouts = library.abouts(mods);
     let found = checks::check(&abouts, &library.game_version, |key| library.name_of(key));
-    let trusted = |package_id: &str| match versions {
-        Versions::CheckedBut(trusted) => trusted.contains(&crate::rimworld::id::fold(package_id)),
-        Versions::Ignored => true,
-    };
+    let trusted = |package_id: &str| versions.trusts(package_id);
     let mismatch = |problems: &Vec<Problem>| {
         let version = |p: &Problem| matches!(p, Problem::GameVersion { .. });
         problems.iter().any(version)
@@ -155,18 +188,8 @@ pub fn troubles(
 ) -> Vec<Vec<Trouble>> {
     let abouts = library.abouts(mods);
     let mut found = checks::check(&abouts, &library.game_version, |key| library.name_of(key));
-    let trusted = |package_id: &str| match versions {
-        Versions::CheckedBut(trusted) => trusted.contains(&crate::rimworld::id::fold(package_id)),
-        Versions::Ignored => true,
-    };
-    // The game's own parts are of the game's version whatever they list: a test build
-    // ships expansions that still name the last one.
-    let official = |m: &Mod| {
-        let installed = m.installed.and_then(|i| library.get(i));
-        installed.is_some_and(|i| i.source == crate::rimworld::paths::Source::Official)
-    };
     for ((problems, about), m) in found.iter_mut().zip(&abouts).zip(mods) {
-        if official(m) || about.is_some_and(|a| trusted(&a.package_id)) {
+        if official(library, m) || about.is_some_and(|a| versions.trusts(&a.package_id)) {
             problems.retain(|p| !matches!(p, Problem::GameVersion { .. }));
         }
     }
@@ -217,7 +240,7 @@ pub fn troubles(
                     supports.join(", "),
                     library.game_version
                 ),
-                say!("Made for {}", supports.last().cloned().unwrap_or_default()),
+                say!("Made for {}", details::newest(supports).unwrap_or_default()),
                 Fix::Trust,
             ),
         };
@@ -625,6 +648,19 @@ mod tests {
             "Needs Gone Library, which is not installed."
         );
         assert_eq!(found[0][0].fix, Fix::Subscribe("42".to_string()));
+    }
+
+    #[test]
+    fn a_mod_is_outdated_unless_trusted_or_version_warnings_are_off() {
+        let (_tmp, library) = two_mods();
+        let nobody = HashSet::new();
+        let found = outdated(&library, &library.active, Versions::CheckedBut(&nobody));
+        assert_eq!(found, [Some("1.5".to_string()), None, None]);
+        let trusted: HashSet<String> = ["a.old".to_string()].into();
+        let found = outdated(&library, &library.active, Versions::CheckedBut(&trusted));
+        assert_eq!(found, [None, None, None]);
+        let found = outdated(&library, &library.active, Versions::Ignored);
+        assert_eq!(found, [None, None, None]);
     }
 
     #[test]

@@ -31,6 +31,12 @@ pub fn required(requirements: Vec<(String, bool)>) -> Vec<Named> {
     requirements.into_iter().map(one).collect()
 }
 
+/// Compared as numbers, so 1.10 is newer than 1.9.
+pub fn newest(versions: &[String]) -> Option<&str> {
+    let parts = |v: &str| -> Vec<u32> { v.split('.').map(|p| p.parse().unwrap_or(0)).collect() };
+    versions.iter().map(|v| v.trim()).max_by_key(|v| parts(v))
+}
+
 /// Nothing where either side says nothing.
 pub fn made_for(supported: &[String], game_version: &str) -> Option<String> {
     let listed = supported.iter().any(|v| v.trim() == game_version);
@@ -326,6 +332,8 @@ mod tests {
         assert_eq!(made_for(&versions(&["1.5", " 1.6 "]), "1.6"), None);
         assert_eq!(made_for(&[], "1.6"), None);
         assert_eq!(made_for(&versions(&["1.5"]), ""), None);
+        assert_eq!(newest(&versions(&["1.10", "1.9", " 1.5 "])), Some("1.10"));
+        assert_eq!(newest(&[]), None);
         let needs = required(vec![("Lib".into(), true), ("gone.lib".into(), false)]);
         assert_eq!(
             (needs[0].trouble, needs[1].note.to_string().as_str()),

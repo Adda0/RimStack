@@ -118,38 +118,66 @@ pub fn sorted_by_category(
     })
 }
 
-pub fn troubles(app: &App, library: &Library, mods: &[Mod]) -> (Vec<Vec<Trouble>>, Vec<bool>) {
-    let (excused, ignored): (HashSet<String>, HashMap<String, HashSet<String>>) = {
+/// Read once for both lists, so a mod is marked the same on either side.
+pub struct Trust {
+    off: bool,
+    /// Yours and the community's.
+    trusted: HashSet<String>,
+    /// Yours alone: the community's word is not an ignored warning.
+    excused: HashSet<String>,
+}
+
+impl Trust {
+    pub fn read(app: &App, library: &Library) -> Self {
+        let settings = app.settings();
+        let off = !rimstack_core::mods::checks::version_warnings_shown(
+            !settings.switch(Switch::VersionWarnings),
+            settings.get("versionAsideFor"),
+            &library.game_version,
+        );
+        let excused: HashSet<String> = app
+            .notes()
+            .reading()
+            .version_ok()
+            .map(String::from)
+            .collect();
+        let mut trusted = (*app.works_on()).clone();
+        trusted.extend(excused.iter().cloned());
+        Self {
+            off,
+            trusted,
+            excused,
+        }
+    }
+
+    fn versions<'a>(&'a self, of: &'a HashSet<String>) -> describe::Versions<'a> {
+        match self.off {
+            true => describe::Versions::Ignored,
+            false => describe::Versions::CheckedBut(of),
+        }
+    }
+}
+
+pub fn outdated(library: &Library, mods: &[Mod], trust: &Trust) -> Vec<Option<String>> {
+    describe::outdated(library, mods, trust.versions(&trust.trusted))
+}
+
+pub fn troubles(
+    app: &App,
+    library: &Library,
+    mods: &[Mod],
+    trust: &Trust,
+) -> (Vec<Vec<Trouble>>, Vec<bool>) {
+    let ignored: HashMap<String, HashSet<String>> = {
         let notes = app.notes().reading();
         let ignored = notes
             .ignored()
             .map(|(id, keys)| (id.to_string(), keys.iter().cloned().collect()));
-        (
-            notes.version_ok().map(String::from).collect(),
-            ignored.collect(),
-        )
-    };
-    let mut trusted = (*app.works_on()).clone();
-    trusted.extend(excused.iter().cloned());
-    let off = {
-        let settings = app.settings();
-        !rimstack_core::mods::checks::version_warnings_shown(
-            !settings.switch(Switch::VersionWarnings),
-            settings.get("versionAsideFor"),
-            &library.game_version,
-        )
-    };
-    let versions = match off {
-        true => describe::Versions::Ignored,
-        false => describe::Versions::CheckedBut(&trusted),
-    };
-    // The community's word is not an ignored warning; yours is.
-    let by_you = match off {
-        true => describe::Versions::Ignored,
-        false => describe::Versions::CheckedBut(&excused),
+        ignored.collect()
     };
     let workshop = app.workshop_names();
-    let mut found = describe::troubles(library, mods, versions, &workshop);
+    let mut found = describe::troubles(library, mods, trust.versions(&trust.trusted), &workshop);
     describe::without_ignored(&mut found, mods, &ignored);
+    let by_you = trust.versions(&trust.excused);
     (found, describe::version_ignored(library, mods, by_you))
 }

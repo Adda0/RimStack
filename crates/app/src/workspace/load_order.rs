@@ -55,6 +55,8 @@ pub struct LoadOrder {
     troubles: Vec<Vec<Trouble>>,
     version_ignored: Vec<bool>,
     checked_order: Vec<Option<ModId>>,
+    outdated: [Vec<Option<String>>; 2],
+    checked_inactive: Vec<Option<ModId>>,
     twins: [Vec<bool>; 2],
     slowest: Option<u32>,
     preview: Option<Preview>,
@@ -107,6 +109,8 @@ impl LoadOrder {
             troubles: Vec::new(),
             version_ignored: Vec::new(),
             checked_order: Vec::new(),
+            outdated: [Vec::new(), Vec::new()],
+            checked_inactive: Vec::new(),
             twins: [Vec::new(), Vec::new()],
             slowest: None,
             preview: None,
@@ -243,12 +247,26 @@ impl LoadOrder {
         let Ok((library, _)) = &*loaded else {
             return;
         };
-        let now: Vec<Option<ModId>> = self.active.mods().iter().map(|m| m.installed).collect();
-        if now != self.checked_order {
-            let (found, ignored) = rules::troubles(app, library, self.active.mods());
-            self.troubles = found;
-            self.version_ignored = ignored;
-            self.checked_order = now;
+        let ids = |list: &GroupedList| -> Vec<Option<ModId>> {
+            list.mods().iter().map(|m| m.installed).collect()
+        };
+        let (active, inactive) = (ids(&self.active), ids(&self.inactive));
+        let changed = [
+            active != self.checked_order,
+            inactive != self.checked_inactive,
+        ];
+        if changed.contains(&true) {
+            let trust = rules::Trust::read(app, library);
+            if changed[0] {
+                let mods = self.active.mods();
+                (self.troubles, self.version_ignored) = rules::troubles(app, library, mods, &trust);
+                self.outdated[0] = rules::outdated(library, mods, &trust);
+                self.checked_order = active;
+            }
+            if changed[1] {
+                self.outdated[1] = rules::outdated(library, self.inactive.mods(), &trust);
+                self.checked_inactive = inactive;
+            }
         }
         if self.preview.is_none() && !self.batching {
             let ids = self.active.mods().iter().map(|m| m.id.clone()).collect();
@@ -262,6 +280,7 @@ impl LoadOrder {
 
     pub fn recheck(&mut self, app: &App) {
         self.checked_order = Vec::new();
+        self.checked_inactive = Vec::new();
         self.settle(app);
     }
 
