@@ -251,12 +251,12 @@ fn native_settings(os: Os, home: &Path, game_version: Option<&str>) -> Vec<PathB
         Os::Windows => vec![home.join("AppData/LocalLow").join(SETTINGS)],
         Os::Mac => {
             let support = home.join("Library/Application Support");
-            let waylith = support.join("Ludeon Studios/RimWorld");
-            let unity = [support.join("Rimworld"), support.join("RimWorld")];
+            let waylith = [support.join("Rimworld"), support.join("RimWorld")];
+            let unity = support.join("Ludeon Studios/RimWorld");
             if on_unity(game_version) {
-                unity.into_iter().chain([waylith]).collect()
+                [unity].into_iter().chain(waylith).collect()
             } else {
-                [waylith].into_iter().chain(unity).collect()
+                waylith.into_iter().chain([unity]).collect()
             }
         }
     }
@@ -551,14 +551,14 @@ mod tests {
     }
 
     #[test]
-    fn macos_settings_follow_the_game_s_version_past_a_stale_unity_folder() {
+    fn macos_settings_follow_the_game_s_version_when_both_folders_are_left() {
         let home = tempfile::tempdir().unwrap();
         let support = home.path().join("Library/Application Support");
         let installed = support.join("Steam/steamapps/common/RimWorld");
         fs::create_dir_all(installed.join("Data")).unwrap();
         let (unity, waylith) = (
-            support.join("RimWorld"),
             support.join("Ludeon Studios/RimWorld"),
+            support.join("Rimworld"),
         );
         fs::create_dir_all(&unity).unwrap();
         fs::create_dir_all(&waylith).unwrap();
