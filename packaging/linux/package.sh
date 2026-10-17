@@ -39,7 +39,7 @@ if [ "$("$qmake" -query QT_INSTALL_PREFIX)" = /usr ]; then
     chmod +x target/packaging/qmake
     export QMAKE="$root/target/packaging/qmake"
 fi
-export EXTRA_QT_MODULES="svg"
+export EXTRA_QT_MODULES="svg;waylandcompositor"
 export EXTRA_PLATFORM_PLUGINS="libqwayland.so;libqoffscreen.so"
 export LDAI_OUTPUT="$out/RimStack-$version-x86_64.AppImage"
 export APPIMAGE_EXTRACT_AND_RUN=1
