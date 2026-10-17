@@ -30,13 +30,41 @@ Item {
         Mods.prefs.details = wide
     }
 
+    function dueHint(item) {
+        for (const child of item.data) {
+            if (child.due === true && child.step > 0)
+                return child
+            const found = child.data ? checks.dueHint(child) : null
+            if (found)
+                return found
+        }
+        return null
+    }
+
+    function hints() {
+        const selected = Mods.selectedId
+        let shown = 0, below = true
+        Mods.hintStep = 1
+        for (let hint = checks.dueHint(screen); hint && shown < 3; hint = checks.dueHint(screen)) {
+            const top = hint.background.mapToItem(null, 0, 0), under = hint.parent.mapToItem(null, 0, hint.parent.height)
+            below = below && Math.abs(top.y - under.y - 9) < 1 && hint.opened
+            const row = hint.contentItem.children[1], next = row.children[row.children.length - 1]
+            events.mouseClick(next, next.width / 2, next.height / 2, Qt.LeftButton, Qt.NoModifier, -1)
+            if (checks.dueHint(screen) === hint)
+                break
+            shown += 1
+        }
+        check("Next and Done on the first-run hints go through each and close the last", shown > 0 && Mods.hintStep === 0)
+        check("and reach nothing under the hints", Mods.selectedId === selected)
+        check("each hint shows just below its button", below)
+        Mods.endHints()
+    }
+
     function nameAt(row) {
         return Mods.active.at(row).name
     }
 
     function drag(from, fromY, to, toY) {
-        // A bar that came with the last change moves the lists down; that
-        // is laid out only when the window is next drawn.
         from.parent.ensurePolished()
         to.parent.ensurePolished()
         from.forceLayout()
@@ -109,6 +137,7 @@ Item {
             if (Mods.active.count === 0 || !Hub.mods.filesRead)
                 return
             stop()
+            checks.hints()
             checks.divider()
             // `row` below assumes compact rows, 26 high.
             Mods.prefs.headings = 0
