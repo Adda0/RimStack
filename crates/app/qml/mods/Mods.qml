@@ -231,9 +231,7 @@ Item {
     }
 
     function openFolder(modId) {
-        const path = about(modId).path
-        if (path)
-            Qt.openUrlExternally(Theme.fileUrl(path))
+        Qt.openUrlExternally(Theme.fileUrl(about(modId).path))
     }
 
     property var slid: ({ modId: -1, by: 0 })

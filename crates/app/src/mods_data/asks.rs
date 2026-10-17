@@ -201,6 +201,13 @@ impl qobject::ModsData {
         }
     }
 
+    pub(super) fn not_installed(&self, active: bool, index: i32) -> QVariant {
+        usize::try_from(index)
+            .ok()
+            .and_then(|at| self.order.not_installed(&self.app(), Side::of(active), at))
+            .map_or_else(QVariant::default, |said| to_qml(&said))
+    }
+
     pub(super) fn files_of(&self, mod_id: i32) -> QVariant {
         match id(mod_id) {
             Some(id) => to_qml(&LoadOrder::files(&self.app(), id)),

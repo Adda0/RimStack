@@ -122,7 +122,7 @@ fn made_up() -> (tempfile::TempDir, App) {
     let config = root.join("config");
     write(
         &config.join("Config/ModsConfig.xml"),
-        "<ModsConfigData><activeMods><li>ludeon.rimworld</li><li>ann.roads</li><li>ann.a</li><li>ann.b</li></activeMods></ModsConfigData>",
+        "<ModsConfigData><activeMods><li>ludeon.rimworld</li><li>ann.roads</li><li>ann.a</li><li>ann.b</li><li>pulled.mod</li><li>lost.mod</li></activeMods></ModsConfigData>",
     );
     write(&config.join("Player.log"), LOG);
     write(&config.join("StartupImpactData.xml"), STARTUP);
@@ -240,6 +240,10 @@ fn mods(app: &App, shapes: &mut Shapes) {
     app.set_note(a, "Stone, Grey", "Read first");
     app.change_rule(a, b, true);
     app.set_version_ok(&[roads], true);
+    write(
+        &rimstack_core::rimworld::workshopdb::file_in(app.data_dir()),
+        "pulled.mod\t900009\tPulled",
+    );
     let mut order = LoadOrder::read(app, true, false);
     order.settle(app);
     if let Some(members) = order.files_to_read(app) {
@@ -249,6 +253,11 @@ fn mods(app: &App, shapes: &mut Shapes) {
     shapes.add("mods.summary", &app.summary());
     shapes.add("mods.overview", &order.overview(app));
     shapes.add("mods.fresh", &order.fresh(app, Side::Inactive));
+    for at in 0..order.list(Side::Active).mods().len() {
+        if let Some(gone) = order.not_installed(app, Side::Active, at) {
+            shapes.add("mods.notInstalled", &gone);
+        }
+    }
     for id in [roads, a, b, shop, broken, hats, subscribed_hats] {
         shapes.add("mods.details", &order.details(app, id));
         shapes.add("mods.detailsOf", &order.details(app, id));

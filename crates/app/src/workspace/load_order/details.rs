@@ -1,4 +1,4 @@
-use super::{LoadOrder, rules};
+use super::{LoadOrder, Side, rules};
 use crate::App;
 use rimstack_core::base::locks::Shared;
 use rimstack_core::base::sentence::Sentence;
@@ -157,6 +157,17 @@ pub struct LocalCopy {
     path: String,
 }
 
+/// An active row whose mod is not installed, in place of its details for its menu.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NotInstalled {
+    name: String,
+    take_off: Sentence,
+    package_id: String,
+    fixes: Vec<FixSaid>,
+    resubscribe: Vec<String>,
+}
+
 #[derive(Serialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct Textures {
@@ -197,6 +208,25 @@ pub struct Overview {
 }
 
 impl LoadOrder {
+    pub fn not_installed(&self, app: &App, side: Side, index: usize) -> Option<NotInstalled> {
+        let m = self.list(side).mods().get(index)?;
+        if m.installed.is_some() {
+            return None;
+        }
+        let (name, fix) = describe::missing(&app.workshop_names(), &m.id);
+        let resubscribe = match &fix {
+            describe::Fix::Subscribe(workshop_id) => vec![workshop_id.clone()],
+            _ => Vec::new(),
+        };
+        Some(NotInstalled {
+            name,
+            take_off: say!("Take off the list"),
+            package_id: m.id.clone(),
+            fixes: vec![FixSaid::of(&fix)],
+            resubscribe,
+        })
+    }
+
     pub fn details(&mut self, app: &App, id: ModId) -> Details {
         let loaded = app.library();
         let Ok((library, _)) = &*loaded else {

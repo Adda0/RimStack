@@ -347,7 +347,7 @@ Item {
         id: quick
         readonly property bool hovered: toggleHover.hovered || folderHover.hovered || moreHover.hovered
         readonly property bool chosen: row.current && Mods.selectedCount === 1
-        visible: (hover.hovered || chosen) && !row.isHeader && row.modId >= 0 && Mods.drag.held === null && !Hub.mods.previewing && Mods.picking === ""
+        visible: (hover.hovered || chosen) && !row.isHeader && row.modIndex >= 0 && Mods.drag.held === null && !Hub.mods.previewing && Mods.picking === ""
         anchors.right: parent.right
         anchors.rightMargin: Theme.gapCard
         anchors.verticalCenter: parent.verticalCenter
@@ -368,7 +368,7 @@ Item {
             Tip { text: row.columns ? Theme.say("Deactivate") : Theme.say("Activate"); over: toggleHover.hovered }
         }
         Rectangle {
-            visible: hover.hovered
+            visible: hover.hovered && row.modId >= 0
             width: Theme.sized(24)
             height: Theme.sized(24)
             radius: Theme.corner
@@ -430,7 +430,7 @@ Item {
                 ])
             else if (row.isHeader)
                 Mods.categoryMenu(row, point.position.x, point.position.y, row.category)
-            else if (row.modId >= 0)
+            else if (row.modIndex >= 0)
                 Mods.rowMenu(row, point.position.x, point.position.y)
         }
     }

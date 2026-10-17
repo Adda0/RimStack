@@ -6,14 +6,14 @@ QtObject {
         const inActive = row.ownModel === Mods.active
         if (!(row.current))
             Mods.select(row.modId, inActive)
-        const about = Mods.about(row.modId)
+        const about = Hub.mods.notInstalled(inActive, row.modIndex) || Mods.about(row.modId)
         const many = Mods.selectedCount > 1
         const workshop = !!about.workshop
         const page = about.workshopPage || ""
         const groups = []
         groups.push([
-            { text: many ? (inActive ? Theme.plural(Mods.selectedCount, "Deactivate {} mod", "Deactivate {} mods") : Theme.plural(Mods.selectedCount, "Activate {} mod", "Activate {} mods")) : inActive ? Theme.say("Deactivate") : Theme.say("Activate"), icon: inActive ? "minus" : "plus", off: Hub.mods.previewing,
-              run: () => many ? Mods.moveSelected() : Mods.moveAcross(row.ownModel, row.ownModel.indexOf(row.modId), row.modId) },
+            { text: about.takeOff || (many ? (inActive ? Theme.plural(Mods.selectedCount, "Deactivate {} mod", "Deactivate {} mods") : Theme.plural(Mods.selectedCount, "Activate {} mod", "Activate {} mods")) : inActive ? Theme.say("Deactivate") : Theme.say("Activate")), icon: inActive ? "minus" : "plus", off: Hub.mods.previewing,
+              run: () => many ? Mods.moveSelected() : Mods.moveAcross(row.ownModel, row.modIndex, row.modId) },
         ])
         const open = []
         if (about.path)
@@ -24,6 +24,12 @@ QtObject {
         if (about.packageId)
             open.push({ text: Theme.say("Copy package id"), icon: "copy", run: () => Theme.copy(about.packageId) })
         groups.push(open)
+        const fetch = []
+        for (const fix of about.fixes || [])
+            fetch.push({ text: Theme.say(fix.label), icon: "external-link", run: () => Mods.applyFix(row.modId, fix) })
+        for (const id of about.resubscribe || [])
+            fetch.push({ text: Theme.say("Subscribe again"), icon: "download", run: () => Hub.downloads.subscribe(id) })
+        groups.push(fetch)
         if (workshop) {
             const steam = [
                 { title: Theme.say("Steam Workshop") },
@@ -56,7 +62,8 @@ QtObject {
         filing.push({ text: Theme.say("A new tag…"), icon: "plus", run: () => Mods.subNameRequested(row.modId) })
         if (about.sub)
             filing.push({ text: Theme.fill("Remove the tag {}", about.sub), run: () => Mods.putInSub(row.modId, "") })
-        groups.push(filing)
+        if (about.groupChoices)
+            groups.push(filing)
         const last = []
         if (many && Mods.versionWarned.length > 0)
             last.push({ text: Theme.plural(Mods.versionWarned.length, "Ignore the game version mismatch of {} mod", "Ignore the game version mismatch of {} mods"), icon: "check", run: () => Mods.trustSelected(true) })

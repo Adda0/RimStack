@@ -289,3 +289,55 @@ fn nothing_is_saved_while_the_game_runs() {
     assert_eq!(std::fs::read_to_string(&file).unwrap(), before);
     order.save(&app).unwrap();
 }
+
+fn with_a_mod_gone(workshop_names: &str) -> (tempfile::TempDir, App, LoadOrder) {
+    let (tmp, app) = installed();
+    std::fs::write(
+        tmp.path().join("config/Config/ModsConfig.xml"),
+        "<ModsConfigData><activeMods><li>gone.mod</li><li>ludeon.rimworld</li></activeMods></ModsConfigData>",
+    )
+    .unwrap();
+    std::fs::create_dir_all(app.data_dir()).unwrap();
+    let names = rimstack_core::rimworld::workshopdb::file_in(app.data_dir());
+    std::fs::write(names, workshop_names).unwrap();
+    let order = LoadOrder::read(&app, true, false);
+    assert_eq!(order.list(Side::Active).mods()[0].id, "gone.mod");
+    (tmp, app, order)
+}
+
+#[test]
+fn a_mod_on_the_list_but_not_installed_gives_its_menu_its_id() {
+    let (_tmp, app, order) = with_a_mod_gone("");
+    let said = serde_json::to_value(order.not_installed(&app, Side::Active, 0)).unwrap();
+    assert_eq!(said["packageId"], "gone.mod");
+    assert_eq!(said["fixes"][0]["action"], "search");
+    assert_eq!(said["resubscribe"], serde_json::json!([]));
+    assert!(order.not_installed(&app, Side::Active, 1).is_none());
+    assert!(order.not_installed(&app, Side::Inactive, 0).is_none());
+}
+
+#[test]
+fn a_mod_not_installed_the_workshop_knows_offers_its_page_and_to_subscribe_again() {
+    let (_tmp, app, order) = with_a_mod_gone("gone.mod\t123\tGone");
+    let said = serde_json::to_value(order.not_installed(&app, Side::Active, 0)).unwrap();
+    assert_eq!(said["name"], "Gone");
+    assert_eq!(said["fixes"][0]["action"], "subscribe");
+    assert_eq!(said["fixes"][0]["target"], "123");
+    assert_eq!(said["resubscribe"], serde_json::json!(["123"]));
+}
+
+#[test]
+fn a_mod_not_installed_taken_off_the_list_is_gone_from_both() {
+    let (_tmp, app, mut order) = with_a_mod_gone("");
+    order.take(&app, Side::Active, 0, None);
+    assert_eq!(app.session().current(), ["ludeon.rimworld"]);
+    let inactive: Vec<&str> = order
+        .list(Side::Inactive)
+        .mods()
+        .iter()
+        .map(|m| m.id.as_str())
+        .collect();
+    assert_eq!(inactive, ["ann.roads"]);
+    assert!(order.undo(&app));
+    assert_eq!(app.session().current(), ["gone.mod", "ludeon.rimworld"]);
+}

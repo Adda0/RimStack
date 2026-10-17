@@ -97,6 +97,10 @@ impl qobject::DownloadsData {
         self.ask_steam(SteamAsk::Subscribe, wanted);
     }
 
+    pub(super) fn subscribe(self: Pin<&mut Self>, workshop_id: &QString) {
+        self.ask_steam(SteamAsk::Subscribe, vec![workshop_id.to_string()]);
+    }
+
     pub(super) fn unsubscribe(self: Pin<&mut Self>, mod_id: i32) {
         let workshop = ModId::from_qml(mod_id).and_then(|id| self.app().workshop_id(id));
         self.ask_steam(SteamAsk::Unsubscribe, workshop.into_iter().collect());

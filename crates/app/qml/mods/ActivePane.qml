@@ -24,8 +24,8 @@ Item {
             entries.push({ text: Theme.plural(Hub.downloads.behindActive, "{} update", "{} updates"), icon: "download", run: () => Mods.showSection(1) })
         if (entries.length > 0)
             entries.push({ line: true })
-        entries.push({ text: Theme.say("Undo (Ctrl + Z)"), icon: "undo-2", off: !Hub.mods.canUndo || Hub.mods.previewing, run: () => Hub.mods.undo() })
-        entries.push({ text: Theme.say("Redo (Ctrl + Shift + Z)"), icon: "redo-2", off: !Hub.mods.canRedo || Hub.mods.previewing, run: () => Hub.mods.redo() })
+        entries.push({ text: Theme.say("Undo (Ctrl + Z)"), icon: "undo-2", off: !Hub.mods.canUndo || Hub.mods.previewing, run: Hub.mods.undo })
+        entries.push({ text: Theme.say("Redo (Ctrl + Shift + Z)"), icon: "redo-2", off: !Hub.mods.canRedo || Hub.mods.previewing, run: Hub.mods.redo })
         return entries
     }
     readonly property int versionOnly: Mods.overview.versionOnly || 0

@@ -463,6 +463,18 @@ mods.fresh: list
   []: number
 mods.inLoadOrder: list or nothing
   []: number
+mods.notInstalled: object
+  fixes: list
+    []: object
+      action: text
+      label: text
+      page: nothing or text
+      target: text
+  name: text
+  packageId: text
+  resubscribe: list
+    []: text
+  takeOff: text
 mods.othersThrough: list
   []: number
 mods.overview: object

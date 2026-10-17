@@ -22,8 +22,9 @@ impl LoadOrder {
         let Some(m) = self.list_mut(from).remove(index) else {
             return;
         };
-        let into = from.other();
-        self.put(app, into, m, to);
+        if m.installed.is_some() {
+            self.put(app, from.other(), m, to);
+        }
         self.settle(app);
     }
 

@@ -236,6 +236,10 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "detailsOf"]
         fn details_of(self: Pin<&mut ModsData>, mod_id: i32) -> QVariant;
+        /// `{ name, takeOff, packageId, fixes, resubscribe }` for the row at `index` when its mod is not installed; null otherwise.
+        #[qinvokable]
+        #[cxx_name = "notInstalled"]
+        fn not_installed(self: &ModsData, active: bool, index: i32) -> QVariant;
         /// `{ tree, assemblies }`.
         #[qinvokable]
         #[cxx_name = "filesOf"]

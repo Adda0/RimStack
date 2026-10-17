@@ -180,6 +180,13 @@ pub fn version_ignored(library: &Library, mods: &[Mod], versions: Versions) -> V
     .collect()
 }
 
+pub fn missing(workshop: &Names, id: &str) -> (String, Fix) {
+    match workshop.get(&crate::rimworld::id::fold(id)) {
+        Some(item) => (item.name.clone(), Fix::Subscribe(item.workshop_id.clone())),
+        None => (id.to_string(), Fix::Search(id.to_string())),
+    }
+}
+
 pub fn troubles(
     library: &Library,
     mods: &[Mod],
@@ -193,10 +200,7 @@ pub fn troubles(
             problems.retain(|p| !matches!(p, Problem::GameVersion { .. }));
         }
     }
-    let missing = |id: &str| match workshop.get(&crate::rimworld::id::fold(id)) {
-        Some(item) => (item.name.clone(), Fix::Subscribe(item.workshop_id.clone())),
-        None => (id.to_string(), Fix::Search(id.to_string())),
-    };
+    let missing = |id: &str| missing(workshop, id);
     let in_words = |problem: Problem| -> Trouble {
         let key = match &problem {
             Problem::Requires { id, .. } => {

@@ -61,6 +61,9 @@ pub mod qobject {
         fn download_wanted(self: Pin<&mut DownloadsData>);
         #[qinvokable]
         fn unsubscribe(self: Pin<&mut DownloadsData>, mod_id: i32);
+        /// Steam must be running.
+        #[qinvokable]
+        fn subscribe(self: Pin<&mut DownloadsData>, workshop_id: &QString);
         #[qinvokable]
         #[cxx_name = "updateFromGit"]
         fn update_from_git(self: Pin<&mut DownloadsData>, mod_id: i32);
