@@ -452,8 +452,14 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let root = tmp.path().join("Mods");
         let abouts = [
-            ("old", "<ModMetaData><packageId>a.old</packageId><name>Old</name><supportedVersions><li>1.5</li></supportedVersions><modDependencies><li><packageId>gone.lib</packageId></li></modDependencies></ModMetaData>"),
-            ("fine", "<ModMetaData><packageId>a.fine</packageId><name>Fine</name><supportedVersions><li>1.6</li></supportedVersions></ModMetaData>"),
+            (
+                "old",
+                "<ModMetaData><packageId>a.old</packageId><name>Old</name><supportedVersions><li>1.5</li></supportedVersions><modDependencies><li><packageId>gone.lib</packageId></li></modDependencies></ModMetaData>",
+            ),
+            (
+                "fine",
+                "<ModMetaData><packageId>a.fine</packageId><name>Fine</name><supportedVersions><li>1.6</li></supportedVersions></ModMetaData>",
+            ),
         ];
         for (folder, about) in abouts {
             fs::create_dir_all(root.join(folder).join("About")).unwrap();

@@ -6,7 +6,7 @@ use rimstack_core::{
     rimworld::logs, rimworld::modsconfig, rimworld::rimsaves, rimworld::steamworks,
     rimworld::workshop, sources::changes,
 };
-use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::time::{Duration, Instant};
 
 struct Random(u64);
@@ -258,7 +258,9 @@ fn a_damaged_real_assembly_is_refused_or_read_and_never_panics() {
         }
     }
     std::panic::set_hook(quiet);
-    println!("assembly fuzz: 4000 damaged files, {read} still read, {panicked} panics, slowest {slowest:?}");
+    println!(
+        "assembly fuzz: 4000 damaged files, {read} still read, {panicked} panics, slowest {slowest:?}"
+    );
     assert_eq!(panicked, 0);
     assert!(
         slowest < Duration::from_secs(2),

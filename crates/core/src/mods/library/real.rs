@@ -1,7 +1,7 @@
 //! Read-only.
 
 use super::*;
-use crate::rimworld::paths::{detect, Overrides};
+use crate::rimworld::paths::{Overrides, detect};
 
 #[test]
 #[ignore = "needs RimWorld installed"]

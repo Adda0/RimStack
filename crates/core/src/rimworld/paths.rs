@@ -493,10 +493,12 @@ mod tests {
         fs::create_dir_all(&settings).unwrap();
         let env = |name: &str| (name == "ProgramFiles(x86)").then(|| programs.clone());
         let found = detect_on(Os::Windows, &home, &env, &Overrides::default());
-        assert!(found
-            .game
-            .unwrap()
-            .ends_with("Steam/steamapps/common/RimWorld"));
+        assert!(
+            found
+                .game
+                .unwrap()
+                .ends_with("Steam/steamapps/common/RimWorld")
+        );
         assert!(found.workshop.unwrap().ends_with("workshop/content/294100"));
         assert_eq!(found.config.unwrap(), settings);
 
@@ -529,10 +531,12 @@ mod tests {
         fs::create_dir_all(steam.join("steamapps/common/RimWorld")).unwrap();
         let env = |name: &str| (name == STEAM_INSTALL).then(|| steam.clone());
         let found = detect_on(Os::Windows, tmp.path(), &env, &Overrides::default());
-        assert!(found
-            .game
-            .unwrap()
-            .ends_with("Steam/steamapps/common/RimWorld"));
+        assert!(
+            found
+                .game
+                .unwrap()
+                .ends_with("Steam/steamapps/common/RimWorld")
+        );
     }
 
     #[test]

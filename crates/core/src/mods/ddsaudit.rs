@@ -40,7 +40,7 @@ fn block_bytes(header: &[u8]) -> Result<Option<u64>, Sentence> {
             return Err(say!(
                 "format {} is not one the game reads",
                 String::from_utf8_lossy(other)
-            ))
+            ));
         }
     }))
 }
@@ -115,22 +115,30 @@ mod tests {
     fn a_sound_file_has_no_problem_and_each_fault_is_named() {
         let good = header(8, 8, b"DXT1");
         assert_eq!(problem(&good, 128 + 32), None);
-        assert!(problem(&good, 128 + 31)
-            .unwrap()
-            .to_string()
-            .contains("cut short"));
-        assert!(problem(&header(10, 8, b"DXT5"), 9999)
-            .unwrap()
-            .to_string()
-            .contains("multiple of four"));
-        assert!(problem(&header(8, 8, b"PVRT"), 9999)
-            .unwrap()
-            .to_string()
-            .contains("PVRT"));
-        assert!(problem(&header(0, 8, b"DXT1"), 9999)
-            .unwrap()
-            .to_string()
-            .contains("no size"));
+        assert!(
+            problem(&good, 128 + 31)
+                .unwrap()
+                .to_string()
+                .contains("cut short")
+        );
+        assert!(
+            problem(&header(10, 8, b"DXT5"), 9999)
+                .unwrap()
+                .to_string()
+                .contains("multiple of four")
+        );
+        assert!(
+            problem(&header(8, 8, b"PVRT"), 9999)
+                .unwrap()
+                .to_string()
+                .contains("PVRT")
+        );
+        assert!(
+            problem(&header(0, 8, b"DXT1"), 9999)
+                .unwrap()
+                .to_string()
+                .contains("no size")
+        );
         assert_eq!(
             problem(b"PNG....", 7).map(|p| p.to_string()).as_deref(),
             Some("not a DDS file")

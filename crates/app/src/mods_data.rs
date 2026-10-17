@@ -271,10 +271,10 @@ mod asks;
 mod commands;
 mod drafts;
 
+use crate::App;
 use crate::changes::Changes;
 use crate::qml::values::to_qml;
 use crate::workspace::load_order::{LoadOrder, Side};
-use crate::App;
 use core::pin::Pin;
 use cxx::UniquePtr;
 use cxx_qt::{CxxQtType, Threading};

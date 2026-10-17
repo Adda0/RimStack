@@ -337,9 +337,11 @@ mod tests {
         app.checkout_updated(&roads);
         let caught_up = app.kept_updates().unwrap();
         assert_eq!(caught_up.checkouts[0].behind, Some(0));
-        assert!(updates_shown(&caught_up, &HashSet::new())
-            .checkouts_behind
-            .is_empty());
+        assert!(
+            updates_shown(&caught_up, &HashSet::new())
+                .checkouts_behind
+                .is_empty()
+        );
     }
 
     #[test]

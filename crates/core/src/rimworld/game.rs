@@ -204,7 +204,7 @@ impl Game {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::rimworld::dotnet::build::{op, Builder, NEW, VIRTUAL};
+    use crate::rimworld::dotnet::build::{Builder, NEW, VIRTUAL, op};
 
     const CALL: u16 = 0x28;
     const METHOD: usize = 0x06;
@@ -295,7 +295,7 @@ mod tests {
     #[test]
     #[ignore = "needs RimWorld installed"]
     fn the_installed_game_s_methods_are_dated_from_its_entry_points() {
-        use crate::rimworld::paths::{detect, Overrides};
+        use crate::rimworld::paths::{Overrides, detect};
         let home = std::path::PathBuf::from(std::env::var_os("HOME").unwrap());
         let paths = detect(&home, &Overrides::from_env());
         let dir = paths.game.expect("the game is installed");

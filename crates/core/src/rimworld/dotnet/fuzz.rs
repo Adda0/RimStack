@@ -1,6 +1,6 @@
-use super::build::{op, ser, Builder};
-use super::{il, Assembly, MEMBER_REF, METHOD_DEF};
-use std::panic::{catch_unwind, AssertUnwindSafe};
+use super::build::{Builder, op, ser};
+use super::{Assembly, MEMBER_REF, METHOD_DEF, il};
+use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::time::{Duration, Instant};
 
 struct Random(u64);

@@ -17,10 +17,10 @@ impl<K, T> Default for Derived<K, T> {
 impl<K: PartialEq, T> Derived<K, T> {
     pub fn get(&self, key: K, make: impl FnOnce() -> T) -> Arc<T> {
         let mut now = self.now.held();
-        if let Some((made_for, value)) = now.as_ref() {
-            if *made_for == key {
-                return value.clone();
-            }
+        if let Some((made_for, value)) = now.as_ref()
+            && *made_for == key
+        {
+            return value.clone();
         }
         let value = Arc::new(make());
         *now = Some((key, value.clone()));

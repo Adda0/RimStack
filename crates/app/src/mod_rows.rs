@@ -133,7 +133,7 @@ pub mod qobject {
     }
 }
 
-use crate::qml::diff::{steps, Step};
+use crate::qml::diff::{Step, steps};
 use crate::qml::values::to_qml;
 use crate::workspace::load_order::RowView;
 use core::pin::Pin;
@@ -142,7 +142,7 @@ use cxx_qt_lib::{
     QByteArray, QHash, QHashPair_i32_QByteArray, QModelIndex, QString, QVariant, QVector,
 };
 use rimstack_core::base::sentence::Sentence;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 #[derive(Default)]
 pub struct ModRowsRust {

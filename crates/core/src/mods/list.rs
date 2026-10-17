@@ -519,10 +519,11 @@ pub fn split_groups<'a>(mods: impl IntoIterator<Item = &'a Mod>) -> Vec<String> 
         if let Some(left) = last {
             closed.insert(left);
         }
-        if let Some(entered) = now {
-            if closed.contains(&entered) && !split.iter().any(|name| name == entered.1) {
-                split.push(entered.1.to_string());
-            }
+        if let Some(entered) = now
+            && closed.contains(&entered)
+            && !split.iter().any(|name| name == entered.1)
+        {
+            split.push(entered.1.to_string());
         }
         last = now;
     }

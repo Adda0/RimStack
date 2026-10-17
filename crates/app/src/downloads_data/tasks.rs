@@ -1,6 +1,6 @@
 //! One at a time, in the order asked: two would write the same SteamCMD folder.
 
-use super::{qobject, Work};
+use super::{Work, qobject};
 use crate::changes::Changes;
 use crate::workspace::fetch::{Done, SteamAsk};
 use core::pin::Pin;

@@ -29,10 +29,11 @@ impl Detected {
             return Vec::new();
         };
         let list: Vec<Option<ModId>> = mods.iter().map(|m| m.installed).collect();
-        if let Some((for_list, for_read, rules)) = &self.kept {
-            if *for_list == list && *for_read == read.members {
-                return rules.clone();
-            }
+        if let Some((for_list, for_read, rules)) = &self.kept
+            && *for_list == list
+            && *for_read == read.members
+        {
+            return rules.clone();
         }
         let active: HashSet<String> = mods
             .iter()

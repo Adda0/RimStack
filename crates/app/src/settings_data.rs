@@ -124,10 +124,10 @@ pub mod qobject {
     }
 }
 
+use crate::App;
 use crate::changes::Changes;
 use crate::qml::values::{from_qml, to_qml};
 use crate::reports::{Answer, Written};
-use crate::App;
 use core::pin::Pin;
 use cxx_qt::{CxxQtType, Threading};
 use cxx_qt_lib::{QString, QUrl, QVariant};

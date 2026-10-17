@@ -116,9 +116,11 @@ fn a_mod_made_for_another_game_version_is_marked_on_either_side_until_trusted() 
     order.recheck(&app);
     order.take(&app, Side::Inactive, 0, None);
     let active = order.rows(&app, Side::Active);
-    assert!(active
-        .iter()
-        .any(|r| r.mod_id == id.to_qml() && r.made_for == "1.5"));
+    assert!(
+        active
+            .iter()
+            .any(|r| r.mod_id == id.to_qml() && r.made_for == "1.5")
+    );
 }
 
 #[test]

@@ -1,6 +1,6 @@
 use super::qobject;
 use crate::qml::values::to_qml;
-use crate::workspace::changed::{notes_asked, NotesState, MOST_ASKED, MOST_NOTES};
+use crate::workspace::changed::{MOST_ASKED, MOST_NOTES, NotesState, notes_asked};
 use crate::workspace::now_secs;
 use core::pin::Pin;
 use cxx_qt::{CxxQtType, Threading};

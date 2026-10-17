@@ -48,15 +48,15 @@ pub mod qobject {
     }
 }
 
+use crate::App;
 use crate::changes::Changes;
 use crate::qml::values::to_qml;
-use crate::App;
 use core::pin::Pin;
 use cxx_qt::{CxxQtType, Threading};
 use cxx_qt_lib::{QString, QVariant};
 use rimstack_core::base::watch::{Stamps, Watcher};
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 #[derive(Default)]
@@ -110,12 +110,14 @@ impl qobject::GameData {
                 }
             },
         );
-        crate::jobs::spawn("watch", move || loop {
-            std::thread::sleep(every);
-            let running = app.game_running();
-            let stamps = looking.load(Ordering::Relaxed).then(|| app.stamps());
-            if thread.queue(move |me| me.looked(running, stamps)).is_err() {
-                break;
+        crate::jobs::spawn("watch", move || {
+            loop {
+                std::thread::sleep(every);
+                let running = app.game_running();
+                let stamps = looking.load(Ordering::Relaxed).then(|| app.stamps());
+                if thread.queue(move |me| me.looked(running, stamps)).is_err() {
+                    break;
+                }
             }
         });
     }
@@ -164,10 +166,10 @@ impl qobject::GameData {
         }
         // Never taken unasked: the game empties the file when it first
         // starts on a new version.
-        if noticed.mods_config {
-            if let Some(ids) = app.mods_config_list() {
-                self.written_outside(to_qml(&ids));
-            }
+        if noticed.mods_config
+            && let Some(ids) = app.mods_config_list()
+        {
+            self.written_outside(to_qml(&ids));
         }
     }
 

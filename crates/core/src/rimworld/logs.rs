@@ -74,10 +74,11 @@ fn errors_stamped(text: &str) -> Vec<ErrorGroup> {
     let mut open: Option<usize> = None;
     for (number, line) in text.lines().enumerate() {
         let Some(entry) = stamped(line) else {
-            if let Some(at) = open.filter(|at| groups[*at].count == 1) {
-                if !line.is_empty() && !logging_frame(line) {
-                    groups[at].trace.push(line.trim_end().to_string());
-                }
+            if let Some(at) = open.filter(|at| groups[*at].count == 1)
+                && !line.is_empty()
+                && !logging_frame(line)
+            {
+                groups[at].trace.push(line.trim_end().to_string());
             }
             continue;
         };
@@ -386,7 +387,7 @@ pub fn listed(
 mod tests {
     #[test]
     fn a_filter_lists_errors_by_text_or_by_having_no_mod() {
-        use super::{listed, NO_MOD};
+        use super::{NO_MOD, listed};
         assert!(listed("", "Null reference", None, true, false));
         assert!(!listed("", "Null reference", None, false, false));
         assert!(listed("", "Null reference", None, false, true));
@@ -476,8 +477,16 @@ Runtime:   .NET 10.0.10-waylithclr.dev
         assert_eq!(
             heads,
             [
-                ("Tried loading mod with the same packageId multiple times: A.B. Ignoring the duplicates.", 1, 6),
-                ("Could not load reference to Verse.ResearchProjectDef named Gunlink1", 2, 12),
+                (
+                    "Tried loading mod with the same packageId multiple times: A.B. Ignoring the duplicates.",
+                    1,
+                    6
+                ),
+                (
+                    "Could not load reference to Verse.ResearchProjectDef named Gunlink1",
+                    2,
+                    12
+                ),
             ]
         );
         assert_eq!(

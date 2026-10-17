@@ -1,4 +1,4 @@
-use super::{rules, LoadOrder, Preview};
+use super::{LoadOrder, Preview, rules};
 use crate::App;
 use rimstack_core::base::sentence::Sentence;
 use rimstack_core::mods::describe;

@@ -99,13 +99,13 @@ pub mod qobject {
     }
 }
 
+use crate::App;
 use crate::changes::Changes;
 use crate::qml::values::to_qml;
 use crate::reports::Answer;
-use crate::workspace::changed::{since_shown, ChangeNotes, Only, SinceLaunch};
-use crate::workspace::downloads::{updates_shown, Queue, Updates};
+use crate::workspace::changed::{ChangeNotes, Only, SinceLaunch, since_shown};
+use crate::workspace::downloads::{Queue, Updates, updates_shown};
 use crate::workspace::fetch::Done;
-use crate::App;
 use core::pin::Pin;
 use cxx_qt::{CxxQtType, Threading};
 use cxx_qt_lib::{QString, QVariant};
@@ -309,10 +309,10 @@ impl qobject::DownloadsData {
     }
 
     fn ignore_replacement(&self, mod_id: i32) {
-        if let Some(id) = ModId::from_qml(mod_id) {
-            if let Err(problem) = self.app().ignore_replacement(Some(id)) {
-                rimstack_core::problem!("{problem}");
-            }
+        if let Some(id) = ModId::from_qml(mod_id)
+            && let Err(problem) = self.app().ignore_replacement(Some(id))
+        {
+            rimstack_core::problem!("{problem}");
         }
     }
 

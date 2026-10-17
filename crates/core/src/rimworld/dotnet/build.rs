@@ -1,4 +1,4 @@
-use super::{Col, ASSEMBLY_REF, METHOD_DEF, TABLES};
+use super::{ASSEMBLY_REF, Col, METHOD_DEF, TABLES};
 
 /// Start of the code in memory: after the .NET header that `finish` writes.
 const CODE_RVA: u32 = 0x1048;

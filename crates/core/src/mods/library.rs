@@ -13,10 +13,10 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 pub use crate::mods::classify::Kinds;
-use crate::mods::classify::{classify, Standing};
+use crate::mods::classify::{Standing, classify};
 use crate::rimworld::code::Code;
 use crate::rimworld::game::Game;
-pub use mod_id::{ModId, MOST_MODS};
+pub use mod_id::{MOST_MODS, ModId};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Installed {

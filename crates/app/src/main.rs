@@ -86,7 +86,9 @@ fn check_on_real_settings() -> bool {
 
 fn main() -> std::process::ExitCode {
     if check_on_real_settings() {
-        eprintln!("--check saves the load order: run tools/check-app.sh, which gives it a copy through RIMSTACK_CONFIG");
+        eprintln!(
+            "--check saves the load order: run tools/check-app.sh, which gives it a copy through RIMSTACK_CONFIG"
+        );
         return std::process::ExitCode::from(2);
     }
     let steam_request =
@@ -94,7 +96,7 @@ fn main() -> std::process::ExitCode {
     // Before any thread is started, as changing the environment must be.
     if steam_request.is_some() {
         for (name, value) in rimstack_core::rimworld::steamworks::environment() {
-            std::env::set_var(name, value);
+            unsafe { std::env::set_var(name, value) };
         }
     }
     let app = Arc::new(App::from_environment());

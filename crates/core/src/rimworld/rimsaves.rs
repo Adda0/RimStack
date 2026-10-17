@@ -174,7 +174,9 @@ mod tests {
 
     #[test]
     fn facts_are_unescaped() {
-        let found = parse_meta("faction:New%20Arrivals,storyteller:Cassandra%20Classic,nbColonist:7,odd,seed:a%3Ab%2Cc,name:caf%C3%A9");
+        let found = parse_meta(
+            "faction:New%20Arrivals,storyteller:Cassandra%20Classic,nbColonist:7,odd,seed:a%3Ab%2Cc,name:caf%C3%A9",
+        );
         assert_eq!(found["faction"], "New Arrivals");
         assert_eq!(found["storyteller"], "Cassandra Classic");
         assert_eq!(found["nbColonist"], "7");

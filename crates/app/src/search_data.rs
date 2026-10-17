@@ -43,9 +43,9 @@ pub mod qobject {
     }
 }
 
+use crate::App;
 use crate::qml::values::to_qml;
 use crate::workspace::search::Hunt;
-use crate::App;
 use core::pin::Pin;
 use cxx_qt::CxxQtType;
 use cxx_qt_lib::{QString, QVariant};

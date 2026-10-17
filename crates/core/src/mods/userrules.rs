@@ -4,7 +4,7 @@ use crate::base::error::Error;
 use crate::mods::rules::{self, Kind, Rule};
 use crate::rimworld::about::About;
 use crate::rimworld::id;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::path::Path;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]

@@ -49,10 +49,10 @@ pub mod qobject {
     }
 }
 
+use crate::App;
 use crate::changes::Changes;
 use crate::qml::values::to_qml;
-use crate::workspace::saves::{shown, SavesReport};
-use crate::App;
+use crate::workspace::saves::{SavesReport, shown};
 use core::pin::Pin;
 use cxx_qt::{CxxQtType, Threading};
 use cxx_qt_lib::{QString, QVariant};

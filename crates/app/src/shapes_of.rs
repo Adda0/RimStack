@@ -1,11 +1,11 @@
+use crate::App;
 use crate::reports::{Answer, ReleaseSaid, Written};
 use crate::shapes::Shapes;
-use crate::workspace::changed::{since_shown, NotesState, Only};
-use crate::workspace::downloads::{updates_shown, Checkout, Queue, Updates};
+use crate::workspace::changed::{NotesState, Only, since_shown};
+use crate::workspace::downloads::{Checkout, Queue, Updates, updates_shown};
 use crate::workspace::load_order::{LoadOrder, Side};
 use crate::workspace::tests::installed;
 use crate::workspace::{logs, saves, textures};
-use crate::App;
 use rimstack_core::kept::launches;
 use rimstack_core::mods::columns;
 use rimstack_core::mods::library::ModId;
@@ -20,7 +20,9 @@ fn write(at: &Path, text: &str) {
 fn a_mod(game: &Path, folder: &str, id: &str, more: &str) {
     write(
         &game.join("Mods").join(folder).join("About/About.xml"),
-        &format!("<ModMetaData><packageId>{id}</packageId><name>{id}</name><supportedVersions><li>1.6</li></supportedVersions>{more}</ModMetaData>"),
+        &format!(
+            "<ModMetaData><packageId>{id}</packageId><name>{id}</name><supportedVersions><li>1.6</li></supportedVersions>{more}</ModMetaData>"
+        ),
     );
 }
 
@@ -133,8 +135,8 @@ fn made_up() -> (tempfile::TempDir, App) {
 fn by_folder(app: &App, folder: &str) -> ModId {
     let loaded = app.library();
     let (library, _) = loaded.as_ref().as_ref().unwrap();
-    let found = library.ids().find(|(_, m)| m.folder == folder).unwrap().0;
-    found
+
+    library.ids().find(|(_, m)| m.folder == folder).unwrap().0
 }
 
 pub(crate) fn every() -> Shapes {

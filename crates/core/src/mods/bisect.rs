@@ -147,8 +147,14 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let root = tmp.path().join("Mods");
         let abouts = [
-            ("lib", "<ModMetaData><packageId>a.lib</packageId><name>Lib</name></ModMetaData>"),
-            ("user", "<ModMetaData><packageId>a.user</packageId><name>User</name><modDependencies><li><packageId>A.Lib</packageId></li><li><packageId>not.listed</packageId></li></modDependencies></ModMetaData>"),
+            (
+                "lib",
+                "<ModMetaData><packageId>a.lib</packageId><name>Lib</name></ModMetaData>",
+            ),
+            (
+                "user",
+                "<ModMetaData><packageId>a.user</packageId><name>User</name><modDependencies><li><packageId>A.Lib</packageId></li><li><packageId>not.listed</packageId></li></modDependencies></ModMetaData>",
+            ),
         ];
         for (folder, about) in abouts {
             std::fs::create_dir_all(root.join(folder).join("About")).unwrap();

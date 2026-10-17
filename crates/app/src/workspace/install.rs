@@ -152,8 +152,8 @@ impl Install {
 
 #[cfg(test)]
 mod tests {
-    use crate::changes::Changes;
     use crate::App;
+    use crate::changes::Changes;
     use rimstack_core::base::locks::Held;
     use rimstack_core::rimworld::paths::Overrides;
     use std::fs;

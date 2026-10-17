@@ -147,7 +147,9 @@ pub fn parse(text: &str) -> Result<Community, Error> {
 
 /// One file per game version, from NoVersionWarning (github.com/emipa606/NoVersionWarning).
 pub fn works_on_url(game_version: &str) -> String {
-    format!("https://raw.githubusercontent.com/emipa606/NoVersionWarning/main/{game_version}/ModIdsToFix.xml")
+    format!(
+        "https://raw.githubusercontent.com/emipa606/NoVersionWarning/main/{game_version}/ModIdsToFix.xml"
+    )
 }
 
 pub fn works_on_file(data_dir: &Path, game_version: &str) -> PathBuf {

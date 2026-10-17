@@ -153,8 +153,8 @@ mod tests {
     fn roads(app: &crate::App) -> ModId {
         let loaded = app.library();
         let (library, _) = loaded.as_ref().as_ref().unwrap();
-        let found = library.ids().find(|(_, m)| m.folder == "roads").unwrap().0;
-        found
+
+        library.ids().find(|(_, m)| m.folder == "roads").unwrap().0
     }
 
     #[test]

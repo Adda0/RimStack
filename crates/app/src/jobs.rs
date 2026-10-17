@@ -2,8 +2,8 @@
 
 use core::pin::Pin;
 use cxx_qt::{CxxQtThread, Threading};
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
 pub(crate) fn spawn(name: &str, work: impl FnOnce() + Send + 'static) {
@@ -37,20 +37,22 @@ const STALL: Duration = Duration::from_millis(50);
 
 /// Under the checks only: every 20 ms; ends with the window.
 pub(crate) fn watch_stalls<T: Threading + 'static>(thread: CxxQtThread<T>) {
-    spawn("stall watch", move || loop {
-        let (ran, waiting) = std::sync::mpsc::channel();
-        let asked = Instant::now();
-        let queued = thread.queue(move |_| {
-            let _ = ran.send(());
-        });
-        if queued.is_err() || waiting.recv().is_err() {
-            return;
+    spawn("stall watch", move || {
+        loop {
+            let (ran, waiting) = std::sync::mpsc::channel();
+            let asked = Instant::now();
+            let queued = thread.queue(move |_| {
+                let _ = ran.send(());
+            });
+            if queued.is_err() || waiting.recv().is_err() {
+                return;
+            }
+            let waited = asked.elapsed();
+            if waited >= STALL {
+                rimstack_core::note!("stall_ms={}", waited.as_millis());
+            }
+            std::thread::sleep(Duration::from_millis(20));
         }
-        let waited = asked.elapsed();
-        if waited >= STALL {
-            rimstack_core::note!("stall_ms={}", waited.as_millis());
-        }
-        std::thread::sleep(Duration::from_millis(20));
     });
 }
 

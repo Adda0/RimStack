@@ -129,7 +129,7 @@ impl Graph {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::rimworld::dotnet::build::{op, Builder, FINAL, NEW, VIRTUAL};
+    use crate::rimworld::dotnet::build::{Builder, FINAL, NEW, VIRTUAL, op};
 
     const CALL: u16 = 0x28;
     const CALLVIRT: u16 = 0x6f;

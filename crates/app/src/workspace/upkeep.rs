@@ -54,8 +54,8 @@ mod tests {
     fn by_folder(app: &crate::App, folder: &str) -> ModId {
         let loaded = app.library();
         let (library, _) = loaded.as_ref().as_ref().unwrap();
-        let found = library.ids().find(|(_, m)| m.folder == folder).unwrap().0;
-        found
+
+        library.ids().find(|(_, m)| m.folder == folder).unwrap().0
     }
 
     #[test]

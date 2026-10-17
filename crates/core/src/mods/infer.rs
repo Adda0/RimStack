@@ -66,21 +66,23 @@ fn between<'a>(text: &'a str, open: &'a str, close: &'a str) -> impl Iterator<It
 
 fn quoted_after<'a>(text: &'a str, key: &'a str) -> impl Iterator<Item = &'a str> {
     let mut rest = text;
-    std::iter::from_fn(move || loop {
-        let at = rest.find(key)? + key.len();
-        rest = &rest[at..];
-        let after = rest.trim_start();
-        let Some(after) = after.strip_prefix('=') else {
-            continue;
-        };
-        let after = after.trim_start();
-        let Some(quote) = after.chars().next().filter(|c| *c == '"' || *c == '\'') else {
-            continue;
-        };
-        let Some(end) = after[1..].find(quote) else {
-            continue;
-        };
-        return Some(&after[1..1 + end]);
+    std::iter::from_fn(move || {
+        loop {
+            let at = rest.find(key)? + key.len();
+            rest = &rest[at..];
+            let after = rest.trim_start();
+            let Some(after) = after.strip_prefix('=') else {
+                continue;
+            };
+            let after = after.trim_start();
+            let Some(quote) = after.chars().next().filter(|c| *c == '"' || *c == '\'') else {
+                continue;
+            };
+            let Some(end) = after[1..].find(quote) else {
+                continue;
+            };
+            return Some(&after[1..1 + end]);
+        }
     })
 }
 

@@ -1,7 +1,7 @@
 use crate::base::error::Error;
 use crate::said;
 
-use crate::base::vdf::{tokens, Token};
+use crate::base::vdf::{Token, tokens};
 use rayon::prelude::*;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -44,10 +44,9 @@ fn installed(acf: &str, fact: &str) -> HashMap<String, u64> {
             Token::Text(key) => {
                 let value = rest.next();
                 if let (2, true, Some(id), Some(Token::Text(v))) = (depth, key == fact, item, value)
+                    && let Ok(time) = v.parse()
                 {
-                    if let Ok(time) = v.parse() {
-                        times.insert(id.to_string(), time);
-                    }
+                    times.insert(id.to_string(), time);
                 }
             }
         }
@@ -233,8 +232,7 @@ mod tests {
 
     #[test]
     fn ids_are_taken_from_links_and_bare_numbers_once_each() {
-        let pasted =
-            "https://steamcommunity.com/sharedfiles/filedetails/?id=2009463077&searchtext=x\n\
+        let pasted = "https://steamcommunity.com/sharedfiles/filedetails/?id=2009463077&searchtext=x\n\
                       818773962, 2009463077 hello 12 steam://url/CommunityFilePage/1 ?id=abc";
         assert_eq!(ids_in(pasted), ["2009463077", "818773962"]);
     }

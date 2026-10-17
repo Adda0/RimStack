@@ -1,4 +1,4 @@
-use super::{rules, LoadOrder};
+use super::{LoadOrder, rules};
 use crate::App;
 use rimstack_core::base::locks::Shared;
 use rimstack_core::base::sentence::Sentence;

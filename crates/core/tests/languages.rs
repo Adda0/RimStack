@@ -1,4 +1,4 @@
-use rimstack_core::base::translate::{misfit, Counting, LOCALE};
+use rimstack_core::base::translate::{Counting, LOCALE, misfit};
 use serde_json::{Map, Value};
 use std::fs;
 use std::path::{Path, PathBuf};

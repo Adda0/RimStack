@@ -42,7 +42,7 @@ impl Settings {
     }
 
     /// Several values are kept with commas between.
-    pub fn listed(&self, name: &str) -> impl Iterator<Item = &str> {
+    pub fn listed(&self, name: &str) -> impl Iterator<Item = &str> + use<'_> {
         let kept = self.get(name).unwrap_or_default();
         kept.split(',').map(str::trim).filter(|one| !one.is_empty())
     }

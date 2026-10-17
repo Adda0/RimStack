@@ -9,10 +9,10 @@ pub fn page(mod_root: &Path) -> Option<String> {
     for line in config.lines().map(str::trim) {
         if line.starts_with('[') {
             in_origin = line == "[remote \"origin\"]";
-        } else if let Some(("url", url)) = line.split_once('=').map(|(k, v)| (k.trim(), v.trim())) {
-            if in_origin {
-                return web(url);
-            }
+        } else if let Some(("url", url)) = line.split_once('=').map(|(k, v)| (k.trim(), v.trim()))
+            && in_origin
+        {
+            return web(url);
         }
     }
     None
@@ -290,7 +290,9 @@ mod tests {
 
     #[test]
     fn the_origin_s_page_is_read_from_the_checkout() {
-        let https = checkout("[core]\n\tbare = false\n[remote \"upstream\"]\n\turl = https://example.org/up.git\n[remote \"origin\"]\n\turl = https://github.com/me/mod.git\n");
+        let https = checkout(
+            "[core]\n\tbare = false\n[remote \"upstream\"]\n\turl = https://example.org/up.git\n[remote \"origin\"]\n\turl = https://github.com/me/mod.git\n",
+        );
         assert_eq!(
             page(https.path()).as_deref(),
             Some("https://github.com/me/mod")

@@ -101,9 +101,11 @@ mod tests {
             b"<svg/>",
         )
         .unwrap();
-        assert!(std::fs::read_to_string(&written)
-            .unwrap()
-            .contains("Exec=\"/usr/bin/rimstack\""));
+        assert!(
+            std::fs::read_to_string(&written)
+                .unwrap()
+                .contains("Exec=\"/usr/bin/rimstack\"")
+        );
     }
 
     #[test]

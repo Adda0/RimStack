@@ -1,5 +1,5 @@
 use crate::rimworld::dotnet::{Assembly, Does, Patch, Type};
-use crate::rimworld::game::{drawing, Game, When};
+use crate::rimworld::game::{Game, When, drawing};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 

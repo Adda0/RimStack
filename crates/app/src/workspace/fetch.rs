@@ -132,10 +132,10 @@ impl App {
         let (steamcmd, local) = match (steamcmd, self.paths().local_mods()) {
             (Some(steamcmd), Some(local)) => (steamcmd, local),
             (None, _) => {
-                return Done::told(Err(Error::refused(said!("SteamCMD is not installed"))))
+                return Done::told(Err(Error::refused(said!("SteamCMD is not installed"))));
             }
             (_, None) => {
-                return Done::told(Err(Error::refused(said!("The game's folder is not known"))))
+                return Done::told(Err(Error::refused(said!("The game's folder is not known"))));
             }
         };
         let scratch = self.data_dir().join("steamcmd-downloads");

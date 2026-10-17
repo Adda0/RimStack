@@ -1,6 +1,6 @@
 //! The view reads these as published, never the state behind them.
 
-use super::{side_index, LoadOrder, Side};
+use super::{LoadOrder, Side, side_index};
 use crate::App;
 use rimstack_core::base::sentence::Sentence;
 use rimstack_core::mods::describe::{Fix, Trouble};

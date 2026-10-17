@@ -1,5 +1,5 @@
 use super::{
-    compressed, il, u32_at, Assembly, CUSTOM_ATTRIBUTE, MEMBER_REF, METHOD_DEF, TYPE_DEF, TYPE_REF,
+    Assembly, CUSTOM_ATTRIBUTE, MEMBER_REF, METHOD_DEF, TYPE_DEF, TYPE_REF, compressed, il, u32_at,
 };
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -308,7 +308,7 @@ impl<'a> Assembly<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::super::build::{ser, Builder};
+    use super::super::build::{Builder, ser};
     use super::*;
 
     /// `[HarmonyPatch(typeof(Verse.Pawn), "Tick")] class P { Prefix; Transpiler }`

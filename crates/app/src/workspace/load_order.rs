@@ -3,7 +3,7 @@ use rimstack_core::base::locks::Shared;
 use rimstack_core::base::sentence::Sentence;
 use rimstack_core::mods::describe::Trouble;
 use rimstack_core::mods::library::{Library, ModId};
-use rimstack_core::mods::list::{flag, Category, GroupedList, Mod, SortKey};
+use rimstack_core::mods::list::{Category, GroupedList, Mod, SortKey, flag};
 use rimstack_core::mods::{demo, sort_reasons};
 use rimstack_core::say;
 use serde::Serialize;
@@ -26,11 +26,7 @@ pub enum Side {
 
 impl Side {
     pub fn of(active: bool) -> Self {
-        if active {
-            Side::Active
-        } else {
-            Side::Inactive
-        }
+        if active { Side::Active } else { Side::Inactive }
     }
 
     fn other(self) -> Self {

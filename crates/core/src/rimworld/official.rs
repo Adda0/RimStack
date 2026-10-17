@@ -51,8 +51,16 @@ mod tests {
     fn the_game_comes_first_then_its_expansions_each_with_its_picture() {
         let tmp = tempfile::tempdir().unwrap();
         let game = tmp.path();
-        add(game, "Royalty", "<ModMetaData><packageId>Ludeon.RimWorld.Royalty</packageId><author>Ludeon Studios</author></ModMetaData>");
-        add(game, "Anomaly", "<ModMetaData><packageId>Ludeon.RimWorld.Anomaly</packageId><name>Anomaly</name></ModMetaData>");
+        add(
+            game,
+            "Royalty",
+            "<ModMetaData><packageId>Ludeon.RimWorld.Royalty</packageId><author>Ludeon Studios</author></ModMetaData>",
+        );
+        add(
+            game,
+            "Anomaly",
+            "<ModMetaData><packageId>Ludeon.RimWorld.Anomaly</packageId><name>Anomaly</name></ModMetaData>",
+        );
         add(
             game,
             "Core",

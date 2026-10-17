@@ -53,10 +53,10 @@ pub fn ids_in(text: &str) -> Vec<String> {
             .filter_map(|part| part.split(']').next());
         let found = bracketed.map(str::trim).find(|part| reads_as_id(part));
         let id = found.or(Some(line).filter(|l| reads_as_id(l)));
-        if let Some(id) = id.map(crate::rimworld::id::fold) {
-            if !ids.contains(&id) {
-                ids.push(id);
-            }
+        if let Some(id) = id.map(crate::rimworld::id::fold)
+            && !ids.contains(&id)
+        {
+            ids.push(id);
         }
     }
     ids

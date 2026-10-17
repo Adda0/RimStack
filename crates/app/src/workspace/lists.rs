@@ -238,10 +238,12 @@ mod tests {
         assert_eq!(history[1].said.to_string(), "Saved the load order: x");
         assert_eq!(history[1].restore, snapshot);
         assert_eq!(app.recent_snapshots()[0].name, snapshot);
-        assert!(app.recent_snapshots()[0]
-            .title
-            .to_string()
-            .starts_with("Before saving, 2"));
+        assert!(
+            app.recent_snapshots()[0]
+                .title
+                .to_string()
+                .starts_with("Before saving, 2")
+        );
         assert_eq!(app.snapshot_named(&snapshot).unwrap(), ["a.b"]);
         assert_eq!(app.original_list(), None);
     }

@@ -334,11 +334,7 @@ impl App {
             });
             *last = (written, differs);
         }
-        if last.1 {
-            written
-        } else {
-            0
-        }
+        if last.1 { written } else { 0 }
     }
 
     /// Up to 1.6 in the settings folder; from 1.7 in `Logs` there.

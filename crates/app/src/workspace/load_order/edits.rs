@@ -1,8 +1,8 @@
-use super::{rules, LoadOrder, Side};
+use super::{LoadOrder, Side, rules};
 use crate::App;
 use rimstack_core::base::error::Error;
 use rimstack_core::mods::library::ModId;
-use rimstack_core::mods::list::{edge_of_run, Category, Mod, Row};
+use rimstack_core::mods::list::{Category, Mod, Row, edge_of_run};
 use rimstack_core::rimworld::modsconfig;
 
 impl LoadOrder {
@@ -58,10 +58,10 @@ impl LoadOrder {
         ids.sort_by_key(|&id| self.list(from).position_of(id));
         self.batching = true;
         for id in ids {
-            if let Some(at) = self.list(from).position_of(id) {
-                if let Some(m) = self.list_mut(from).remove(at) {
-                    self.put(app, from.other(), m, None);
-                }
+            if let Some(at) = self.list(from).position_of(id)
+                && let Some(m) = self.list_mut(from).remove(at)
+            {
+                self.put(app, from.other(), m, None);
             }
         }
         self.batching = false;

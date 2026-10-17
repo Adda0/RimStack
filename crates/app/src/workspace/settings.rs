@@ -6,20 +6,20 @@ use crate::reports::{
 use rimstack_core::base::error::Error;
 use rimstack_core::base::locks::Shared;
 use rimstack_core::base::sentence::Sentence;
-use rimstack_core::base::translate::{detected, LOCALE};
+use rimstack_core::base::translate::{LOCALE, detected};
 use rimstack_core::kept::{owntheme, settings::Switch};
 use rimstack_core::mods::community;
 use rimstack_core::rimworld::workshopdb;
 use rimstack_core::sources::replacements;
 use rimstack_core::{said, say, say_n};
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 use std::path::PathBuf;
 
 const GLANCED: usize = 3;
 
 /// An empty box leaves the folder to detection.
 pub fn judge_folder(name: &str, typed: &str) -> FolderVerdict {
-    use rimstack_core::rimworld::paths::{judge, Folder, Os};
+    use rimstack_core::rimworld::paths::{Folder, Os, judge};
     let kind = match name {
         "game" => Folder::Game,
         "config" => Folder::Config,
@@ -523,7 +523,7 @@ fn build_label() -> String {
 }
 
 pub fn newest_release(nightly: bool) -> ReleaseSaid {
-    use rimstack_core::sources::release::{check, newer, Channel, Running};
+    use rimstack_core::sources::release::{Channel, Running, check, newer};
     let running = Running {
         commit: COMMIT,
         made: option_env!("RIMSTACK_COMMIT_TIME")

@@ -1,5 +1,5 @@
 use crate::base::error::Error;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
 
 const KEPT: usize = 30;
@@ -150,13 +150,13 @@ pub fn last_start(
 ) -> Option<LastStart> {
     const SAME_START: u64 = 120;
     let recorded_at = recorded.map(|r| r.time);
-    if let Some(read) = read.filter(|r| r.written > 0 && !r.previous) {
-        if recorded_at.is_none_or(|at| read.written >= at) {
-            return Some(LastStart {
-                time: read.written,
-                errors: Some(read.errors),
-            });
-        }
+    if let Some(read) = read.filter(|r| r.written > 0 && !r.previous)
+        && recorded_at.is_none_or(|at| read.written >= at)
+    {
+        return Some(LastStart {
+            time: read.written,
+            errors: Some(read.errors),
+        });
     }
     if log_written > 0 && recorded_at.is_none_or(|at| log_written > at + SAME_START) {
         return Some(LastStart {

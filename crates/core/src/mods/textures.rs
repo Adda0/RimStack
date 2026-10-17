@@ -6,7 +6,7 @@ use crate::said;
 
 use image_dds::{ImageFormat, Mipmaps, Quality};
 use rayon::prelude::*;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -403,7 +403,7 @@ pub fn remove(mod_root: &Path, manifest: &mut Manifest) -> usize {
 }
 
 mod rows;
-pub use rows::{in_order, Row, State};
+pub use rows::{Row, State, in_order};
 
 #[cfg(test)]
 mod tests {
@@ -682,10 +682,12 @@ mod tests {
         let outcome = placed(&root, &mut manifest);
         assert_eq!(outcome.made, 2);
         assert_eq!(outcome.failed.len(), 1);
-        assert!(outcome.failed[0]
-            .1
-            .to_string()
-            .contains("not a readable PNG"));
+        assert!(
+            outcome.failed[0]
+                .1
+                .to_string()
+                .contains("not a readable PNG")
+        );
         assert!(!root.join("Textures/broken.dds").exists());
     }
 

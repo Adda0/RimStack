@@ -84,11 +84,11 @@ pub mod qobject {
     }
 }
 
+use crate::App;
 use crate::changes::Changes;
 use crate::qml::values::{mod_ids, to_qml};
 use crate::reports::Answer;
-use crate::workspace::textures::{shown, Comparison, Refused};
-use crate::App;
+use crate::workspace::textures::{Comparison, Refused, shown};
 use core::pin::Pin;
 use cxx_qt::{CxxQtType, Threading};
 use cxx_qt_lib::{QString, QVariant};
@@ -97,8 +97,8 @@ use rimstack_core::base::sentence::Sentence;
 use rimstack_core::mods::library::ModId;
 use rimstack_core::mods::textures::Row;
 use std::path::Path;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 #[derive(Default)]
 pub struct TexturesDataRust {

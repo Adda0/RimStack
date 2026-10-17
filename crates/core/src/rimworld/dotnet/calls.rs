@@ -1,6 +1,6 @@
 use super::{
-    compressed, il, u16_at, u32_at, Assembly, FIELD, INTERFACE_IMPL, MEMBER_REF, METHOD_DEF,
-    METHOD_IMPL, METHOD_SPEC, TYPE_DEF, TYPE_REF, TYPE_SPEC,
+    Assembly, FIELD, INTERFACE_IMPL, MEMBER_REF, METHOD_DEF, METHOD_IMPL, METHOD_SPEC, TYPE_DEF,
+    TYPE_REF, TYPE_SPEC, compressed, il, u16_at, u32_at,
 };
 use std::ops::Range;
 
@@ -117,10 +117,9 @@ impl<'a> Assembly<'a> {
             let own = interface.and_then(|to| self.plain_type(to));
             if let (Some(class), Some((TYPE_DEF, interface))) =
                 (types.get_mut(class.wrapping_sub(1)), own)
+                && let Some(interface) = interface.checked_sub(1)
             {
-                if let Some(interface) = interface.checked_sub(1) {
-                    class.implements.push(interface);
-                }
+                class.implements.push(interface);
             }
         }
         let mut methods = Vec::with_capacity(self.rows[METHOD_DEF]);
@@ -267,8 +266,8 @@ impl<'a> Assembly<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::super::build::{op, Builder};
-    use super::super::{il, NESTED_CLASS};
+    use super::super::build::{Builder, op};
+    use super::super::{NESTED_CLASS, il};
     use super::*;
 
     const NOTHING: &[u8] = &[0x2a];

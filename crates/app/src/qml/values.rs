@@ -1,6 +1,6 @@
 use cxx_qt_lib::{QList, QMap, QMapPair_QString_QVariant, QMetaTypeType, QString, QVariant};
-use rimstack_core::base::sentence::{Sentence, MARK};
-use serde::{de::DeserializeOwned, Serialize};
+use rimstack_core::base::sentence::{MARK, Sentence};
+use serde::{Serialize, de::DeserializeOwned};
 use serde_json::{Map, Number, Value};
 
 pub fn to_qml(value: &impl Serialize) -> QVariant {

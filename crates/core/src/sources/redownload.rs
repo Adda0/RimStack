@@ -43,7 +43,7 @@ pub fn install(data_dir: &Path) -> Result<PathBuf> {
             return Err(Error::refused(said!(
                 "RimStack does not install SteamCMD on {}",
                 other
-            )))
+            )));
         }
     };
     let dir = data_dir.join("steamcmd");
@@ -290,14 +290,12 @@ pub fn replace(installed: &Path, fresh: &Path) -> Result<()> {
         ));
     }
     let present = installed.is_dir();
-    if present {
-        if let Err(problem) = std::fs::rename(installed, &old) {
-            let _ = remove(&new);
-            return Err(failed(
-                said!("the mod's folder could not be moved aside"),
-                problem,
-            ));
-        }
+    if present && let Err(problem) = std::fs::rename(installed, &old) {
+        let _ = remove(&new);
+        return Err(failed(
+            said!("the mod's folder could not be moved aside"),
+            problem,
+        ));
     }
     if let Err(problem) = std::fs::rename(&new, installed) {
         let _ = remove(&new);

@@ -58,8 +58,8 @@ pub mod qobject {
     }
 }
 
-use crate::changes::Changes;
 use crate::App;
+use crate::changes::Changes;
 use core::pin::Pin;
 use cxx::UniquePtr;
 use cxx_qt::{CxxQtThread, CxxQtType, Threading};

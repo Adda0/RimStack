@@ -615,8 +615,8 @@ mod tests {
         let id_of = |folder: &str| {
             let loaded = app.library();
             let (library, _) = loaded.as_ref().as_ref().unwrap();
-            let found = library.ids().find(|(_, m)| m.folder == folder).unwrap().0;
-            found
+
+            library.ids().find(|(_, m)| m.folder == folder).unwrap().0
         };
         (id_of("a"), id_of("b"))
     }
