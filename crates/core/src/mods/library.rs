@@ -526,7 +526,9 @@ pub fn load(paths: &Paths) -> Result<Library, Error> {
     Ok(build(mods, &active, version))
 }
 
+mod copies;
 mod mod_id;
+pub use copies::Copies;
 #[cfg(test)]
 mod real;
 #[cfg(test)]

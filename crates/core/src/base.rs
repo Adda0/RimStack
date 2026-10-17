@@ -14,6 +14,7 @@ pub mod sentence;
 pub mod sizes;
 pub mod translate;
 pub mod vdf;
+pub mod versions;
 pub mod walk;
 pub mod watch;
 pub(crate) mod web;

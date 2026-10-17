@@ -105,6 +105,14 @@ fn made_up() -> (tempfile::TempDir, App) {
         "<ModMetaData><packageId>Ann.Shop</packageId><name>Ann.Shop</name><supportedVersions><li>1.6</li></supportedVersions></ModMetaData>",
     );
     picture(&workshop.join("About/Preview.png"), [9, 9, 9, 255]);
+    write(
+        &root.join("workshop/900003/About/About.xml"),
+        "<ModMetaData><packageId>Ann.Hats</packageId><name>Ann.Hats</name><supportedVersions><li>1.6</li></supportedVersions></ModMetaData>",
+    );
+    write(
+        &mods.join("hats/About/About.xml"),
+        "<ModMetaData><packageId>Ann.Hats</packageId><name>Ann.Hats</name><supportedVersions><li>1.5</li></supportedVersions></ModMetaData>",
+    );
     picture(&game.join("Data/Core/About/Preview.png"), [90, 60, 30, 255]);
     picture(&mods.join("a/Textures/Things/rock.png"), [200, 0, 0, 255]);
     picture(&mods.join("b/Textures/Things/rock.png"), [0, 0, 200, 255]);
@@ -228,6 +236,7 @@ fn mods(app: &App, shapes: &mut Shapes) {
         by_folder(app, "b"),
     );
     let (shop, broken) = (by_folder(app, "900002"), by_folder(app, "broken"));
+    let (hats, subscribed_hats) = (by_folder(app, "hats"), by_folder(app, "900003"));
     app.set_note(a, "Stone, Grey", "Read first");
     app.change_rule(a, b, true);
     app.set_version_ok(&[roads], true);
@@ -240,7 +249,7 @@ fn mods(app: &App, shapes: &mut Shapes) {
     shapes.add("mods.summary", &app.summary());
     shapes.add("mods.overview", &order.overview(app));
     shapes.add("mods.fresh", &order.fresh(app, Side::Inactive));
-    for id in [roads, a, b, shop, broken] {
+    for id in [roads, a, b, shop, broken, hats, subscribed_hats] {
         shapes.add("mods.details", &order.details(app, id));
         shapes.add("mods.detailsOf", &order.details(app, id));
         shapes.add("mods.filesOf", &LoadOrder::files(app, id));

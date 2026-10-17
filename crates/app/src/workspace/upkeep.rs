@@ -19,20 +19,28 @@ impl App {
         Ok(with(found))
     }
 
-    /// The game's own mods and those in the load order being edited are refused.
     pub fn bin_mod(&self, id: ModId) -> Result<(), Error> {
+        let folder = self.bin_target(id)?;
+        trash::delete(&folder).map_err(|problem| Error::file(&folder, problem))
+    }
+
+    /// The game's own mods and those in the load order being edited are refused, but for a
+    /// local copy whose Workshop subscription then takes its place.
+    fn bin_target(&self, id: ModId) -> Result<PathBuf, Error> {
         let active = self.session().current().to_vec();
-        let folder = self.installed_mod(id, |m| {
+        let loaded = self.library();
+        let (library, _) = loaded.as_ref().as_ref().map_err(Clone::clone)?;
+        let replaced = library.copies(id).is_some_and(|c| c.local == id);
+        self.installed_mod(id, |m| {
             let in_use = m
                 .key()
                 .is_some_and(|key| active.iter().any(|a| a.eq_ignore_ascii_case(&key)));
-            match (m.source, in_use) {
+            match (m.source, in_use && !replaced) {
                 (Source::Official, _) => Err(Error::refused(said!("The game's own mods stay"))),
                 (_, true) => Err(Error::refused(said!("Deactivate it first"))),
                 _ => Ok(m.path.clone()),
             }
-        })??;
-        trash::delete(&folder).map_err(|problem| Error::file(&folder, problem))
+        })?
     }
 
     pub fn copy_to_local(&self, id: ModId) -> Result<PathBuf, Error> {
@@ -71,6 +79,30 @@ mod tests {
         assert!(tmp.path().join("game/Mods/roads").is_dir());
         assert_eq!(
             app.bin_mod(ModId::new(0, 99)).unwrap_err().kind(),
+            Kind::Refused
+        );
+    }
+
+    #[test]
+    fn an_active_local_copy_may_be_binned_when_its_workshop_subscription_takes_its_place() {
+        let (tmp, app) = installed();
+        std::fs::create_dir_all(tmp.path().join("workshop/123/About")).unwrap();
+        std::fs::write(
+            tmp.path().join("workshop/123/About/About.xml"),
+            "<ModMetaData><packageId>Ann.Roads</packageId></ModMetaData>",
+        )
+        .unwrap();
+        app.rescan();
+        app.session()
+            .record(vec!["ludeon.rimworld".into(), "ann.roads".into()]);
+        let roads = by_folder(&app, "roads");
+        assert_eq!(
+            app.bin_target(roads).unwrap(),
+            tmp.path().join("game/Mods/roads")
+        );
+        let subscribed = by_folder(&app, "123");
+        assert_eq!(
+            app.bin_target(subscribed).unwrap_err().kind(),
             Kind::Refused
         );
     }

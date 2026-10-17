@@ -128,6 +128,20 @@ Column {
     }
 
     Card {
+        visible: !!Mods.info.copies
+        title: Theme.say("Two copies")
+        Text { width: parent.width; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: Theme.body; lineHeight: 1.3; text: Mods.info.copies || "" }
+        Btn {
+            visible: !!Mods.info.binLocalCopy
+            danger: true
+            icon: "trash-2"
+            text: Theme.say("Move the local copy to the bin…")
+            tip: Theme.say("The Workshop copy is then the one the game uses.")
+            onClicked: Mods.binRequested(Mods.info.name || "", Mods.info.binLocalCopy.path, Mods.info.binLocalCopy.modId)
+        }
+    }
+
+    Card {
         title: Theme.say("Facts")
         key: "about-facts"
         actions: SavedMark {}

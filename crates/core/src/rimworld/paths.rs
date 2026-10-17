@@ -79,7 +79,15 @@ impl Paths {
             })
         })
         .filter(|root| root.path.is_dir())
-        .collect()
+        .fold(Vec::new(), |mut roots: Vec<ModRoot>, root| {
+            // A Workshop folder typed by hand may be the game's own Mods (#6).
+            let same =
+                |a: &Path, b: &Path| dunce::canonicalize(a).ok() == dunce::canonicalize(b).ok();
+            if !roots.iter().any(|kept| same(&kept.path, &root.path)) {
+                roots.push(root);
+            }
+            roots
+        })
     }
 }
 
@@ -462,6 +470,20 @@ mod tests {
         let paths = detect(home.path(), &Overrides::default());
         let second = second.canonicalize().unwrap();
         assert_eq!(paths.game, Some(second.join("steamapps/common/RimWorld")));
+    }
+
+    #[test]
+    fn a_workshop_folder_set_to_the_games_mods_is_read_once_as_local() {
+        let home = tempfile::tempdir().unwrap();
+        library_with_game(home.path());
+        let game = home.path().join("steamapps/common/RimWorld");
+        let paths = Paths {
+            workshop: Some(game.join("Mods/.")),
+            game: Some(game),
+            ..Paths::default()
+        };
+        let sources: Vec<Source> = paths.roots().iter().map(|r| r.source).collect();
+        assert_eq!(sources, [Source::Official, Source::Local]);
     }
 
     #[test]

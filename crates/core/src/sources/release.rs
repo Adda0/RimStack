@@ -1,4 +1,6 @@
 use crate::base::error::Error;
+pub use crate::base::versions::newer;
+use crate::base::versions::numbers;
 
 const REPO: &str = "https://api.github.com/repos/TheForgotten69/RimStack/releases";
 const NIGHTLY_TAG: &str = "beta";
@@ -87,24 +89,6 @@ pub fn nightly_from(json: &str, system: &str, running: Running) -> Option<Releas
     })
 }
 
-fn numbers(version: &str) -> Vec<u64> {
-    let version = version.trim_start_matches('v');
-    let core = version.split(['-', '+']).next().unwrap_or_default();
-    core.split('.')
-        .map(|part| part.parse().unwrap_or(0))
-        .collect()
-}
-
-/// Compared number by number, not as text: 0.10.0 is later than 0.9.3.
-/// What is not a number counts as 0.
-pub fn newer(current: &str, latest: &str) -> bool {
-    let (mut now, mut then) = (numbers(current), numbers(latest));
-    let parts = now.len().max(then.len());
-    now.resize(parts, 0);
-    then.resize(parts, 0);
-    then > now
-}
-
 /// `YYYY-MM-DD HH:MM`, read as UTC.
 pub fn unix_seconds(text: &str) -> Option<i64> {
     let number = |range: std::ops::Range<usize>| text.get(range)?.parse::<i64>().ok();
@@ -164,12 +148,6 @@ mod tests {
             commit: Box::leak(commit.to_string().into_boxed_str()),
             made: unix_seconds(made).unwrap(),
         }
-    }
-
-    #[test]
-    fn a_later_version_is_told_from_an_earlier_one_by_its_numbers() {
-        assert!(newer("0.9.3", "0.10.0") && newer("1.2", "v1.2.1") && newer("0.0.0", "0.1.0-beta"));
-        assert!(!newer("1.2.0", "1.2") && !newer("2.0.0", "1.9.9") && !newer("1.0.0", "1.0.0"));
     }
 
     #[test]

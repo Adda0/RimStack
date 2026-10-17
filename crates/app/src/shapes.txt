@@ -240,6 +240,9 @@ mods.columnWidths: map
   {}: number
 mods.details: object
   author: text
+  binLocalCopy: nothing or object
+    modId: number
+    path: text
   canBin: bool
   category: text
   categoryChosen: text
@@ -248,6 +251,7 @@ mods.details: object
     {}: object
       loses: bool
   contains: text
+  copies: nothing or text
   description: text
   descriptionRich: text
   detected: list
@@ -341,6 +345,9 @@ mods.details: object
       then: number
 mods.detailsOf: object
   author: text
+  binLocalCopy: nothing or object
+    modId: number
+    path: text
   canBin: bool
   category: text
   categoryChosen: text
@@ -349,6 +356,7 @@ mods.detailsOf: object
     {}: object
       loses: bool
   contains: text
+  copies: nothing or text
   description: text
   descriptionRich: text
   detected: list
