@@ -225,7 +225,15 @@ fn game_in(os: Os, place: &Path) -> Option<PathBuf> {
     roots.find(|root| root.join("Data").join("Core").is_dir())
 }
 
-fn native_settings(os: Os, home: &Path) -> Vec<PathBuf> {
+fn on_unity(game_version: Option<&str>) -> bool {
+    let parsed = game_version.and_then(|version| {
+        let (major, minor) = version.split_once('.')?;
+        Some((major.parse::<u32>().ok()?, minor.parse::<u32>().ok()?))
+    });
+    parsed.is_some_and(|version| version < (1, 7))
+}
+
+fn native_settings(os: Os, home: &Path, game_version: Option<&str>) -> Vec<PathBuf> {
     match os {
         Os::Linux => vec![
             home.join(".config/unity3d").join(SETTINGS),
@@ -233,11 +241,16 @@ fn native_settings(os: Os, home: &Path) -> Vec<PathBuf> {
                 .join(SETTINGS),
         ],
         Os::Windows => vec![home.join("AppData/LocalLow").join(SETTINGS)],
-        // The game spells the second one with a small w: a path comparison would notice.
-        Os::Mac => vec![
-            home.join("Library/Application Support/Rimworld"),
-            home.join("Library/Application Support/RimWorld"),
-        ],
+        Os::Mac => {
+            let support = home.join("Library/Application Support");
+            let waylith = support.join("Ludeon Studios/RimWorld");
+            let unity = [support.join("Rimworld"), support.join("RimWorld")];
+            if on_unity(game_version) {
+                unity.into_iter().chain([waylith]).collect()
+            } else {
+                [waylith].into_iter().chain(unity).collect()
+            }
+        }
     }
 }
 
@@ -349,8 +362,12 @@ pub fn detect_on(os: Os, home: &Path, env: Env, overrides: &Overrides) -> Paths 
             .and_then(|(l, _)| workshop_in(l))
             .or_else(|| libraries.iter().find_map(workshop_in))
     });
+    let game_version = game
+        .as_ref()
+        .and_then(|g| std::fs::read_to_string(g.join("Version.txt")).ok())
+        .and_then(|v| crate::rimworld::modsconfig::short_version(&v));
     let config = overrides.config.clone().or_else(|| {
-        let native = native_settings(os, home);
+        let native = native_settings(os, home, game_version.as_deref());
         // Under Proton the settings live inside the game's Windows prefix.
         let under_proton = libraries.iter().filter(|_| os == Os::Linux);
         let proton = under_proton.map(|l| {
@@ -371,10 +388,6 @@ pub fn detect_on(os: Os, home: &Path, env: Env, overrides: &Overrides) -> Paths 
         };
         ordered.into_iter().find(|p| p.is_dir())
     });
-    let game_version = game
-        .as_ref()
-        .and_then(|g| std::fs::read_to_string(g.join("Version.txt")).ok())
-        .and_then(|v| crate::rimworld::modsconfig::short_version(&v));
 
     Paths {
         game,
@@ -513,6 +526,29 @@ mod tests {
         fs::create_dir_all(installed.join("RimWorldMac.app/Data")).unwrap();
         let found = detect_on(Os::Mac, &home, &|_| None, &Overrides::default());
         assert!(found.game.unwrap().ends_with("RimWorld/RimWorldMac.app"));
+    }
+
+    #[test]
+    fn macos_settings_follow_the_game_s_version_past_a_stale_unity_folder() {
+        let home = tempfile::tempdir().unwrap();
+        let support = home.path().join("Library/Application Support");
+        let installed = support.join("Steam/steamapps/common/RimWorld");
+        fs::create_dir_all(installed.join("Data")).unwrap();
+        let (unity, waylith) = (
+            support.join("RimWorld"),
+            support.join("Ludeon Studios/RimWorld"),
+        );
+        fs::create_dir_all(&unity).unwrap();
+        fs::create_dir_all(&waylith).unwrap();
+        let config_for = |version: &str| {
+            fs::write(installed.join("Version.txt"), version).unwrap();
+            detect_on(Os::Mac, home.path(), &|_| None, &Overrides::default()).config
+        };
+        assert_eq!(config_for("1.7.4976 rev1043"), Some(waylith.clone()));
+        assert_eq!(config_for("1.6.4871 rev598"), Some(unity));
+        fs::remove_file(installed.join("Version.txt")).unwrap();
+        let found = detect_on(Os::Mac, home.path(), &|_| None, &Overrides::default());
+        assert_eq!(found.config, Some(waylith));
     }
 
     #[test]
