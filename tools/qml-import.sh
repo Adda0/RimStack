@@ -5,7 +5,9 @@
 # it. tools/lint-qml.sh and the build run it.
 set -eu
 cd "$(dirname "$0")/.."
-built=$(ls -dt target/*/build/rimstack-app-*/out/qt-build-utils/qml_modules/RimStack/Ui 2>/dev/null | head -1)
+# The types are written after qmldir: a build still running (the IDE's) has the newer folder without them.
+built=$(ls -dt target/*/build/rimstack-app-*/out/qt-build-utils/qml_modules/RimStack/Ui/*.qmltypes 2>/dev/null | head -1)
+built=${built%/*}
 [ -n "$built" ] || { echo "no built QML module: build the app first" >&2; exit 2; }
 module=target/qml-import/RimStack/Ui
 mkdir -p "$module"
