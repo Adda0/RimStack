@@ -265,7 +265,9 @@ Rectangle {
     Shortcut { sequences: [StandardKey.Undo]; onActivated: Hub.mods.undo() }
     Shortcut { sequences: [StandardKey.Redo]; onActivated: Hub.mods.redo() }
     Shortcut { sequences: [StandardKey.Save]; onActivated: if (Hub.mods.dirty) Mods.save() }
-    Shortcut { sequence: "Escape"; enabled: Mods.comparing === null && !subPrompt.opened; onActivated: screen.drawerOpen ? screen.drawerOpen = false : Mods.picking !== "" ? Mods.picking = "" : Mods.select(-1, false) }
+    // Off while a text field has the focus, so that Esc reaches the field. Window attached
+    // to the Shortcut itself is null: it is read off the screen.
+    Shortcut { sequence: "Escape"; enabled: Mods.comparing === null && !subPrompt.opened && !(screen.Window.activeFocusItem && screen.Window.activeFocusItem.cursorPosition !== undefined); onActivated: screen.drawerOpen ? screen.drawerOpen = false : Mods.picking !== "" ? Mods.picking = "" : Mods.select(-1, false) }
 
 Timer {
     readonly property bool sorting: Hub.given("--sorting")

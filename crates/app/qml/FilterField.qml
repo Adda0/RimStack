@@ -29,6 +29,7 @@ Rectangle {
     }
     property bool syncing: false
     signal accepted()
+    signal escaped()
     function focusInput() { fieldInput.forceActiveFocus() }
     readonly property bool editing: fieldInput.activeFocus
 
@@ -126,7 +127,10 @@ Rectangle {
             }
             field.compose()
         }
-        Keys.onEscapePressed: field.text = ""
+        Keys.onEscapePressed: {
+            field.text = ""
+            field.escaped()
+        }
         Keys.onReturnPressed: field.accepted()
         Keys.onEnterPressed: field.accepted()
         Keys.onPressed: event => {

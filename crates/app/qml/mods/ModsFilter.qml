@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Controls.Basic
 import RimStack.Ui
 
 FilterField {
@@ -10,26 +11,22 @@ FilterField {
     chips: true
     placeholder: Theme.say("Filter active and inactive mods")
     found: Mods.filtered === "" ? "" : Theme.fill("{} active, {} inactive", Theme.count(Mods.active.matching), Theme.count(Mods.inactive.matching))
-    Rectangle {
+    readonly property alias suggesting: suggestions.visible
+    onTypingChanged: suggestions.shut = false
+    onEditingChanged: suggestions.shut = false
+    onEscaped: suggestions.shut = true
+    Popup {
         id: suggestions
-        visible: offers.count > 0 && (filter.editing || suggestHover.hovered)
-        z: 5
-        y: parent.height + 4
-        width: Math.min(parent.width, 420)
-        height: suggestList.height + 12
-        radius: Theme.cornerLarge
-        color: Theme.bar
-        border.width: 1
-        border.color: Theme.line
-        HoverHandler { id: suggestHover }
-        // Qt hands a press taken here to the pointer handlers of the rows beneath
-        // too; holding it alone keeps them from answering.
-        TapHandler { gesturePolicy: TapHandler.WithinBounds; grabPermissions: PointerHandler.TakeOverForbidden }
-        Column {
+        property bool shut: false
+        visible: offers.count > 0 && filter.editing && filter.visible && !shut
+        onClosed: shut = true
+        closePolicy: Popup.CloseOnPressOutsideParent
+        y: filter.height + 4
+        width: Math.min(filter.width, 420)
+        padding: 6
+        background: Rectangle { radius: Theme.cornerLarge; color: Theme.bar; border.width: 1; border.color: Theme.line }
+        contentItem: Column {
             id: suggestList
-            x: 6
-            y: 6
-            width: parent.width - 12
             Repeater {
                 id: offers
                 model: [
@@ -39,7 +36,11 @@ FilterField {
                     ["is:changed", Theme.say("moved or activated since the last save")],
                     ["is:new", Theme.say("installed since the game was last started")],
                     ["is:updated", Hub.downloads.behindActive > 0 ? Theme.fill("{} with an update", Hub.downloads.behindActive) : Theme.say("after checking for updates")],
-                    ["is:local", Theme.say("not from the Workshop")],
+                    ["is:active", Theme.say("in the active list only")],
+                    ["is:inactive", Theme.say("in the inactive list only")],
+                    ["is:workshop", Theme.say("from the Workshop")],
+                    ["is:local", Theme.say("in the game's Mods folder")],
+                    ["is:git", Theme.say("a git checkout")],
                     ["is:notinsave", Theme.say("active, and not in the newest save")],
                     ["is:recent", Theme.say("updated by Steam in the last week")],
                     ["is:duplicate", Theme.say("installed more than once")],

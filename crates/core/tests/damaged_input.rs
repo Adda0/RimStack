@@ -143,6 +143,8 @@ fn a_mod(name: &str, category: Category) -> Mod {
         installed: None,
         tags: Vec::new(),
         local: false,
+        workshop: false,
+        git: false,
         code: false,
         patched: std::sync::Arc::from(Vec::<String>::new()),
         sub: String::new(),

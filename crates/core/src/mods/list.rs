@@ -86,6 +86,8 @@ pub struct Mod {
     pub installed: Option<ModId>,
     pub tags: Vec<String>,
     pub local: bool,
+    pub workshop: bool,
+    pub git: bool,
     pub code: bool,
     /// Lower case `type.method`.
     pub patched: std::sync::Arc<[String]>,
@@ -140,6 +142,8 @@ pub struct GroupedList {
     collapsed: HashSet<Category>,
     collapsed_subs: HashSet<(Category, String)>,
     filter: Filter,
+    /// Which list this is, as the filter last said; `None` lets `is:active` and `is:inactive` pass.
+    side: Option<Side>,
     /// Empty until `set_flags`, and again after the order changes.
     flags: Vec<u16>,
     grouped: bool,
@@ -157,9 +161,32 @@ struct Filter {
     authors: Vec<String>,
     tags: Vec<String>,
     local: bool,
+    workshop: bool,
+    git: bool,
     code: bool,
     patches: Vec<String>,
     flags: u16,
+    only: Option<Side>,
+    both: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Side {
+    Active,
+    Inactive,
+}
+
+impl Side {
+    pub fn of(active: bool) -> Self {
+        if active { Side::Active } else { Side::Inactive }
+    }
+
+    pub fn other(self) -> Self {
+        match self {
+            Side::Active => Side::Inactive,
+            Side::Inactive => Side::Active,
+        }
+    }
 }
 
 pub mod flag {
@@ -182,6 +209,10 @@ impl Filter {
                 Some(("author", name)) if !name.is_empty() => filter.authors.push(name.to_string()),
                 Some(("tag", label)) if !label.is_empty() => filter.tags.push(label.to_string()),
                 Some(("is", "local")) => filter.local = true,
+                Some(("is", "workshop")) => filter.workshop = true,
+                Some(("is", "git")) => filter.git = true,
+                Some(("is", "active")) => filter.ask(Side::Active),
+                Some(("is", "inactive")) => filter.ask(Side::Inactive),
                 Some(("has", "code")) => filter.code = true,
                 Some(("patches", method)) if !method.is_empty() => {
                     filter.patches.push(method.to_string())
@@ -201,6 +232,15 @@ impl Filter {
         filter
     }
 
+    fn ask(&mut self, side: Side) {
+        self.both |= self.only.is_some_and(|asked| asked != side);
+        self.only = Some(side);
+    }
+
+    fn shuts(&self, side: Option<Side>) -> bool {
+        self.both || side.zip(self.only).is_some_and(|(side, only)| side != only)
+    }
+
     fn is_empty(&self) -> bool {
         *self == Self::default()
     }
@@ -215,6 +255,8 @@ impl Filter {
             && self.authors.iter().all(|a| author().contains(a))
             && self.tags.iter().all(tagged)
             && (!self.local || m.local)
+            && (!self.workshop || m.workshop)
+            && (!self.git || m.git)
             && (!self.code || m.code)
             && self
                 .patches
@@ -233,6 +275,7 @@ impl GroupedList {
             collapsed: HashSet::new(),
             collapsed_subs: HashSet::new(),
             filter: Filter::default(),
+            side: None,
             flags: Vec::new(),
             grouped: true,
             shown_by: None,
@@ -347,6 +390,13 @@ impl GroupedList {
 
     pub fn set_filter(&mut self, text: &str) {
         self.filter = Filter::parse(text);
+        self.side = None;
+        self.rebuild();
+    }
+
+    pub fn set_filter_on(&mut self, side: Side, text: &str) {
+        self.filter = Filter::parse(text);
+        self.side = Some(side);
         self.rebuild();
     }
 
@@ -423,6 +473,9 @@ impl GroupedList {
 
     fn matches(&self, index: usize) -> bool {
         let flags = self.flags.get(index).copied().unwrap_or(0);
+        if self.filter.shuts(self.side) {
+            return false;
+        }
         self.filter.is_empty()
             || self
                 .filter

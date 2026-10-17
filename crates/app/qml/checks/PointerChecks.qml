@@ -60,6 +60,26 @@ Item {
         Mods.endHints()
     }
 
+    function suggestions() {
+        const away = () => events.mouseClick(details, details.width / 2, details.height - 8, Qt.LeftButton, Qt.NoModifier, -1)
+        Mods.filterFocusRequested()
+        const filter = screen.Window.activeFocusItem.parent
+        const opened = filter.suggesting
+        away()
+        check("a click away from the filter closes its suggestions", opened && !filter.suggesting && filter.editing)
+        events.keyClick(Qt.Key_I, Qt.NoModifier, -1)
+        check("and typing opens them again", filter.suggesting)
+        const selected = Mods.selectedId
+        events.mouseClick(filter, 40, filter.height + 4 + 6 + 13, Qt.LeftButton, Qt.NoModifier, -1)
+        check("a click on a suggestion takes it and reaches nothing under it", Mods.filtered.startsWith("is:") && Mods.selectedId === selected)
+        events.keyClick(Qt.Key_Escape, Qt.NoModifier, -1)
+        check("Esc empties the filter and closes its suggestions", !filter.suggesting && filter.editing && Mods.filtered === "")
+        events.keyClick(Qt.Key_I, Qt.NoModifier, -1)
+        away()
+        events.keyClick(Qt.Key_Escape, Qt.NoModifier, -1)
+        check("and empties it with them closed, ahead of the screen's own Esc", Mods.filtered === "")
+    }
+
     function nameAt(row) {
         return Mods.active.at(row).name
     }
@@ -139,6 +159,7 @@ Item {
             stop()
             checks.hints()
             checks.divider()
+            checks.suggestions()
             // `row` below assumes compact rows, 26 high.
             Mods.prefs.headings = 0
             Theme.stored.comfortable = false

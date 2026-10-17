@@ -348,6 +348,8 @@ Item {
         Mods.filtered = "tag:check"
         const shown = () => { let n = 0; for (let r = 0; r < Mods.active.rows(); r++) if (Mods.active.modIdAt(r) >= 0) n += 1; return n }
         check("tag: narrows the list to the tagged mod", shown() === 1)
+        Mods.filtered = "is:inactive"
+        check("is:inactive leaves the load order out and every inactive mod in", Mods.active.matching === 0 && Mods.inactive.matching === Mods.inactive.count)
         Mods.filtered = "author:zzzz-nobody"
         check("author: with no match shows nothing", Mods.active.rows() === 0)
         Mods.filtered = ""

@@ -209,6 +209,8 @@ mod tests {
             installed: Some(ModId::new(0, at + 10)),
             tags: Vec::new(),
             local: false,
+            workshop: false,
+            git: false,
             code: false,
             patched: Default::default(),
             sub: String::new(),

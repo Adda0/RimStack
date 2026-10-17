@@ -31,6 +31,22 @@ fn the_two_lists_are_the_load_order_and_the_rest() {
 }
 
 #[test]
+fn a_side_term_filters_its_own_list_and_empties_the_other() {
+    let (_tmp, app) = installed();
+    let mut order = LoadOrder::read(&app, true, false);
+    let matching = |order: &LoadOrder| {
+        let count = |side| order.list(side).matching();
+        (count(Side::Active), count(Side::Inactive))
+    };
+    order.set_filter("is:inactive");
+    assert_eq!(matching(&order), (0, 1));
+    order.set_filter("is:active");
+    assert_eq!(matching(&order), (1, 0));
+    order.set_filter("");
+    assert_eq!(matching(&order), (1, 1));
+}
+
+#[test]
 fn mods_that_could_not_be_read_give_empty_lists_and_the_reason() {
     let (tmp, app) = installed();
     std::fs::remove_dir_all(tmp.path().join("game")).unwrap();

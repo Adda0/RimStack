@@ -3,6 +3,7 @@ use rimstack_core::base::locks::Shared;
 use rimstack_core::base::sentence::Sentence;
 use rimstack_core::mods::describe::Trouble;
 use rimstack_core::mods::library::{Library, ModId};
+pub use rimstack_core::mods::list::Side;
 use rimstack_core::mods::list::{Category, GroupedList, Mod, SortKey, flag};
 use rimstack_core::mods::{demo, sort_reasons};
 use rimstack_core::say;
@@ -17,25 +18,6 @@ mod sorting;
 
 pub use details::{Details, Files, Overview};
 pub use rows::RowView;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Side {
-    Active,
-    Inactive,
-}
-
-impl Side {
-    pub fn of(active: bool) -> Self {
-        if active { Side::Active } else { Side::Inactive }
-    }
-
-    fn other(self) -> Self {
-        match self {
-            Side::Active => Side::Inactive,
-            Side::Inactive => Side::Active,
-        }
-    }
-}
 
 pub struct Preview {
     before: Vec<Mod>,
@@ -328,8 +310,8 @@ impl LoadOrder {
     }
 
     pub fn set_filter(&mut self, text: &str) {
-        self.active.set_filter(text);
-        self.inactive.set_filter(text);
+        self.active.set_filter_on(Side::Active, text);
+        self.inactive.set_filter_on(Side::Inactive, text);
     }
 
     /// "name", "author", "version" or "load"; anything else is load order.

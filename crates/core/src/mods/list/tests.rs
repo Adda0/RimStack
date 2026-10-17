@@ -9,6 +9,8 @@ fn m(name: &str, author: &str, category: Category) -> Mod {
         id: String::new(),
         tags: Vec::new(),
         local: false,
+        workshop: false,
+        git: false,
         code: false,
         patched: Default::default(),
         sub: String::new(),
@@ -244,6 +246,52 @@ fn typed_filter_terms_narrow_by_author_tag_source_and_code() {
     assert!(shown(&list).is_empty());
     list.set_filter("  ");
     assert_eq!(shown(&list).len(), 6);
+}
+
+#[test]
+fn source_terms_tell_the_workshop_from_git_checkouts_and_the_game() {
+    let mut mods = sample().mods().to_vec();
+    mods[3].local = true; // HugsLib
+    mods[3].git = true;
+    mods[4].workshop = true; // Dubs Bad Hygiene
+    let mut list = GroupedList::flat(mods);
+    let names = |list: &GroupedList| -> Vec<String> {
+        let rows = list.rows().iter();
+        let index = rows.filter_map(|r| match r {
+            Row::Mod { index } => Some(*index),
+            _ => None,
+        });
+        index.map(|i| list.mods()[i].name.clone()).collect()
+    };
+    list.set_filter("is:workshop");
+    assert_eq!(names(&list), ["Dubs Bad Hygiene"]);
+    list.set_filter("is:git");
+    assert_eq!(names(&list), ["HugsLib"]);
+    list.set_filter("is:git is:workshop");
+    assert!(names(&list).is_empty());
+}
+
+#[test]
+fn a_side_term_empties_the_other_list_and_both_empty_both() {
+    let mut active = sample();
+    let mut inactive = sample();
+    let count = |list: &GroupedList| list.matching();
+
+    active.set_filter_on(Side::Active, "is:active");
+    inactive.set_filter_on(Side::Inactive, "is:active");
+    assert_eq!((count(&active), count(&inactive)), (6, 0));
+    assert!(inactive.rows().is_empty());
+
+    active.set_filter_on(Side::Active, "is:inactive royalty");
+    inactive.set_filter_on(Side::Inactive, "is:inactive royalty");
+    assert_eq!((count(&active), count(&inactive)), (0, 1));
+
+    active.set_filter_on(Side::Active, "is:active is:inactive");
+    inactive.set_filter_on(Side::Inactive, "is:inactive is:active");
+    assert_eq!((count(&active), count(&inactive)), (0, 0));
+
+    active.set_filter("is:inactive");
+    assert_eq!(count(&active), 6);
 }
 
 #[test]

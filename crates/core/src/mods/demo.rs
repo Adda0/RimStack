@@ -50,6 +50,8 @@ pub fn generate(count: usize) -> Vec<Mod> {
                 id: String::new(),
                 tags: Vec::new(),
                 local: false,
+                workshop: false,
+                git: false,
                 code: false,
                 patched: Default::default(),
                 sub: String::new(),
