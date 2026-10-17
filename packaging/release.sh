@@ -86,7 +86,10 @@ line_for() {
         echo "- $system: ${from:+built from $from, }not rebuilt from $short (its build failed)"
     fi
 }
-notes="Built at $short on $(date -u '+%Y-%m-%d %H:%M UTC').
+changes=$(packaging/changes.sh "$commit" "$tag")
+notes="${changes:+$changes
+
+}Built at $short on $(date -u '+%Y-%m-%d %H:%M UTC').
 
 $(line_for linux)
 $(line_for windows)

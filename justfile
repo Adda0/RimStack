@@ -79,6 +79,24 @@ shot section out *args: build
 scroll: build
     {{app}} --selftest 2>&1 | grep -E "scroll frames|_ms="
 
+# A release: the version in Cargo.toml and Cargo.lock, `just ready`, the commit and its tag; pushing them stays by hand
+release version:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    v="{{version}}"
+    [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]] || { echo "not a version: $v"; exit 1; }
+    [ "$(git branch --show-current)" = main ] || { echo "not on main"; exit 1; }
+    [ -z "$(git status --porcelain)" ] || { echo "the working tree has changes"; exit 1; }
+    ! git rev-parse -q --verify "refs/tags/v$v" > /dev/null || { echo "v$v exists already"; exit 1; }
+    perl -pi -e 's/^version = ".*"/version = "'"$v"'"/ if !$done && /^version = / && ++$done' Cargo.toml
+    cargo update -q --workspace
+    just ready
+    git commit -q -am "RimStack $v"
+    git tag "v$v"
+    packaging/changes.sh HEAD "v$v"
+    echo
+    echo "Tagged v$v. To publish: git push origin main v$v"
+
 # Everything before a commit: format, lint, tests, build, the app's checks (in English; the screens check switches language)
 ready: fmt lint test audit words languages
     just check
