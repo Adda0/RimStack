@@ -148,6 +148,32 @@ impl Notes {
         some.map(|(k, n)| (k.as_str(), n.ignored.as_slice()))
     }
 
+    /// For the tag being typed after the last comma of `text`: tags given anywhere that start
+    /// with it, any case, the most used first, leaving out those already before it.
+    pub fn tags_for(&self, text: &str, most: usize) -> Vec<String> {
+        let (before, typed) = text.rsplit_once(',').unwrap_or(("", text));
+        let typed = typed.trim().to_lowercase();
+        let taken = tags_in(before);
+        let mut counted: Vec<(String, usize)> = Vec::new();
+        for tag in self.by_id.values().flat_map(|n| &n.tags) {
+            match counted
+                .iter_mut()
+                .find(|(seen, _)| seen.eq_ignore_ascii_case(tag))
+            {
+                Some((_, uses)) => *uses += 1,
+                None => counted.push((tag.clone(), 1)),
+            }
+        }
+        counted.retain(|(tag, _)| {
+            let lower = tag.to_lowercase();
+            lower.starts_with(&typed)
+                && lower != typed
+                && !taken.iter().any(|t| t.eq_ignore_ascii_case(tag))
+        });
+        counted.sort_by_cached_key(|(tag, uses)| (std::cmp::Reverse(*uses), tag.to_lowercase()));
+        counted.into_iter().take(most).map(|(tag, _)| tag).collect()
+    }
+
     pub fn len(&self) -> usize {
         self.by_id.len()
     }
@@ -168,6 +194,30 @@ mod tests {
             ["medieval", "QoL", "keep"]
         );
         assert!(tags_in(" , ").is_empty());
+    }
+
+    #[test]
+    fn the_tag_being_typed_is_offered_from_those_given_most_used_first() {
+        let mut notes = Notes::default();
+        for (id, tags) in [
+            ("a.a", "Medieval, qol"),
+            ("b.b", "medieval, Magic"),
+            ("c.c", "mechs"),
+        ] {
+            let note = Note {
+                tags: tags_in(tags),
+                ..Note::default()
+            };
+            notes.set(id, note);
+        }
+        assert_eq!(notes.tags_for("me", 10), ["Medieval", "mechs"]);
+        assert_eq!(
+            notes.tags_for("keep, M", 10),
+            ["Medieval", "Magic", "mechs"]
+        );
+        assert_eq!(notes.tags_for("medieval, ", 10), ["Magic", "mechs", "qol"]);
+        assert_eq!(notes.tags_for("medieval", 10), Vec::<String>::new());
+        assert_eq!(notes.tags_for("", 1), ["Medieval"]);
     }
 
     #[test]

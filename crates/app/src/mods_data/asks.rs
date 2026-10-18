@@ -198,6 +198,10 @@ impl qobject::ModsData {
         to_qml(&subs)
     }
 
+    pub(super) fn tags_for(&self, text: &QString) -> QVariant {
+        to_qml(&self.app().tag_offers(&text.to_string()))
+    }
+
     pub(super) fn details_of(mut self: Pin<&mut Self>, mod_id: i32) -> QVariant {
         let app = self.app();
         match id(mod_id) {
