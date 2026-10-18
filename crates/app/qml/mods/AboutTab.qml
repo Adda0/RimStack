@@ -151,7 +151,6 @@ Column {
                 [Theme.say("Contains"), [Mods.info.contains, Mods.textures.count ? Theme.plural(Mods.textures.count, "{} texture", "{} textures") : ""].filter(s => s).join("; ")],
                 [Theme.say("Code"), Mods.info.code],
                 [Theme.say("Load time"), Mods.info.loadTime],
-                [Theme.say("Package id"), Mods.info.packageId],
             ].filter(pair => pair[1])
             Item {
                 id: fact
@@ -161,6 +160,14 @@ Column {
                 Text { id: factName; width: Theme.sized(92); color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.say(fact.modelData[0]) }
                 CopyText { id: factValue; anchors.left: factName.right; anchors.leftMargin: 4; anchors.right: parent.right; text: fact.modelData[1] }
             }
+        }
+        RowLayout {
+            visible: !!Mods.info.packageId
+            width: parent.width
+            spacing: Theme.gap
+            Text { Layout.preferredWidth: Theme.sized(92) - Theme.gap; color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.say("Package id") }
+            CopyText { Layout.fillWidth: true; text: Mods.info.packageId || "" }
+            Btn { compact: true; icon: "copy"; tip: Theme.say("Copy package id"); onClicked: Theme.copy(Mods.info.packageId) }
         }
         RowLayout {
             visible: !!Mods.info.path
