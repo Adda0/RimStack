@@ -13,7 +13,7 @@ const SHOWN: Duration = Duration::from_millis(1800);
 pub(super) struct Drafts {
     pause: Lane,
     fade: Lane,
-    note: Option<(i32, String, String)>,
+    note: Option<(i32, String)>,
     group: Option<(i32, String)>,
 }
 
@@ -22,13 +22,8 @@ impl qobject::ModsData {
         &mut self.rust_mut().get_mut().drafts
     }
 
-    pub(super) fn draft_note(
-        mut self: Pin<&mut Self>,
-        mod_id: i32,
-        tags: &QString,
-        note: &QString,
-    ) {
-        let draft = (mod_id, tags.to_string(), note.to_string());
+    pub(super) fn draft_note(mut self: Pin<&mut Self>, mod_id: i32, note: &QString) {
+        let draft = (mod_id, note.to_string());
         self.as_mut().drafts_mut().note = Some(draft);
         self.wait_for_drafts();
     }
@@ -59,8 +54,8 @@ impl qobject::ModsData {
         let (note, group) = (drafts.note.take(), drafts.group.take());
         let app = self.app();
         let mut changed = false;
-        if let Some((mod_id, tags, note)) = note {
-            changed |= id(mod_id).is_some_and(|id| app.set_note(id, &tags, &note));
+        if let Some((mod_id, note)) = note {
+            changed |= id(mod_id).is_some_and(|id| app.set_note_text(id, &note));
         }
         if let Some((mod_id, name)) = group {
             changed |= id(mod_id).is_some_and(|id| app.set_group(&[id], &name));

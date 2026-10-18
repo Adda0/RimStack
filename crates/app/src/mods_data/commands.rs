@@ -1,4 +1,5 @@
 use super::{id, ids, qobject};
+use crate::App;
 use crate::workspace::load_order::Side;
 use core::pin::Pin;
 use cxx_qt::{CxxQtType, Threading};
@@ -354,6 +355,35 @@ impl qobject::ModsData {
         self.as_mut().show();
         let said = say_n!(ids.len(), "Tagged {} mod: {}", "Tagged {} mods: {}", tag);
         self.told(crate::words::said(&said), QString::from("ok"));
+    }
+
+    pub(super) fn add_tags(self: Pin<&mut Self>, mod_id: i32, tags: &QString) {
+        let tags = tags.to_string();
+        self.change_tags(mod_id, |app, id| app.add_tags(id, &tags));
+    }
+
+    pub(super) fn remove_tag(self: Pin<&mut Self>, mod_id: i32, tag: &QString) {
+        let tag = tag.to_string();
+        self.change_tags(mod_id, |app, id| app.remove_tag(&[id], &tag));
+    }
+
+    pub(super) fn clear_tags(self: Pin<&mut Self>, mod_id: i32) {
+        self.change_tags(mod_id, |app, id| app.clear_tags(id));
+    }
+
+    fn change_tags(
+        mut self: Pin<&mut Self>,
+        mod_id: i32,
+        change: impl FnOnce(&App, ModId) -> bool,
+    ) {
+        let Some(id) = id(mod_id) else {
+            return;
+        };
+        let app = self.app();
+        if change(&app, id) {
+            self.as_mut().order_mut().sync(&app);
+            self.show();
+        }
     }
 
     pub(super) fn group(mut self: Pin<&mut Self>, given: &QVariant, name: &QString) {

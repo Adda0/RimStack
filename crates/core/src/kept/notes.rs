@@ -149,11 +149,12 @@ impl Notes {
     }
 
     /// For the tag being typed after the last comma of `text`: tags given anywhere that start
-    /// with it, any case, the most used first, leaving out those already before it.
-    pub fn tags_for(&self, text: &str, most: usize) -> Vec<String> {
+    /// with it, any case, the most used first, leaving out those before it and those `had`.
+    pub fn tags_for(&self, text: &str, had: &[String], most: usize) -> Vec<String> {
         let (before, typed) = text.rsplit_once(',').unwrap_or(("", text));
         let typed = typed.trim().to_lowercase();
-        let taken = tags_in(before);
+        let mut taken = tags_in(before);
+        taken.extend_from_slice(had);
         let mut counted: Vec<(String, usize)> = Vec::new();
         for tag in self.by_id.values().flat_map(|n| &n.tags) {
             match counted
@@ -210,14 +211,21 @@ mod tests {
             };
             notes.set(id, note);
         }
-        assert_eq!(notes.tags_for("me", 10), ["Medieval", "mechs"]);
+        assert_eq!(notes.tags_for("me", &[], 10), ["Medieval", "mechs"]);
         assert_eq!(
-            notes.tags_for("keep, M", 10),
+            notes.tags_for("keep, M", &[], 10),
             ["Medieval", "Magic", "mechs"]
         );
-        assert_eq!(notes.tags_for("medieval, ", 10), ["Magic", "mechs", "qol"]);
-        assert_eq!(notes.tags_for("medieval", 10), Vec::<String>::new());
-        assert_eq!(notes.tags_for("", 1), ["Medieval"]);
+        assert_eq!(
+            notes.tags_for("medieval, ", &[], 10),
+            ["Magic", "mechs", "qol"]
+        );
+        assert_eq!(notes.tags_for("medieval", &[], 10), Vec::<String>::new());
+        assert_eq!(notes.tags_for("", &[], 1), ["Medieval"]);
+        assert_eq!(
+            notes.tags_for("m", &tags_in("MAGIC"), 10),
+            ["Medieval", "mechs"]
+        );
     }
 
     #[test]
