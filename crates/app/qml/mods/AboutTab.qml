@@ -68,148 +68,6 @@ Column {
     }
 
     Card {
-        visible: !!Mods.info.description
-        title: Theme.say("Description")
-        CopyText {
-            width: parent.width
-            textFormat: TextEdit.RichText
-            text: side.linkColour + (Mods.info.descriptionRich || "")
-            onLinkActivated: (link) => Qt.openUrlExternally(link)
-            HoverHandler { enabled: parent.hoveredLink !== ""; cursorShape: Qt.PointingHandCursor }
-        }
-    }
-
-    // The game keeps the texture of the mod that loads last.
-    Card {
-        visible: conflictLines.count > 0
-        title: Theme.say("Texture conflicts")
-        note: conflictLines.count
-        tone: Theme.warn
-        key: "about-conflicts"
-        spacing: Theme.gap
-        Repeater {
-            id: conflictLines
-            model: side.clashes
-            Column {
-                id: clash
-                required property var modelData
-                readonly property bool loses: modelData.loses
-                readonly property var other: modelData.clash
-                width: side.width
-                spacing: Theme.gapTiny
-                RowLayout {
-                    width: parent.width
-                    spacing: Theme.gapSmall
-                    Chip { tone: clash.loses ? Theme.warn : Theme.ok; icon: clash.loses ? "arrow-down" : "arrow-up"; text: Theme.fill(clash.loses ? "loses {}" : "wins {}", clash.other.textures) }
-                    Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: clash.other.name }
-                }
-                Row {
-                    spacing: Theme.gapSmall
-                    Btn { text: Theme.say("Compare"); tip: Theme.say("Both mods' versions of each shared texture, side by side"); onClicked: Mods.compareWith(clash.other.modId) }
-                    Btn { visible: clash.loses; enabled: !Hub.mods.previewing; text: Theme.say("Win all"); tip: Theme.say("Adds an own rule: this mod loads after the other."); onClicked: Mods.winAll(clash.other.modId) }
-                }
-            }
-        }
-    }
-
-    Card {
-        visible: !!Mods.info.replacedBy
-        title: Theme.say("Use this instead")
-        RowLayout {
-            width: parent.width
-            spacing: Theme.gap
-            Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: Theme.body; lineHeight: 1.3; text: Mods.info.replacedByVersions ? Theme.fill("{}, for RimWorld {}", Mods.info.replacedBy || "", Mods.info.replacedByVersions) : Mods.info.replacedBy || "" }
-            Btn { icon: "external-link"; text: Theme.say("Open"); onClicked: Theme.openWorkshop(Mods.info.replacedById) }
-        }
-        Row {
-            spacing: Theme.gapSmall
-            Btn { visible: Mods.selectedActive && !Hub.mods.previewing; icon: "minus"; text: Theme.say("Deactivate this one"); onClicked: Mods.toggleSelected() }
-            Btn { visible: !!Mods.info.workshop; danger: true; text: Theme.say("Unsubscribe…"); onClicked: Mods.unsubscribe(Mods.info.name || "", Mods.info.folder, Mods.info.path) }
-        }
-    }
-
-    Card {
-        visible: !!Mods.info.copies
-        title: Theme.say("Two copies")
-        Text { width: parent.width; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: Theme.body; lineHeight: 1.3; text: Mods.info.copies || "" }
-        Btn {
-            visible: !!Mods.info.binLocalCopy
-            danger: true
-            icon: "trash-2"
-            text: Theme.say("Move the local copy to the bin…")
-            tip: Theme.say("The Workshop copy is then the one the game uses.")
-            onClicked: Mods.binRequested(Mods.info.name || "", Mods.info.binLocalCopy.path, Mods.info.binLocalCopy.modId)
-        }
-    }
-
-    Card {
-        title: Theme.say("Facts")
-        key: "about-facts"
-        actions: SavedMark {}
-        Repeater {
-            model: [
-                [Theme.say("Contains"), [Mods.info.contains, Mods.textures.count ? Theme.plural(Mods.textures.count, "{} texture", "{} textures") : ""].filter(s => s).join("; ")],
-                [Theme.say("Code"), Mods.info.code],
-                [Theme.say("Load time"), Mods.info.loadTime],
-            ].filter(pair => pair[1])
-            Item {
-                id: fact
-                required property var modelData
-                width: side.width
-                implicitHeight: factValue.implicitHeight
-                Text { id: factName; width: Theme.sized(92); color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.say(fact.modelData[0]) }
-                CopyText { id: factValue; anchors.left: factName.right; anchors.leftMargin: 4; anchors.right: parent.right; text: fact.modelData[1] }
-            }
-        }
-        RowLayout {
-            visible: !!Mods.info.packageId
-            width: parent.width
-            spacing: Theme.gap
-            Text { Layout.preferredWidth: Theme.sized(92) - Theme.gap; color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.say("Package id") }
-            CopyText { Layout.fillWidth: true; text: Mods.info.packageId || "" }
-            Btn { compact: true; icon: "copy"; tip: Theme.say("Copy package id"); onClicked: Theme.copy(Mods.info.packageId) }
-        }
-        RowLayout {
-            visible: !!Mods.info.path
-            width: parent.width
-            spacing: Theme.gap
-            Text { Layout.preferredWidth: Theme.sized(92) - Theme.gap; color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.say("Folder") }
-            PathText { path: Mods.info.path || ""; copyable: true; openTip: Theme.say("Open folder") }
-        }
-        RowLayout {
-            width: parent.width
-            spacing: Theme.gap
-            Defined { Layout.preferredWidth: Theme.sized(92); text: Theme.say("Filed under") }
-            Icon { name: Theme.categoryIcons[Theme.categoryNames.indexOf(Mods.info.category || "")] || "package"; size: 14; color: Theme.categoryColours[Theme.categoryNames.indexOf(Mods.info.category || "")] || Theme.ink2 }
-            Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: Mods.info.categoryChosen ? Theme.fill("{} (chosen)", Theme.say(Mods.info.category || "")) : Theme.say(Mods.info.category || "") }
-            Btn {
-                id: fileUnder
-                text: Theme.say("Change")
-                tip: Theme.say("RimStack files a mod by where it stands, what its folders hold and what its code is about. A category chosen here stands over that.")
-                onClicked: Mods.menuRequested(fileUnder, 0, fileUnder.height + 2, Mods.categoryChoices(Mods.selectedId))
-            }
-        }
-        RowLayout {
-            width: parent.width
-            spacing: Theme.gap
-            Defined { Layout.preferredWidth: Theme.sized(92); text: Theme.say("Group") }
-            FilterField {
-                id: subBox
-                Layout.fillWidth: true
-                placeholder: Theme.say("A tag to group under")
-                onTextChanged: {
-                    if (subBox.editing)
-                        Hub.mods.draftGroup(Mods.selectedId, subBox.text)
-                }
-                onEditingChanged: Hub.mods.keepDrafts()
-                onAccepted: Hub.mods.keepDrafts()
-            }
-            // Restoring would blank the field as it takes the focus, and that blank be saved.
-            Binding { target: subBox; property: "text"; value: Mods.info.sub || ""; when: !subBox.editing; restoreMode: Binding.RestoreNone }
-        }
-    }
-
-    Card {
         title: Theme.say("Tags and note")
         key: "about-notes"
         actions: SavedMark {}
@@ -320,6 +178,148 @@ Column {
                 onActiveFocusChanged: Hub.mods.keepDrafts()
             }
             Binding { target: noteBox; property: "text"; value: Mods.info.note || ""; when: !noteBox.activeFocus; restoreMode: Binding.RestoreNone }
+        }
+    }
+
+    Card {
+        title: Theme.say("Facts")
+        key: "about-facts"
+        actions: SavedMark {}
+        Repeater {
+            model: [
+                [Theme.say("Contains"), [Mods.info.contains, Mods.textures.count ? Theme.plural(Mods.textures.count, "{} texture", "{} textures") : ""].filter(s => s).join("; ")],
+                [Theme.say("Code"), Mods.info.code],
+                [Theme.say("Load time"), Mods.info.loadTime],
+            ].filter(pair => pair[1])
+            Item {
+                id: fact
+                required property var modelData
+                width: side.width
+                implicitHeight: factValue.implicitHeight
+                Text { id: factName; width: Theme.sized(92); color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.say(fact.modelData[0]) }
+                CopyText { id: factValue; anchors.left: factName.right; anchors.leftMargin: 4; anchors.right: parent.right; text: fact.modelData[1] }
+            }
+        }
+        RowLayout {
+            visible: !!Mods.info.packageId
+            width: parent.width
+            spacing: Theme.gap
+            Text { Layout.preferredWidth: Theme.sized(92) - Theme.gap; color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.say("Package id") }
+            CopyText { Layout.fillWidth: true; text: Mods.info.packageId || "" }
+            Btn { compact: true; icon: "copy"; tip: Theme.say("Copy package id"); onClicked: Theme.copy(Mods.info.packageId) }
+        }
+        RowLayout {
+            visible: !!Mods.info.path
+            width: parent.width
+            spacing: Theme.gap
+            Text { Layout.preferredWidth: Theme.sized(92) - Theme.gap; color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.say("Folder") }
+            PathText { path: Mods.info.path || ""; copyable: true; openTip: Theme.say("Open folder") }
+        }
+        RowLayout {
+            width: parent.width
+            spacing: Theme.gap
+            Defined { Layout.preferredWidth: Theme.sized(92); text: Theme.say("Filed under") }
+            Icon { name: Theme.categoryIcons[Theme.categoryNames.indexOf(Mods.info.category || "")] || "package"; size: 14; color: Theme.categoryColours[Theme.categoryNames.indexOf(Mods.info.category || "")] || Theme.ink2 }
+            Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: Mods.info.categoryChosen ? Theme.fill("{} (chosen)", Theme.say(Mods.info.category || "")) : Theme.say(Mods.info.category || "") }
+            Btn {
+                id: fileUnder
+                text: Theme.say("Change")
+                tip: Theme.say("RimStack files a mod by where it stands, what its folders hold and what its code is about. A category chosen here stands over that.")
+                onClicked: Mods.menuRequested(fileUnder, 0, fileUnder.height + 2, Mods.categoryChoices(Mods.selectedId))
+            }
+        }
+        RowLayout {
+            width: parent.width
+            spacing: Theme.gap
+            Defined { Layout.preferredWidth: Theme.sized(92); text: Theme.say("Group") }
+            FilterField {
+                id: subBox
+                Layout.fillWidth: true
+                placeholder: Theme.say("A tag to group under")
+                onTextChanged: {
+                    if (subBox.editing)
+                        Hub.mods.draftGroup(Mods.selectedId, subBox.text)
+                }
+                onEditingChanged: Hub.mods.keepDrafts()
+                onAccepted: Hub.mods.keepDrafts()
+            }
+            // Restoring would blank the field as it takes the focus, and that blank be saved.
+            Binding { target: subBox; property: "text"; value: Mods.info.sub || ""; when: !subBox.editing; restoreMode: Binding.RestoreNone }
+        }
+    }
+
+    Card {
+        visible: !!Mods.info.description
+        title: Theme.say("Description")
+        CopyText {
+            width: parent.width
+            textFormat: TextEdit.RichText
+            text: side.linkColour + (Mods.info.descriptionRich || "")
+            onLinkActivated: (link) => Qt.openUrlExternally(link)
+            HoverHandler { enabled: parent.hoveredLink !== ""; cursorShape: Qt.PointingHandCursor }
+        }
+    }
+
+    // The game keeps the texture of the mod that loads last.
+    Card {
+        visible: conflictLines.count > 0
+        title: Theme.say("Texture conflicts")
+        note: conflictLines.count
+        tone: Theme.warn
+        key: "about-conflicts"
+        spacing: Theme.gap
+        Repeater {
+            id: conflictLines
+            model: side.clashes
+            Column {
+                id: clash
+                required property var modelData
+                readonly property bool loses: modelData.loses
+                readonly property var other: modelData.clash
+                width: side.width
+                spacing: Theme.gapTiny
+                RowLayout {
+                    width: parent.width
+                    spacing: Theme.gapSmall
+                    Chip { tone: clash.loses ? Theme.warn : Theme.ok; icon: clash.loses ? "arrow-down" : "arrow-up"; text: Theme.fill(clash.loses ? "loses {}" : "wins {}", clash.other.textures) }
+                    Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: clash.other.name }
+                }
+                Row {
+                    spacing: Theme.gapSmall
+                    Btn { text: Theme.say("Compare"); tip: Theme.say("Both mods' versions of each shared texture, side by side"); onClicked: Mods.compareWith(clash.other.modId) }
+                    Btn { visible: clash.loses; enabled: !Hub.mods.previewing; text: Theme.say("Win all"); tip: Theme.say("Adds an own rule: this mod loads after the other."); onClicked: Mods.winAll(clash.other.modId) }
+                }
+            }
+        }
+    }
+
+    Card {
+        visible: !!Mods.info.replacedBy
+        title: Theme.say("Use this instead")
+        RowLayout {
+            width: parent.width
+            spacing: Theme.gap
+            Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: Theme.body; lineHeight: 1.3; text: Mods.info.replacedByVersions ? Theme.fill("{}, for RimWorld {}", Mods.info.replacedBy || "", Mods.info.replacedByVersions) : Mods.info.replacedBy || "" }
+            Btn { icon: "external-link"; text: Theme.say("Open"); onClicked: Theme.openWorkshop(Mods.info.replacedById) }
+        }
+        Row {
+            spacing: Theme.gapSmall
+            Btn { visible: Mods.selectedActive && !Hub.mods.previewing; icon: "minus"; text: Theme.say("Deactivate this one"); onClicked: Mods.toggleSelected() }
+            Btn { visible: !!Mods.info.workshop; danger: true; text: Theme.say("Unsubscribe…"); onClicked: Mods.unsubscribe(Mods.info.name || "", Mods.info.folder, Mods.info.path) }
+        }
+    }
+
+    Card {
+        visible: !!Mods.info.copies
+        title: Theme.say("Two copies")
+        Text { width: parent.width; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: Theme.body; lineHeight: 1.3; text: Mods.info.copies || "" }
+        Btn {
+            visible: !!Mods.info.binLocalCopy
+            danger: true
+            icon: "trash-2"
+            text: Theme.say("Move the local copy to the bin…")
+            tip: Theme.say("The Workshop copy is then the one the game uses.")
+            onClicked: Mods.binRequested(Mods.info.name || "", Mods.info.binLocalCopy.path, Mods.info.binLocalCopy.modId)
         }
     }
 
