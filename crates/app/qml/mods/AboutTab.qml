@@ -104,15 +104,30 @@ Column {
                 id: tagBox
                 Layout.fillWidth: true
                 placeholder: Theme.say("Add tags, separated by commas")
+                readonly property bool suggesting: tagOffers.visible
+                onTypingChanged: {
+                    tagOffers.shut = false
+                    tagOffers.chosen = -1
+                }
+                onEditingChanged: tagOffers.shut = false
+                onEscaped: tagOffers.shut = true
+                // Enter takes the offer chosen with the arrows, else adds what is typed.
                 onAccepted: {
-                    Hub.mods.addTags(Mods.selectedId, tagBox.text)
+                    const chosen = tagBox.suggesting && tagOffers.chosen >= 0 && tagOffers.offered[tagOffers.chosen].text
+                    Hub.mods.addTags(Mods.selectedId, chosen || tagBox.text)
                     tagBox.text = ""
                 }
+                Keys.enabled: suggesting
+                Keys.onUpPressed: tagOffers.chosen = Math.max(tagOffers.chosen - 1, 0)
+                Keys.onDownPressed: tagOffers.chosen = Math.min(tagOffers.chosen + 1, tagOffers.offered.length - 1)
                 // The tag after the last comma, from those given to any mod and not to this one.
                 Popup {
                     id: tagOffers
                     readonly property var offered: Hub.mods.tagsFor(Mods.info.tags || "", tagBox.text)
-                    visible: offered.length > 0 && tagBox.editing && tagBox.visible
+                    property bool shut: false
+                    property int chosen: -1
+                    visible: offered.length > 0 && tagBox.editing && tagBox.visible && !shut
+                    onClosed: shut = true
                     closePolicy: Popup.CloseOnPressOutsideParent
                     y: tagBox.height + 4
                     width: Math.min(tagBox.width, Theme.sized(320))
@@ -125,11 +140,12 @@ Column {
                             Item {
                                 id: tagOffer
                                 required property var modelData
+                                required property int index
                                 width: tagOfferList.width
                                 height: Theme.sized(26)
                                 Accessible.role: Accessible.Button
                                 Accessible.name: tagOffer.modelData.tag
-                                Rectangle { anchors.fill: parent; radius: Theme.corner; color: Theme.chip; visible: tagOfferHover.hovered }
+                                Rectangle { anchors.fill: parent; radius: Theme.corner; color: Theme.chip; visible: tagOfferHover.hovered || tagOffer.index === tagOffers.chosen }
                                 Text { x: 8; anchors.verticalCenter: parent.verticalCenter; color: Theme.ink; font.pixelSize: Theme.small; text: tagOffer.modelData.tag }
                                 HoverHandler { id: tagOfferHover }
                                 TapHandler {
