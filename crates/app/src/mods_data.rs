@@ -508,8 +508,12 @@ impl qobject::ModsData {
             self.qt_thread(),
             move |_| LoadOrder::read(&app, headings, by),
             move |mut me, mut order| {
+                // The window's prefs reach `me` while the list is still read, at the start;
+                // the order read with the defaults must not undo them.
                 let app = me.app();
-                order.set_headings(&app, me.headings);
+                if me.headings != headings {
+                    order.set_headings(&app, me.headings);
+                }
                 if me.arrangement() != by {
                     order.set_inactive_order(&app, me.arrangement());
                 }
