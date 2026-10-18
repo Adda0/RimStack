@@ -407,6 +407,15 @@ fn a_list_can_be_arranged_by_name_category_times_or_game_version() {
     list.arrange(Arrange::Supports);
     assert_eq!(first_three(&list), ["Core", "HugsLib", "Royalty"]);
     assert_eq!(names(&list)[3], "Dubs Bad Hygiene");
+    let reversed = |by| Arrangement { by, reversed: true };
+    list.arrange(reversed(Arrange::Supports));
+    let all = names(&list);
+    assert_eq!(all[..3], ["Royalty", "HugsLib", "Core"]);
+    assert_eq!(all[3], "Dubs Bad Hygiene", "those without one stay last");
+    list.arrange(reversed(Arrange::Name));
+    let mut by_name = all.clone();
+    by_name.sort_by_key(|n| std::cmp::Reverse(n.to_lowercase()));
+    assert_eq!(names(&list), by_name);
 }
 
 #[test]

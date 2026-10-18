@@ -4,7 +4,7 @@ use rimstack_core::base::sentence::Sentence;
 use rimstack_core::mods::describe::Trouble;
 use rimstack_core::mods::library::{Library, ModId};
 pub use rimstack_core::mods::list::Side;
-use rimstack_core::mods::list::{Arrange, Category, GroupedList, Mod, SortKey, flag};
+use rimstack_core::mods::list::{Arrange, Arrangement, Category, GroupedList, Mod, SortKey, flag};
 use rimstack_core::mods::{demo, sort_reasons};
 use rimstack_core::say;
 use serde::Serialize;
@@ -40,7 +40,7 @@ pub struct LoadOrder {
     preview: Option<Preview>,
     batching: bool,
     headings: bool,
-    inactive_order: Arrange,
+    inactive_order: Arrangement,
     /// The reading its `ModId`s come from: after a rescan, `App::library` is a newer one.
     /// `None` for a made-up list or one that could not be read.
     reading: Option<std::sync::Arc<crate::workspace::Loaded>>,
@@ -74,6 +74,19 @@ pub struct InactiveOrders {
     next: &'static str,
     next_text: Sentence,
     all: Vec<OrderChoice>,
+    reversed: bool,
+    /// Which way it runs now, and the icon that shows it.
+    direction: Sentence,
+    direction_icon: &'static str,
+}
+
+fn direction_text(how: Arrangement) -> Sentence {
+    match (how.by, how.reversed) {
+        (Arrange::Category | Arrange::Name, false) => say!("A to Z"),
+        (Arrange::Category | Arrange::Name, true) => say!("Z to A"),
+        (_, false) => say!("Newest first"),
+        (_, true) => say!("Oldest first"),
+    }
 }
 
 fn order_text(by: Arrange) -> Sentence {
@@ -130,7 +143,7 @@ impl LoadOrder {
             preview: None,
             batching: false,
             headings: true,
-            inactive_order: Arrange::Category,
+            inactive_order: Arrangement::default(),
             reading: None,
             detected: rules::Detected::default(),
             status: [Sentence::default(), Sentence::default()],
@@ -150,7 +163,8 @@ impl LoadOrder {
         order
     }
 
-    pub fn read(app: &App, headings: bool, inactive_order: Arrange) -> Self {
+    pub fn read(app: &App, headings: bool, inactive_order: impl Into<Arrangement>) -> Self {
+        let inactive_order = inactive_order.into();
         let loaded = app.library();
         let (library, took) = match &*loaded {
             Ok(read) => read,
@@ -342,14 +356,15 @@ impl LoadOrder {
         }
     }
 
-    pub fn set_inactive_order(&mut self, app: &App, by: Arrange) {
-        self.inactive_order = by;
-        self.inactive.arrange(by);
+    pub fn set_inactive_order(&mut self, app: &App, how: Arrangement) {
+        self.inactive_order = how;
+        self.inactive.arrange(how);
         self.settle(app);
     }
 
     pub fn inactive_orders(&self) -> InactiveOrders {
-        let by = self.inactive_order;
+        let how = self.inactive_order;
+        let by = how.by;
         let all = Arrange::ALL.map(|each| OrderChoice {
             key: each.key(),
             text: order_text(each),
@@ -360,6 +375,12 @@ impl LoadOrder {
             next: by.next().key(),
             next_text: order_text(by.next()),
             all: all.into(),
+            reversed: how.reversed,
+            direction: direction_text(how),
+            direction_icon: match how.reversed {
+                false => "arrow-down",
+                true => "arrow-up",
+            },
         }
     }
 

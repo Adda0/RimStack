@@ -475,8 +475,11 @@ mods.inactiveOrders: object
       key: text
       text: text
   chosen: text
+  direction: text
+  directionIcon: text
   next: text
   nextText: text
+  reversed: bool
 mods.notInstalled: object
   fixes: list
     []: object
