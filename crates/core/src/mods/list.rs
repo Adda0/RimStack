@@ -155,17 +155,42 @@ fn haystack(m: &Mod) -> String {
     format!("{} {}", m.name, m.author).to_lowercase()
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum Test {
+    Word(String),
+    Author(String),
+    Tag(String),
+    Local,
+    Workshop,
+    Git,
+    Code,
+    Patches(String),
+    Flag(u16),
+}
+
+impl Test {
+    fn passes(&self, m: &Mod, haystack: &str, flags: u16) -> bool {
+        match self {
+            Test::Word(w) => haystack.contains(w.as_str()),
+            Test::Author(a) => m.author.to_lowercase().contains(a.as_str()),
+            Test::Tag(t) => m
+                .tags
+                .iter()
+                .any(|own| own.to_lowercase().starts_with(t.as_str())),
+            Test::Local => m.local,
+            Test::Workshop => m.workshop,
+            Test::Git => m.git,
+            Test::Code => m.code,
+            Test::Patches(p) => m.patched.iter().any(|at| at.contains(p.as_str())),
+            Test::Flag(f) => flags & f != 0,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 struct Filter {
-    words: Vec<String>,
-    authors: Vec<String>,
-    tags: Vec<String>,
-    local: bool,
-    workshop: bool,
-    git: bool,
-    code: bool,
-    patches: Vec<String>,
-    flags: u16,
+    /// Each with whether it must pass: `!` before a term asks that it fail.
+    tests: Vec<(Test, bool)>,
     only: Option<Side>,
     both: bool,
 }
@@ -205,29 +230,38 @@ impl Filter {
     fn parse(text: &str) -> Self {
         let mut filter = Self::default();
         for term in text.to_lowercase().split_whitespace() {
-            match term.split_once(':') {
-                Some(("author", name)) if !name.is_empty() => filter.authors.push(name.to_string()),
-                Some(("tag", label)) if !label.is_empty() => filter.tags.push(label.to_string()),
-                Some(("is", "local")) => filter.local = true,
-                Some(("is", "workshop")) => filter.workshop = true,
-                Some(("is", "git")) => filter.git = true,
-                Some(("is", "active")) => filter.ask(Side::Active),
-                Some(("is", "inactive")) => filter.ask(Side::Inactive),
-                Some(("has", "code")) => filter.code = true,
-                Some(("patches", method)) if !method.is_empty() => {
-                    filter.patches.push(method.to_string())
+            let (wanted, term) = match term.strip_prefix('!') {
+                Some("") => continue,
+                Some(rest) => (false, rest),
+                None => (true, term),
+            };
+            let test = match term.split_once(':') {
+                Some(("author", name)) if !name.is_empty() => Test::Author(name.to_string()),
+                Some(("tag", label)) if !label.is_empty() => Test::Tag(label.to_string()),
+                Some(("is", "local")) => Test::Local,
+                Some(("is", "workshop")) => Test::Workshop,
+                Some(("is", "git")) => Test::Git,
+                Some(("is", side @ ("active" | "inactive"))) => {
+                    let side = Side::of(side == "active");
+                    filter.ask(if wanted { side } else { side.other() });
+                    continue;
                 }
-                Some(("is", "error")) => filter.flags |= flag::ERROR,
-                Some(("is", "warning")) => filter.flags |= flag::WARNING,
-                Some(("is", "conflict")) => filter.flags |= flag::CONFLICT,
-                Some(("is", "updated")) => filter.flags |= flag::UPDATED,
-                Some(("is", "notinsave")) => filter.flags |= flag::NOT_IN_SAVE,
-                Some(("is", "recent")) => filter.flags |= flag::RECENT,
-                Some(("is", "duplicate")) => filter.flags |= flag::DUPLICATE,
-                Some(("is", "new")) => filter.flags |= flag::NEW,
-                Some(("is", "changed")) => filter.flags |= flag::CHANGED,
-                _ => filter.words.push(term.to_string()),
-            }
+                Some(("has", "code")) => Test::Code,
+                Some(("patches", method)) if !method.is_empty() => {
+                    Test::Patches(method.to_string())
+                }
+                Some(("is", "error")) => Test::Flag(flag::ERROR),
+                Some(("is", "warning")) => Test::Flag(flag::WARNING),
+                Some(("is", "conflict")) => Test::Flag(flag::CONFLICT),
+                Some(("is", "updated")) => Test::Flag(flag::UPDATED),
+                Some(("is", "notinsave")) => Test::Flag(flag::NOT_IN_SAVE),
+                Some(("is", "recent")) => Test::Flag(flag::RECENT),
+                Some(("is", "duplicate")) => Test::Flag(flag::DUPLICATE),
+                Some(("is", "new")) => Test::Flag(flag::NEW),
+                Some(("is", "changed")) => Test::Flag(flag::CHANGED),
+                _ => Test::Word(term.to_string()),
+            };
+            filter.tests.push((test, wanted));
         }
         filter
     }
@@ -245,23 +279,16 @@ impl Filter {
         *self == Self::default()
     }
 
+    fn reads_flags(&self) -> bool {
+        self.tests
+            .iter()
+            .any(|(test, _)| matches!(test, Test::Flag(_)))
+    }
+
     fn admits(&self, m: &Mod, haystack: &str, flags: u16) -> bool {
-        if flags & self.flags != self.flags {
-            return false;
-        }
-        let author = || m.author.to_lowercase();
-        let tagged = |wanted: &String| m.tags.iter().any(|t| t.to_lowercase().starts_with(wanted));
-        self.words.iter().all(|w| haystack.contains(w))
-            && self.authors.iter().all(|a| author().contains(a))
-            && self.tags.iter().all(tagged)
-            && (!self.local || m.local)
-            && (!self.workshop || m.workshop)
-            && (!self.git || m.git)
-            && (!self.code || m.code)
-            && self
-                .patches
-                .iter()
-                .all(|p| m.patched.iter().any(|at| at.contains(p)))
+        self.tests
+            .iter()
+            .all(|(test, wanted)| test.passes(m, haystack, flags) == *wanted)
     }
 }
 
@@ -303,7 +330,7 @@ impl GroupedList {
     /// Changing the order forgets it.
     pub fn set_flags(&mut self, flags: Vec<u16>) {
         self.flags = flags;
-        if self.filter.flags != 0 {
+        if self.filter.reads_flags() {
             self.rebuild();
         }
     }

@@ -13,7 +13,10 @@ Rectangle {
     readonly property real lead: icon !== "" ? Theme.icon + 8 : 0
     property var terms: []
     readonly property string typing: fieldInput.text
-    readonly property string partial: typing.split(" ").pop()
+    readonly property string lastWord: typing.split(" ").pop()
+    // A "!" before a term turns it round; the term after it is what is offered.
+    readonly property string bang: lastWord.match(/^!?/)[0]
+    readonly property string partial: lastWord.slice(bang.length)
     function take(term) {
         const words = fieldInput.text.split(" ").slice(0, -1)
         if (term.endsWith(":")) {
@@ -34,7 +37,7 @@ Rectangle {
     readonly property bool editing: fieldInput.activeFocus
 
     function isTerm(word) {
-        return /^(is|has|tag|author|patches):.+$/.test(word)
+        return /^!?(is|has|tag|author|patches):.+$/.test(word)
     }
     function compose() {
         syncing = true
