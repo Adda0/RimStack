@@ -305,7 +305,7 @@ ApplicationWindow {
                 { name: Theme.say("Theme: Rim"), group: Theme.say("View"), run: () => Theme.stored.theme = "rim", when: Theme.name !== "rim" },
                 { name: Theme.stored.comfortable ? Theme.say("Compact rows") : Theme.say("Comfortable rows"), group: Theme.say("View"), run: () => Theme.stored.comfortable = !Theme.stored.comfortable },
                 { name: Mods.prefs.inactiveHidden ? Theme.say("Show the inactive list") : Theme.say("Hide the inactive list"), group: Theme.say("View"), run: () => Mods.prefs.inactiveHidden = !Mods.prefs.inactiveHidden },
-                { name: (Mods.prefs.inactiveByName ? Theme.say("Inactive mods by category") : Theme.say("Inactive mods by name")), group: Theme.say("View"), run: () => Mods.prefs.inactiveByName = !Mods.prefs.inactiveByName },
+                { name: Theme.fill("Inactive mods by: {}", Hub.mods.inactiveOrders.nextText), group: Theme.say("View"), run: () => Mods.prefs.inactiveOrder = Hub.mods.inactiveOrders.next },
 
                 { name: Theme.say("RimWorld folder"), group: Theme.say("Open"), run: () => open(folders.game), when: !!folders.game },
                 { name: Theme.say("Workshop mods folder"), group: Theme.say("Open"), run: () => open(folders.workshop), when: !!folders.workshop },

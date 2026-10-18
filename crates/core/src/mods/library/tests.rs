@@ -197,6 +197,7 @@ fn active_ids_resolve_in_order_whatever_their_case() {
         code: Code::default(),
         preview: None,
         git: false,
+        downloaded: None,
     };
     assert_eq!(unnamed(Source::Official).display_name(), "Royalty");
     assert_eq!(

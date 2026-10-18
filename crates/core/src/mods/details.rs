@@ -218,6 +218,9 @@ mod tests {
             filed: Category::Content,
             chosen: false,
             held_by: String::new(),
+            updated: None,
+            downloaded: None,
+            supports: Vec::new(),
         };
         names.iter().enumerate().map(one).collect()
     }
