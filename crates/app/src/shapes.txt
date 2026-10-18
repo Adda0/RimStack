@@ -219,6 +219,7 @@ mod_rows.at: object
   loadTime: text
   local: bool
   madeFor: text
+  measure: text
   modId: number
   modIndex: number
   movedFrom: number

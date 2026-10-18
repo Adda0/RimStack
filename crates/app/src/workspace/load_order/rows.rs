@@ -2,10 +2,11 @@
 
 use super::{LoadOrder, Side, side_index};
 use crate::App;
+use rimstack_core::base::elapsed;
 use rimstack_core::base::sentence::Sentence;
 use rimstack_core::mods::describe::{Fix, Trouble};
 use rimstack_core::mods::library::{Installed, Library, ModId};
-use rimstack_core::mods::list::{Category, Mod, Row};
+use rimstack_core::mods::list::{Arrange, Category, Mod, Row};
 use rimstack_core::rimworld::paths::Source;
 use rimstack_core::say;
 use std::collections::HashMap;
@@ -59,6 +60,8 @@ pub struct RowView {
     pub why_moved: Sentence,
     pub group_size: i32,
     pub twin: bool,
+    /// On the inactive side, what it is ordered by when that is a time or a version.
+    pub measure: Sentence,
 }
 
 impl RowView {
@@ -93,7 +96,26 @@ impl RowView {
             why_moved: Sentence::default(),
             group_size: 0,
             twin: false,
+            measure: Sentence::default(),
         }
+    }
+}
+
+/// The time or version the inactive list is ordered by; nothing for a name or category.
+fn measure(by: Arrange, m: &Mod) -> Sentence {
+    let ago = |time: Option<u64>| {
+        let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH);
+        let now = now.map_or(0, |d| d.as_secs());
+        time.map_or_else(Sentence::default, |t| elapsed::ago(now.saturating_sub(t)))
+    };
+    match by {
+        Arrange::Updated => ago(m.updated),
+        Arrange::Downloaded => ago(m.downloaded),
+        Arrange::Supports => {
+            let parts: Vec<String> = m.supports.iter().map(u64::to_string).collect();
+            Sentence::Plain(parts.join("."))
+        }
+        Arrange::Category | Arrange::Name => Sentence::default(),
     }
 }
 
@@ -255,6 +277,10 @@ impl LoadOrder {
                 .get(index)
                 .copied()
                 .unwrap_or(false),
+            measure: match side {
+                Side::Inactive => measure(self.inactive_order.by, m),
+                Side::Active => Sentence::default(),
+            },
         }
     }
 }
