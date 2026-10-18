@@ -468,6 +468,15 @@ mods.fresh: list
   []: number
 mods.inLoadOrder: list or nothing
   []: number
+mods.inactiveOrders: object
+  all: list
+    []: object
+      chosen: bool
+      key: text
+      text: text
+  chosen: text
+  next: text
+  nextText: text
 mods.notInstalled: object
   fixes: list
     []: object

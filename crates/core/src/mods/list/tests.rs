@@ -15,6 +15,9 @@ fn m(name: &str, author: &str, category: Category) -> Mod {
         patched: Default::default(),
         sub: String::new(),
         load_micros: None,
+        updated: None,
+        downloaded: None,
+        supports: Vec::new(),
         name: name.into(),
         author: author.into(),
         version: "1.0".into(),
@@ -358,12 +361,14 @@ fn a_bang_turns_any_term_round() {
 }
 
 #[test]
-fn a_list_can_be_arranged_by_name_or_by_category() {
+fn a_list_can_be_arranged_by_name_category_times_or_game_version() {
     let mut list = sample();
-    list.arrange(true);
-    let names: Vec<&str> = list.mods().iter().map(|m| m.name.as_str()).collect();
+    let names = |list: &GroupedList| -> Vec<String> {
+        list.mods().iter().map(|m| m.name.clone()).collect()
+    };
+    list.arrange(Arrange::Name);
     assert_eq!(
-        names,
+        names(&list),
         [
             "Core",
             "Dubs Bad Hygiene",
@@ -374,9 +379,34 @@ fn a_list_can_be_arranged_by_name_or_by_category() {
         ]
     );
     assert!(!list.is_grouped() && list.rows().len() == 6);
-    list.arrange(false);
+    list.arrange(Arrange::Category);
     assert_eq!(list.mods()[0].name, "Harmony");
     assert!(list.is_grouped());
+
+    // Unknown last, ties by name.
+    let mut mods = list.mods().to_vec();
+    let set = |mods: &mut Vec<Mod>, name: &str, f: &dyn Fn(&mut Mod)| {
+        f(mods.iter_mut().find(|m| m.name == name).unwrap())
+    };
+    set(&mut mods, "Royalty", &|m| {
+        (m.updated, m.downloaded, m.supports) = (Some(5), Some(1), vec![1, 4])
+    });
+    set(&mut mods, "HugsLib", &|m| {
+        (m.updated, m.downloaded, m.supports) = (Some(9), Some(3), vec![1, 6])
+    });
+    set(&mut mods, "Core", &|m| {
+        (m.updated, m.downloaded, m.supports) = (Some(5), Some(7), vec![1, 10])
+    });
+    list.set_mods(mods);
+    let first_three = |list: &GroupedList| names(list)[..3].to_vec();
+    list.arrange(Arrange::Updated);
+    assert_eq!(first_three(&list), ["HugsLib", "Core", "Royalty"]);
+    assert!(!list.is_grouped());
+    list.arrange(Arrange::Downloaded);
+    assert_eq!(first_three(&list), ["Core", "HugsLib", "Royalty"]);
+    list.arrange(Arrange::Supports);
+    assert_eq!(first_three(&list), ["Core", "HugsLib", "Royalty"]);
+    assert_eq!(names(&list)[3], "Dubs Bad Hygiene");
 }
 
 #[test]

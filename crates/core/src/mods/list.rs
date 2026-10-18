@@ -95,6 +95,12 @@ pub struct Mod {
     pub sub: String,
     /// Microseconds it took at the game's last start, where measured.
     pub load_micros: Option<u32>,
+    /// Seconds since 1970 the Workshop last published it; `None` off the Workshop.
+    pub updated: Option<u64>,
+    /// Seconds since 1970 its folder was made, which is when it was subscribed to or copied in.
+    pub downloaded: Option<u64>,
+    /// The newest game version it names as supported, by numbers; empty for none.
+    pub supports: Vec<u64>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -103,6 +109,51 @@ pub enum SortKey {
     Author,
     Version,
     Load,
+}
+
+/// How the inactive list is ordered; all but `Category` drop the headings.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Arrange {
+    #[default]
+    Category,
+    Name,
+    /// Last published on the Workshop, newest first.
+    Updated,
+    /// Newest first.
+    Downloaded,
+    /// By the newest game version supported, newest first.
+    Supports,
+}
+
+impl Arrange {
+    pub const ALL: [Arrange; 5] = [
+        Self::Category,
+        Self::Name,
+        Self::Updated,
+        Self::Downloaded,
+        Self::Supports,
+    ];
+
+    pub fn key(self) -> &'static str {
+        match self {
+            Self::Category => "category",
+            Self::Name => "name",
+            Self::Updated => "updated",
+            Self::Downloaded => "downloaded",
+            Self::Supports => "supports",
+        }
+    }
+
+    /// By `key`; anything else is by category.
+    pub fn from_name(name: &str) -> Self {
+        let found = Self::ALL.into_iter().find(|by| by.key() == name);
+        found.unwrap_or_default()
+    }
+
+    pub fn next(self) -> Self {
+        let at = Self::ALL.iter().position(|&by| by == self).unwrap_or(0);
+        Self::ALL[(at + 1) % Self::ALL.len()]
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -335,13 +386,22 @@ impl GroupedList {
         }
     }
 
-    pub fn arrange(&mut self, by_name: bool) {
+    /// Unknown times and versions go last; ties are by name.
+    pub fn arrange(&mut self, by: Arrange) {
+        use std::cmp::Reverse;
         let mut mods = std::mem::take(&mut self.mods);
-        match by_name {
-            true => mods.sort_by_cached_key(|m| m.name.to_lowercase()),
-            false => mods.sort_by_cached_key(|m| (m.category, m.name.to_lowercase())),
+        let name = |m: &Mod| m.name.to_lowercase();
+        let newest = |time: Option<u64>| (time.is_none(), Reverse(time));
+        match by {
+            Arrange::Category => mods.sort_by_cached_key(|m| (m.category, name(m))),
+            Arrange::Name => mods.sort_by_cached_key(name),
+            Arrange::Updated => mods.sort_by_cached_key(|m| (newest(m.updated), name(m))),
+            Arrange::Downloaded => mods.sort_by_cached_key(|m| (newest(m.downloaded), name(m))),
+            Arrange::Supports => mods.sort_by_cached_key(|m| {
+                (m.supports.is_empty(), Reverse(m.supports.clone()), name(m))
+            }),
         }
-        self.grouped = !by_name;
+        self.grouped = by == Arrange::Category;
         self.set_mods(mods);
     }
 

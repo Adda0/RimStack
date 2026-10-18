@@ -56,6 +56,10 @@ pub fn generate(count: usize) -> Vec<Mod> {
                 patched: Default::default(),
                 sub: String::new(),
                 load_micros: None,
+                // Spread over about a year, in no order the names have.
+                updated: Some(1_700_000_000 + (i as u64 * 7_919_993 % 31_000_000)),
+                downloaded: Some(1_690_000_000 + (i as u64 * 10_472_903 % 31_000_000)),
+                supports: vec![1, (i % 7) as u64],
                 name: format!(
                     "{} {} {}",
                     FIRST[i % FIRST.len()],

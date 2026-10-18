@@ -4,6 +4,7 @@ use crate::base::sentence::Sentence;
 use crate::base::translate::named;
 use crate::said;
 
+use crate::base::versions::numbers;
 use crate::mods::list::{Category, Mod};
 use crate::rimworld::about::{self, About};
 use crate::rimworld::id;
@@ -30,6 +31,8 @@ pub struct Installed {
     pub code: Code,
     pub preview: Option<PathBuf>,
     pub git: bool,
+    /// Seconds since 1970 its folder was made; `None` where the file system does not keep it.
+    pub downloaded: Option<u64>,
 }
 
 impl Installed {
@@ -137,10 +140,18 @@ fn read_mod(path: PathBuf, source: Source) -> Installed {
         code: Code::default(),
         preview: about::preview(&path),
         git: path.join(".git").exists(),
+        downloaded: made_at(&path),
         about,
         source,
         path,
     }
+}
+
+fn made_at(path: &Path) -> Option<u64> {
+    let made = std::fs::metadata(path).and_then(|m| m.created()).ok()?;
+    made.duration_since(std::time::UNIX_EPOCH)
+        .ok()
+        .map(|d| d.as_secs())
 }
 
 /// Sorted by source, then folder name.
@@ -324,6 +335,11 @@ fn row(m: &Installed, id: String, category: Category, installed: ModId) -> Mod {
         patched: m.code.aims.iter().map(patched).collect(),
         sub: String::new(),
         load_micros: None,
+        updated: None,
+        downloaded: m.downloaded,
+        supports: about
+            .and_then(|a| a.supported_versions.iter().map(|v| numbers(v)).max())
+            .unwrap_or_default(),
         name: m.display_name().to_string(),
         author: about.map(|a| a.authors.join(", ")).unwrap_or_default(),
         version: about
@@ -410,6 +426,9 @@ impl Library {
                         patched: Default::default(),
                         sub: String::new(),
                         load_micros: None,
+                        updated: None,
+                        downloaded: None,
+                        supports: Vec::new(),
                         name: written.to_string(),
                         author: String::new(),
                         version: String::new(),
