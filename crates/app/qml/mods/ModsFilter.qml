@@ -48,7 +48,7 @@ FilterField {
                     ["patches:", Theme.say("patches this method of the game")],
                     ["tag:", Theme.say("has this tag")],
                     ["author:", Theme.say("by this author")],
-                ].filter(offer => offer[0].startsWith(filter.partial) && offer[0] !== filter.partial && filter.terms.indexOf(offer[0]) < 0)
+                ].filter(offer => offer[0].startsWith(filter.partial) && offer[0] !== filter.partial && filter.terms.indexOf(filter.bang + offer[0]) < 0)
                 Rectangle {
                     id: offer
                     required property var modelData
@@ -57,13 +57,13 @@ FilterField {
                     radius: Theme.corner
                     color: offerHover.hovered ? Theme.chip : "transparent"
                     Accessible.role: Accessible.Button
-                    Accessible.name: Theme.fill("Filter by {}", modelData[0])
-                    Text { x: 8; anchors.verticalCenter: parent.verticalCenter; color: Theme.ink; font.family: "monospace"; font.pixelSize: Theme.small; text: offer.modelData[0] }
+                    Accessible.name: Theme.fill("Filter by {}", filter.bang + modelData[0])
+                    Text { x: 8; anchors.verticalCenter: parent.verticalCenter; color: Theme.ink; font.family: "monospace"; font.pixelSize: Theme.small; text: filter.bang + offer.modelData[0] }
                     Text { x: 110; anchors.verticalCenter: parent.verticalCenter; color: Theme.ink2; font.pixelSize: Theme.small; text: offer.modelData[1] }
                     HoverHandler { id: offerHover }
                     TapHandler {
                         onTapped: {
-                            filter.take(offer.modelData[0])
+                            filter.take(filter.bang + offer.modelData[0])
                             filter.focusInput()
                         }
                     }

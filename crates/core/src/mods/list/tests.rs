@@ -317,6 +317,47 @@ fn is_terms_ask_about_the_flags_given_and_forget_them_when_the_order_changes() {
 }
 
 #[test]
+fn a_bang_turns_any_term_round() {
+    let mut mods = sample().mods().to_vec();
+    mods[3].code = true; // HugsLib
+    mods[4].code = true; // Dubs Bad Hygiene
+    let mut list = GroupedList::flat(mods);
+    let names = |list: &GroupedList| -> Vec<String> {
+        let index = list.rows().iter().filter_map(|r| match r {
+            Row::Mod { index } => Some(*index),
+            _ => None,
+        });
+        index.map(|i| list.mods()[i].name.clone()).collect()
+    };
+    list.set_filter("!has:code");
+    assert_eq!(names(&list), ["Harmony", "Core", "Royalty", "Rimefeller"]);
+    list.set_filter("!author:ludeon !royalty");
+    assert_eq!(
+        names(&list),
+        ["Harmony", "HugsLib", "Dubs Bad Hygiene", "Rimefeller"]
+    );
+    list.set_filter("has:code !hugs");
+    assert_eq!(names(&list), ["Dubs Bad Hygiene"]);
+    list.set_filter("!");
+    assert_eq!(names(&list).len(), 6);
+
+    list.set_filter("!is:warning");
+    let flags = vec![0, flag::WARNING, 0, flag::WARNING | flag::ERROR, 0, 0];
+    list.set_flags(flags);
+    assert_eq!(
+        names(&list),
+        ["Harmony", "Royalty", "Dubs Bad Hygiene", "Rimefeller"]
+    );
+    list.set_filter("is:warning !is:error");
+    assert_eq!(names(&list), ["Core"]);
+
+    let mut inactive = sample();
+    inactive.set_filter_on(Side::Inactive, "!is:active");
+    list.set_filter_on(Side::Active, "!is:active");
+    assert_eq!((list.matching(), inactive.matching()), (0, 6));
+}
+
+#[test]
 fn a_list_can_be_arranged_by_name_or_by_category() {
     let mut list = sample();
     list.arrange(true);
