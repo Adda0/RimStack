@@ -99,7 +99,8 @@ pub struct Mod {
     pub updated: Option<u64>,
     /// Seconds since 1970 its folder was made, which is when it was subscribed to or copied in.
     pub downloaded: Option<u64>,
-    /// The newest game version it names as supported, by numbers; empty for none.
+    /// The newest game version it names as supported, by numbers, at most the installed game's;
+    /// empty for none.
     pub supports: Vec<u64>,
 }
 

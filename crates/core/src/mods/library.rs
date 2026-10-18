@@ -327,8 +327,11 @@ fn patched(aim: &crate::rimworld::code::Aim) -> String {
     format!("{}.{}", aim.target, aim.method).to_lowercase()
 }
 
-fn row(m: &Installed, id: String, category: Category, installed: ModId) -> Mod {
+/// `supports` stops at `game_version`: a mod made for a newer game sorts as made for this one.
+fn row(m: &Installed, id: String, category: Category, installed: ModId, game_version: &str) -> Mod {
     let about = m.about.as_ref().ok();
+    let newest = about.and_then(|a| a.supported_versions.iter().map(|v| numbers(v)).max());
+    let game = (!game_version.trim().is_empty()).then(|| numbers(game_version));
     Mod {
         id,
         tags: Vec::new(),
@@ -341,9 +344,10 @@ fn row(m: &Installed, id: String, category: Category, installed: ModId) -> Mod {
         load_micros: None,
         updated: None,
         downloaded: m.downloaded,
-        supports: about
-            .and_then(|a| a.supported_versions.iter().map(|v| numbers(v)).max())
-            .unwrap_or_default(),
+        supports: match (newest, game) {
+            (Some(newest), Some(game)) => newest.min(game),
+            (newest, _) => newest.unwrap_or_default(),
+        },
         name: m.display_name().to_string(),
         author: about.map(|a| a.authors.join(", ")).unwrap_or_default(),
         version: about
@@ -416,6 +420,7 @@ impl Library {
                         written.clone(),
                         self.categories[i],
                         self.id_at(i),
+                        &self.game_version,
                     ));
                 }
                 Resolved::Missing(written) => {
@@ -450,6 +455,7 @@ impl Library {
                     self.written_id(i),
                     self.categories[i],
                     self.id_at(i),
+                    &self.game_version,
                 ));
             }
         }

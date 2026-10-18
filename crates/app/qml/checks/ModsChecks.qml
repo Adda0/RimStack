@@ -234,7 +234,10 @@ Item {
         Mods.prefs.inactiveOrder = "category"
         check("by category, the inactive mods sit under headings", Mods.inactive.rows() > Mods.inactive.count)
         Mods.prefs.inactiveOrder = "supports"
-        const newest = id => String(Mods.about(id).gameVersions || "").split(",").filter(v => v.trim() !== "").map(v => v.trim().replace(/^v/, "").split(/[-+]/)[0].split(".").map(n => Number(n) || 0)).reduce((a, b) => compareVersions(a, b) >= 0 ? a : b, [])
+        const parts = v => v.trim().replace(/^v/, "").split(/[-+]/)[0].split(".").map(n => Number(n) || 0)
+        const game = String(Mods.overview.gameVersion || "") !== "" ? parts(String(Mods.overview.gameVersion)) : null
+        // A version past the game's sorts as the game's.
+        const newest = id => String(Mods.about(id).gameVersions || "").split(",").filter(v => v.trim() !== "").map(parts).map(v => game && compareVersions(v, game) > 0 ? game : v).reduce((a, b) => compareVersions(a, b) >= 0 ? a : b, [])
         const versions = []
         // A spread of rows: the order holds for any of them, and each asks for the mod's details.
         for (let r = 0; r < Mods.inactive.rows(); r += Math.max(1, Math.floor(Mods.inactive.rows() / 80)))
