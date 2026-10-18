@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import RimStack.Ui
 
@@ -222,6 +223,41 @@ Column {
             }
             onEditingChanged: Hub.mods.keepDrafts()
             onAccepted: Hub.mods.keepDrafts()
+            // The tag after the last comma, from those given to any mod.
+            Popup {
+                id: tagOffers
+                readonly property var offered: Hub.mods.tagsFor(tagBox.text)
+                visible: offered.length > 0 && tagBox.editing && tagBox.visible
+                closePolicy: Popup.CloseOnPressOutsideParent
+                y: tagBox.height + 4
+                width: Math.min(tagBox.width, Theme.sized(320))
+                padding: 6
+                background: Rectangle { radius: Theme.cornerLarge; color: Theme.bar; border.width: 1; border.color: Theme.line }
+                contentItem: Column {
+                    id: tagOfferList
+                    Repeater {
+                        model: tagOffers.offered
+                        Item {
+                            id: tagOffer
+                            required property var modelData
+                            width: tagOfferList.width
+                            height: Theme.sized(26)
+                            Accessible.role: Accessible.Button
+                            Accessible.name: tagOffer.modelData.tag
+                            Rectangle { anchors.fill: parent; radius: Theme.corner; color: Theme.chip; visible: tagOfferHover.hovered }
+                            Text { x: 8; anchors.verticalCenter: parent.verticalCenter; color: Theme.ink; font.pixelSize: Theme.small; text: tagOffer.modelData.tag }
+                            HoverHandler { id: tagOfferHover }
+                            TapHandler {
+                                onTapped: {
+                                    tagBox.text = tagOffer.modelData.text
+                                    tagBox.focusInput()
+                                    Hub.mods.draftNote(Mods.selectedId, tagBox.text, noteBox.text)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
         Binding { target: tagBox; property: "text"; value: Mods.info.tags || ""; when: !tagBox.editing }
         // The first tag is the group; a press on another makes it that.

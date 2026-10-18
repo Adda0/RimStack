@@ -594,6 +594,10 @@ mods.summary: object
   rules: number
   saves: number
   snapshots: number
+mods.tagsFor: list
+  []: object
+    tag: text
+    text: text
 mods.textures: object
   count: number
   ddsMade: number

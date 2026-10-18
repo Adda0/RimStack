@@ -238,6 +238,10 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "subsBeside"]
         fn subs_beside(self: &ModsData, mod_id: i32) -> QVariant;
+        /// Tags to offer for the one typed after the last comma of `text`.
+        #[qinvokable]
+        #[cxx_name = "tagsFor"]
+        fn tags_for(self: &ModsData, text: &QString) -> QVariant;
         #[qinvokable]
         #[cxx_name = "detailsOf"]
         fn details_of(self: Pin<&mut ModsData>, mod_id: i32) -> QVariant;

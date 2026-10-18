@@ -289,6 +289,7 @@ fn mods(app: &App, shapes: &mut Shapes) {
         .unwrap()
         .category;
     shapes.add("mods.subsBeside", &list.subs(category));
+    shapes.add("mods.tagsFor", &app.tag_offers("Keep, st"));
     shapes.add("mods.inactiveOrders", &order.inactive_orders());
     shapes.add("mods.columnWidths", &columns::widths("name=200,author=90"));
     shapes.add(
