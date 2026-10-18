@@ -12,9 +12,12 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 
 mod details;
 mod edits;
+mod offers;
 mod rows;
 mod rules;
 mod sorting;
+
+pub use offers::{Counts, FilterOffer};
 
 pub use details::{Details, Files, Overview};
 pub use rows::RowView;

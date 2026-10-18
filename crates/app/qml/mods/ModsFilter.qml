@@ -12,13 +12,22 @@ FilterField {
     placeholder: Theme.say("Filter active and inactive mods")
     found: Mods.filtered === "" ? "" : Theme.fill("{} active, {} inactive", Theme.count(Mods.active.matching), Theme.count(Mods.inactive.matching))
     readonly property alias suggesting: suggestions.visible
-    onTypingChanged: suggestions.shut = false
+    onTypingChanged: {
+        suggestions.shut = false
+        suggestions.chosen = 0
+    }
     onEditingChanged: suggestions.shut = false
     onTapped: suggestions.shut = false
     onEscaped: suggestions.shut = true
+    // Enter takes the offer chosen with the arrows; without offers it is the field's own.
+    onAccepted: suggesting && filter.take(offers.itemAt(suggestions.chosen).modelData.term)
+    Keys.enabled: suggesting
+    Keys.onUpPressed: suggestions.chosen = Math.max(suggestions.chosen - 1, 0)
+    Keys.onDownPressed: suggestions.chosen = Math.min(suggestions.chosen + 1, offers.count - 1)
     Popup {
         id: suggestions
         property bool shut: false
+        property int chosen: 0
         visible: offers.count > 0 && filter.editing && filter.visible && !shut
         onClosed: shut = true
         closePolicy: Popup.CloseOnPressOutsideParent
@@ -32,41 +41,24 @@ FilterField {
             id: suggestList
             Repeater {
                 id: offers
-                model: [
-                    ["is:error", Theme.plural(Hub.mods.errors, "{} mod", "{} mods")],
-                    ["is:warning", Theme.plural(Hub.mods.warnings, "{} mod", "{} mods")],
-                    ["is:conflict", Theme.plural(Hub.mods.conflicts, "{} mod sharing textures", "{} mods sharing textures")],
-                    ["is:changed", Theme.say("moved or activated since the last save")],
-                    ["is:new", Theme.say("installed since the game was last started")],
-                    ["is:updated", Hub.downloads.behindActive > 0 ? Theme.fill("{} with an update", Hub.downloads.behindActive) : Theme.say("after checking for updates")],
-                    ["is:active", Theme.say("in the active list only")],
-                    ["is:inactive", Theme.say("in the inactive list only")],
-                    ["is:workshop", Theme.say("from the Workshop")],
-                    ["is:local", Theme.say("in the game's Mods folder")],
-                    ["is:git", Theme.say("a git checkout")],
-                    ["is:notinsave", Theme.say("active, and not in the newest save")],
-                    ["is:recent", Theme.say("updated by Steam in the last week")],
-                    ["is:duplicate", Theme.say("installed more than once")],
-                    ["has:code", Theme.say("ships compiled code")],
-                    ["patches:", Theme.say("patches this method of the game")],
-                    ["tag:", Theme.say("has this tag")],
-                    ["author:", Theme.say("by this author")],
-                ].filter(offer => offer[0].startsWith(filter.partial) && offer[0] !== filter.partial && filter.terms.indexOf(filter.bang + offer[0]) < 0)
+                // Terms, or for author:, tag: and patches: the values the mods have.
+                model: Hub.mods.filterOffers(filter.partial, filter.bang, filter.terms, Hub.downloads.behindActive)
                 Rectangle {
                     id: offer
                     required property var modelData
+                    required property int index
                     width: suggestList.width
                     height: Theme.sized(26)
                     radius: Theme.corner
-                    color: offerHover.hovered ? Theme.chip : "transparent"
+                    color: offerHover.hovered || offer.index === suggestions.chosen ? Theme.chip : "transparent"
                     Accessible.role: Accessible.Button
-                    Accessible.name: Theme.fill("Filter by {}", filter.bang + modelData[0])
-                    Text { id: offerKey; width: keyFont.advanceWidth; anchors.left: parent.left; anchors.leftMargin: Theme.gap; anchors.verticalCenter: parent.verticalCenter; color: Theme.ink; font: keyFont.font; text: filter.bang + offer.modelData[0] }
-                    Text { anchors.left: offerKey.right; anchors.leftMargin: Theme.sized(16); anchors.right: parent.right; anchors.rightMargin: Theme.gap; anchors.verticalCenter: parent.verticalCenter; elide: Text.ElideRight; color: Theme.ink2; font.pixelSize: Theme.small; text: offer.modelData[1] }
+                    Accessible.name: Theme.fill("Filter by {}", offer.modelData.term)
+                    Text { id: offerKey; width: keyFont.advanceWidth; anchors.left: parent.left; anchors.leftMargin: Theme.gap; anchors.verticalCenter: parent.verticalCenter; color: Theme.ink; font: keyFont.font; text: offer.modelData.term }
+                    Text { anchors.left: offerKey.right; anchors.leftMargin: Theme.sized(16); anchors.right: parent.right; anchors.rightMargin: Theme.gap; anchors.verticalCenter: parent.verticalCenter; elide: Text.ElideRight; color: Theme.ink2; font.pixelSize: Theme.small; text: offer.modelData.note }
                     HoverHandler { id: offerHover }
                     TapHandler {
                         onTapped: {
-                            filter.take(filter.bang + offer.modelData[0])
+                            filter.take(offer.modelData.term)
                             filter.focusInput()
                         }
                     }

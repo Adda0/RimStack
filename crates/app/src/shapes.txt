@@ -460,6 +460,10 @@ mods.filesOf: object
     []: object
       files: number
       folder: text
+mods.filterOffers: list
+  []: object
+    note: text
+    term: text
 mods.findMods: list
   []: object
     active: bool

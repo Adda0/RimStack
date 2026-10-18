@@ -290,6 +290,10 @@ fn mods(app: &App, shapes: &mut Shapes) {
         .category;
     shapes.add("mods.subsBeside", &list.subs(category));
     shapes.add("mods.tagsFor", &app.tag_offers("Grey", "Keep, st"));
+    shapes.add(
+        "mods.filterOffers",
+        &order.filter_offers("is:w", "", &[], Default::default()),
+    );
     shapes.add("mods.inactiveOrders", &order.inactive_orders());
     shapes.add("mods.columnWidths", &columns::widths("name=200,author=90"));
     shapes.add(
