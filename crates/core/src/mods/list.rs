@@ -156,6 +156,23 @@ impl Arrange {
     }
 }
 
+/// An order and which way it runs: reversed, the oldest, the lowest version or Z comes first,
+/// and those without a time or version still go last.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Arrangement {
+    pub by: Arrange,
+    pub reversed: bool,
+}
+
+impl From<Arrange> for Arrangement {
+    fn from(by: Arrange) -> Self {
+        Self {
+            by,
+            reversed: false,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Row {
     Header {
@@ -387,8 +404,9 @@ impl GroupedList {
     }
 
     /// Unknown times and versions go last; ties are by name.
-    pub fn arrange(&mut self, by: Arrange) {
+    pub fn arrange(&mut self, how: impl Into<Arrangement>) {
         use std::cmp::Reverse;
+        let Arrangement { by, reversed } = how.into();
         let mut mods = std::mem::take(&mut self.mods);
         let name = |m: &Mod| m.name.to_lowercase();
         let newest = |time: Option<u64>| (time.is_none(), Reverse(time));
@@ -400,6 +418,16 @@ impl GroupedList {
             Arrange::Supports => mods.sort_by_cached_key(|m| {
                 (m.supports.is_empty(), Reverse(m.supports.clone()), name(m))
             }),
+        }
+        if reversed {
+            let unknown = |m: &Mod| match by {
+                Arrange::Updated => m.updated.is_none(),
+                Arrange::Downloaded => m.downloaded.is_none(),
+                Arrange::Supports => m.supports.is_empty(),
+                Arrange::Category | Arrange::Name => false,
+            };
+            let known = mods.iter().position(unknown).unwrap_or(mods.len());
+            mods[..known].reverse();
         }
         self.grouped = by == Arrange::Category;
         self.set_mods(mods);
