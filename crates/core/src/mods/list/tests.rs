@@ -220,6 +220,8 @@ fn typed_filter_terms_narrow_by_author_tag_source_and_code() {
     mods[3].code = true;
     mods[4].code = true; // Dubs Bad Hygiene
     mods[4].installed = Some(id(40));
+    mods[0].author = "Oskar Potocki".into(); // Harmony
+    mods[0].tags = vec!["Vanilla Expanded".into()];
     let mut list = GroupedList::flat(mods);
     let shown = |list: &GroupedList| -> Vec<String> {
         let name = |r: &Row| match r {
@@ -236,6 +238,8 @@ fn typed_filter_terms_narrow_by_author_tag_source_and_code() {
     assert_eq!(shown(&list), ["HugsLib", "Dubs Bad Hygiene"]);
     list.set_filter("has:code is:local");
     assert_eq!(shown(&list), ["HugsLib"]);
+    list.set_filter("author:oskar_pot tag:vanilla_e");
+    assert_eq!(shown(&list), ["Harmony"]);
 
     list.set_filter("tag:fav");
     assert!(shown(&list).is_empty());

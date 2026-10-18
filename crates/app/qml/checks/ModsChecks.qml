@@ -376,6 +376,8 @@ Item {
 
         Mods.keepNote("check-tag, second", "a note")
         check("tags and a note are kept", Mods.info.tags === "check-tag, second" && Mods.info.note === "a note" && Mods.active.at(Mods.active.rowOf(0)).tags === "check-tag, second")
+        const tagOffers = Hub.mods.filterOffers("tag:check-t", "!", [], 0)
+        check("the filter offers the tags the mods have, with a typed !", tagOffers.length === 1 && tagOffers[0].term === "!tag:check-tag")
         Hub.mods.addTags(Mods.selectedId, "Second, third")
         check("tags typed are added once, after those there", Mods.info.tags === "check-tag, second, third")
         Hub.mods.removeTag(Mods.selectedId, "SECOND")
