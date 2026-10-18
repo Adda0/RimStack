@@ -142,7 +142,7 @@ pub mod qobject {
         /// Stored after a pause in the typing, or by `keepDrafts`; the mod is the one the edit was made for.
         #[qinvokable]
         #[cxx_name = "draftNote"]
-        fn draft_note(self: Pin<&mut ModsData>, mod_id: i32, tags: &QString, note: &QString);
+        fn draft_note(self: Pin<&mut ModsData>, mod_id: i32, note: &QString);
         #[qinvokable]
         #[cxx_name = "draftGroup"]
         fn draft_group(self: Pin<&mut ModsData>, mod_id: i32, name: &QString);
@@ -152,6 +152,16 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "addTag"]
         fn add_tag(self: Pin<&mut ModsData>, ids: &QVariant, tag: &QString);
+        /// Each of the comma-separated `tags` the mod has not yet.
+        #[qinvokable]
+        #[cxx_name = "addTags"]
+        fn add_tags(self: Pin<&mut ModsData>, mod_id: i32, tags: &QString);
+        #[qinvokable]
+        #[cxx_name = "removeTag"]
+        fn remove_tag(self: Pin<&mut ModsData>, mod_id: i32, tag: &QString);
+        #[qinvokable]
+        #[cxx_name = "clearTags"]
+        fn clear_tags(self: Pin<&mut ModsData>, mod_id: i32);
         /// An empty name takes them out.
         #[qinvokable]
         fn group(self: Pin<&mut ModsData>, ids: &QVariant, name: &QString);
@@ -236,10 +246,10 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "subsBeside"]
         fn subs_beside(self: &ModsData, mod_id: i32) -> QVariant;
-        /// Tags to offer for the one typed after the last comma of `text`.
+        /// Tags to offer for the one typed after the last comma of `text`, leaving out those `had`.
         #[qinvokable]
         #[cxx_name = "tagsFor"]
-        fn tags_for(self: &ModsData, text: &QString) -> QVariant;
+        fn tags_for(self: &ModsData, had: &QString, text: &QString) -> QVariant;
         #[qinvokable]
         #[cxx_name = "detailsOf"]
         fn details_of(self: Pin<&mut ModsData>, mod_id: i32) -> QVariant;
