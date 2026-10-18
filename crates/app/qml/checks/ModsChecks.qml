@@ -376,6 +376,13 @@ Item {
 
         Mods.keepNote("check-tag, second", "a note")
         check("tags and a note are kept", Mods.info.tags === "check-tag, second" && Mods.info.note === "a note" && Mods.active.at(Mods.active.rowOf(0)).tags === "check-tag, second")
+        Hub.mods.addTags(Mods.selectedId, "Second, third")
+        check("tags typed are added once, after those there", Mods.info.tags === "check-tag, second, third")
+        Hub.mods.removeTag(Mods.selectedId, "SECOND")
+        check("one tag is taken off alone", Mods.info.tags === "check-tag, third" && Mods.info.note === "a note")
+        Hub.mods.clearTags(Mods.selectedId)
+        check("all tags are taken off, the note stays", !Mods.info.tags && Mods.info.note === "a note")
+        Mods.keepNote("check-tag, second", "a note")
         Mods.filtered = "tag:check"
         const shown = () => { let n = 0; for (let r = 0; r < Mods.active.rows(); r++) if (Mods.active.modIdAt(r) >= 0) n += 1; return n }
         check("tag: narrows the list to the tagged mod", shown() === 1)
