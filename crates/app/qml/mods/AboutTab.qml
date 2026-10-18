@@ -205,7 +205,8 @@ Column {
                 onEditingChanged: Hub.mods.keepDrafts()
                 onAccepted: Hub.mods.keepDrafts()
             }
-            Binding { target: subBox; property: "text"; value: Mods.info.sub || ""; when: !subBox.editing }
+            // Restoring would blank the field as it takes the focus, and that blank be saved.
+            Binding { target: subBox; property: "text"; value: Mods.info.sub || ""; when: !subBox.editing; restoreMode: Binding.RestoreNone }
         }
     }
 
@@ -259,7 +260,7 @@ Column {
                 }
             }
         }
-        Binding { target: tagBox; property: "text"; value: Mods.info.tags || ""; when: !tagBox.editing }
+        Binding { target: tagBox; property: "text"; value: Mods.info.tags || ""; when: !tagBox.editing; restoreMode: Binding.RestoreNone }
         // The first tag is the group; a press on another makes it that.
         Flow {
             width: parent.width
@@ -302,7 +303,7 @@ Column {
                 }
                 onActiveFocusChanged: Hub.mods.keepDrafts()
             }
-            Binding { target: noteBox; property: "text"; value: Mods.info.note || ""; when: !noteBox.activeFocus }
+            Binding { target: noteBox; property: "text"; value: Mods.info.note || ""; when: !noteBox.activeFocus; restoreMode: Binding.RestoreNone }
         }
     }
 
