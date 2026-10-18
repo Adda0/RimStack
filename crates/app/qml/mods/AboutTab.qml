@@ -221,54 +221,7 @@ Column {
         title: Theme.say("Tags and note")
         key: "about-notes"
         actions: SavedMark {}
-        FilterField {
-            id: tagBox
-            width: parent.width
-            placeholder: Theme.say("Tags, separated by commas")
-            onTextChanged: {
-                if (tagBox.editing)
-                    Hub.mods.draftNote(Mods.selectedId, tagBox.text, noteBox.text)
-            }
-            onEditingChanged: Hub.mods.keepDrafts()
-            onAccepted: Hub.mods.keepDrafts()
-            // The tag after the last comma, from those given to any mod.
-            Popup {
-                id: tagOffers
-                readonly property var offered: Hub.mods.tagsFor(tagBox.text)
-                visible: offered.length > 0 && tagBox.editing && tagBox.visible
-                closePolicy: Popup.CloseOnPressOutsideParent
-                y: tagBox.height + 4
-                width: Math.min(tagBox.width, Theme.sized(320))
-                padding: 6
-                background: Rectangle { radius: Theme.cornerLarge; color: Theme.bar; border.width: 1; border.color: Theme.line }
-                contentItem: Column {
-                    id: tagOfferList
-                    Repeater {
-                        model: tagOffers.offered
-                        Item {
-                            id: tagOffer
-                            required property var modelData
-                            width: tagOfferList.width
-                            height: Theme.sized(26)
-                            Accessible.role: Accessible.Button
-                            Accessible.name: tagOffer.modelData.tag
-                            Rectangle { anchors.fill: parent; radius: Theme.corner; color: Theme.chip; visible: tagOfferHover.hovered }
-                            Text { x: 8; anchors.verticalCenter: parent.verticalCenter; color: Theme.ink; font.pixelSize: Theme.small; text: tagOffer.modelData.tag }
-                            HoverHandler { id: tagOfferHover }
-                            TapHandler {
-                                onTapped: {
-                                    tagBox.text = tagOffer.modelData.text
-                                    tagBox.focusInput()
-                                    Hub.mods.draftNote(Mods.selectedId, tagBox.text, noteBox.text)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        Binding { target: tagBox; property: "text"; value: Mods.info.tags || ""; when: !tagBox.editing; restoreMode: Binding.RestoreNone }
-        // The first tag is the group; a press on another makes it that.
+        // Each tag takes itself off; the first is the group the mod sits under.
         Flow {
             width: parent.width
             spacing: Theme.gapSmall
@@ -277,13 +230,77 @@ Column {
                 Chip {
                     required property string modelData
                     required property int index
-                    pressable: index > 0
+                    pressable: true
                     tone: index === 0 ? Theme.moved : Theme.ink2
-                    icon: index === 0 ? "layers" : ""
+                    icon: "x"
                     text: index === 0 ? Theme.fill("{}  group", modelData) : modelData
-                    tip: index === 0 ? Theme.meaning(Theme.say("Group")) : Theme.say("Group under this tag: it becomes the first")
-                    onClicked: Mods.putInSub(Mods.selectedId, modelData)
+                    tip: Theme.fill("Remove the tag {}", modelData)
+                    onClicked: Hub.mods.removeTag(Mods.selectedId, modelData)
                 }
+            }
+        }
+        RowLayout {
+            width: parent.width
+            spacing: Theme.gapSmall
+            FilterField {
+                id: tagBox
+                Layout.fillWidth: true
+                placeholder: Theme.say("Add tags, separated by commas")
+                onAccepted: {
+                    Hub.mods.addTags(Mods.selectedId, tagBox.text)
+                    tagBox.text = ""
+                }
+                // The tag after the last comma, from those given to any mod and not to this one.
+                Popup {
+                    id: tagOffers
+                    readonly property var offered: Hub.mods.tagsFor(Mods.info.tags || "", tagBox.text)
+                    visible: offered.length > 0 && tagBox.editing && tagBox.visible
+                    closePolicy: Popup.CloseOnPressOutsideParent
+                    y: tagBox.height + 4
+                    width: Math.min(tagBox.width, Theme.sized(320))
+                    padding: 6
+                    background: Rectangle { radius: Theme.cornerLarge; color: Theme.bar; border.width: 1; border.color: Theme.line }
+                    contentItem: Column {
+                        id: tagOfferList
+                        Repeater {
+                            model: tagOffers.offered
+                            Item {
+                                id: tagOffer
+                                required property var modelData
+                                width: tagOfferList.width
+                                height: Theme.sized(26)
+                                Accessible.role: Accessible.Button
+                                Accessible.name: tagOffer.modelData.tag
+                                Rectangle { anchors.fill: parent; radius: Theme.corner; color: Theme.chip; visible: tagOfferHover.hovered }
+                                Text { x: 8; anchors.verticalCenter: parent.verticalCenter; color: Theme.ink; font.pixelSize: Theme.small; text: tagOffer.modelData.tag }
+                                HoverHandler { id: tagOfferHover }
+                                TapHandler {
+                                    onTapped: {
+                                        Hub.mods.addTags(Mods.selectedId, tagOffer.modelData.text)
+                                        tagBox.text = ""
+                                        tagBox.focusInput()
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Btn {
+                compact: true
+                icon: "plus"
+                tip: Theme.say("Add")
+                onClicked: {
+                    Hub.mods.addTags(Mods.selectedId, tagBox.text)
+                    tagBox.text = ""
+                }
+            }
+            Btn {
+                visible: !!Mods.info.tags
+                compact: true
+                icon: "trash-2"
+                tip: Theme.say("Remove all tags")
+                onClicked: Hub.mods.clearTags(Mods.selectedId)
             }
         }
         Rectangle {
@@ -306,7 +323,7 @@ Column {
                 font.pixelSize: Theme.body
                 onTextChanged: {
                     if (activeFocus)
-                        Hub.mods.draftNote(Mods.selectedId, tagBox.text, noteBox.text)
+                        Hub.mods.draftNote(Mods.selectedId, noteBox.text)
                 }
                 onActiveFocusChanged: Hub.mods.keepDrafts()
             }
