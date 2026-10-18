@@ -36,6 +36,7 @@ Item {
     required property bool fresh
     required property bool outdated
     required property string madeFor
+    required property string measure
     required property string whyMoved
     required property bool twin
     readonly property bool comfortable: columns && Theme.stored.comfortable
@@ -252,6 +253,8 @@ Item {
                 text: row.name
             }
             Chip { visible: row.outdated; onAccent: row.current; tone: Theme.warn; text: row.madeFor; tip: Theme.say("Made for another game version") }
+            // The time or version the inactive list is ordered by.
+            Text { visible: !!row.measure; color: row.quiet; font.pixelSize: Theme.small; text: row.measure }
             Chip { visible: row.fresh; onAccent: row.current; tone: Theme.ok; text: Theme.say("New"); tip: Theme.say("Installed since the game was last started from RimStack") }
             // Not a layout: which tags show hangs on its width, and showing them must not
             // change what the row's layout reads, or the layout arranges itself over and over.
