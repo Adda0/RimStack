@@ -240,11 +240,16 @@ impl Test {
     fn passes(&self, m: &Mod, haystack: &str, flags: u16) -> bool {
         match self {
             Test::Word(w) => haystack.contains(w.as_str()),
-            Test::Author(a) => m.author.to_lowercase().contains(a.as_str()),
+            // A space, which would end the term, is typed as `_`.
+            Test::Author(a) => m
+                .author
+                .to_lowercase()
+                .replace(' ', "_")
+                .contains(a.as_str()),
             Test::Tag(t) => m
                 .tags
                 .iter()
-                .any(|own| own.to_lowercase().starts_with(t.as_str())),
+                .any(|own| own.to_lowercase().replace(' ', "_").starts_with(t.as_str())),
             Test::Local => m.local,
             Test::Workshop => m.workshop,
             Test::Git => m.git,

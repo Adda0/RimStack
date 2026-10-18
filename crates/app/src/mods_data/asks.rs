@@ -193,6 +193,27 @@ impl qobject::ModsData {
         to_qml(&subs)
     }
 
+    pub(super) fn filter_offers(
+        &self,
+        partial: &QString,
+        bang: &QString,
+        taken: &QVariant,
+        behind: i32,
+    ) -> QVariant {
+        let taken = from_qml::<Vec<String>>(taken).unwrap_or_default();
+        let count = |n: i32| usize::try_from(n).unwrap_or(0);
+        let counts = crate::workspace::load_order::Counts {
+            errors: count(self.errors),
+            warnings: count(self.warnings),
+            conflicts: count(self.conflicts),
+            behind: count(behind),
+        };
+        let offers =
+            self.order
+                .filter_offers(&partial.to_string(), &bang.to_string(), &taken, counts);
+        to_qml(&offers)
+    }
+
     pub(super) fn tags_for(&self, had: &QString, text: &QString) -> QVariant {
         to_qml(&self.app().tag_offers(&had.to_string(), &text.to_string()))
     }

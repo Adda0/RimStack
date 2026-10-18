@@ -248,6 +248,16 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "subsBeside"]
         fn subs_beside(self: &ModsData, mod_id: i32) -> QVariant;
+        /// `[{ term, note }]` for the word typed in the filter, without its `!`; `taken` the terms in it.
+        #[qinvokable]
+        #[cxx_name = "filterOffers"]
+        fn filter_offers(
+            self: &ModsData,
+            partial: &QString,
+            bang: &QString,
+            taken: &QVariant,
+            behind: i32,
+        ) -> QVariant;
         /// Tags to offer for the one typed after the last comma of `text`, leaving out those `had`.
         #[qinvokable]
         #[cxx_name = "tagsFor"]
