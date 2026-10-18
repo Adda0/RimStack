@@ -206,8 +206,7 @@ Item {
         RowLayout {
             id: nameCell
             Layout.fillWidth: true
-            // What it shows hangs on its width, so its width must not hang on what it shows:
-            // the tags hidden and shown in turn made the layout arrange itself over and over.
+            // Its width must not hang on what it shows.
             Layout.minimumWidth: 0
             Layout.preferredWidth: 0
             spacing: Theme.gapSmall
@@ -254,29 +253,39 @@ Item {
             }
             Chip { visible: row.outdated; onAccent: row.current; tone: Theme.warn; text: row.madeFor; tip: Theme.say("Made for another game version") }
             Chip { visible: row.fresh; onAccent: row.current; tone: Theme.ok; text: Theme.say("New"); tip: Theme.say("Installed since the game was last started from RimStack") }
-            Row {
-                id: tagRow
-                visible: nameText.implicitWidth + implicitWidth + 40 < nameCell.width
-                spacing: Theme.gapSmall
-                Repeater {
-                    model: row.tags === "" ? [] : row.tags.split(", ").slice(0, 2)
-                    Chip {
-                        required property string modelData
-                        maxWidth: Theme.sized(110)
-                        onAccent: row.current
-                        text: modelData
+            // Not a layout: which tags show hangs on its width, and showing them must not
+            // change what the row's layout reads, or the layout arranges itself over and over.
+            Item {
+                id: tagSlot
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
+                implicitHeight: tagRow.implicitHeight
+                Row {
+                    id: tagRow
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: implicitWidth < tagSlot.width
+                    spacing: Theme.gapSmall
+                    Repeater {
+                        model: row.tags === "" ? [] : row.tags.split(", ").slice(0, 2)
+                        Chip {
+                            required property string modelData
+                            maxWidth: Theme.sized(110)
+                            onAccent: row.current
+                            text: modelData
+                        }
                     }
                 }
-            }
-            Chip {
-                visible: !tagRow.visible && row.tags !== "" && nameCell.width > nameText.implicitWidth + 44
-                onAccent: row.current
-                readonly property var all: row.tags.split(", ")
-                readonly property bool headed: row.columns && Mods.columns.shownBy === "" && Mods.prefs.headings !== 0
-                icon: "tag"
-                maxWidth: Theme.sized(120)
-                text: headed ? all.length : all[0] + (all.length > 1 ? "  +" + (all.length - 1) : "")
-                tip: row.tags
+                Chip {
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: !tagRow.visible && row.tags !== "" && tagSlot.width > 40
+                    onAccent: row.current
+                    readonly property var all: row.tags.split(", ")
+                    readonly property bool headed: row.columns && Mods.columns.shownBy === "" && Mods.prefs.headings !== 0
+                    icon: "tag"
+                    maxWidth: Math.min(Theme.sized(120), tagSlot.width)
+                    text: headed ? all.length : all[0] + (all.length > 1 ? "  +" + (all.length - 1) : "")
+                    tip: row.tags
+                }
             }
             Text {
                 visible: row.twin && !row.columns
@@ -284,7 +293,6 @@ Item {
                 font.pixelSize: Theme.small
                 text: [row.version, row.source === 2 ? Theme.say("Git") : row.source === 1 ? Theme.say("local") : Theme.say("Workshop")].filter(part => part !== "").join(", ")
             }
-            Item { Layout.fillWidth: true }
             Icon {
                 visible: !row.columns && row.source === 2
                 name: "git-branch"
