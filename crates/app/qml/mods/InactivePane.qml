@@ -85,6 +85,12 @@ Rectangle {
                     }
                 }
             }
+            Btn {
+                compact: true
+                icon: Hub.mods.inactiveOrders.directionIcon
+                tip: Hub.mods.inactiveOrders.direction
+                onClicked: Mods.prefs.inactiveReversed = !Mods.prefs.inactiveReversed
+            }
             Btn { visible: !pane.drawer; text: Theme.say("Hide"); tip: Theme.say("To a rail at the left edge; its button opens the list over the load order"); onClicked: Mods.prefs.inactiveHidden = true }
             Btn { visible: pane.drawer; text: Theme.say("Pin"); tip: Theme.say("Beside the load order, always open"); onClicked: Mods.prefs.inactiveHidden = false }
             }

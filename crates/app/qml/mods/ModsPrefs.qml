@@ -14,6 +14,7 @@ Settings {
     property string columns: "author,version,load"
     // "category", "name", "updated", "downloaded" or "supports".
     property string inactiveOrder: "category"
+    property bool inactiveReversed: false
     // The load order under category headings: 1 always, 0 never (one
     // numbered list), -1 when the order is close to category order.
     property int headings: -1
