@@ -4,7 +4,7 @@ use rimstack_core::base::sentence::Sentence;
 use rimstack_core::mods::describe::Trouble;
 use rimstack_core::mods::library::{Library, ModId};
 pub use rimstack_core::mods::list::Side;
-use rimstack_core::mods::list::{Category, GroupedList, Mod, SortKey, flag};
+use rimstack_core::mods::list::{Arrange, Category, GroupedList, Mod, SortKey, flag};
 use rimstack_core::mods::{demo, sort_reasons};
 use rimstack_core::say;
 use serde::Serialize;
@@ -40,7 +40,7 @@ pub struct LoadOrder {
     preview: Option<Preview>,
     batching: bool,
     headings: bool,
-    by_name: bool,
+    inactive_order: Arrange,
     installed: bool,
     detected: rules::Detected,
     pub status: [Sentence; 2],
@@ -54,6 +54,33 @@ fn side_index(side: Side) -> usize {
     match side {
         Side::Active => 0,
         Side::Inactive => 1,
+    }
+}
+
+#[derive(Serialize)]
+pub struct OrderChoice {
+    key: &'static str,
+    text: Sentence,
+    chosen: bool,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InactiveOrders {
+    chosen: Sentence,
+    /// The key after the chosen one, round again after the last.
+    next: &'static str,
+    next_text: Sentence,
+    all: Vec<OrderChoice>,
+}
+
+fn order_text(by: Arrange) -> Sentence {
+    match by {
+        Arrange::Category => say!("Category"),
+        Arrange::Name => say!("Name"),
+        Arrange::Updated => say!("Last updated"),
+        Arrange::Downloaded => say!("Downloaded"),
+        Arrange::Supports => say!("Game version"),
     }
 }
 
@@ -76,6 +103,13 @@ fn arranged(app: &App, library: &Library) -> rimstack_core::mods::library::Arran
             }
         }
     }
+    let steam = app.steam_record();
+    // On both lists: a mod deactivated later keeps it.
+    let all = now.active.iter_mut().chain(now.inactive.iter_mut());
+    for m in all.filter(|m| m.workshop) {
+        let folder = m.installed.and_then(|i| library.get(i)).map(|i| &i.folder);
+        m.updated = folder.and_then(|f| steam.0.get(f)).copied();
+    }
     now
 }
 
@@ -94,7 +128,7 @@ impl LoadOrder {
             preview: None,
             batching: false,
             headings: true,
-            by_name: false,
+            inactive_order: Arrange::Category,
             installed,
             detected: rules::Detected::default(),
             status: [Sentence::default(), Sentence::default()],
@@ -114,7 +148,7 @@ impl LoadOrder {
         order
     }
 
-    pub fn read(app: &App, headings: bool, by_name: bool) -> Self {
+    pub fn read(app: &App, headings: bool, inactive_order: Arrange) -> Self {
         let loaded = app.library();
         let (library, took) = match &*loaded {
             Ok(read) => read,
@@ -126,13 +160,13 @@ impl LoadOrder {
         };
         let mut order = Self::empty(true);
         order.headings = headings;
-        order.by_name = by_name;
+        order.inactive_order = inactive_order;
         let now = arranged(app, library);
         let (mods, _) = rules::sorted_by_category(app, &mut order.detected, library, now.active);
         order.active = GroupedList::flat(mods);
         order.active.set_grouped(headings);
         order.inactive = GroupedList::new(now.inactive);
-        order.inactive.arrange(by_name);
+        order.inactive.arrange(inactive_order);
         order.status = [
             match library.missing {
                 0 => say!("{} active", library.active.len()),
@@ -180,10 +214,6 @@ impl LoadOrder {
 
     pub fn headings(&self) -> bool {
         self.headings
-    }
-
-    pub fn by_name(&self) -> bool {
-        self.by_name
     }
 
     pub fn errors_and_warnings(&self) -> (usize, usize) {
@@ -277,7 +307,7 @@ impl LoadOrder {
         self.active.set_grouped(self.headings);
         self.active.set_mods(mods);
         self.inactive.set_mods(now.inactive);
-        self.inactive.arrange(self.by_name);
+        self.inactive.arrange(self.inactive_order);
         self.settle(app);
     }
 
@@ -303,10 +333,25 @@ impl LoadOrder {
         }
     }
 
-    pub fn set_by_name(&mut self, app: &App, by_name: bool) {
-        self.by_name = by_name;
-        self.inactive.arrange(by_name);
+    pub fn set_inactive_order(&mut self, app: &App, by: Arrange) {
+        self.inactive_order = by;
+        self.inactive.arrange(by);
         self.settle(app);
+    }
+
+    pub fn inactive_orders(&self) -> InactiveOrders {
+        let by = self.inactive_order;
+        let all = Arrange::ALL.map(|each| OrderChoice {
+            key: each.key(),
+            text: order_text(each),
+            chosen: each == by,
+        });
+        InactiveOrders {
+            chosen: order_text(by),
+            next: by.next().key(),
+            next_text: order_text(by.next()),
+            all: all.into(),
+        }
     }
 
     pub fn set_filter(&mut self, text: &str) {

@@ -215,6 +215,9 @@ mod tests {
             patched: Default::default(),
             sub: String::new(),
             load_micros: None,
+            updated: None,
+            downloaded: None,
+            supports: Vec::new(),
         };
         names.iter().enumerate().map(one).collect()
     }
