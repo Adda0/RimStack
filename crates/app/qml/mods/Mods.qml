@@ -183,7 +183,7 @@ Item {
     }
     property Binding filterHeld: Binding { target: Hub.mods; property: "filter"; value: mods.filtered }
     property Binding headingsHeld: Binding { target: Hub.mods; property: "headings"; value: mods.prefs.headings !== 0 }
-    property Binding byNameHeld: Binding { target: Hub.mods; property: "byName"; value: mods.prefs.inactiveByName }
+    property Binding inactiveOrderHeld: Binding { target: Hub.mods; property: "inactiveOrder"; value: mods.prefs.inactiveOrder }
     property Binding selectedHeld: Binding { target: Hub.mods; property: "selected"; value: mods.selectedId }
 
     signal binRequested(string name, string folder, int modId)

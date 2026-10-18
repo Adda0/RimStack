@@ -54,6 +54,14 @@ Item {
         }
     }
 
+    // As Rust orders a Vec of numbers: part by part, a prefix first.
+    function compareVersions(a, b) {
+        for (let i = 0; i < Math.min(a.length, b.length); i++)
+            if (a[i] !== b[i])
+                return a[i] - b[i]
+        return a.length - b.length
+    }
+
     function closeWhileBusy() {
         console.log("check state " + Mods.active.count + " active, " + Mods.errors + " errors, files read: " + Hub.mods.filesRead)
         Hub.mods.rescan()
@@ -185,8 +193,8 @@ Item {
         const counts = [Mods.active.count, Mods.inactive.count]
         const shownNames = () => { const names = []; for (let r = 0; r < Mods.inactive.rows() && names.length < 40; r++) if (Mods.inactive.modIdAt(r) >= 0) names.push(Mods.inactive.at(r).name.toLowerCase()); return names }
         const byName = () => { const names = shownNames(); return names.every((n, i) => i === 0 || names[i - 1].localeCompare(n) <= 0 || names[i - 1] <= n) }
-        const wasByName = Mods.prefs.inactiveByName, hadHeadings = Mods.prefs.headings
-        Mods.prefs.inactiveByName = true
+        const wasOrder = Mods.prefs.inactiveOrder, hadHeadings = Mods.prefs.headings
+        Mods.prefs.inactiveOrder = "name"
         check("the inactive mods are in name order", byName() && Mods.inactive.rows() === Mods.inactive.count)
         check("lists are filled and clean", Mods.active.count > 4 && Mods.inactive.count > 0 && !Hub.mods.dirty && !Hub.mods.canUndo)
 
@@ -223,9 +231,17 @@ Item {
         Mods.prefs.headings = 1
         check("always under headings has headings", Mods.active.rows() > Mods.active.count)
         Mods.prefs.headings = hadHeadings
-        Mods.prefs.inactiveByName = false
+        Mods.prefs.inactiveOrder = "category"
         check("by category, the inactive mods sit under headings", Mods.inactive.rows() > Mods.inactive.count)
-        Mods.prefs.inactiveByName = true
+        Mods.prefs.inactiveOrder = "supports"
+        const newest = id => String(Mods.about(id).gameVersions || "").split(",").filter(v => v.trim() !== "").map(v => v.trim().replace(/^v/, "").split(/[-+]/)[0].split(".").map(n => Number(n) || 0)).reduce((a, b) => compareVersions(a, b) >= 0 ? a : b, [])
+        const versions = []
+        // A spread of rows: the order holds for any of them, and each asks for the mod's details.
+        for (let r = 0; r < Mods.inactive.rows(); r += Math.max(1, Math.floor(Mods.inactive.rows() / 80)))
+            if (Mods.inactive.modIdAt(r) >= 0)
+                versions.push(newest(Mods.inactive.modIdAt(r)))
+        check("by game version, the newest supported come first", Mods.inactive.rows() === Mods.inactive.count && versions.every((v, i) => i === 0 || compareVersions(versions[i - 1], v) >= 0))
+        Mods.prefs.inactiveOrder = "name"
         Hub.mods.redo()
         check("redo moves it again", Hub.mods.dirty && order() !== start)
         Hub.mods.undo()
@@ -373,7 +389,7 @@ Item {
         check("and forgotten", !Mods.info.tags && !Mods.info.note && shown() === counts[0])
         Mods.select(-1, false)
 
-        Mods.prefs.inactiveByName = wasByName
+        Mods.prefs.inactiveOrder = wasOrder
         Hub.mods.moveMod(true, 0, 3)
         const asItWas = order(), every = Mods.active.rows()
         Hub.mods.moveMod(true, 2, 6)

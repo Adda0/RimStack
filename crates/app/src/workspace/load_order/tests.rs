@@ -15,7 +15,7 @@ fn roads(order: &LoadOrder, side: Side) -> ModId {
 #[test]
 fn the_two_lists_are_the_load_order_and_the_rest() {
     let (_tmp, app) = installed();
-    let order = LoadOrder::read(&app, true, false);
+    let order = LoadOrder::read(&app, true, Arrange::Category);
     assert!(order.problem.is_empty() && order.is_installed());
     let ids = |side| -> Vec<String> {
         order
@@ -33,7 +33,7 @@ fn the_two_lists_are_the_load_order_and_the_rest() {
 #[test]
 fn a_side_term_filters_its_own_list_and_empties_the_other() {
     let (_tmp, app) = installed();
-    let mut order = LoadOrder::read(&app, true, false);
+    let mut order = LoadOrder::read(&app, true, Arrange::Category);
     let matching = |order: &LoadOrder| {
         let count = |side| order.list(side).matching();
         (count(Side::Active), count(Side::Inactive))
@@ -50,7 +50,7 @@ fn a_side_term_filters_its_own_list_and_empties_the_other() {
 fn mods_that_could_not_be_read_give_empty_lists_and_the_reason() {
     let (tmp, app) = installed();
     std::fs::remove_dir_all(tmp.path().join("game")).unwrap();
-    let order = LoadOrder::read(&app, true, false);
+    let order = LoadOrder::read(&app, true, Arrange::Category);
     assert!(!order.problem.is_empty() && !order.is_installed());
     assert!(order.list(Side::Active).mods().is_empty());
 }
@@ -58,7 +58,7 @@ fn mods_that_could_not_be_read_give_empty_lists_and_the_reason() {
 #[test]
 fn a_mod_taken_across_is_one_step_that_undo_takes_back() {
     let (_tmp, app) = installed();
-    let mut order = LoadOrder::read(&app, true, false);
+    let mut order = LoadOrder::read(&app, true, Arrange::Category);
     let id = roads(&order, Side::Inactive);
     order.take_all(&app, Side::Inactive, &[id]);
     assert_eq!(app.session().current(), ["ludeon.rimworld", "ann.roads"]);
@@ -76,7 +76,7 @@ fn an_error_ignored_is_gone_until_warned_again() {
     let (tmp, app) = installed();
     let about = "<ModMetaData><packageId>Ann.Roads</packageId><name>Ann.Roads</name><modDependencies><li><packageId>gone.lib</packageId></li></modDependencies></ModMetaData>";
     std::fs::write(tmp.path().join("game/Mods/roads/About/About.xml"), about).unwrap();
-    let mut order = LoadOrder::read(&app, true, false);
+    let mut order = LoadOrder::read(&app, true, Arrange::Category);
     let id = roads(&order, Side::Inactive);
     order.take(&app, Side::Inactive, 0, None);
     let errors = |order: &LoadOrder| {
@@ -103,7 +103,7 @@ fn an_error_ignored_is_gone_until_warned_again() {
 fn a_mod_made_for_another_game_version_offers_to_trust_it_once_active() {
     let (tmp, app) = installed();
     roads_made_for_an_older_game(&tmp);
-    let mut order = LoadOrder::read(&app, true, false);
+    let mut order = LoadOrder::read(&app, true, Arrange::Category);
     let id = roads(&order, Side::Inactive);
     let shown = |order: &mut LoadOrder| serde_json::to_value(order.details(&app, id)).unwrap();
     assert_eq!(shown(&mut order)["offerTrust"], false);
@@ -117,7 +117,7 @@ fn a_mod_made_for_another_game_version_offers_to_trust_it_once_active() {
 fn a_mod_made_for_another_game_version_is_marked_on_either_side_until_trusted() {
     let (tmp, app) = installed();
     roads_made_for_an_older_game(&tmp);
-    let mut order = LoadOrder::read(&app, true, false);
+    let mut order = LoadOrder::read(&app, true, Arrange::Category);
     let id = roads(&order, Side::Inactive);
     let marked = |order: &LoadOrder| {
         let rows = order.rows(&app, Side::Inactive);
@@ -142,7 +142,7 @@ fn a_mod_made_for_another_game_version_is_marked_on_either_side_until_trusted() 
 #[test]
 fn saving_writes_the_load_order_and_marks_it_saved() {
     let (tmp, app) = installed();
-    let mut order = LoadOrder::read(&app, true, false);
+    let mut order = LoadOrder::read(&app, true, Arrange::Category);
     order.take(&app, Side::Inactive, 0, None);
     order.save(&app).unwrap();
     let written = std::fs::read_to_string(tmp.path().join("config/Config/ModsConfig.xml")).unwrap();
@@ -153,7 +153,7 @@ fn saving_writes_the_load_order_and_marks_it_saved() {
 #[test]
 fn a_list_saved_here_is_never_taken_for_one_written_outside() {
     let (_tmp, app) = installed();
-    let mut order = LoadOrder::read(&app, true, false);
+    let mut order = LoadOrder::read(&app, true, Arrange::Category);
     order.take(&app, Side::Inactive, 0, None);
     let saving = order.to_save(&app).unwrap();
 
@@ -175,7 +175,7 @@ fn written_outside(tmp: &tempfile::TempDir, ids: &str) -> (std::path::PathBuf, S
 #[test]
 fn a_file_written_outside_is_not_saved_over_until_its_list_or_ours_is_kept() {
     let (tmp, app) = installed();
-    let mut order = LoadOrder::read(&app, true, false);
+    let mut order = LoadOrder::read(&app, true, Arrange::Category);
     order.take(&app, Side::Inactive, 0, None);
     let (file, text) = written_outside(&tmp, "<li>ludeon.rimworld</li><li>other.mod</li>");
 
@@ -198,7 +198,7 @@ fn a_file_written_outside_is_not_saved_over_until_its_list_or_ours_is_kept() {
 #[test]
 fn taking_the_list_of_a_file_written_outside_leaves_nothing_to_save() {
     let (tmp, app) = installed();
-    let mut order = LoadOrder::read(&app, true, false);
+    let mut order = LoadOrder::read(&app, true, Arrange::Category);
     order.take(&app, Side::Inactive, 0, None);
     let (file, text) = written_outside(&tmp, "<li>ludeon.rimworld</li><li>other.mod</li>");
 
@@ -216,7 +216,7 @@ fn taking_the_list_of_a_file_written_outside_leaves_nothing_to_save() {
 fn every_row_has_a_key_of_its_own_and_a_mod_row_its_id() {
     let (tmp, app) = installed();
     roads_made_for_an_older_game(&tmp);
-    let mut order = LoadOrder::read(&app, true, false);
+    let mut order = LoadOrder::read(&app, true, Arrange::Category);
     order.take(&app, Side::Inactive, 0, None);
     let rows = order.rows(&app, Side::Active);
     let keys: std::collections::HashSet<_> = rows.iter().map(|r| r.key.clone()).collect();
@@ -231,7 +231,7 @@ fn every_row_has_a_key_of_its_own_and_a_mod_row_its_id() {
 #[test]
 fn a_sort_of_a_list_in_order_moves_nothing_and_says_so() {
     let (_tmp, app) = installed();
-    let mut order = LoadOrder::read(&app, true, false);
+    let mut order = LoadOrder::read(&app, true, Arrange::Category);
     order.preview_sort(&app);
     assert!(!order.previewing());
     assert!(!order.sort_note.is_empty());
@@ -275,7 +275,7 @@ fn a_scan_nothing_overtook_is_kept() {
 #[test]
 fn nothing_is_saved_while_the_game_runs() {
     let (tmp, app) = installed();
-    let mut order = LoadOrder::read(&app, true, false);
+    let mut order = LoadOrder::read(&app, true, Arrange::Category);
     order.take(&app, Side::Inactive, 0, None);
     let game = tmp.path().join("game/RimWorld");
     std::fs::copy("/bin/sleep", &game).unwrap();
@@ -315,7 +315,7 @@ fn with_a_mod_gone(workshop_names: &str) -> (tempfile::TempDir, App, LoadOrder) 
     std::fs::create_dir_all(app.data_dir()).unwrap();
     let names = rimstack_core::rimworld::workshopdb::file_in(app.data_dir());
     std::fs::write(names, workshop_names).unwrap();
-    let order = LoadOrder::read(&app, true, false);
+    let order = LoadOrder::read(&app, true, Arrange::Category);
     assert_eq!(order.list(Side::Active).mods()[0].id, "gone.mod");
     (tmp, app, order)
 }

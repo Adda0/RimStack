@@ -36,8 +36,8 @@ impl LoadOrder {
             }
             (Side::Active, None) => self.settle_one(app, at),
             (Side::Inactive, None) => {
-                let by_name = self.by_name;
-                self.inactive.arrange(by_name);
+                let by = self.inactive_order;
+                self.inactive.arrange(by);
             }
         }
     }
