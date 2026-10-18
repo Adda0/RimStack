@@ -263,6 +263,21 @@ Item {
             Mods.select(-1, false)
         }
 
+        const bulk = [0, 1, 2].map(at => Mods.nthMod(Mods.inactive, at))
+        Mods.select(bulk[0], false)
+        Mods.selectAlso(bulk[1], false)
+        Mods.selectAlso(bulk[2], false)
+        Mods.tagSelected("checkbulk")
+        const tagsOf = id => String(Mods.about(id).tags || "").split(",").map(t => t.trim())
+        check("a tag added to the selected mods reaches every one", Mods.selectedCount === 3 && bulk.every(id => tagsOf(id).indexOf("checkbulk") >= 0))
+        check("and says so", Notices.shown.some(n => n.tone === "ok" && n.text.indexOf("checkbulk") >= 0))
+        for (const id of bulk)
+            Hub.mods.keepNote(id, "", "")
+        Mods.select(-1, false)
+        // The notices checks further on count from none.
+        Notices.shown = []
+        Notices.earlier = []
+
         const a = Mods.nthMod(Mods.active, 0), b = Mods.nthMod(Mods.active, 1)
         Mods.select(b, true)
         Mods.picking = "before"
