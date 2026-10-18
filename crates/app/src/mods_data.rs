@@ -50,7 +50,9 @@ pub mod qobject {
         #[qproperty(bool, headings)]
         /// "category", "name", "updated", "downloaded" or "supports".
         #[qproperty(QString, inactive_order, cxx_name = "inactiveOrder")]
-        /// `{ chosen, next, nextText, all: [{ key, text, chosen }] }`.
+        /// The inactive order runs the other way: oldest, lowest or Z first.
+        #[qproperty(bool, inactive_reversed, cxx_name = "inactiveReversed")]
+        /// `{ chosen, next, nextText, all: [{ key, text, chosen }], reversed, direction, directionIcon }`.
         #[qproperty(QVariant, inactive_orders, cxx_name = "inactiveOrders")]
         #[qproperty(QString, filter)]
         /// Empty for none.
@@ -303,7 +305,7 @@ use cxx_qt_lib::{QString, QVariant};
 use qobject::ModRows;
 use rimstack_core::base::sentence::Sentence;
 use rimstack_core::mods::library::ModId;
-use rimstack_core::mods::list::Arrange;
+use rimstack_core::mods::list::{Arrange, Arrangement};
 use std::sync::Arc;
 
 pub struct ModsDataRust {
@@ -344,6 +346,7 @@ pub struct ModsDataRust {
     fresh: QVariant,
     headings: bool,
     inactive_order: QString,
+    inactive_reversed: bool,
     inactive_orders: QVariant,
     filter: QString,
     save_problem: QString,
@@ -396,6 +399,7 @@ impl Default for ModsDataRust {
             fresh: QVariant::default(),
             headings: true,
             inactive_order: QString::default(),
+            inactive_reversed: false,
             inactive_orders: QVariant::default(),
             filter: QString::default(),
             save_problem: QString::default(),
@@ -424,8 +428,22 @@ impl qobject::ModsData {
         self.app.app()
     }
 
-    fn arrangement(&self) -> Arrange {
-        Arrange::from_name(&self.inactive_order.to_string())
+    fn arrangement(&self) -> Arrangement {
+        Arrangement {
+            by: Arrange::from_name(&self.inactive_order.to_string()),
+            reversed: self.inactive_reversed,
+        }
+    }
+
+    fn rearrange_inactive(mut self: Pin<&mut Self>) {
+        let (app, how) = (self.app(), self.arrangement());
+        self.as_mut()
+            .rust_mut()
+            .get_mut()
+            .order
+            .set_inactive_order(&app, how);
+        self.as_mut().show_orders();
+        self.show();
     }
 
     fn rows(self: Pin<&mut Self>, side: Side) -> Option<Pin<&mut ModRows>> {
@@ -471,16 +489,10 @@ impl qobject::ModsData {
             })
             .release();
         self.as_mut()
-            .on_inactive_order_changed(|mut me| {
-                let (app, by) = (me.app(), me.arrangement());
-                me.as_mut()
-                    .rust_mut()
-                    .get_mut()
-                    .order
-                    .set_inactive_order(&app, by);
-                me.as_mut().show_orders();
-                me.show();
-            })
+            .on_inactive_order_changed(|me| me.rearrange_inactive())
+            .release();
+        self.as_mut()
+            .on_inactive_reversed_changed(|me| me.rearrange_inactive())
             .release();
         self.as_mut()
             .on_unsaved_changed(|me| me.count_sort_moves())
