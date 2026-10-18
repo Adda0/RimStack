@@ -80,6 +80,41 @@ Item {
         check("and empties it with them closed, ahead of the screen's own Esc", Mods.filtered === "")
     }
 
+    function field(item, placeholder) {
+        for (const child of item.data) {
+            if (child.placeholder === placeholder)
+                return child
+            const found = child.data ? checks.field(child, placeholder) : null
+            if (found)
+                return found
+        }
+        return null
+    }
+
+    function tagOffers() {
+        const mine = Mods.nthMod(Mods.active, 0), other = Mods.nthMod(Mods.active, 1)
+        Hub.mods.addTags(other, "pointer-pick")
+        Mods.select(mine, true)
+        Mods.tab = 0
+        const box = checks.field(details, "Add tags, separated by commas")
+        box.focusInput()
+        for (const c of "pointer-p")
+            events.keyClickChar(c, Qt.NoModifier, -1)
+        check("typing part of another mod's tag offers it", box.suggesting)
+        events.keyClick(Qt.Key_Return, Qt.NoModifier, -1)
+        check("Enter with no offer picked adds what is typed", (Mods.info.tags || "").split(", ").indexOf("pointer-p") >= 0)
+        for (const c of "pointer-p")
+            events.keyClickChar(c, Qt.NoModifier, -1)
+        events.keyClick(Qt.Key_Down, Qt.NoModifier, -1)
+        events.keyClick(Qt.Key_Return, Qt.NoModifier, -1)
+        check("Down then Enter adds the offered tag", (Mods.info.tags || "").split(", ").indexOf("pointer-pick") >= 0)
+        for (const tag of ["pointer-p", "pointer-pick"])
+            Hub.mods.removeTag(mine, tag)
+        Hub.mods.removeTag(other, "pointer-pick")
+        events.keyClick(Qt.Key_Escape, Qt.NoModifier, -1)
+        Mods.select(-1, false)
+    }
+
     function nameAt(row) {
         return Mods.active.at(row).name
     }
@@ -160,6 +195,7 @@ Item {
             checks.hints()
             checks.divider()
             checks.suggestions()
+            checks.tagOffers()
             // `row` below assumes compact rows, 26 high.
             Mods.prefs.headings = 0
             Theme.stored.comfortable = false

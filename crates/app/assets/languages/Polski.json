@@ -179,7 +179,7 @@
  "Converted files": "Przekonwertowane pliki",
  "Converts again where the .png changed after its .dds was made.": "Konwertuje ponownie tam, gdzie plik .png zmienił się po utworzeniu jego .dds.",
  "Copies": "Kopie",
- "Copies the rules you made in RimSort into RimStack. RimSort's file is only read.": "Kopiuje do RimStack reguły utworzone w RimSort. Plik RimSort jest tylko odczytywany.",
+ "Copies the rules you made in RimSort into RimStack. RimSort's file is only read.": "Kopiuje reguły utworzone w RimSort do RimStack. Plik RimSort jest tylko odczytywany.",
  "Copy": "Kopiuj",
  "Copy line": "Kopiuj wiersz",
  "Copy link": "Kopiuj link",
