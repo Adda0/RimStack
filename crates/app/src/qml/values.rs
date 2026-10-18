@@ -103,20 +103,33 @@ fn to_value(given: &QVariant) -> Value {
             let list: QList<QString> = QList::from(&texts);
             Value::Array(list.iter().map(|t| Value::String(t.to_string())).collect())
         }
-        QMetaTypeType::QVariantList => {
-            let list = given.value_or_default::<QList<QVariant>>();
-            Value::Array(list.iter().map(to_value).collect())
-        }
-        QMetaTypeType::QVariantMap => {
-            let map = given.value_or_default::<QMap<QMapPair_QString_QVariant>>();
-            let fields: Map<String, Value> = map
-                .iter()
-                .map(|(name, field)| (name.to_string(), to_value(field)))
-                .collect();
-            Value::Object(fields)
-        }
+        QMetaTypeType::QVariantList => list_value(given),
+        QMetaTypeType::QVariantMap => map_value(given),
+        // A JavaScript array or object handed to a `QVariant` parameter arrives as a QJSValue
+        // (Qt 6.11); Qt converts it to a list or a map, and the other way gives an empty one.
+        _ if given.type_name() == "QJSValue" => match list_value(given) {
+            Value::Array(items) if items.is_empty() => match map_value(given) {
+                Value::Object(fields) if fields.is_empty() => Value::Array(items),
+                fields => fields,
+            },
+            items => items,
+        },
         _ => Value::Null,
     }
+}
+
+fn list_value(given: &QVariant) -> Value {
+    let list = given.value_or_default::<QList<QVariant>>();
+    Value::Array(list.iter().map(to_value).collect())
+}
+
+fn map_value(given: &QVariant) -> Value {
+    let map = given.value_or_default::<QMap<QMapPair_QString_QVariant>>();
+    let fields: Map<String, Value> = map
+        .iter()
+        .map(|(name, field)| (name.to_string(), to_value(field)))
+        .collect();
+    Value::Object(fields)
 }
 
 #[cfg(test)]
