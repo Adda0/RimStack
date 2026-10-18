@@ -318,6 +318,51 @@ fn a_mod_that_asks_to_load_before_the_game_is_a_loader_and_so_is_one_ahead_of_it
 }
 
 #[test]
+fn a_mod_made_for_a_newer_game_supports_at_most_the_installed_one() {
+    let tmp = tempfile::tempdir().unwrap();
+    let made_for = |id: &str, versions: &[&str]| {
+        let versions: String = versions.iter().map(|v| format!("<li>{v}</li>")).collect();
+        format!(
+            "<ModMetaData><packageId>{id}</packageId><name>{id}</name>\
+             <supportedVersions>{versions}</supportedVersions></ModMetaData>"
+        )
+    };
+    add_mod(tmp.path(), "new", &made_for("a.new", &["1.6", "2.0"]), &[]);
+    add_mod(tmp.path(), "old", &made_for("a.old", &["1.5"]), &[]);
+    add_mod(tmp.path(), "none", &made_for("a.none", &[]), &[]);
+    let roots = [ModRoot {
+        path: tmp.path().to_path_buf(),
+        source: Source::Local,
+    }];
+    let supports = |game: &str| {
+        let library = build(scan(&roots), &[], game);
+        let mut found: Vec<_> = (library.inactive.iter())
+            .map(|m| (m.name.clone(), m.supports.clone()))
+            .collect();
+        found.sort();
+        found
+    };
+    let row = |name: &str, v: &[u64]| (name.to_string(), v.to_vec());
+    assert_eq!(
+        supports("1.7"),
+        [
+            row("a.new", &[1, 7]),
+            row("a.none", &[]),
+            row("a.old", &[1, 5])
+        ]
+    );
+    // Without a known game nothing is cut.
+    assert_eq!(
+        supports(""),
+        [
+            row("a.new", &[2, 0]),
+            row("a.none", &[]),
+            row("a.old", &[1, 5])
+        ]
+    );
+}
+
+#[test]
 fn arranging_by_the_ids_of_any_split_gives_the_same_split_back() {
     let (_tmp, roots) = sample();
     let library = build(scan(&roots), &["test.art".to_string()], "1.6");
