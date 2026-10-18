@@ -206,6 +206,10 @@ Item {
         RowLayout {
             id: nameCell
             Layout.fillWidth: true
+            // What it shows hangs on its width, so its width must not hang on what it shows:
+            // the tags hidden and shown in turn made the layout arrange itself over and over.
+            Layout.minimumWidth: 0
+            Layout.preferredWidth: 0
             spacing: Theme.gapSmall
             Icon {
                 name: Theme.categoryIcons[row.category] || ""
