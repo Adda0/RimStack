@@ -5,6 +5,12 @@ use rimstack_core::kept::notes::{self, Note};
 use rimstack_core::mods::library::ModId;
 use rimstack_core::mods::list::Category;
 
+#[derive(serde::Serialize)]
+pub struct TagOffer {
+    tag: String,
+    text: String,
+}
+
 impl App {
     /// An id from an earlier reading changes nothing; so does a change that leaves every note as it was.
     pub fn change_notes(
@@ -84,6 +90,22 @@ impl App {
 
     pub fn remove_tag(&self, ids: &[ModId], tag: &str) {
         self.change_notes(ids, Changes::NOTES, |note| note.remove_tag(tag));
+    }
+
+    /// For the tag typed after the last comma of `text`: each tag to offer, with the whole
+    /// text the box takes when it is picked.
+    pub fn tag_offers(&self, text: &str) -> Vec<TagOffer> {
+        let before = match text.rfind(',') {
+            Some(at) => format!("{} ", &text[..=at]),
+            None => String::new(),
+        };
+        let tags = self.notes().reading().tags_for(text, 8);
+        tags.into_iter()
+            .map(|tag| TagOffer {
+                text: format!("{before}{tag}, "),
+                tag,
+            })
+            .collect()
     }
 
     /// An empty or unknown label leaves it to RimStack.
