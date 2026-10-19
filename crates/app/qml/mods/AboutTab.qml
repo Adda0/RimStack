@@ -24,7 +24,7 @@ Column {
     }
 
     Card {
-        visible: side.problems.length > 0 || !!Mods.info.unreadable || !!Mods.info.versionOk || Mods.info.problemsIgnored > 0
+        visible: side.problems.length > 0 || !!Mods.info.unreadable || !!Mods.info.versionOk || Mods.info.problemsIgnored > 0 || !!Mods.info.xmlLeavesOut
         title: Theme.say("Before you play")
         tone: side.problems.some(p => p.error) || Mods.info.unreadable ? Theme.err : Theme.warn
         spacing: Theme.gap
@@ -48,7 +48,8 @@ Column {
             tip: Theme.say("No warning about the game version while RimWorld stays on this version.")
             onClicked: Mods.setVersionAside(Mods.overview.gameVersion || "")
         }
-        Text { visible: !!Mods.info.unreadable; width: parent.width; wrapMode: Text.WordWrap; color: Theme.err; font.pixelSize: Theme.body; text: Theme.fill("Unreadable: {}", (Mods.info.unreadable || "")) }
+        Text { visible: !!Mods.info.unreadable; width: side.width; wrapMode: Text.WordWrap; color: Theme.err; font.pixelSize: Theme.body; text: Theme.fill("Unreadable: {}", (Mods.info.unreadable || "")) }
+        Text { visible: !!Mods.info.xmlLeavesOut; width: side.width; wrapMode: Text.WordWrap; color: Theme.ink2; font.pixelSize: Theme.body; text: Mods.info.xmlLeavesOut || "" }
         RowLayout {
             visible: !!Mods.info.versionOk
             width: parent.width

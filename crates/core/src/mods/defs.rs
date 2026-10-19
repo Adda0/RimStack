@@ -9,6 +9,16 @@ use std::collections::{HashMap, HashSet};
 /// Defs named beside a count.
 const SHOWN: usize = 3;
 
+/// The first few `named`, with the rest counted.
+pub fn first_few(named: &[String]) -> Sentence {
+    let few = named.iter().take(SHOWN).cloned().collect::<Vec<_>>();
+    let few = few.join(", ");
+    match named.len().saturating_sub(SHOWN) {
+        0 => Sentence::Plain(few),
+        more => say!("{} and {} more", few, more),
+    }
+}
+
 /// A def the game loads: the XML element it is written as, e.g. `ThingDef`, and its `defName`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Def {
@@ -77,14 +87,10 @@ pub struct DefClashes {
 }
 
 fn some(defs: &[Def]) -> Sentence {
-    let named: Vec<String> = (defs.iter().take(SHOWN))
+    let named: Vec<String> = (defs.iter())
         .map(|d| format!("{} ({})", d.name, d.kind))
         .collect();
-    let named = named.join(", ");
-    match defs.len().saturating_sub(SHOWN) {
-        0 => Sentence::Plain(named),
-        more => say!("{} and {} more", named, more),
-    }
+    first_few(&named)
 }
 
 /// `found` by place in `members` (ascending); who wins goes by the place `listed` gives,

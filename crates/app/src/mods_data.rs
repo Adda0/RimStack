@@ -665,7 +665,7 @@ impl qobject::ModsData {
         if changes.contains(Changes::NOTES) {
             order.sync(&app);
         }
-        if changes.contains(Changes::PROBLEMS | Changes::COMMUNITY) {
+        if changes.contains(Changes::PROBLEMS | Changes::COMMUNITY | Changes::FILES_READ) {
             order.recheck(&app);
         }
         if changes.contains(Changes::COMMUNITY | Changes::FILES_READ) {

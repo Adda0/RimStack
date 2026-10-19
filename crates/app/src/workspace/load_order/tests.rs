@@ -331,6 +331,7 @@ fn nothing_found() -> crate::workspace::Conflicts {
         overlaps: rimstack_core::mods::conflicts::overlaps(&[]),
         def_collisions: Vec::new(),
         scanned: Default::default(),
+        xml_found: Default::default(),
     }
 }
 
