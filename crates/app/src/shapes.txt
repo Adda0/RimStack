@@ -810,6 +810,12 @@ settings.report: object
   setWorkshop: nothing or text
   settingsFile: text
   setupDone: bool
+  setups: list
+    []: object
+      current: bool
+      name: text
+      removable: bool
+      shown: text
   steamcmd: bool
   steamcmdFolder: text
   version: text

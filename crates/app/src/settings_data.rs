@@ -131,6 +131,27 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "filesChanged"]
         fn files_changed(self: &SettingsData);
+
+        /// A new setup, from the folders and launch of the one in use. Empty;
+        /// or why it was refused.
+        #[qinvokable]
+        #[cxx_name = "addSetup"]
+        fn add_setup(self: Pin<&mut SettingsData>, name: &QString) -> QString;
+
+        /// The setup in use answers to `name` from now on. Empty; or why.
+        #[qinvokable]
+        #[cxx_name = "renameSetup"]
+        fn rename_setup(self: Pin<&mut SettingsData>, name: &QString) -> QString;
+
+        /// `name`'s folder is moved aside, keeping what it kept. Empty; or why.
+        #[qinvokable]
+        #[cxx_name = "removeSetup"]
+        fn remove_setup(self: Pin<&mut SettingsData>, name: &QString) -> QString;
+
+        /// Another setup's folders, load order and kept state: a rescan follows.
+        #[qinvokable]
+        #[cxx_name = "useSetup"]
+        fn use_setup(self: Pin<&mut SettingsData>, name: &QString) -> QString;
     }
 }
 
@@ -410,5 +431,37 @@ impl qobject::SettingsData {
 
     fn files_changed(&self) {
         self.app().publish(Changes::THEME | Changes::LANGUAGE);
+    }
+
+    /// Switches are small file writes; only the rescan that follows runs off
+    /// this thread, looking at the folders change itself.
+    fn setup_attend(
+        mut self: Pin<&mut Self>,
+        done: rimstack_core::base::error::Result<()>,
+    ) -> QString {
+        let problem = crate::words::why_not(&done);
+        self.as_mut().set_problem(problem.clone());
+        problem
+    }
+
+    fn add_setup(mut self: Pin<&mut Self>, name: &QString) -> QString {
+        let done = self.app().add_setup(&name.to_string());
+        self.as_mut().setup_attend(done)
+    }
+
+    fn rename_setup(mut self: Pin<&mut Self>, name: &QString) -> QString {
+        let in_use = self.app().setup_in_use();
+        let done = self.app().rename_setup(&in_use, &name.to_string());
+        self.as_mut().setup_attend(done)
+    }
+
+    fn remove_setup(mut self: Pin<&mut Self>, name: &QString) -> QString {
+        let done = self.app().delete_setup(&name.to_string());
+        self.as_mut().setup_attend(done)
+    }
+
+    fn use_setup(mut self: Pin<&mut Self>, name: &QString) -> QString {
+        let done = self.app().use_setup(&name.to_string());
+        self.as_mut().setup_attend(done)
     }
 }

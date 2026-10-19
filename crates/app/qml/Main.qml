@@ -242,7 +242,7 @@ ApplicationWindow {
             const settings = part => { window.section = 5; Qt.callLater(() => settingsLoader.item.part = part) }
             const logs = view => { window.section = 4; Qt.callLater(() => logsLoader.item.view = view) }
             const found = [
-                ["RimWorld folder", 0], ["Config and saves folder", 0], ["Workshop mods folder", 0], ["Play starts the game: through Steam or directly", 0], ["Launch arguments", 0], ["Git for Workshop mods", 0],
+                ["Setups", 0], ["RimWorld folder", 0], ["Config and saves folder", 0], ["Workshop mods folder", 0], ["Play starts the game: through Steam or directly", 0], ["Launch arguments", 0], ["Git for Workshop mods", 0],
                 [Theme.say("Theme"), 1], [Theme.say("Language"), 1], [Theme.say("Colours"), 1], [Theme.say("Font"), 1], [Theme.say("Text size"), 1], [Theme.say("Mod rows"), 1], [Theme.say("Motion"), 1], [Theme.say("Contrast"), 1], [Theme.say("First-run hints"), 1], [Theme.say("Workshop pages open in"), 1],
                 [Theme.say("Community databases"), 2], [Theme.say("Game version mismatch"), 2], [Theme.say("Patch and def hints"), 2], [Theme.say("Mods marked as working"), 2],
                 [Theme.say("Verify game files with Steam"), 3], [Theme.say("Set mod settings aside"), 3], [Theme.say("Settings of mods that are gone"), 3], [Theme.say("List from before RimStack"), 3], [Theme.say("RimStack's data folder"), 3], [Theme.say("Version and licence"), 3],

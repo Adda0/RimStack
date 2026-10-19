@@ -73,6 +73,7 @@ impl App {
             let arguments = settings.get("launchArguments").unwrap_or_default();
             (settings.launch_directly(), arguments.to_string())
         };
+        let arguments = self.with_save_folder(arguments);
         if !directly {
             return Ok(Some(steam_address(&arguments)));
         }
@@ -83,6 +84,25 @@ impl App {
             .ok_or_else(|| Error::refused(said!("The game's folder is not known")))?;
         rimstack_core::sources::maintenance::start_game(game, &arguments)?;
         Ok(None)
+    }
+
+    /// A setup with a Config and saves folder of its own hands it to the game;
+    /// "Default" and typed arguments saying otherwise stay as they are.
+    fn with_save_folder(&self, arguments: String) -> String {
+        if self.setup_is_default() || arguments.contains("-savedatafolder") {
+            return arguments;
+        }
+        match self.paths().config.clone() {
+            None => arguments,
+            Some(config) => {
+                let folder = config.to_string_lossy();
+                let folder = match folder.contains(char::is_whitespace) {
+                    true => std::borrow::Cow::from(format!("\"{folder}\"")),
+                    false => folder,
+                };
+                format!("-savedatafolder={folder} {arguments}")
+            }
+        }
     }
 
     pub fn mods_config_list(&self) -> Option<Vec<String>> {

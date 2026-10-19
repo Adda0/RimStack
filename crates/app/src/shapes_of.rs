@@ -220,6 +220,7 @@ fn settings(app: &App, shapes: &mut Shapes) {
         app.keep_setting(name, value).unwrap();
     }
     app.version_warnings(1).unwrap();
+    app.add_setup("Second").unwrap();
     shapes.add("settings.report", &app.settings_report());
     shapes.add("settings.databases", &app.databases());
     let checked = std::collections::BTreeMap::from([(
