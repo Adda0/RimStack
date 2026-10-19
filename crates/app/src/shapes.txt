@@ -715,6 +715,10 @@ settings.report: object
   diagnosticsFile: text
   english: bool
   fileHints: bool
+  folders: list
+    []: object
+      name: text
+      path: text
   font: text
   game: text
   gameLog: text

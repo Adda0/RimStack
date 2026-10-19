@@ -1,7 +1,8 @@
 use super::App;
 use crate::changes::Changes;
 use crate::reports::{
-    Database, FolderVerdict, LastLaunch, ReleaseSaid, SettingsReport, ShortContrast, Summary,
+    Database, FolderVerdict, LastLaunch, OpenFolder, ReleaseSaid, SettingsReport, ShortContrast,
+    Summary,
 };
 use rimstack_core::base::error::Error;
 use rimstack_core::base::locks::Shared;
@@ -132,6 +133,40 @@ impl App {
         Ok(())
     }
 
+    /// The game's folders and RimStack's own that are there now.
+    fn open_folders(&self) -> Vec<OpenFolder> {
+        let paths = self.paths();
+        let config = paths.config.clone();
+        let found = [
+            (say!("RimWorld folder"), paths.game.clone()),
+            (say!("Local mods folder"), paths.local_mods()),
+            (say!("Workshop mods folder"), paths.workshop.clone()),
+            (say!("Config and saves folder"), config.clone()),
+            (
+                say!("Mod settings folder"),
+                config.as_ref().map(|c| c.join("Config")),
+            ),
+            (
+                say!("Saves folder"),
+                config.as_ref().map(|c| c.join("Saves")),
+            ),
+            (say!("Game log"), self.game_log()),
+            (
+                say!("RimStack data folder"),
+                Some(self.data_dir().to_path_buf()),
+            ),
+        ];
+        found
+            .into_iter()
+            .filter_map(|(name, path)| Some((name, path?)))
+            .filter(|(_, path)| path.exists())
+            .map(|(name, path)| OpenFolder {
+                name,
+                path: path.to_string_lossy().into_owned(),
+            })
+            .collect()
+    }
+
     pub fn settings_report(&self) -> SettingsReport {
         let paths = self.paths();
         let shown = |p: &Option<PathBuf>| p.as_ref().map(|p| p.to_string_lossy().into_owned());
@@ -189,6 +224,7 @@ impl App {
             local_mods: shown(&paths.local_mods()),
             config_folder: shown(&paths.config.as_ref().map(|c| c.join("Config"))),
             game_log: shown(&self.game_log()),
+            folders: self.open_folders(),
             steamcmd_folder: self
                 .data_dir()
                 .join("steamcmd")
@@ -714,5 +750,22 @@ mod tests {
         assert!(said.to_string().contains("userRules.json"), "{said}");
         let said = app.import_rimpy();
         assert!(said.to_string().contains("config.ini"), "{said}");
+    }
+
+    #[test]
+    fn only_folders_there_now_are_offered_to_open() {
+        let (_tmp, app) = installed();
+        let named = |app: &App| -> Vec<String> {
+            let found = app.open_folders();
+            assert!(found.iter().all(|f| std::path::Path::new(&f.path).exists()));
+            found.iter().map(|f| f.name.to_string()).collect()
+        };
+        let saves = app.paths().config.clone().unwrap().join("Saves");
+        std::fs::create_dir_all(&saves).unwrap();
+        assert!(named(&app).contains(&"Saves folder".to_string()));
+        std::fs::remove_dir_all(&saves).unwrap();
+        let now = named(&app);
+        assert!(!now.contains(&"Saves folder".to_string()), "{now:?}");
+        assert!(now.contains(&"RimWorld folder".to_string()), "{now:?}");
     }
 }
