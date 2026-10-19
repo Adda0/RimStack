@@ -55,6 +55,8 @@ Rectangle {
                 onClicked: orderMenu.open()
                 Popup {
                     id: orderMenu
+                    modal: true
+                    dim: false
                     y: orderButton.height + 2
                     padding: Theme.gapTiny
                     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
@@ -75,6 +77,7 @@ Rectangle {
                                 Text { id: choiceText; x: 30; anchors.verticalCenter: parent.verticalCenter; color: Theme.ink; font.pixelSize: Theme.body; text: choice.modelData.text }
                                 HoverHandler { id: choiceHover }
                                 TapHandler {
+                                    gesturePolicy: TapHandler.ReleaseWithinBounds
                                     onTapped: {
                                         orderMenu.close()
                                         Mods.prefs.inactiveOrder = choice.modelData.key

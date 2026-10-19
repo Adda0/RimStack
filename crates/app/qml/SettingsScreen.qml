@@ -399,6 +399,8 @@ Item {
                         enter: PopIn {}
                         exit: PopOut {}
                         id: fontPicker
+                        modal: true
+                        dim: false
                         readonly property var shown: [""].concat(Qt.fontFamilies()).filter(name => (name || Theme.say("System font")).toLowerCase().indexOf(fontFilter.text.toLowerCase()) !== -1)
                         parent: fontButton
                         y: fontButton.height + 4
@@ -438,6 +440,7 @@ Item {
                                     }
                                     HoverHandler { id: familyHover }
                                     TapHandler {
+                                        gesturePolicy: TapHandler.ReleaseWithinBounds
                                         onTapped: {
                                             screen.font(family.modelData)
                                             fontPicker.close()

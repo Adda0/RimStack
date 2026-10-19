@@ -57,6 +57,7 @@ FilterField {
                     Text { anchors.left: offerKey.right; anchors.leftMargin: Theme.sized(16); anchors.right: parent.right; anchors.rightMargin: Theme.gap; anchors.verticalCenter: parent.verticalCenter; elide: Text.ElideRight; color: Theme.ink2; font.pixelSize: Theme.small; text: offer.modelData.note }
                     HoverHandler { id: offerHover }
                     TapHandler {
+                        gesturePolicy: TapHandler.ReleaseWithinBounds
                         onTapped: {
                             filter.take(offer.modelData.term)
                             filter.focusInput()

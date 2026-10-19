@@ -8,6 +8,8 @@ Popup {
     enter: PopIn {}
     exit: PopOut {}
     id: listsMenu
+    modal: true
+    dim: false
 
     signal useList(var ids)
     // The load order now goes by this name; "" when it has none.

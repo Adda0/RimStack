@@ -8,6 +8,8 @@ Popup {
     enter: PopIn {}
     exit: PopOut {}
     id: historyMenu
+    modal: true
+    dim: false
     signal useList(var ids)
     readonly property var entries: Hub.lists.history || []
     function revert(entry) {

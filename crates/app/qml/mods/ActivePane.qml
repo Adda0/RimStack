@@ -362,6 +362,8 @@ Item {
                         exit: PopOut {}
                         id: viewMenu
                         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
+                        modal: true
+                        dim: false
                         x: parent.width - width
                         y: parent.height + Theme.gapSmall
                         width: viewWords.averageCharacterWidth * 40 + 2 * padding

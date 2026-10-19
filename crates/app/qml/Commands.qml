@@ -79,7 +79,7 @@ Popup {
                 height: Theme.sized(30)
                 Rectangle { anchors.fill: parent; radius: Theme.corner; color: row.current ? Theme.accent : Theme.hover; opacity: row.current ? 1 : rowHover.hovered ? 0.05 : 0 }
                 HoverHandler { id: rowHover }
-                TapHandler { onTapped: { popup.chosen = row.index; popup.runChosen() } }
+                TapHandler { gesturePolicy: TapHandler.ReleaseWithinBounds; onTapped: { popup.chosen = row.index; popup.runChosen() } }
                 RowLayout {
                     anchors.fill: parent
                     anchors.leftMargin: Theme.gapMedium

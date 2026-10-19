@@ -149,6 +149,7 @@ Column {
                                 Text { x: 8; anchors.verticalCenter: parent.verticalCenter; color: Theme.ink; font.pixelSize: Theme.small; text: tagOffer.modelData.tag }
                                 HoverHandler { id: tagOfferHover }
                                 TapHandler {
+                                    gesturePolicy: TapHandler.ReleaseWithinBounds
                                     onTapped: {
                                         Hub.mods.addTags(Mods.selectedId, tagOffer.modelData.text)
                                         tagBox.text = ""
