@@ -1,3 +1,4 @@
+use crate::base::links;
 use crate::base::sentence::Sentence;
 use crate::base::vdf;
 use crate::say;
@@ -282,8 +283,26 @@ pub enum Folder {
     Workshop,
 }
 
+/// A settings folder given as its own `Saves` or `Config` is taken as the folder holding it.
+fn settings_holder(place: PathBuf) -> PathBuf {
+    let inner = ["Config", "Saves"];
+    let named_inner = place
+        .file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| inner.iter().any(|d| d.eq_ignore_ascii_case(name)));
+    let holds_inner = inner.iter().any(|d| place.join(d).is_dir());
+    match place.parent() {
+        Some(above) if named_inner && !holds_inner => above.to_path_buf(),
+        _ => place,
+    }
+}
+
 /// What a folder typed by hand would be used as: the sentence says either way.
 pub fn judge(os: Os, kind: Folder, place: &Path) -> Result<Sentence, Sentence> {
+    let place = match kind {
+        Folder::Config => &settings_holder(links::through(place)),
+        _ => &links::through(place),
+    };
     if !place.is_dir() {
         return Err(say!("There is no such folder"));
     }
@@ -352,15 +371,14 @@ pub fn detect_on(os: Os, home: &Path, env: Env, overrides: &Overrides) -> Paths 
         Some(l.join("steamapps/workshop/content").join(APP_ID)).filter(|p| p.is_dir())
     };
 
-    let game = overrides
-        .game
-        .clone()
+    let given = |path: &Option<PathBuf>| path.as_deref().map(links::through);
+    let game = given(&overrides.game)
         .or_else(|| found_game.as_ref().map(|(_, g)| g.clone()))
         .or_else(|| {
             let shops = other_shops(os, home, env);
             shops.iter().find_map(|place| game_in(os, place))
         });
-    let workshop = overrides.workshop.clone().or_else(|| {
+    let workshop = given(&overrides.workshop).or_else(|| {
         // A game set by hand has no Workshop folder.
         if overrides.game.is_some() {
             return None;
@@ -374,7 +392,7 @@ pub fn detect_on(os: Os, home: &Path, env: Env, overrides: &Overrides) -> Paths 
         .as_ref()
         .and_then(|g| std::fs::read_to_string(g.join("Version.txt")).ok())
         .and_then(|v| crate::rimworld::modsconfig::short_version(&v));
-    let config = overrides.config.clone().or_else(|| {
+    let config = given(&overrides.config).map(settings_holder).or_else(|| {
         let native = native_settings(os, home, game_version.as_deref());
         // Under Proton the settings live inside the game's Windows prefix.
         let under_proton = libraries.iter().filter(|_| os == Os::Linux);
@@ -394,7 +412,10 @@ pub fn detect_on(os: Os, home: &Path, env: Env, overrides: &Overrides) -> Paths 
         } else {
             native.into_iter().chain(proton).collect()
         };
-        ordered.into_iter().find(|p| p.is_dir())
+        ordered
+            .into_iter()
+            .map(|p| links::through(&p))
+            .find(|p| p.is_dir())
     });
 
     Paths {
@@ -697,5 +718,19 @@ mod tests {
         fs::create_dir_all(game.join("Saves")).unwrap();
         assert!(judged(Folder::Config, &game).is_ok());
         assert!(judged(Folder::Workshop, &game).is_ok());
+    }
+
+    #[test]
+    fn a_settings_folder_typed_as_its_saves_is_the_folder_above() {
+        let home = tempfile::tempdir().unwrap();
+        let settings = home.path().join("settings");
+        fs::create_dir_all(settings.join("Saves")).unwrap();
+        let typed = settings.join("Saves");
+        assert!(judge(Os::Linux, Folder::Config, &typed).is_ok());
+        let overrides = Overrides {
+            config: Some(typed),
+            ..Overrides::default()
+        };
+        assert_eq!(detect(home.path(), &overrides).config, Some(settings));
     }
 }

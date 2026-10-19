@@ -5,6 +5,7 @@ pub mod diagnostics;
 pub mod elapsed;
 pub mod error;
 pub mod grouped;
+pub mod links;
 pub mod locks;
 pub mod markup;
 pub mod path_text;
