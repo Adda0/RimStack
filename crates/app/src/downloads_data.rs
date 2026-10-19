@@ -59,6 +59,10 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "downloadWanted"]
         fn download_wanted(self: Pin<&mut DownloadsData>);
+        /// Every installed SteamCMD-downloaded mod the Workshop has newer.
+        #[qinvokable]
+        #[cxx_name = "updateWithSteamcmd"]
+        fn update_with_steamcmd(self: Pin<&mut DownloadsData>);
         #[qinvokable]
         fn unsubscribe(self: Pin<&mut DownloadsData>, mod_id: i32);
         /// Steam must be running.

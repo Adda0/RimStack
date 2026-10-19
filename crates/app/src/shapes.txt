@@ -104,6 +104,15 @@ downloads.updates: object
       name: text
       now: number
   problem: nothing or text
+  steamcmd: list
+    []: object
+      active: bool
+      asked: bool
+      have: number
+      id: text
+      modId: number
+      name: text
+      now: number
 find.hits: list
   []: object
     file: text
