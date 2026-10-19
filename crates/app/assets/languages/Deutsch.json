@@ -1218,6 +1218,7 @@
  "cut short inside its header": "im Header abgeschnitten",
  "cut short: less than its first picture": "abgeschnitten: kleiner als ihr erstes Bild",
  "default": "Standard",
+ "defines or patches this def": "definiert dieses Def oder patcht es",
  "defs": "Defs",
  "detected from files": "aus Dateien erkannt",
  "downloaded {}": "geladen am {}",

@@ -368,6 +368,19 @@ impl LoadOrder {
             let flags = self.flags(app, library, side);
             self.list_mut(side).set_flags(flags);
         }
+        let known = app.conflicts().reading();
+        let defs_of = |i: ModId| -> Option<std::sync::Arc<[String]>> {
+            let scanned = known.as_ref()?.scanned.get(&i)?;
+            let mut names: Vec<String> = (scanned.defines.iter())
+                .map(|def| def.name.to_lowercase())
+                .collect();
+            names.extend((scanned.patched.iter()).map(|(name, _)| name.to_lowercase()));
+            names.sort_unstable();
+            names.dedup();
+            Some(names.into())
+        };
+        self.list_mut(Side::Active).set_defs(&defs_of);
+        self.list_mut(Side::Inactive).set_defs(&defs_of);
     }
 
     pub fn recheck(&mut self, app: &App) {
