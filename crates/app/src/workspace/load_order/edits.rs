@@ -3,7 +3,6 @@ use crate::App;
 use rimstack_core::base::error::Error;
 use rimstack_core::mods::library::ModId;
 use rimstack_core::mods::list::{Category, Mod, Row, edge_of_run};
-use rimstack_core::rimworld::modsconfig;
 
 impl LoadOrder {
     pub fn move_mod(&mut self, app: &App, side: Side, from: usize, to: usize) {
@@ -145,7 +144,7 @@ impl LoadOrder {
 
     pub fn save(&mut self, app: &App) -> Result<(), Error> {
         let saving = self.to_save(app)?;
-        modsconfig::write(&saving.file, &saving.written, &saving.expected)?;
+        app.write_list(&saving.file, &saving.written, &saving.expected)?;
         self.saved(app, saving.list);
         Ok(())
     }

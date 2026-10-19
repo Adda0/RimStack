@@ -318,6 +318,18 @@ impl App {
         *self.list_on_disk.held() = (0, false);
     }
 
+    pub fn write_list(
+        &self,
+        file: &Path,
+        ids: &[String],
+        expected: &[String],
+    ) -> rimstack_core::base::error::Result<()> {
+        let mut last = self.list_on_disk.held();
+        rimstack_core::rimworld::modsconfig::write(file, ids, expected)?;
+        *last = (rimstack_core::base::watch::changed_at(file), false);
+        Ok(())
+    }
+
     /// `0` while it holds that one.
     fn list_changed_outside(&self) -> u64 {
         let Some(file) = self.paths().mods_config() else {

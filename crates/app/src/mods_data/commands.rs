@@ -214,7 +214,7 @@ impl qobject::ModsData {
                 let snapshot = records
                     .then(|| worker.snapshot("@saving", &before))
                     .flatten();
-                let written = modsconfig::write(&saving.file, &saving.written, &saving.expected);
+                let written = worker.write_list(&saving.file, &saving.written, &saving.expected);
                 if written.is_ok() && records {
                     let said = say!("Saved the load order: {}", changes.inside());
                     worker.note_change(said, snapshot.as_deref());

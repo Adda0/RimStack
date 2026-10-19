@@ -150,6 +150,21 @@ fn saving_writes_the_load_order_and_marks_it_saved() {
     assert!(!app.session().is_dirty());
 }
 
+#[test]
+fn a_list_saved_here_is_never_taken_for_one_written_outside() {
+    let (_tmp, app) = installed();
+    let mut order = LoadOrder::read(&app, true, false);
+    order.take(&app, Side::Inactive, 0, None);
+    let saving = order.to_save(&app).unwrap();
+
+    app.write_list(&saving.file, &saving.written, &saving.expected)
+        .unwrap();
+    assert_eq!(app.stamps().mods_config, 0);
+    order.saved(&app, saving.list);
+
+    assert_eq!(app.stamps().mods_config, 0);
+}
+
 fn written_outside(tmp: &tempfile::TempDir, ids: &str) -> (std::path::PathBuf, String) {
     let file = tmp.path().join("config/Config/ModsConfig.xml");
     let text = format!("<ModsConfigData><activeMods>{ids}</activeMods></ModsConfigData>");
