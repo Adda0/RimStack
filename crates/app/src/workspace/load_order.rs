@@ -286,6 +286,20 @@ impl LoadOrder {
         rimstack_core::mods::describe::tally(&self.troubles).needed
     }
 
+    /// The Workshop ids of the mods the active ones need and nothing installed brings.
+    pub fn missing_workshop_ids(&self) -> Vec<String> {
+        use rimstack_core::mods::describe::Fix;
+        let mut ids: Vec<String> = (self.troubles.iter().flatten())
+            .filter_map(|t| match &t.fix {
+                Fix::Subscribe(id) => Some(id.clone()),
+                _ => None,
+            })
+            .collect();
+        ids.sort();
+        ids.dedup();
+        ids
+    }
+
     pub fn previewing(&self) -> bool {
         self.preview.is_some()
     }
