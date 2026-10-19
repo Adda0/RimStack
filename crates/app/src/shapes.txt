@@ -715,7 +715,8 @@ settings.report: object
       picture: text
   replacementsIgnored: list
     []: text
-  rimsortRules: bool
+  rimpy: bool
+  rimsort: bool
   selfCheck: bool
   setConfig: nothing or text
   setGame: nothing or text

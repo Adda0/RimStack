@@ -381,7 +381,7 @@ ApplicationWindow {
                 if (withData && (!Mods.overview.communityMods || !Mods.overview.worksOn))
                     Hub.settings.downloadCommunity()
                 if (withRimSort)
-                    Hub.settings.importRimSortRules()
+                    Hub.settings.importRimSort()
                 window.firstRun = false
                 Mods.startHints()
             }
