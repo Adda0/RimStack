@@ -1,6 +1,7 @@
 //! Active mods come first in each.
 
 use crate::mods::library::{Library, ModId};
+use crate::rimworld::paths::Source;
 use crate::sources::replacements::Replacement;
 use serde::Serialize;
 use std::cmp::Reverse;
@@ -27,6 +28,29 @@ pub fn items<'a>(library: &'a Library, active: &HashSet<ModId>) -> HashMap<&'a s
         .workshop_mods()
         .into_iter()
         .filter_map(named)
+        .collect()
+}
+
+/// The mods in the game's Mods folder recorded as put there by SteamCMD (`steamcmd.json`,
+/// default empty): keyed by their folder's name, the Workshop id. A plain copy of a Workshop
+/// mod keeps its `PublishedFileId.txt` but is left out, so an update never overwrites a copy
+/// the user made for a purpose of their own.
+pub fn steamcmd_items<'a>(
+    library: &'a Library,
+    active: &HashSet<ModId>,
+    fetched: &HashMap<String, u64>,
+) -> HashMap<&'a str, Item<'a>> {
+    library
+        .ids()
+        .filter(|(_, m)| m.source == Source::Local && fetched.contains_key(m.folder.as_str()))
+        .filter_map(|(mod_id, m)| {
+            let item = Item {
+                mod_id,
+                name: library.get(mod_id)?.display_name(),
+                active: active.contains(&mod_id),
+            };
+            Some((m.folder.as_str(), item))
+        })
         .collect()
 }
 

@@ -547,6 +547,7 @@ fn downloads(app: &App, shapes: &mut Shapes) {
         asked: Some(1),
         answered: 1,
         items: vec![behind(true), behind(false)],
+        steamcmd: vec![behind(true)],
         checkouts: vec![checkout],
         problem: Some(rimstack_core::said!("refused")),
     };

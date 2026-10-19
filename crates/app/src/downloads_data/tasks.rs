@@ -95,6 +95,27 @@ impl qobject::DownloadsData {
         self.ask_steam(SteamAsk::Download, ids);
     }
 
+    pub(super) fn update_with_steamcmd(mut self: Pin<&mut Self>) {
+        let ids: Vec<String> = self
+            .checked
+            .steamcmd
+            .iter()
+            .map(|row| row.id.clone())
+            .collect();
+        if ids.is_empty() {
+            return;
+        }
+        let kept = std::mem::take(&mut self.as_mut().rust_mut().get_mut().checked);
+        self.as_mut()
+            .show_updates(crate::workspace::downloads::Updates {
+                steamcmd: Vec::new(),
+                ..kept
+            });
+        let app = self.app();
+        let doing = say!("Updating {} with SteamCMD…", ids.len());
+        self.task(doing, move || app.download_with_steamcmd(&ids));
+    }
+
     pub(super) fn subscribe_wanted(self: Pin<&mut Self>) {
         let wanted = self
             .looked_up

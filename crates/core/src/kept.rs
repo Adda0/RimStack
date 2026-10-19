@@ -7,4 +7,5 @@ pub mod new_mods;
 pub mod notes;
 pub mod owntheme;
 pub mod settings;
+pub mod steamcmd;
 pub mod updates;

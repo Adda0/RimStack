@@ -4,6 +4,7 @@ use rimstack_core::base::error::Error;
 use rimstack_core::base::locks::Shared;
 use rimstack_core::base::sentence::Sentence;
 use rimstack_core::kept::settings::Switch;
+use rimstack_core::kept::steamcmd::Downloaded;
 use rimstack_core::kept::updates::{self, LastCheck, Remote};
 use rimstack_core::mods::library::{Installed, Library, ModId};
 use rimstack_core::rimworld::{paths::Source, workshop};
@@ -36,6 +37,8 @@ pub struct Updates {
     pub asked: Option<u64>,
     pub answered: usize,
     pub items: Vec<Behind>,
+    /// The SteamCMD-downloaded copies the Workshop has newer: SteamCMD updates these, not Steam.
+    pub steamcmd: Vec<Behind>,
     pub checkouts: Vec<Checkout>,
     pub problem: Option<Sentence>,
 }
@@ -57,6 +60,7 @@ pub struct UpdatesShown<'a> {
     pub count: usize,
     pub active: Vec<BehindShown<'a>>,
     pub inactive: Vec<BehindShown<'a>>,
+    pub steamcmd: Vec<BehindShown<'a>>,
     pub checkouts: &'a [Checkout],
     pub checkouts_behind: Vec<&'a Checkout>,
 }
@@ -83,6 +87,11 @@ pub fn updates_shown<'a>(updates: &'a Updates, asked: &HashSet<String>) -> Updat
         count: updates.items.len(),
         active: shown(true),
         inactive: shown(false),
+        steamcmd: updates
+            .steamcmd
+            .iter()
+            .map(|row| BehindShown { row, asked: false })
+            .collect(),
         checkouts: &updates.checkouts,
         checkouts_behind: updates.checkouts.iter().filter(|c| c.is_behind()).collect(),
     }
@@ -102,6 +111,27 @@ impl App {
         self.own_dir().join("updates.json")
     }
 
+    pub(crate) fn steamcmd_file(&self) -> PathBuf {
+        self.data_dir().join("steamcmd.json")
+    }
+
+    /// The mods SteamCMD put in the game's Mods folder, and when the Workshop's copy was last
+    /// no newer. Recorded on download: nothing is walked to find out.
+    pub fn steamcmd_downloaded(&self) -> Downloaded {
+        Downloaded::read(&self.steamcmd_file())
+    }
+
+    pub fn record_steamcmd_downloads(&self, ids: &[String]) {
+        let now = super::now_secs();
+        let mut kept = self.steamcmd_downloaded();
+        for id in ids {
+            kept.at.insert(id.clone(), now);
+        }
+        if let Err(problem) = kept.write(&self.steamcmd_file()) {
+            rimstack_core::problem!("{problem}");
+        }
+    }
+
     pub fn last_check(&self) -> LastCheck {
         LastCheck::read(&self.checked_file())
     }
@@ -117,11 +147,14 @@ impl App {
         let loaded = self.library();
         let (library, _) = loaded.as_ref().as_ref().map_err(Clone::clone)?;
         let mut kept = self.last_check();
-        let ids: Vec<String> = library
+        let downloaded = self.steamcmd_downloaded();
+        let mut ids: HashSet<String> = library
             .workshop_mods()
             .keys()
             .map(|id| id.to_string())
             .collect();
+        ids.extend(downloaded.at.keys().cloned());
+        let ids: Vec<String> = ids.into_iter().collect();
         let problem = match workshop::fetch_details(&ids) {
             Ok(now) => {
                 kept.checked = Some(super::now_secs());
@@ -166,14 +199,25 @@ impl App {
         let active = self.active_now(library);
         let items = downloads::items(library, &active);
         let behind = downloads::behind(&items, on_disk, &now);
+        let downloaded = self.steamcmd_downloaded();
+        let fetched: HashMap<String, u64> = downloaded.at.clone().into_iter().collect();
+        let copies = downloads::steamcmd_items(library, &active, &fetched);
+        let steamcmd = downloads::behind(&copies, &fetched, &now);
         if kept.checked.is_some() {
-            *self.behind().writing() = Some(behind.iter().map(|row| row.id.clone()).collect());
+            *self.behind().writing() = Some(
+                behind
+                    .iter()
+                    .chain(&steamcmd)
+                    .map(|row| row.id.clone())
+                    .collect(),
+            );
         }
         Updates {
             checked: kept.checked,
             asked: kept.asked,
             answered: now.len(),
             items: behind,
+            steamcmd,
             checkouts: self.checkouts_of(library, &kept.checkouts),
             problem: None,
         }
@@ -341,6 +385,55 @@ mod tests {
             updates_shown(&caught_up, &HashSet::new())
                 .checkouts_behind
                 .is_empty()
+        );
+    }
+
+    /// Only the SteamCMD record tells its downloads apart from copies made by hand, so an
+    /// update can never overwrite a copy the user made for a purpose of their own.
+    #[test]
+    fn a_steamcmd_download_is_behind_when_the_workshop_is_newer_than_its_download() {
+        let (tmp, app) = installed();
+        let mods = tmp.path().join("game/Mods");
+        let hand = mods.join("800/About");
+        std::fs::create_dir_all(&hand).unwrap();
+        std::fs::write(
+            hand.join("About.xml"),
+            "<ModMetaData><packageId>Jo.Hats</packageId><name>Hats</name></ModMetaData>",
+        )
+        .unwrap();
+        std::fs::write(hand.join("PublishedFileId.txt"), "800\n").unwrap();
+        let fetched = mods.join("700/About");
+        std::fs::create_dir_all(&fetched).unwrap();
+        std::fs::write(
+            fetched.join("About.xml"),
+            "<ModMetaData><packageId>Jo.Roads</packageId><name>Roads</name></ModMetaData>",
+        )
+        .unwrap();
+        std::fs::write(fetched.join("PublishedFileId.txt"), "700\n").unwrap();
+        app.rescan();
+        let loaded = app.library();
+        let (library, _) = loaded.as_ref().as_ref().unwrap();
+        let later = super::super::now_secs() + 100;
+        let said = LastCheck {
+            now: BTreeMap::from([("700".to_string(), later), ("800".to_string(), later)]),
+            ..LastCheck::default()
+        };
+        assert!(app.updates_of(library, &said).steamcmd.is_empty());
+
+        app.record_steamcmd_downloads(&["700".to_string(), "999".to_string()]);
+        let before = super::super::now_secs() - 100;
+        assert_eq!(
+            app.updates_of(library, &said).steamcmd.len(),
+            1,
+            "the copy made by hand is not the record's to update, and 999 is not installed"
+        );
+        let up = LastCheck {
+            now: BTreeMap::from([("700".to_string(), before)]),
+            ..LastCheck::default()
+        };
+        assert!(
+            app.updates_of(library, &up).steamcmd.is_empty(),
+            "the record was made after the Workshop's update"
         );
     }
 
