@@ -345,6 +345,37 @@ fn lists(app: &App, shapes: &mut Shapes) {
         "lists.idsInText",
         &rimstack_core::mods::share::ids_in("ludeon.rimworld\nann.a"),
     );
+    #[derive(serde::Serialize)]
+    #[serde(rename_all = "camelCase")]
+    struct FromFile {
+        ids: Vec<String>,
+        problem: rimstack_core::base::sentence::Sentence,
+    }
+    let here = tempfile::tempdir().unwrap();
+    let list_file = here.path().join("listed.xml");
+    write(
+        &list_file,
+        "<savedModList><meta><modIds><li>ludeon.rimworld</li></modIds></meta></savedModList>",
+    );
+    let ids_found = rimstack_core::mods::share_file::file(&list_file);
+    shapes.add(
+        "lists.idsInFile",
+        &FromFile {
+            ids: ids_found.unwrap(),
+            problem: Default::default(),
+        },
+    );
+    let refused = rimstack_core::mods::share_file::file(&here.path().join("no.txt"));
+    shapes.add(
+        "lists.idsInFile",
+        &FromFile {
+            ids: Vec::new(),
+            problem: refused
+                .err()
+                .map(|e| e.sentence().clone())
+                .unwrap_or_default(),
+        },
+    );
     shapes.add("lists.original", &app.original_list());
     shapes.add("lists.compareList", &app.compare_saved("mine"));
     // The same mods in another order fill "moved".

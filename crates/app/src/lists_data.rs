@@ -5,6 +5,8 @@ pub mod qobject {
         type QString = cxx_qt_lib::QString;
         include!("cxx-qt-lib/qvariant.h");
         type QVariant = cxx_qt_lib::QVariant;
+        include!("cxx-qt-lib/qurl.h");
+        type QUrl = cxx_qt_lib::QUrl;
     }
 
     extern "RustQt" {
@@ -45,6 +47,11 @@ pub mod qobject {
         #[cxx_name = "idsInText"]
         fn ids_in_text(self: &ListsData, text: &QString) -> QVariant;
 
+        /// The ids of a RimSort/RimPy XML, JSON or text list; `{ ids, problem }`, `problem` empty when read.
+        #[qinvokable]
+        #[cxx_name = "idsInFile"]
+        fn ids_in_file(self: &ListsData, chosen: &QUrl) -> QVariant;
+
         #[qinvokable]
         fn original(self: &ListsData) -> QVariant;
 
@@ -68,7 +75,7 @@ use crate::changes::Changes;
 use crate::qml::values::{from_qml, to_qml};
 use core::pin::Pin;
 use cxx_qt::{CxxQtType, Threading};
-use cxx_qt_lib::{QString, QVariant};
+use cxx_qt_lib::{QString, QUrl, QVariant};
 use rimstack_core::base::error::Error;
 use rimstack_core::say;
 use std::sync::Arc;
@@ -134,6 +141,33 @@ impl qobject::ListsData {
 
     fn ids_in_text(&self, text: &QString) -> QVariant {
         to_qml(&rimstack_core::mods::share::ids_in(&text.to_string()))
+    }
+
+    fn ids_in_file(&self, chosen: &QUrl) -> QVariant {
+        #[derive(serde::Serialize)]
+        #[serde(rename_all = "camelCase")]
+        struct From {
+            ids: Vec<String>,
+            /// Empty when the file read as a list.
+            problem: rimstack_core::base::sentence::Sentence,
+        }
+        let Some(path) = chosen.to_local_file() else {
+            return to_qml(&From {
+                ids: Vec::new(),
+                problem: say!("That is not a file here."),
+            });
+        };
+        let found =
+            rimstack_core::mods::share_file::file(&std::path::PathBuf::from(path.to_string()));
+        let answer = From {
+            ids: found.as_ref().map_or_else(|_| Vec::new(), Clone::clone),
+            problem: found
+                .err()
+                .map_or_else(rimstack_core::base::sentence::Sentence::default, |e| {
+                    e.sentence().clone()
+                }),
+        };
+        to_qml(&answer)
     }
 
     fn original(&self) -> QVariant {
