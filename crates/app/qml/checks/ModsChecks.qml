@@ -41,10 +41,11 @@ Item {
             if (!Hub.mods.filesRead)
                 return
             stop()
-            if (Mods.checkMode === "screens") {
-                const made = Qt.createComponent("qrc:/qt/qml/RimStack/Ui/qml/checks/ScreensChecks.qml")
+            const page = ({ screens: "ScreensChecks", lists: "ListsChecks" })[Mods.checkMode]
+            if (page) {
+                const made = Qt.createComponent("qrc:/qt/qml/RimStack/Ui/qml/checks/" + page + ".qml")
                 if (made.status !== Component.Ready) {
-                    console.log("check FAIL the screen checks did not load: " + made.errorString())
+                    console.log("check FAIL " + page + " did not load: " + made.errorString())
                     Qt.exit(1)
                 }
                 made.createObject(checks, { window: checks.Window.window })
@@ -355,7 +356,7 @@ Item {
         check("within what a column may take", Mods.columns.chosenWidths.author === 420)
         Mods.prefs.columnSizes = sizesBefore
         const listed = Mods.columns.menu()
-        check("the column menu lists every column, the shown ones marked", listed.length === 3 && listed[0].text.startsWith("✓"))
+        check("the column menu lists every column, the shown ones marked", listed.length === 4 && listed[0].text.startsWith("✓"))
 
         const subRows = () => { let n = 0; for (let r = 0; r < Mods.active.rows(); r++) if (Mods.active.at(r).isSub === true) n += 1; return n }
         const before = subRows()
@@ -465,7 +466,7 @@ Item {
             Hub.mods.undo()
         check("which one Undo takes back", order() === unmoved)
         Mods.select(-1, false)
-        Mods.prefs.inactiveByName = true
+        Mods.prefs.inactiveOrder = "name"
         Mods.prefs.headings = 0
         check("a save is written off the window's thread", Mods.save(() => { check("the changed list is saved", !Hub.mods.dirty && Mods.saveProblem === ""); Qt.exit(failed > 0 ? 1 : 0) }) && Hub.mods.saving)
     }
