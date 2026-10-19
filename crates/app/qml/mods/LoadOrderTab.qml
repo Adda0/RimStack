@@ -34,6 +34,11 @@ Column {
             spacing: Theme.gap
             Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: own.modelData.said }
             Btn {
+                icon: "copy"
+                tip: Theme.say("Copies this rule in the community rules format, to send upstream.")
+                onClicked: Theme.copy(own.modelData.community)
+            }
+            Btn {
                 icon: "x"
                 tip: Theme.say("Remove this rule")
                 onClicked: Hub.mods.removeRule(own.modelData.first, own.modelData.then)
@@ -82,6 +87,12 @@ Column {
                 color: Theme.ink3
                 font.pixelSize: Theme.small
                 text: found.modelData.code ? found.modelData.why : Theme.fill("{}  (a hint; the game does not need this order)", found.modelData.why)
+            }
+            Btn {
+                visible: found.modelData.code
+                icon: "copy"
+                text: Theme.say("Copy in the community rules format")
+                onClicked: Theme.copy(found.modelData.community)
             }
         }
     }
