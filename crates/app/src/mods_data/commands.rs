@@ -179,6 +179,70 @@ impl qobject::ModsData {
         }
     }
 
+    pub(super) fn export_csv(mut self: Pin<&mut Self>, chosen: &QUrl) {
+        let Some(given) = chosen.to_local_file() else {
+            let said = crate::words::said(&say!("That is not a file here."));
+            return self.as_mut().told(said, QString::from("err"));
+        };
+        let app = self.app();
+        let loaded = app.library();
+        let Ok((library, _)) = &*loaded else {
+            let said = crate::words::said(&say!("The mods are not read yet."));
+            return self.as_mut().told(said, QString::from("err"));
+        };
+        let rows: Vec<rimstack_core::mods::share_file::Row> = self
+            .rust()
+            .order
+            .list(Side::Active)
+            .mods()
+            .iter()
+            .filter_map(|m| {
+                let installed = library.get(m.installed?)?;
+                let about = installed.about.as_ref().ok();
+                Some(rimstack_core::mods::share_file::Row {
+                    name: installed.display_name().to_string(),
+                    author: about.map(|a| a.authors.join(", ")).unwrap_or_default(),
+                    package_id: about.map(|a| a.package_id.clone()).unwrap_or_default(),
+                    file_id: (installed.source == rimstack_core::rimworld::paths::Source::Workshop)
+                        .then(|| installed.folder.clone())
+                        .unwrap_or_default(),
+                    supported: about
+                        .map(|a| a.supported_versions.clone())
+                        .unwrap_or_default(),
+                    downloaded: installed.downloaded,
+                    updated: m.updated,
+                    source: installed.source_label().to_string(),
+                    path: installed.path.to_string_lossy().into_owned(),
+                    url: about.and_then(|a| a.url.clone()).unwrap_or_default(),
+                })
+            })
+            .collect();
+        let mut path = std::path::PathBuf::from(given.to_string());
+        if path.extension().is_none() {
+            path.set_extension("csv");
+        }
+        let said = rimstack_core::base::atomic_file::write(
+            &path,
+            rimstack_core::mods::share_file::csv(&rows),
+        );
+        match said {
+            Ok(()) => {
+                let note = say_n!(
+                    rows.len(),
+                    "The active mod as CSV in {}",
+                    "{} active mods as CSV in {}",
+                    path.display()
+                );
+                let said = crate::words::said(&note);
+                self.as_mut().told(said, QString::from("ok"));
+            }
+            Err(problem) => {
+                let said = crate::words::said_of(&problem);
+                self.as_mut().told(said, QString::from("err"));
+            }
+        }
+    }
+
     pub(super) fn keep_file(mut self: Pin<&mut Self>, take: bool) {
         let app = self.app();
         self.as_mut().order_mut().keep_file(&app, take);

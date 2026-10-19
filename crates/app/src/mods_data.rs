@@ -240,6 +240,10 @@ pub mod qobject {
         fn find_mods(self: &ModsData, text: &QString, most: i32) -> QVariant;
         #[qinvokable]
         fn listing(self: &ModsData) -> QString;
+        /// Writes the active list as RimSort's CSV; tells how it went.
+        #[qinvokable]
+        #[cxx_name = "exportCsv"]
+        fn export_csv(self: Pin<&mut ModsData>, chosen: &QUrl);
         /// `[{ name, moves: [{ name, from, to, modId, why }] }]`.
         #[qinvokable]
         #[cxx_name = "sortMoves"]
