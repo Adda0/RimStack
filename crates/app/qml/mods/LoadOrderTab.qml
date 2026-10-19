@@ -15,6 +15,7 @@ Column {
         font.pixelSize: Theme.body
         text: Mods.selectedActive ? Theme.fill(Mods.info.category ? "{} of {}, in {}" : "{} of {}", Mods.active.indexOf(Mods.selectedId) + 1, Mods.active.count, Theme.say(Mods.info.category || "")) : Theme.say("Not active")
     }
+    Toggle { visible: Mods.selectedActive; title: Theme.say("Pinned: Sort leaves it here"); on: !!Mods.info.pinned; onFlipped: Hub.mods.pin(Mods.selectedIds, !Mods.info.pinned) }
     NameList { width: parent.width; title: Theme.say("Requires"); lines: Mods.info.requires || [] }
     NameList { width: parent.width; title: Theme.say("Needed by"); lines: Mods.info.neededBy || [] }
     Btn {

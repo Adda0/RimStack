@@ -318,6 +318,7 @@ mods.details: object
   patches: list
     []: never seen
   path: text
+  pinned: bool
   placement: nothing
   preview: nothing or text
   problems: list
@@ -435,6 +436,7 @@ mods.detailsOf: object
   patches: list
     []: never seen
   path: text
+  pinned: bool
   placement: nothing
   preview: nothing or text
   problems: list

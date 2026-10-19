@@ -92,6 +92,8 @@ pub fn sorted_by_category(
         *group /= per_category;
     }
     let before: Vec<Category> = mods.iter().map(|m| m.category).collect();
+    let pinned: Vec<bool> = mods.iter().map(|m| m.pinned).collect();
+    sorted.order = sort::keep_pinned(&sorted.order, &pinned);
     for (m, &group) in mods.iter_mut().zip(&sorted.groups) {
         m.category = Category::ALL[group];
     }
@@ -280,5 +282,27 @@ mod tests {
             (mods[0].category, mods[0].held_by.as_str()),
             (Category::Interface, "")
         );
+    }
+
+    #[test]
+    fn sort_leaves_a_pinned_mod_where_it_is_and_sorts_the_rest_around_it() {
+        let (_tmp, library) = four_mods();
+        let own = yours(&[("t.d", "t.a"), ("t.c", "t.b")]);
+        let sources = Sources {
+            yours: &own,
+            community: None,
+            from_files: &[],
+            hints: false,
+        };
+        let names = |mods: &[Mod], order: &[usize]| -> Vec<String> {
+            order.iter().map(|&i| mods[i].name.clone()).collect()
+        };
+        let mods = library.active.clone();
+        let (mods, sorted) = sorted_by_category(&library, mods, sources);
+        assert_eq!(names(&mods, &sorted.order), ["c", "b", "d", "a"]);
+        let mut mods = library.active.clone();
+        mods[0].pinned = true;
+        let (mods, sorted) = sorted_by_category(&library, mods, sources);
+        assert_eq!(names(&mods, &sorted.order), ["a", "c", "b", "d"]);
     }
 }
