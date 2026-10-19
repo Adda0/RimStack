@@ -492,6 +492,11 @@ impl qobject::ModsData {
             self.qt_thread(),
             move |_| LoadOrder::read(&app, headings, by_name),
             move |mut me, mut order| {
+                let app = me.app();
+                order.set_headings(&app, me.headings);
+                if order.by_name() != me.by_name {
+                    order.set_by_name(&app, me.by_name);
+                }
                 order.set_filter(&me.filter.to_string());
                 me.as_mut().rust_mut().get_mut().order = order;
                 me.as_mut().set_rescanning(false);

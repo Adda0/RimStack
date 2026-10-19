@@ -57,5 +57,10 @@ Rectangle {
     }
     HoverHandler { id: btnHover }
     Tip { text: btn.bare && btn.tip === "" ? btn.text : btn.tip; over: btnHover.hovered || btn.activeFocus }
-    TapHandler { id: btnPress; onTapped: btn.clicked() }
+    TapHandler {
+        id: btnPress
+        gesturePolicy: TapHandler.ReleaseWithinBounds
+        grabPermissions: PointerHandler.CanTakeOverFromAnything | PointerHandler.ApprovesTakeOverByItems
+        onTapped: btn.clicked()
+    }
 }

@@ -176,6 +176,7 @@ Item {
         }
         const order = () => { const ids = []; for (let i = 0; i < Mods.active.count; i++) ids.push(Mods.nthMod(Mods.active, i)); return ids.join(",") }
         if (Mods.checkMode === "restore") {
+            check("the order chosen before the restart is shown", Mods.inactive.rows() === Mods.inactive.count && Mods.active.rows() === Mods.active.count)
             Hub.mods.moveMod(true, 3, 0)
             Mods.save(() => { check("moved back and saved", !Hub.mods.dirty); Qt.exit(failed > 0 ? 1 : 0) })
             return
@@ -419,6 +420,8 @@ Item {
             Hub.mods.undo()
         check("which one Undo takes back", order() === unmoved)
         Mods.select(-1, false)
+        Mods.prefs.inactiveByName = true
+        Mods.prefs.headings = 0
         check("a save is written off the window's thread", Mods.save(() => { check("the changed list is saved", !Hub.mods.dirty && Mods.saveProblem === ""); Qt.exit(failed > 0 ? 1 : 0) }) && Hub.mods.saving)
     }
 
