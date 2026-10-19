@@ -194,8 +194,20 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "activateFresh"]
         fn activate_fresh(self: Pin<&mut ModsData>);
+        /// Takes the way to delete it: the whole mod, its files but the DDS textures,
+        /// the DDS textures alone, or the whole mod and a subscription again.
         #[qinvokable]
-        fn bin(self: Pin<&mut ModsData>, mod_id: i32);
+        #[cxx_name = "binKind"]
+        fn bin_kind(self: Pin<&mut ModsData>, mod_id: i32, kind: i32);
+        #[qinvokable]
+        #[cxx_name = "binTitle"]
+        fn bin_title(self: &ModsData, mod_id: i32, kind: i32) -> QString;
+        #[qinvokable]
+        #[cxx_name = "binNote"]
+        fn bin_note(self: &ModsData, mod_id: i32, kind: i32) -> QString;
+        #[qinvokable]
+        #[cxx_name = "binLabel"]
+        fn bin_label(self: &ModsData, kind: i32) -> QString;
         #[qinvokable]
         #[cxx_name = "copyToLocal"]
         fn copy_to_local(self: Pin<&mut ModsData>, mod_id: i32);

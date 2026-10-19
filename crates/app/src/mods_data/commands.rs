@@ -530,16 +530,48 @@ impl qobject::ModsData {
         ));
     }
 
-    pub(super) fn bin(mut self: Pin<&mut Self>, mod_id: i32) {
+    pub(super) fn bin_kind(mut self: Pin<&mut Self>, mod_id: i32, kind: i32) {
+        use crate::workspace::upkeep::{BIN_DDS_ONLY, BIN_KEEP_DDS, BIN_RESUBSCRIBE};
         let Some(id) = id(mod_id) else {
             return;
         };
-        let binned = self.app().bin_mod(id);
+        let app = self.app();
+        let done = match kind {
+            BIN_KEEP_DDS => app.bin_except_dds(id).map(|_| ()),
+            BIN_DDS_ONLY => app.remove_dds(id).map(|_| ()),
+            BIN_RESUBSCRIBE => app.bin_and_resubscribe(id),
+            _ => app.bin_mod(id),
+        };
         self.as_mut()
-            .set_upkeep_problem(crate::words::why_not(&binned));
-        if binned.is_ok() {
+            .set_upkeep_problem(crate::words::why_not(&done));
+        if done.is_ok() {
             self.rescan();
         }
+    }
+
+    pub(super) fn bin_title(&self, mod_id: i32, kind: i32) -> QString {
+        self.bin_words(mod_id, kind, |title, _| title)
+    }
+
+    pub(super) fn bin_note(&self, mod_id: i32, kind: i32) -> QString {
+        self.bin_words(mod_id, kind, |_, note| note)
+    }
+
+    fn bin_words(
+        &self,
+        mod_id: i32,
+        kind: i32,
+        pick: impl Fn(Sentence, Sentence) -> Sentence,
+    ) -> QString {
+        let Some(id) = id(mod_id) else {
+            return QString::default();
+        };
+        let (title, note) = self.app().bin_prompt(id, kind);
+        crate::words::said(&pick(title, note))
+    }
+
+    pub(super) fn bin_label(&self, kind: i32) -> QString {
+        crate::words::said(&crate::workspace::upkeep::bin_label(kind))
     }
 
     pub(super) fn copy_to_local(mut self: Pin<&mut Self>, mod_id: i32) {

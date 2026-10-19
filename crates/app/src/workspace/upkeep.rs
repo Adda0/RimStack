@@ -2,9 +2,11 @@
 
 use super::App;
 use rimstack_core::base::error::Error;
+use rimstack_core::base::sentence::Sentence;
 use rimstack_core::mods::library::{Installed, ModId};
 use rimstack_core::rimworld::paths::Source;
-use rimstack_core::said;
+use rimstack_core::{said, say, say_n};
+use serde::Serialize;
 use std::path::PathBuf;
 
 impl App {
@@ -22,6 +24,47 @@ impl App {
     pub fn bin_mod(&self, id: ModId) -> Result<(), Error> {
         let folder = self.bin_target(id)?;
         trash::delete(&folder).map_err(|problem| Error::file(&folder, problem))
+    }
+
+    /// The DDS textures stay where they are, so a resubscribed Workshop mod reads them
+    /// again without converting anything.
+    pub fn bin_except_dds(&self, id: ModId) -> Result<usize, Error> {
+        let folder = self.bin_target(id)?;
+        let files = rimstack_core::sources::maintenance::files_except_dds(&folder);
+        let gone = files.len();
+        trash::delete_all(&files).map_err(|problem| Error::file(&folder, problem))?;
+        Ok(gone)
+    }
+
+    /// Only the DDS files RimStack made: the game goes back to loading the PNGs.
+    pub fn remove_dds(&self, id: ModId) -> Result<usize, Error> {
+        let folder = self.installed_mod(id, |m| m.path.clone())?;
+        let file = self.texture_manifest_file();
+        let mut manifest = rimstack_core::mods::textures::Manifest::read(&file);
+        let removed = rimstack_core::mods::textures::remove(&folder, &mut manifest);
+        manifest
+            .write(&file)
+            .map_err(|problem| Error::file(&file, problem))?;
+        self.textures_changed();
+        Ok(removed)
+    }
+
+    /// Steam drops the copy in its own hands only after the unsubscription, so that
+    /// comes first; the subscription it is sent next downloads the mod anew.
+    pub fn bin_and_resubscribe(&self, id: ModId) -> Result<(), Error> {
+        let workshop = self.workshop_id(id).ok_or_else(|| {
+            Error::refused(said!("Only a Workshop mod is downloaded again by Steam"))
+        })?;
+        let folder = self.bin_target(id)?;
+        trash::delete(&folder).map_err(|problem| Error::file(&folder, problem))?;
+        let ids = std::slice::from_ref(&workshop);
+        let unsubscribed = self
+            .ask_steam(super::fetch::SteamAsk::Unsubscribe, ids)
+            .note;
+        std::thread::sleep(std::time::Duration::from_secs(1));
+        let subscribed = self.ask_steam(super::fetch::SteamAsk::Subscribe, ids).note;
+        unsubscribed?;
+        subscribed.map(|_| ())
     }
 
     /// The game's own mods and those in the load order being edited are refused, but for a
@@ -50,6 +93,98 @@ impl App {
             .ok_or_else(|| Error::refused(said!("The game's folder is not known")))?;
         let from = self.installed_mod(id, |m| m.path.clone())?;
         rimstack_core::sources::maintenance::copy_to_local(&from, &local)
+    }
+
+    /// The title and the note of the prompt that confirms `kind` for this mod.
+    pub fn bin_prompt(&self, id: ModId, kind: i32) -> (Sentence, Sentence) {
+        let made = self
+            .installed_mod(id, |m| self.texture_manifest().made_in(&m.path))
+            .unwrap_or(0);
+        let name = self
+            .installed_mod(id, |m| m.display_name().to_string())
+            .unwrap_or_default();
+        (bin_title(kind, &name), bin_note(kind, made))
+    }
+}
+
+pub const BIN_WHOLE: i32 = 0;
+pub const BIN_KEEP_DDS: i32 = 1;
+pub const BIN_DDS_ONLY: i32 = 2;
+pub const BIN_RESUBSCRIBE: i32 = 3;
+
+/// One way to delete a mod, as its menu offers it; `kind` is what the window sends back.
+#[derive(Serialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct BinChoice {
+    kind: i32,
+    text: Sentence,
+    icon: &'static str,
+}
+
+fn choice(kind: i32, text: Sentence, icon: &'static str) -> BinChoice {
+    BinChoice { kind, text, icon }
+}
+
+/// The whole mod is offered only where it may go; the DDS files only where some were made.
+pub fn bin_choices(made: usize, workshop: bool, whole: bool) -> Vec<BinChoice> {
+    let mut choices = Vec::new();
+    if whole {
+        choices.push(choice(BIN_WHOLE, say!("Move to the bin…"), "trash-2"));
+        choices.push(choice(
+            BIN_KEEP_DDS,
+            say!("Delete its files, but keep the .dds textures…"),
+            "trash-2",
+        ));
+    }
+    if made > 0 {
+        choices.push(choice(
+            BIN_DDS_ONLY,
+            say!("Delete the .dds textures…"),
+            "image",
+        ));
+    }
+    if whole && workshop {
+        choices.push(choice(
+            BIN_RESUBSCRIBE,
+            say!("Delete and subscribe again…"),
+            "download",
+        ));
+    }
+    choices
+}
+
+pub fn bin_title(kind: i32, name: &str) -> Sentence {
+    match kind {
+        BIN_KEEP_DDS => say!("Delete the files of {} but keep its .dds textures", name),
+        BIN_DDS_ONLY => say!("Delete the .dds textures of {}", name),
+        BIN_RESUBSCRIBE => say!("Delete {} and subscribe to it again", name),
+        _ => say!("Move to the bin: {}", name),
+    }
+}
+
+pub fn bin_note(kind: i32, made: usize) -> Sentence {
+    match kind {
+        BIN_KEEP_DDS => say!(
+            "Everything but its .dds textures goes to the bin, so the mod stops being listed; the textures stay for the copy Steam downloads again."
+        ),
+        BIN_DDS_ONLY => say_n!(
+            made,
+            "{} texture RimStack made is removed, and the game loads the .png instead.",
+            "{} textures RimStack made are removed, and the game loads the .png instead."
+        ),
+        BIN_RESUBSCRIBE => {
+            say!("Its folder goes to the bin, and Steam downloads the mod again.")
+        }
+        _ => say!("Steam downloads a Workshop mod again while you stay subscribed to it."),
+    }
+}
+
+pub fn bin_label(kind: i32) -> Sentence {
+    match kind {
+        BIN_KEEP_DDS => say!("Delete the files"),
+        BIN_DDS_ONLY => say!("Delete the textures"),
+        BIN_RESUBSCRIBE => say!("Delete and subscribe again"),
+        _ => say!("Move to the bin"),
     }
 }
 

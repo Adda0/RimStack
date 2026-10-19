@@ -187,11 +187,10 @@ Item {
     property Binding inactiveReversedHeld: Binding { target: Hub.mods; property: "inactiveReversed"; value: mods.prefs.inactiveReversed }
     property Binding selectedHeld: Binding { target: Hub.mods; property: "selected"; value: mods.selectedId }
 
-    signal binRequested(string name, string folder, int modId)
+    signal binRequested(int modId, int kind, string folder)
 
     readonly property string upkeepProblem: Hub.mods.upkeepProblem
     function copyToLocal(modId) { Hub.mods.copyToLocal(modId) }
-    function binMod(modId) { Hub.mods.bin(modId) }
 
     readonly property Columns columns: Columns {
         prefs: mods.prefs
