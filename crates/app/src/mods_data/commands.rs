@@ -3,7 +3,7 @@ use crate::App;
 use crate::workspace::load_order::Side;
 use core::pin::Pin;
 use cxx_qt::{CxxQtType, Threading};
-use cxx_qt_lib::{QString, QVariant};
+use cxx_qt_lib::{QString, QUrl, QVariant};
 use rimstack_core::base::sentence::Sentence;
 use rimstack_core::mods::library::ModId;
 use rimstack_core::rimworld::modsconfig;
@@ -587,6 +587,56 @@ impl qobject::ModsData {
             |mut me, problem| match problem {
                 Some(problem) => me.set_upkeep_problem(crate::words::said_of(&problem)),
                 None => me.as_mut().rescan(),
+            },
+        );
+    }
+
+    pub(super) fn install_zip(self: Pin<&mut Self>, chosen: &QUrl) {
+        // A file:// URL and a bare path are taken; anything else is refused.
+        let file = chosen.to_local_file().map(|local| local.to_string());
+        let file = match file.filter(|local| !local.is_empty()) {
+            Some(local) => local,
+            None if chosen.scheme().is_none_or(|scheme| scheme.is_empty()) => {
+                chosen.to_display_string().to_string()
+            }
+            None => {
+                self.told(
+                    crate::words::said(&say!(
+                        "{} is not a file on this computer",
+                        chosen.to_display_string()
+                    )),
+                    QString::from("err"),
+                );
+                return;
+            }
+        };
+        // A .rar or folder? The unpacker says no; cheaper than a full open.
+        if !file.to_lowercase().ends_with(".zip") {
+            self.told(
+                crate::words::said(&say!("{} is not a .zip", file)),
+                QString::from("err"),
+            );
+            return;
+        }
+        let path = std::path::PathBuf::from(file);
+        let app = self.app();
+        crate::jobs::run(
+            "install a mod from a zip",
+            self.qt_thread(),
+            move || app.install_zip(&path),
+            |mut me, landed| match landed {
+                Ok(folder) => {
+                    let name = folder
+                        .file_name()
+                        .map(|name| name.to_string_lossy().into_owned())
+                        .unwrap_or_default();
+                    me.as_mut().told(
+                        crate::words::said(&say!("{} is now with the local mods", name)),
+                        QString::from("ok"),
+                    );
+                    me.as_mut().rescan();
+                }
+                Err(problem) => me.told(crate::words::said_of(&problem), QString::from("err")),
             },
         );
     }
