@@ -103,8 +103,9 @@ with open(path, "wb") as out:
 PY
 }
 for m in first second; do
-    mkdir -p "$game/Mods/$m/About" "$game/Mods/$m/Textures/Things"
+    mkdir -p "$game/Mods/$m/About" "$game/Mods/$m/Defs" "$game/Mods/$m/Textures/Things"
     printf '<ModMetaData><name>%s</name><packageId>check.%s</packageId><supportedVersions><li>1.6</li></supportedVersions></ModMetaData>' "$m" "$m" > "$game/Mods/$m/About/About.xml"
+    printf '<Defs><ThingDef Name="SharedBase" Abstract="True"><thingClass>Building</thingClass></ThingDef><ThingDef ParentName="SharedBase"><defName>Shared_Thing</defName></ThingDef><TerrainDef><defName>Shared_Thing</defName></TerrainDef></Defs>' > "$game/Mods/$m/Defs/Things.xml"
     picture "$game/Mods/$m/Textures/Things/Shared.png" $([ $m = first ] && echo 255 0 0 || echo 0 0 255)
 done
 echo "1.6.4871 rev598" > "$game/Version.txt"

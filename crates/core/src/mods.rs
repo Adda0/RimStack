@@ -6,6 +6,7 @@ pub mod columns;
 pub mod community;
 pub mod conflicts;
 pub mod ddsaudit;
+pub mod defs;
 pub mod demo;
 pub mod describe;
 pub mod details;

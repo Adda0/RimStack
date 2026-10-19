@@ -124,6 +124,8 @@ Item {
         const a = Mods.nthMod(Mods.active, 0), b = Mods.nthMod(Mods.active, 1)
         Mods.select(a, true)
         textureCheck("two mods that share a texture are in conflict", ((Mods.info.losesTo || [])[0] || {}).modId === b)
+        const clashing = ((Mods.info.defsReplacedBy || [])[0] || {})
+        textureCheck("two mods defining the same def are said to clash, the later winning", clashing.modId === b && clashing.defs === 2 && clashing.some.indexOf("Shared_Thing") >= 0)
         const tools = Hub.textures
         tools.compare(a, b)
         let shared = tools.shared

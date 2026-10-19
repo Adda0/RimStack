@@ -19,6 +19,7 @@ pub struct Counts {
     pub errors: usize,
     pub warnings: usize,
     pub conflicts: usize,
+    pub defclashes: usize,
     pub behind: usize,
 }
 
@@ -41,6 +42,15 @@ fn terms(counts: Counts) -> Vec<(&'static str, Sentence)> {
                 "{} mod sharing textures",
                 "{} mods sharing textures",
                 counts.conflicts
+            ),
+        ),
+        (
+            "is:defclash",
+            say_n!(
+                counts.defclashes,
+                "{} mod defining a def an active one also defines",
+                "{} mods defining a def an active one also defines",
+                counts.defclashes
             ),
         ),
         ("is:changed", say!("moved or activated since the last save")),
