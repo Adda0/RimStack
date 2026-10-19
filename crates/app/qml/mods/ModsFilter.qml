@@ -18,6 +18,8 @@ FilterField {
     }
     onEditingChanged: suggestions.shut = false
     onEscaped: suggestions.shut = true
+    // A click into the field offers again what a click away put away; focus alone does not change.
+    onTapped: suggestions.shut = false
     // Enter takes the offer chosen with the arrows; without offers it is the field's own.
     onAccepted: suggesting && filter.take(offers.itemAt(suggestions.chosen).modelData.term)
     Keys.enabled: suggesting

@@ -33,6 +33,7 @@ Rectangle {
     property bool syncing: false
     signal accepted()
     signal escaped()
+    signal tapped()
     function focusInput() { fieldInput.forceActiveFocus() }
     readonly property bool editing: fieldInput.activeFocus
 
@@ -117,6 +118,8 @@ Rectangle {
         selectionColor: Theme.accent
         font.pixelSize: Theme.body
         clip: true
+        // On the input itself: it takes the press, so a handler on the field would not see it.
+        TapHandler { onTapped: field.tapped() }
         onTextChanged: {
             if (field.syncing)
                 return
