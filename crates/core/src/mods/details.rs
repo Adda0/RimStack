@@ -233,6 +233,7 @@ mod tests {
             patched: Default::default(),
             sub: String::new(),
             colour: String::new(),
+            pinned: false,
             load_micros: None,
             updated: None,
             downloaded: None,

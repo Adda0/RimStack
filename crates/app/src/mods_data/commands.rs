@@ -415,6 +415,17 @@ impl qobject::ModsData {
         }
     }
 
+    pub(super) fn pin(mut self: Pin<&mut Self>, given: &QVariant, on: bool) {
+        let Some(ids) = ids(given) else {
+            return self.refuse_list();
+        };
+        let app = self.app();
+        if app.set_pinned(&ids, on) {
+            self.as_mut().order_mut().sync(&app);
+            self.show();
+        }
+    }
+
     pub(super) fn file_under(mut self: Pin<&mut Self>, mod_id: i32, label: &QString) {
         let Some(id) = id(mod_id) else {
             return;

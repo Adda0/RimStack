@@ -97,6 +97,17 @@ pub fn sort_grouped(groups: &[usize], bottom_group: usize, rules: &[Rule]) -> So
     }
 }
 
+/// `order` with each pinned mod back at its own place, the others in their order around them.
+pub fn keep_pinned(order: &[usize], pinned: &[bool]) -> Vec<usize> {
+    let mut others = order.iter().copied().filter(|&m| !pinned[m]);
+    (0..order.len())
+        .map(|at| match pinned[at] {
+            true => at,
+            false => others.next().expect("as many places as mods left"),
+        })
+        .collect()
+}
+
 /// Returns a place from 0 (first) to `count` (last).
 pub fn place(
     preferred: usize,

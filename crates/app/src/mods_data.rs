@@ -152,6 +152,9 @@ pub mod qobject {
         /// Paints the rows of these mods with a swatch, by its name; "" takes the colour off.
         #[qinvokable]
         fn paint(self: Pin<&mut ModsData>, ids: &QVariant, name: &QString);
+        /// Sort leaves these mods where they are, or no longer.
+        #[qinvokable]
+        fn pin(self: Pin<&mut ModsData>, ids: &QVariant, on: bool);
         #[qinvokable]
         #[cxx_name = "keepDrafts"]
         fn keep_drafts(self: Pin<&mut ModsData>);
