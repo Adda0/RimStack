@@ -7,6 +7,7 @@ import RimStack.Ui
 
 Item {
     id: checks
+    property var window
 
     Component.onCompleted: checks.runListsChecks()
 
