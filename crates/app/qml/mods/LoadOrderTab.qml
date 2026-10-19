@@ -16,6 +16,12 @@ Column {
         text: Mods.selectedActive ? Theme.fill(Mods.info.category ? "{} of {}, in {}" : "{} of {}", Mods.active.indexOf(Mods.selectedId) + 1, Mods.active.count, Theme.say(Mods.info.category || "")) : Theme.say("Not active")
     }
     NameList { width: parent.width; title: Theme.say("Requires"); lines: Mods.info.requires || [] }
+    NameList { width: parent.width; title: Theme.say("Needed by"); lines: Mods.info.neededBy || [] }
+    Btn {
+        visible: (Mods.info.offWith || []).length > 0
+        text: Theme.plural((Mods.info.offWith || []).length - 1, "Switch off, with the {} mod needing it", "Switch off, with the {} mods needing it")
+        onClicked: Hub.mods.takeAll(true, Mods.info.offWith)
+    }
     GroupTitle { visible: Mods.selectedActive; text: Theme.say("Own rules") }
     Repeater {
         model: Mods.selectedActive ? (Mods.info.yourRules || []) : []

@@ -31,6 +31,23 @@ pub fn required(requirements: Vec<(String, bool)>) -> Vec<Named> {
     requirements.into_iter().map(one).collect()
 }
 
+/// The mods requiring this one, the ones not in `active` saying so.
+pub fn needed_by(needing: Vec<(String, ModId)>, active: &[Mod]) -> Vec<Named> {
+    let one = |(name, id): (String, ModId)| {
+        let on = active.iter().any(|m| m.installed == Some(id));
+        Named {
+            name,
+            note: match on {
+                true => Sentence::default(),
+                false => say!("switched off"),
+            },
+            trouble: false,
+            mod_id: Some(id),
+        }
+    };
+    needing.into_iter().map(one).collect()
+}
+
 /// Compared as numbers, so 1.10 is newer than 1.9.
 pub fn newest(versions: &[String]) -> Option<&str> {
     let parts = |v: &str| -> Vec<u32> { v.split('.').map(|p| p.parse().unwrap_or(0)).collect() };
