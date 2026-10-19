@@ -150,7 +150,8 @@ pub struct Details {
     required_above: usize,
     placement: Option<Sentence>,
     offer_trust: bool,
-    can_bin: bool,
+    /// The ways it may be deleted, the whole mod first; empty for the game's own.
+    bin_choices: Vec<crate::workspace::upkeep::BinChoice>,
     group_choices: Vec<String>,
     /// How many mods sit under its group, this one too.
     group_size: usize,
@@ -337,7 +338,9 @@ impl LoadOrder {
         choices.retain(|tag| *tag != said.sub && seen.insert(tag.clone()));
         said.group_choices = choices;
         said.group_size = app.group_size(&said.sub);
-        said.can_bin = m.source != Source::Official && self.active.position_of(id).is_none();
+        let whole = m.source != Source::Official && self.active.position_of(id).is_none();
+        let made = app.texture_manifest().made_in(&m.path);
+        said.bin_choices = crate::workspace::upkeep::bin_choices(made, workshop, whole);
         if workshop {
             said.workshop_page = Some(format!(
                 "https://steamcommunity.com/sharedfiles/filedetails/?id={}",
