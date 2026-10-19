@@ -235,6 +235,13 @@ mod_rows.at: object
   version: text
   versionIgnored: bool
   whyMoved: text
+mods.columnChoices: list
+  []: object
+    column: text
+    mark: text
+    off: bool
+    shown: bool
+    text: text
 mods.columnPressed: list
   []: bool or text
 mods.columnWidths: map

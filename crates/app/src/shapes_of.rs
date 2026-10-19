@@ -3,7 +3,7 @@ use crate::reports::{Answer, ReleaseSaid, Written};
 use crate::shapes::Shapes;
 use crate::workspace::changed::{NotesState, Only, since_shown};
 use crate::workspace::downloads::{Checkout, Queue, Updates, updates_shown};
-use crate::workspace::load_order::{LoadOrder, Side};
+use crate::workspace::load_order::{LoadOrder, Side, column_choices};
 use crate::workspace::tests::installed;
 use crate::workspace::{logs, saves, textures};
 use rimstack_core::kept::launches;
@@ -293,6 +293,7 @@ fn mods(app: &App, shapes: &mut Shapes) {
     );
     shapes.add("mods.inactiveOrders", &order.inactive_orders());
     shapes.add("mods.columnWidths", &columns::widths("name=200,author=90"));
+    shapes.add("mods.columnChoices", &column_choices("author,load", false));
     shapes.add(
         "mods.columnPressed",
         &columns::pressed("name", false, "name"),

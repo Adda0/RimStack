@@ -285,6 +285,14 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "columnSized"]
         fn column_sized(self: &ModsData, kept: &QString, column: &QString, width: f64) -> QString;
+        /// `[{ column, text, mark, shown, off }]`: author, version and load.
+        #[qinvokable]
+        #[cxx_name = "columnChoices"]
+        fn column_choices(self: &ModsData, kept: &QString, load_times: bool) -> QVariant;
+        /// Why the load column is not offered; empty while load times are known.
+        #[qinvokable]
+        #[cxx_name = "columnNote"]
+        fn column_note(self: &ModsData, load_times: bool) -> QString;
         /// `[column, descending]`; the empty column is the load order.
         #[qinvokable]
         #[cxx_name = "columnPressed"]

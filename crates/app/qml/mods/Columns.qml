@@ -12,6 +12,9 @@ QtObject {
 
     readonly property ModsData rules: Hub.mods
     readonly property var labels: ({ author: "Author", version: "Version", load: "Load" })
+    readonly property var choices: rules.columnChoices(prefs.columns, loadTimes)
+    // Why the load column is not offered; empty while load times are known.
+    readonly property string note: rules.columnNote(loadTimes)
     readonly property var chosen: prefs.columns === "" ? [] : prefs.columns.split(",")
     readonly property var shown: chosen.filter(column => column !== "load" || loadTimes)
     // At 100% text, where a column was dragged.
@@ -33,9 +36,6 @@ QtObject {
     function size(column, width) { prefs.columnSizes = rules.columnSized(prefs.columnSizes, column, width / Theme.grow) }
 
     function menu() {
-        return Object.keys(labels).map(column => ({
-            text: (shown.indexOf(column) >= 0 ? "✓  " : "     ") + Theme.say(labels[column]),
-            run: () => toggle(column)
-        }))
+        return choices.map(choice => ({ text: choice.mark + choice.text, off: choice.off, run: () => toggle(choice.column) }))
     }
 }

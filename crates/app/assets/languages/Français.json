@@ -432,6 +432,8 @@
  "Load order": "Ordre de chargement",
  "Load orders kept under a name, and the order as it was before each Sort": "Ordres de chargement conservés sous un nom, et l'ordre tel qu'il était avant chaque tri",
  "Load time": "Temps de chargement",
+ "Load times come from the Loading Progress mod: turn on its export of load times, then start the game once.": "Les temps de chargement viennent du mod Loading Progress : activez-y l'export des temps de chargement, puis lancez le jeu une fois.",
+ "Load, from the Loading Progress mod": "Chargement, du mod Loading Progress",
  "Load-order rules kept by players (RimSort's Community Rules Database), for mods whose own files do not say enough.": "Règles d'ordre de chargement tenues par des joueurs (Community Rules Database de RimSort), pour les mods dont les fichiers n'en disent pas assez.",
  "Load-order rules, for Sort": "Règles d'ordre de chargement, pour le tri",
  "Loaders": "Chargeurs",

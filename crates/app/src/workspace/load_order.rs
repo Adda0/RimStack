@@ -100,6 +100,54 @@ fn order_text(by: Arrange) -> Sentence {
     }
 }
 
+/// A column as the View card and the headings' menu offer it.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ColumnChoice {
+    column: &'static str,
+    text: Sentence,
+    /// Before the text in a menu: a check while the column is shown.
+    mark: &'static str,
+    shown: bool,
+    /// Load times come only from the Loading Progress mod; without them the column is not offered.
+    off: bool,
+}
+
+pub fn column_choices(kept: &str, load_times: bool) -> Vec<ColumnChoice> {
+    let chosen = rimstack_core::mods::columns::chosen(kept);
+    let choice = |column: &'static str, text: Sentence| {
+        let off = column == "load" && !load_times;
+        let shown = chosen.contains(&column) && !off;
+        let mark = if shown { "✓  " } else { "     " };
+        ColumnChoice {
+            column,
+            text,
+            mark,
+            shown,
+            off,
+        }
+    };
+    let load = match load_times {
+        true => say!("Load"),
+        false => say!("Load, from the Loading Progress mod"),
+    };
+    vec![
+        choice("author", say!("Author")),
+        choice("version", say!("Version")),
+        choice("load", load),
+    ]
+}
+
+/// Empty while load times are known.
+pub fn column_note(load_times: bool) -> Sentence {
+    match load_times {
+        true => Sentence::default(),
+        false => say!(
+            "Load times come from the Loading Progress mod: turn on its export of load times, then start the game once."
+        ),
+    }
+}
+
 fn arranged(app: &App, library: &Library) -> rimstack_core::mods::library::Arranged {
     let mut now = library.arrange(app.session().current());
     let measured = app.startup();
