@@ -43,7 +43,7 @@ ListView {
         height: Theme.sized(30)
         DropArea {
             anchors.fill: parent
-            onEntered: Mods.drag.target = { model: end.listView.model, modIndex: end.listView.model.count, item: end }
+            onEntered: Mods.drag.target = { model: end.listView.model, modIndex: end.listView.model.endPlace, item: end }
             onExited: if (Mods.drag.target && Mods.drag.target.item === end) Mods.drag.target = null
             Rectangle { visible: parent.containsDrag; x: 6; width: parent.width - 12; height: 2; radius: Math.min(width, height) / 2; color: Theme.focus }
         }
