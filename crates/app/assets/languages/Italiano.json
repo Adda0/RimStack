@@ -1219,6 +1219,7 @@
  "cut short inside its header": "troncato nella sua intestazione",
  "cut short: less than its first picture": "troncato: più corto della sua prima immagine",
  "default": "predefinito",
+ "defines or patches this def": "definisce o patcha questo def",
  "defs": "defs",
  "detected from files": "rilevato dai file",
  "downloaded {}": "scaricato il {}",

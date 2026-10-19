@@ -148,6 +148,7 @@ fn a_mod(name: &str, category: Category) -> Mod {
         git: false,
         code: false,
         patched: std::sync::Arc::from(Vec::<String>::new()),
+        defs: std::sync::Arc::from(Vec::<String>::new()),
         sub: String::new(),
         colour: String::new(),
         pinned: false,

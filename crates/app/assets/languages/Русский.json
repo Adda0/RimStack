@@ -1219,6 +1219,7 @@
  "cut short inside its header": "обрезан внутри заголовка",
  "cut short: less than its first picture": "обрезан: меньше своей первой картинки",
  "default": "по умолчанию",
+ "defines or patches this def": "defines or patches this def",
  "defs": "дефы",
  "detected from files": "определено по файлам",
  "downloaded {}": "скачано {}",

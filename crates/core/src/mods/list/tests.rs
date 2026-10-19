@@ -13,6 +13,7 @@ fn m(name: &str, author: &str, category: Category) -> Mod {
         git: false,
         code: false,
         patched: Default::default(),
+        defs: Default::default(),
         sub: String::new(),
         colour: String::new(),
         pinned: false,
@@ -334,6 +335,44 @@ fn a_pinned_term_shows_the_mods_sort_leaves_alone() {
     assert_eq!(shown(&list), ["Core"]);
     list.set_filter("!is:pinned");
     assert_eq!(shown(&list).len(), 5);
+}
+
+#[test]
+fn a_def_term_keeps_the_mods_that_name_the_def_negated_takes_them_out() {
+    let mut list = sample();
+    let defs_of = |names: &[&str]| -> Option<std::sync::Arc<[String]>> {
+        Some(names.iter().map(|n| n.to_string()).collect())
+    };
+    list.mods[0].installed = Some(id(0));
+    list.mods[1].installed = Some(id(1));
+    list.mods[2].installed = Some(id(2));
+    list.set_defs(&|i| match i.index() {
+        0 => defs_of(&["steel"]),
+        1 => defs_of(&["steel", "wood"]),
+        _ => None,
+    });
+    let shown = |list: &GroupedList| -> Vec<String> {
+        let name = |r: &Row| match r {
+            Row::Mod { index } => Some(list.mods()[*index].name.clone()),
+            _ => None,
+        };
+        list.rows().iter().filter_map(name).collect()
+    };
+    list.set_filter("def:steel");
+    assert_eq!(shown(&list), ["Harmony", "Core"]);
+    list.set_filter("def:Steel");
+    assert_eq!(shown(&list), ["Harmony", "Core"]);
+    list.set_filter("!def:steel");
+    assert_eq!(shown(&list).len(), 4);
+    list.set_filter("def:");
+    assert!(shown(&list).is_empty());
+    let names: Vec<String> = list
+        .mods()
+        .iter()
+        .map(|m| m.defs.join(","))
+        .filter(|d| !d.is_empty())
+        .collect();
+    assert_eq!(names, ["steel", "steel,wood"]);
 }
 
 #[test]

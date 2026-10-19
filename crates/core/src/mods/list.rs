@@ -95,6 +95,8 @@ pub struct Mod {
     pub code: bool,
     /// Lower case `type.method`.
     pub patched: std::sync::Arc<[String]>,
+    /// Lower case names of the defs it defines or patches; empty until the files are read.
+    pub defs: std::sync::Arc<[String]>,
     /// Its first tag; empty without tags.
     pub sub: String,
     /// Microseconds it took at the game's last start, where measured.
@@ -258,6 +260,7 @@ enum Test {
     Needs(String),
     Translation,
     Patches(String),
+    Def(String),
     /// Megabytes given as bytes.
     Bigger(u64),
     Smaller(u64),
@@ -287,6 +290,7 @@ impl Test {
             Test::Code => m.code,
             Test::Pinned => m.pinned,
             Test::Patches(p) => m.patched.iter().any(|at| at.contains(p.as_str())),
+            Test::Def(d) => m.defs.iter().any(|at| at.contains(d.as_str())),
             Test::Needs(dlc) => m.needs_dlcs.iter().any(|own| own.contains(dlc.as_str())),
             Test::Bigger(bytes) => m.bytes.is_some_and(|own| own > *bytes),
             Test::Smaller(bytes) => m.bytes.is_some_and(|own| own < *bytes),
@@ -365,6 +369,7 @@ impl Filter {
                 Some(("patches", method)) if !method.is_empty() => {
                     Test::Patches(method.to_string())
                 }
+                Some(("def", name)) if !name.is_empty() => Test::Def(name.to_string()),
                 Some(("is", "error")) => Test::Flag(flag::ERROR),
                 Some(("is", "warning")) => Test::Flag(flag::WARNING),
                 Some(("is", "conflict")) => Test::Flag(flag::CONFLICT),
@@ -406,6 +411,12 @@ impl Filter {
         self.tests
             .iter()
             .any(|(test, _)| matches!(test, Test::Flag(_)))
+    }
+
+    fn reads_defs(&self) -> bool {
+        self.tests
+            .iter()
+            .any(|(test, _)| matches!(test, Test::Def(_)))
     }
 
     fn admits(&self, m: &Mod, haystack: &str, flags: u16) -> bool {
@@ -469,6 +480,17 @@ impl GroupedList {
     pub fn set_flags(&mut self, flags: Vec<u16>) {
         self.flags = flags;
         if self.filter.reads_flags() {
+            self.rebuild();
+        }
+    }
+
+    /// The lower case def names each installed mod defines or patches, by installed id;
+    /// empty for a mod whose files were not read. `def:` filters on these.
+    pub fn set_defs(&mut self, what: &dyn Fn(ModId) -> Option<std::sync::Arc<[String]>>) {
+        for m in &mut self.mods {
+            m.defs = m.installed.and_then(what).unwrap_or_default();
+        }
+        if self.filter.reads_defs() {
             self.rebuild();
         }
     }
