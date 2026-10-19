@@ -306,13 +306,8 @@ ApplicationWindow {
                 { name: Mods.prefs.inactiveHidden ? Theme.say("Show the inactive list") : Theme.say("Hide the inactive list"), group: Theme.say("View"), run: () => Mods.prefs.inactiveHidden = !Mods.prefs.inactiveHidden },
                 { name: Theme.fill("Inactive mods by: {}", Hub.mods.inactiveOrders.nextText), group: Theme.say("View"), run: () => Mods.prefs.inactiveOrder = Hub.mods.inactiveOrders.next },
 
-                { name: Theme.say("RimWorld folder"), group: Theme.say("Open"), run: () => open(folders.game), when: !!folders.game },
-                { name: Theme.say("Workshop mods folder"), group: Theme.say("Open"), run: () => open(folders.workshop), when: !!folders.workshop },
-                { name: Theme.say("Config and saves folder"), group: Theme.say("Open"), run: () => open(folders.config), when: !!folders.config },
-                { name: Theme.say("Game log"), group: Theme.say("Open"), run: () => open(folders.gameLog), when: !!folders.gameLog },
-                { name: Theme.say("RimStack data folder"), group: Theme.say("Open"), run: () => open(folders.dataFolder), when: !!folders.dataFolder },
                 { name: Theme.say("RimWorld store page"), group: Theme.say("Open"), run: () => Qt.openUrlExternally("steam://store/294100") },
-            ])
+            ], (folders.folders || []).map(folder => ({ name: folder.name, group: Theme.say("Open"), run: () => open(folder.path) })))
         }
     }
     Shortcut { sequence: "Ctrl+K"; onActivated: commands.open() }
