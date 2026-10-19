@@ -54,12 +54,20 @@ pub mod qobject {
 
         #[qinvokable]
         fn original(self: &ListsData) -> QVariant;
-
         /// `{ onlySaved, onlyCurrent, moved: [{ id, name }], addable: [modId] }`;
         /// all empty for no such list.
         #[qinvokable]
         #[cxx_name = "compareList"]
         fn compare_list(self: &ListsData, name: &QString) -> QVariant;
+        /// Writes the load order as a lockfile there; empty text when it was written.
+        #[qinvokable]
+        #[cxx_name = "writeLock"]
+        fn write_lock(self: &ListsData, file: &QString) -> QString;
+        /// The check of the load order against a lockfile, or the file's not being one:
+        /// `{ same, present, ids, said }` or `{ problem }`.
+        #[qinvokable]
+        #[cxx_name = "checkLock"]
+        fn check_lock(self: &ListsData, file: &QString) -> QVariant;
     }
 
     unsafe extern "C++" {
@@ -78,6 +86,7 @@ use cxx_qt::{CxxQtType, Threading};
 use cxx_qt_lib::{QString, QUrl, QVariant};
 use rimstack_core::base::error::Error;
 use rimstack_core::say;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 #[derive(Default)]
@@ -173,8 +182,15 @@ impl qobject::ListsData {
     fn original(&self) -> QVariant {
         to_qml(&self.app().original_list())
     }
-
     fn compare_list(&self, name: &QString) -> QVariant {
         to_qml(&self.app().compare_saved(&name.to_string()))
+    }
+    fn write_lock(&self, file: &QString) -> QString {
+        said(self.app().write_lockfile(&PathBuf::from(file.to_string())))
+    }
+
+    fn check_lock(&self, file: &QString) -> QVariant {
+        let checked = self.app().check_lockfile(&PathBuf::from(file.to_string()));
+        to_qml(&crate::reports::Answer::from(checked))
     }
 }

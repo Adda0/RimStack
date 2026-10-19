@@ -117,6 +117,14 @@ game.lastStart: object
   time: number
 game.resetByGame: list
   []: text
+lists.checkLock: object
+  ids: absent or list
+    []: text
+  present: absent or bool
+  problem: absent or text
+  said: absent or list
+    []: text
+  same: absent or bool
 lists.compareList: object
   addable: list
     []: number

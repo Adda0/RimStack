@@ -272,6 +272,8 @@ ApplicationWindow {
 
                 { name: Theme.say("Use the list on the clipboard"), group: Theme.say("Load order"), run: () => { const ids = Hub.lists.idsInText(Theme.pasted()); if (ids.length > 0) window.useList(ids) }, when: !Theme.demo },
                 { name: Theme.say("Copy the load order as text"), group: Theme.say("Load order"), run: () => Theme.copy(Hub.mods.listing()) },
+                { name: Theme.say("Write a lockfile"), group: Theme.say("Load order"), run: () => topBar.listsMenu.writeLockfile(), when: !Theme.demo },
+                { name: Theme.say("Check a lockfile"), group: Theme.say("Load order"), run: () => topBar.listsMenu.checkLockfile(), when: !Theme.demo },
                 { name: Theme.say("Mods with errors"), group: Theme.say("Filter"), run: () => filter("is:error"), when: Mods.errors > 0 },
                 { name: Theme.say("Mods with warnings"), group: Theme.say("Filter"), run: () => filter("is:warning"), when: Hub.mods.warnings > 0 },
                 { name: Theme.say("Mods sharing textures"), group: Theme.say("Filter"), run: () => filter("is:conflict"), when: Hub.mods.conflicts > 0 },
