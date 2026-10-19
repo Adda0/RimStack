@@ -150,6 +150,7 @@ fn a_mod(name: &str, category: Category) -> Mod {
         patched: std::sync::Arc::from(Vec::<String>::new()),
         sub: String::new(),
         colour: String::new(),
+        pinned: false,
         load_micros: None,
         updated: None,
         downloaded: None,

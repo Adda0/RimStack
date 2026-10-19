@@ -163,6 +163,7 @@ fn arranged(app: &App, library: &Library) -> rimstack_core::mods::library::Arran
             m.tags = note.tags.clone();
             m.sub = note.group().to_string();
             m.colour = note.colour.clone();
+            m.pinned = note.pinned;
             // Filed by hand: that stands over what RimStack worked out.
             if let Some(chosen) = Category::from_kept(&note.category) {
                 m.category = chosen;

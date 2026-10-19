@@ -108,6 +108,8 @@ pub struct Mod {
     pub supports: Vec<u64>,
     /// The swatch its row is painted with; empty for none.
     pub colour: String,
+    /// Sort leaves it where it is.
+    pub pinned: bool,
     /// Folded package ids of official DLCs this mod lists as dependencies.
     pub needs_dlcs: Vec<String>,
 }
@@ -244,6 +246,7 @@ enum Test {
     Workshop,
     Git,
     Code,
+    Pinned,
     Needs(String),
     Patches(String),
     Flag(u16),
@@ -270,6 +273,7 @@ impl Test {
             Test::Workshop => m.workshop,
             Test::Git => m.git,
             Test::Code => m.code,
+            Test::Pinned => m.pinned,
             Test::Patches(p) => m.patched.iter().any(|at| at.contains(p.as_str())),
             Test::Needs(dlc) => m.needs_dlcs.iter().any(|own| own.contains(dlc.as_str())),
             Test::Flag(f) => flags & f != 0,
@@ -332,6 +336,7 @@ impl Filter {
                 Some(("is", "local")) => Test::Local,
                 Some(("is", "workshop")) => Test::Workshop,
                 Some(("is", "git")) => Test::Git,
+                Some(("is", "pinned")) => Test::Pinned,
                 Some(("is", side @ ("active" | "inactive"))) => {
                     let side = Side::of(side == "active");
                     filter.ask(if wanted { side } else { side.other() });
