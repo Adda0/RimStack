@@ -64,7 +64,7 @@ Everything else that writes happens only when you ask: converting textures, hidi
 
 ## What else is in it
 
-- **Explains every problem.** Missing requirements, mods that clash, the wrong game version, duplicates, a mod placed above the game, each with its fix beside it.
+- **Explains every problem.** Missing requirements, mods that clash, the wrong game version, duplicates, a mod placed above the game, a mod missing a property (no readable About.xml, no named Workshop item), each with its fix beside it. Any warning can be ignored, and remembered.
 - **Texture conflicts.** Two mods ship the same texture? See them side by side, as a slider or as their difference, and keep the one you want.
 - **PNG to DDS built in.** The game loads faster, with no extra tool, and only the files RimStack made are ever removed.
 - **Find the broken mod.** It switches half your mods off, you play and say whether it still breaks, until one mod is left. Your list comes back after.

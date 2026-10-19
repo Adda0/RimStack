@@ -61,6 +61,10 @@ fn terms(counts: Counts) -> Vec<(&'static str, Sentence)> {
         ("is:notinsave", say!("active, and not in the newest save")),
         ("is:recent", say!("updated by Steam in the last week")),
         ("is:duplicate", say!("installed more than once")),
+        (
+            "is:incomplete",
+            say!("missing a property, like a named Workshop item"),
+        ),
         ("has:code", say!("ships compiled code")),
         ("patches:", say!("patches this method of the game")),
         ("tag:", say!("has this tag")),

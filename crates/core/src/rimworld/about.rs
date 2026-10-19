@@ -66,6 +66,27 @@ pub fn preview(mod_root: &Path) -> Option<PathBuf> {
         .find_map(|name| child_ignoring_case(&dir, name).filter(|p| p.is_file()))
 }
 
+/// The Workshop item a copy names in `About/PublishedFileId.txt`: a number above 0, as RimSort
+/// and Steam take it.
+pub fn published_file_id(mod_root: &Path) -> Option<String> {
+    let exact = mod_root.join("About").join("PublishedFileId.txt");
+    let file = match exact.is_file() {
+        true => exact,
+        false => child_ignoring_case(
+            &child_ignoring_case(mod_root, "about")?,
+            "publishedfileid.txt",
+        )?,
+    };
+    let text = std::fs::read_to_string(file).ok()?;
+    let id = text.trim_start_matches('\u{feff}').trim();
+    is_workshop_id(id).then(|| id.to_string())
+}
+
+/// Digits only, and not 0.
+pub fn is_workshop_id(text: &str) -> bool {
+    text.bytes().all(|b| b.is_ascii_digit()) && text.parse::<u64>().is_ok_and(|n| n > 0)
+}
+
 fn child_ignoring_case(dir: &Path, lower_name: &str) -> Option<PathBuf> {
     std::fs::read_dir(dir)
         .ok()?
@@ -360,5 +381,19 @@ Second line.</description>
         std::fs::write(about.join("PREVIEW.png"), b"").unwrap();
         std::fs::write(about.join("Preview2.png"), b"").unwrap();
         assert_eq!(preview(tmp.path()), Some(about.join("PREVIEW.png")));
+    }
+
+    #[test]
+    fn the_workshop_item_is_read_from_its_file_whatever_its_letter_case() {
+        let tmp = tempfile::tempdir().unwrap();
+        assert_eq!(published_file_id(tmp.path()), None);
+        let about = tmp.path().join("about");
+        std::fs::create_dir(&about).unwrap();
+        std::fs::write(about.join("publishedfileid.TXT"), "\u{feff}2009463077\n").unwrap();
+        assert_eq!(published_file_id(tmp.path()).as_deref(), Some("2009463077"));
+        for not_an_item in ["0", "", "12a", "+5"] {
+            std::fs::write(about.join("publishedfileid.TXT"), not_an_item).unwrap();
+            assert_eq!(published_file_id(tmp.path()), None, "{not_an_item:?}");
+        }
     }
 }

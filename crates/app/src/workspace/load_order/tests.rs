@@ -131,6 +131,53 @@ fn an_error_ignored_is_gone_until_warned_again() {
 }
 
 #[test]
+fn a_local_mod_naming_no_workshop_item_is_flagged_until_its_warning_is_ignored() {
+    let (tmp, app) = installed();
+    // The fixture's local mod has no About/PublishedFileId.txt.
+    let mut order = LoadOrder::read(&app, true, Arrange::Category);
+    let id = roads(&order, Side::Inactive);
+    order.set_filter("is:incomplete");
+    assert_eq!(order.list(Side::Inactive).matching(), 1);
+    // In its details it is a problem that can be ignored by the same page.
+    let details = serde_json::to_value(order.details(&app, id)).unwrap();
+    assert_eq!(details["problems"][0]["ignore"], "no-workshop-id");
+    // Once active, the missing property is a warning of its own until ignored.
+    order.take(&app, Side::Inactive, 0, None);
+    let own = &order.troubles()[1];
+    assert_eq!(own.len(), 1, "{own:?}");
+    assert_eq!(own[0].key, "no-workshop-id");
+    assert_eq!(order.list(Side::Active).matching(), 1);
+    app.ignore_problem("Ann.Roads", "no-workshop-id", true);
+    order.recheck(&app);
+    order.set_filter("is:incomplete");
+    assert!(order.troubles()[1].is_empty(), "{:?}", order.troubles()[1]);
+    assert_eq!(order.list(Side::Active).matching(), 0);
+    // The ignore is kept in RimStack's notes: a new app on the same folder stays quiet.
+    drop(order);
+    drop(app);
+    let again = installed_app_again(&tmp);
+    let mut order = LoadOrder::read(&again, true, Arrange::Category);
+    order.set_filter("is:incomplete");
+    assert_eq!(
+        order.list(Side::Active).matching() + order.list(Side::Inactive).matching(),
+        0
+    );
+}
+
+fn installed_app_again(tmp: &tempfile::TempDir) -> App {
+    App::new(
+        tmp.path().join("home"),
+        &tmp.path().join("settings"),
+        &tmp.path().join("data"),
+        rimstack_core::rimworld::paths::Overrides {
+            game: Some(tmp.path().join("game")),
+            config: Some(tmp.path().join("config")),
+            workshop: Some(tmp.path().join("workshop")),
+        },
+    )
+}
+
+#[test]
 fn a_mod_made_for_another_game_version_offers_to_trust_it_once_active() {
     let (tmp, app) = installed();
     roads_made_for_an_older_game(&tmp);

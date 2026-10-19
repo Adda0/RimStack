@@ -425,6 +425,7 @@ footer { margin: 72px 0 40px; padding-top: 22px; border-top: 1px solid var(--lin
       <li>textures provided twice</li>
     </ul>
     <p>Any warning can be ignored from the mod's menu or its details. "Made for another game version" can be ignored for every mod at once, until the game updates.</p>
+    <p>RimStack also warns of a mod missing a property other tools read: an About.xml it cannot read (so no package id), and a local copy of a Workshop item that does not name the item in <code>About/PublishedFileId.txt</code>, so nothing can check it for updates. <code>is:incomplete</code> lists both; the ignore a mod gets for it is kept in RimStack's notes.</p>
   </div>
   <figure><img src="img/problems.webp" alt="The problems panel: 45 warnings for mods made for another game version, with Ignore all and Find the broken mod" loading="lazy" width="362" height="330"></figure>
 </div>
@@ -461,6 +462,7 @@ footer { margin: 72px 0 40px; padding-top: 22px; border-top: 1px solid var(--lin
     <tr><td><code>is:local</code></td><td>in the game's Mods folder</td></tr>
     <tr><td><code>is:git</code></td><td>a git checkout</td></tr>
     <tr><td><code>is:duplicate</code></td><td>installed more than once</td></tr>
+    <tr><td><code>is:incomplete</code></td><td>missing a property, like a named Workshop item</td></tr>
     <tr><td><code>is:notinsave</code></td><td>active, and not in the newest save</td></tr>
     <tr><td><code>has:code</code></td><td>that ship compiled code</td></tr>
     <tr><td><code>patches:</code></td><td>that patch this method of the game</td></tr>
