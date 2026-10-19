@@ -190,7 +190,11 @@ impl qobject::SettingsData {
 
     fn heard(mut self: Pin<&mut Self>, changes: Changes) {
         let app = self.app();
-        let settings = Changes::SETTINGS | Changes::FOLDERS | Changes::LIBRARY | Changes::LOGS;
+        let settings = Changes::SETTINGS
+            | Changes::FOLDERS
+            | Changes::LIBRARY
+            | Changes::LOGS
+            | Changes::MOD_SETTINGS;
         if changes.contains(settings) {
             self.as_mut().set_report(to_qml(&app.settings_report()));
         }
@@ -368,7 +372,7 @@ impl qobject::SettingsData {
     }
 
     fn set_mod_settings_aside(&self) -> QString {
-        crate::words::said(&self.app().set_mod_settings_aside())
+        crate::words::said_or_why(&self.app().set_mod_settings_aside())
     }
 
     fn import_rimpy(&self) -> QString {

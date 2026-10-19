@@ -345,6 +345,43 @@ Column {
     }
 
     Card {
+        visible: (Mods.info.settingsFiles || []).length > 0
+        title: Theme.say("Mod settings")
+        Text {
+            width: parent.width
+            wrapMode: Text.WordWrap
+            color: Theme.ink
+            font.pixelSize: Theme.body
+            lineHeight: 1.3
+            text: Theme.say("Its Mod_*.xml files of the game's Config folder:")
+        }
+        Column {
+            width: parent.width
+            spacing: Theme.gapSmall
+            Repeater {
+                model: Mods.info.settingsFiles || []
+                Text {
+                    required property string modelData
+                    width: parent.width
+                    elide: Text.ElideMiddle
+                    color: Theme.ink3
+                    font.pixelSize: Theme.small
+                    text: modelData
+                }
+            }
+        }
+        Btn {
+            danger: true
+            icon: "trash-2"
+            text: Theme.say("Reset its settings…")
+            tip: Theme.say("Its settings files are set aside, so the mod starts from its defaults.")
+            onClicked: Notices.ask({
+                title: Theme.fill("Reset the settings of {}", (Mods.info.name || "")),
+                lines: [Theme.say("Its Mod_*.xml are moved out of"), { path: Hub.settings.report.configFolder || "" }, Theme.say("into a new folder, named mod-settings and the time, in"), { path: Hub.settings.report.dataFolder || "" }, Theme.say("Moving the files back restores them.")],
+                label: Theme.say("Set aside"), run: Hub.mods.resetSettings })
+        }
+    }
+    Card {
         id: latest
         readonly property bool workshop: !!Mods.info.workshop
         readonly property bool git: !workshop && !!Mods.info.repository

@@ -157,6 +157,8 @@ pub struct Details {
     group_size: usize,
     workshop_page: Option<String>,
     steam_page: Option<String>,
+    /// Its `Mod_*` files of the game's Config.
+    settings_files: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -349,6 +351,21 @@ impl LoadOrder {
                 m.folder
             ));
             said.steam_page = Some(format!("steam://url/CommunityFilePage/{}", m.folder));
+        }
+        if let Some(config) = &app.paths().config {
+            let folders: std::collections::HashSet<&str> = library
+                .installed
+                .iter()
+                .map(|m| m.folder.as_str())
+                .collect();
+            said.settings_files =
+                rimstack_core::rimworld::mod_settings::of(config, &m.folder, |f| {
+                    folders.contains(f)
+                })
+                .iter()
+                .filter_map(|p| p.file_name())
+                .map(|n| n.to_string_lossy().into_owned())
+                .collect();
         }
         let others: Vec<(&str, &[rimstack_core::rimworld::code::Aim])> = self
             .active

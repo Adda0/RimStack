@@ -4,7 +4,7 @@ use crate::reports::{
     Database, FolderVerdict, LastLaunch, OpenFolder, ReleaseSaid, SettingsReport, ShortContrast,
     Summary,
 };
-use rimstack_core::base::error::Error;
+use rimstack_core::base::error::{Error, Result};
 use rimstack_core::base::locks::Shared;
 use rimstack_core::base::sentence::Sentence;
 use rimstack_core::base::translate::{LOCALE, detected};
@@ -127,7 +127,7 @@ impl App {
             .join("config.ini")
     }
 
-    pub fn keep_setting(&self, name: &str, value: &str) -> Result<(), Error> {
+    pub fn keep_setting(&self, name: &str, value: &str) -> Result<()> {
         self.set_setting(name, value)?;
         self.publish(effects(name));
         Ok(())
@@ -233,6 +233,7 @@ impl App {
             settings_file: self.settings_file().to_string_lossy().into_owned(),
             diagnostics_file: self.diagnostics_file().to_string_lossy().into_owned(),
             version: build_label(),
+            orphan_settings: self.orphan_settings(),
         }
     }
 
@@ -349,7 +350,7 @@ impl App {
     }
 
     /// Leaves an existing file as it is.
-    pub fn start_language(&self, name: &str) -> Result<PathBuf, Error> {
+    pub fn start_language(&self, name: &str) -> Result<PathBuf> {
         let name = name.trim();
         if name.is_empty() || name.contains(['/', '\\']) {
             return Err(Error::refused(said!(
@@ -385,7 +386,7 @@ impl App {
     }
 
     /// Adds to an existing file rather than overwriting it.
-    pub fn start_own_theme(&self, theme: &str, colours: &Value) -> Result<PathBuf, Error> {
+    pub fn start_own_theme(&self, theme: &str, colours: &Value) -> Result<PathBuf> {
         let file = self.theme_file();
         let now = std::fs::read_to_string(&file)
             .ok()
@@ -451,7 +452,7 @@ impl App {
             .collect()
     }
 
-    pub fn use_database(&self, id: &str, on: bool) -> Result<(), Error> {
+    pub fn use_database(&self, id: &str, on: bool) -> Result<()> {
         let off: Vec<&str> = self
             .databases()
             .iter()
@@ -464,7 +465,7 @@ impl App {
         self.keep_setting("databasesOff", &off.join(","))
     }
 
-    pub fn download_databases(&self) -> Result<(), Error> {
+    pub fn download_databases(&self) -> Result<()> {
         let data = self.data_dir();
         let mut failed: Vec<Error> = Vec::new();
         if self.database_on("rules") {
@@ -501,7 +502,7 @@ impl App {
     }
 
     /// 0: the game version, 1: the installed version, 2: never.
-    pub fn version_warnings(&self, choice: i32) -> Result<(), Error> {
+    pub fn version_warnings(&self, choice: i32) -> Result<()> {
         let installed = self.paths().game_version.clone().unwrap_or_default();
         let aside_for = if choice == 1 { installed.as_str() } else { "" };
         self.keep_setting("versionWarnings", if choice == 2 { "off" } else { "on" })?;
@@ -568,27 +569,134 @@ impl App {
         }
     }
 
-    pub fn set_mod_settings_aside(&self) -> Sentence {
-        let paths = self.paths();
-        let Some(config) = paths.config.as_ref() else {
-            return say!("The game's settings folder is not known");
-        };
-        let aside = rimstack_core::sources::maintenance::free_folder(
+    /// A dated, unused folder named mod-settings in RimStack's own data folder.
+    fn settings_aside_dir(&self) -> PathBuf {
+        rimstack_core::sources::maintenance::free_folder(
             &self
                 .data_dir()
                 .join(format!("mod-settings-{}", super::now_secs())),
-        );
-        match rimstack_core::sources::maintenance::set_mod_settings_aside(config, &aside) {
-            Ok(0) => say!("No mod has settings"),
-            Ok(count) => say_n!(
-                count,
-                "{} file moved to {}",
-                "{} files moved to {}",
-                aside.display()
-            ),
-            Err(problem) => problem.sentence().clone(),
+        )
+    }
+
+    /// The game rewrites a mod's settings whenever they change; moving them under a
+    /// running game would undo itself.
+    fn running_check(&self) -> Result<()> {
+        if self.game_running() {
+            return Err(Error::refused(say!(
+                "RimWorld is running. Close the game before moving mod settings aside."
+            )));
+        }
+        Ok(())
+    }
+
+    /// A moved file changes the orphan list and an open mod's details.
+    fn finish_aside(&self, moved: Result<usize>, aside: &std::path::Path) -> Result<Sentence> {
+        match moved? {
+            0 => Ok(say!("No mod has settings")),
+            count => {
+                self.publish(Changes::MOD_SETTINGS);
+                Ok(say_n!(
+                    count,
+                    "{} file moved to {}",
+                    "{} files moved to {}",
+                    aside.display()
+                ))
+            }
         }
     }
+
+    pub fn set_mod_settings_aside(&self) -> Result<Sentence> {
+        self.running_check()?;
+        let config = self.config_dir()?;
+        let aside = self.settings_aside_dir();
+        self.finish_aside(
+            rimstack_core::sources::maintenance::set_mod_settings_aside(&config, &aside),
+            &aside,
+        )
+    }
+
+    fn config_dir(&self) -> Result<PathBuf> {
+        self.paths()
+            .config
+            .clone()
+            .ok_or_else(|| Error::refused(say!("The game's settings folder is not known")))
+    }
+
+    /// The selected mod's `Mod_*` files are set aside, so the mod starts from the ones it
+    /// ships, or its plain defaults; they are not touched if the game is running.
+    pub fn reset_mod_settings(
+        &self,
+        mod_id: rimstack_core::mods::library::ModId,
+    ) -> Result<Sentence> {
+        self.running_check()?;
+        let config = self.config_dir()?;
+        let loaded = self.library();
+        let (library, _) = loaded.as_ref().as_ref().map_err(Clone::clone)?;
+        let m = library.get(mod_id).ok_or_else(|| {
+            Error::refused(say!(
+                "That mod is no longer where it was read; read the folders again"
+            ))
+        })?;
+        let folders = installed_folders(library);
+        let files = rimstack_core::rimworld::mod_settings::of(&config, &m.folder, folders);
+        if files.is_empty() {
+            return Ok(say!("This mod has no settings files"));
+        }
+        let aside = self.settings_aside_dir();
+        self.finish_aside(
+            rimstack_core::sources::maintenance::set_aside(&config, &aside, &files),
+            &aside,
+        )
+    }
+
+    /// The `Mod_*` files whose mod is gone. Set-up names (Workshop id folders) cannot be
+    /// judged before the folders are read, so nothing is called an orphan without them.
+    pub fn orphan_settings(&self) -> Vec<String> {
+        let paths = self.paths();
+        let Some(config) = paths.config.as_ref() else {
+            return Vec::new();
+        };
+        let Ok((library, _)) = &*self.library() else {
+            return Vec::new();
+        };
+        if library.installed.is_empty() || paths.workshop.is_none() || paths.game.is_none() {
+            return Vec::new();
+        }
+        rimstack_core::rimworld::mod_settings::orphans(config, installed_folders(library))
+            .iter()
+            .filter_map(|p| p.file_name())
+            .map(|n| n.to_string_lossy().into_owned())
+            .collect()
+    }
+
+    pub fn set_orphan_settings_aside(&self) -> Result<Sentence> {
+        self.running_check()?;
+        let config = self.config_dir()?;
+        let loaded = self.library();
+        let (library, _) = loaded.as_ref().as_ref().map_err(Clone::clone)?;
+        let files =
+            rimstack_core::rimworld::mod_settings::orphans(&config, installed_folders(library));
+        if files.is_empty() {
+            return Ok(say!("All settings files belong to installed mods"));
+        }
+        let aside = self.settings_aside_dir();
+        self.finish_aside(
+            rimstack_core::sources::maintenance::set_aside(&config, &aside, &files),
+            &aside,
+        )
+    }
+}
+
+/// A mod's settings are named after its folder, so those say whether one is still there.
+fn installed_folders(
+    library: &rimstack_core::mods::library::Library,
+) -> impl Fn(&str) -> bool + '_ {
+    let folders: std::collections::HashSet<&str> = library
+        .installed
+        .iter()
+        .map(|m| m.folder.as_str())
+        .collect();
+    move |folder| folders.contains(folder)
 }
 
 pub fn short_contrast(colours: &Map<String, Value>) -> Vec<ShortContrast> {

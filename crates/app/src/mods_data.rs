@@ -219,6 +219,12 @@ pub mod qobject {
         fn install_zip(self: Pin<&mut ModsData>, chosen: &QUrl);
 
         #[qinvokable]
+        #[cxx_name = "resetSettings"]
+        fn reset_settings(self: Pin<&mut ModsData>);
+        #[qinvokable]
+        #[cxx_name = "setOrphanSettingsAside"]
+        fn set_orphan_settings_aside(self: Pin<&mut ModsData>);
+        #[qinvokable]
         #[cxx_name = "versionWarned"]
         fn version_warned(self: &ModsData, ids: &QVariant) -> QVariant;
         #[qinvokable]

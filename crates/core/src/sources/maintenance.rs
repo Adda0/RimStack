@@ -34,8 +34,8 @@ pub fn files_except_dds(mod_root: &Path) -> Vec<PathBuf> {
 
 /// Every file is copied before any is removed; `aside` must not exist yet.
 pub fn set_mod_settings_aside(config: &Path, aside: &Path) -> Result<usize> {
-    let failed = |e: std::io::Error| Error::file(aside, e);
-    let files = std::fs::read_dir(config.join("Config")).map_err(|e| Error::file(config, e))?;
+    let files = std::fs::read_dir(config.join("Config"))
+        .map_err(|e| Error::file(&config.join("Config"), e))?;
     let settings: Vec<PathBuf> = files
         .flatten()
         .map(|entry| entry.path())
@@ -44,8 +44,19 @@ pub fn set_mod_settings_aside(config: &Path, aside: &Path) -> Result<usize> {
             name.starts_with("Mod_") && name.ends_with(".xml")
         })
         .collect();
+    set_aside(config, aside, &settings)
+}
+
+/// The given settings files, folder too: one bad entry moves none. Every file is copied
+/// before any is removed; `aside` must not exist yet.
+pub fn set_aside(config: &Path, aside: &Path, settings: &[PathBuf]) -> Result<usize> {
+    let failed = |e: std::io::Error| Error::file(aside, e);
     if settings.is_empty() {
         return Ok(0);
+    }
+    if settings.iter().any(|file| !file.is_file()) {
+        let e = std::io::Error::new(std::io::ErrorKind::NotADirectory, "not a settings file");
+        return Err(Error::file(config, e));
     }
     if let Some(parent) = aside.parent() {
         std::fs::create_dir_all(parent).map_err(failed)?;
@@ -422,6 +433,30 @@ mod tests {
             .collect();
         going.sort();
         assert_eq!(going, ["About/About.xml", "Textures/Things/hat.png"]);
+    }
+
+    #[test]
+    fn only_the_asked_settings_are_set_aside() {
+        let tmp = tempfile::tempdir().unwrap();
+        let config = tmp.path().join("Config");
+        std::fs::create_dir_all(&config).unwrap();
+        for name in ["Mod_1_A.xml", "Mod_2_B.xml", "Mod_3_C.xml"] {
+            std::fs::write(config.join(name), name).unwrap();
+        }
+        let aside = tmp.path().join("aside");
+        assert_eq!(
+            set_aside(
+                tmp.path(),
+                &aside,
+                &[config.join("Mod_1_A.xml"), config.join("Mod_2_B.xml")],
+            ),
+            Ok(2)
+        );
+        assert!(config.join("Mod_3_C.xml").is_file() && !aside.join("Mod_3_C.xml").exists());
+        assert_eq!(
+            std::fs::read_to_string(aside.join("Mod_1_A.xml")).unwrap(),
+            "Mod_1_A.xml"
+        );
     }
 
     #[test]
