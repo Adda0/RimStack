@@ -76,7 +76,7 @@ Column {
             width: parent.width
             spacing: Theme.gapSmall
             Repeater {
-                model: (Mods.info.tags || "").split(",").map(tag => tag.trim()).filter(tag => tag !== "")
+                model: Mods.info.tagList || []
                 Chip {
                     required property string modelData
                     required property int index

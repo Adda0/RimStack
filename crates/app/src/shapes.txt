@@ -326,6 +326,8 @@ mods.details: object
   source: text
   steamPage: nothing or text
   sub: text
+  tagList: list
+    []: text
   tags: text
   unreadable: nothing or text
   updated: nothing
@@ -431,6 +433,8 @@ mods.detailsOf: object
   source: text
   steamPage: nothing or text
   sub: text
+  tagList: list
+    []: text
   tags: text
   unreadable: nothing or text
   updated: nothing
