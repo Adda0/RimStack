@@ -120,20 +120,23 @@ impl Game {
         Some(Self { draws, types })
     }
 
-    /// `Assembly-CSharp.dll` is in the game's folder from 1.7. Up to 1.6 it is in
-    /// a `Managed` folder of the game's data: `*_Data/Managed`, or
-    /// `Contents/Resources/Data/Managed` on macOS.
+    /// `Assembly-CSharp.dll` is in the game's folder from 1.7, or in
+    /// `RimWorld.app/Contents/MacOS` on macOS. Up to 1.6 it is in a `Managed`
+    /// folder of the game's data: `*_Data/Managed`, or
+    /// `Contents/Resources/Data/Managed` of the Mac bundle, which is itself the
+    /// game's folder when it holds the data (`paths::content_root`).
     pub fn find(game_dir: &Path) -> Option<Self> {
-        let inside = std::fs::read_dir(game_dir)
+        const MAC: [&str; 2] = ["Contents/MacOS", "Contents/Resources/Data/Managed"];
+        let mut below: Vec<PathBuf> = std::fs::read_dir(game_dir)
             .ok()?
             .flatten()
-            .map(|e| e.path());
-        let mut below: Vec<PathBuf> = inside
+            .map(|e| e.path())
             .filter(|p| p.is_dir())
-            .flat_map(|p| [p.join("Managed"), p.join("Contents/Resources/Data/Managed")])
+            .flat_map(|p| std::iter::once(p.join("Managed")).chain(MAC.map(|m| p.join(m))))
             .collect();
         below.sort();
         let places: Vec<PathBuf> = std::iter::once(game_dir.to_path_buf())
+            .chain(MAC.map(|m| game_dir.join(m)))
             .chain(below)
             .collect();
         let dll = places
@@ -290,6 +293,35 @@ mod tests {
     #[test]
     fn a_file_that_is_not_the_game_gives_nothing() {
         assert!(Game::read(b"not an assembly").is_none());
+    }
+
+    #[test]
+    fn the_game_s_code_is_found_in_each_layout() {
+        let mut b = Builder::new();
+        b.type_def("Verse", "Pawn", 0);
+        let assembly = b.finish();
+        for (game_dir, below) in [
+            ("RimWorld", ""),
+            ("RimWorld", "RimWorldWin64_Data/Managed"),
+            ("RimWorld", "RimWorldLinux_Data/Managed"),
+            ("RimWorld", "RimWorld.app/Contents/MacOS"),
+            (
+                "RimWorld",
+                "RimWorldMac.app/Contents/Resources/Data/Managed",
+            ),
+            (
+                "RimWorld/RimWorldMac.app",
+                "Contents/Resources/Data/Managed",
+            ),
+        ] {
+            let tmp = tempfile::tempdir().unwrap();
+            let game_dir = tmp.path().join(game_dir);
+            let at = game_dir.join(below);
+            std::fs::create_dir_all(&at).unwrap();
+            std::fs::write(at.join("Assembly-CSharp.dll"), &assembly).unwrap();
+            let game = Game::find(&game_dir);
+            assert!(game.is_some_and(|g| g.has("Verse.Pawn")), "{below}");
+        }
     }
 
     #[test]
