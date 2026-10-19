@@ -4,7 +4,7 @@ use rimstack_core::base::locks::Shared;
 use rimstack_core::base::sentence::Sentence;
 use rimstack_core::mods::describe::{self, Trouble};
 use rimstack_core::mods::details::{self, Clash, Named, OwnRule, Slow};
-use rimstack_core::mods::library::ModId;
+use rimstack_core::mods::library::{Library, ModId};
 use rimstack_core::mods::list::{Category, Mod};
 use rimstack_core::mods::tree::folder_tree;
 use rimstack_core::rimworld::loadfolders;
@@ -137,6 +137,9 @@ pub struct Details {
     /// empty when no active mod needs it.
     off_with: Vec<ModId>,
     translates: Option<Sentence>,
+    /// Removing it mid-save, judged on what it adds; only for a mod in the newest save.
+    removal: Option<Sentence>,
+    removal_harms: bool,
     load_folders: Vec<Sentence>,
     code: Sentence,
     sub: String,
@@ -314,6 +317,18 @@ impl LoadOrder {
                 said.made_for = details::made_for(&about.supported_versions, &library.game_version);
             }
             Err(reason) => said.unreadable = Some(reason.sentence().clone()),
+        }
+        let save_ids = app.newest_save();
+        let in_newest_save = m
+            .key()
+            .zip(save_ids.as_ref().as_ref())
+            .is_some_and(|(key, ids)| ids.contains(&key));
+        if in_newest_save
+            && let Some(found) = app.conflicts().reading().as_ref()
+            && let Some(verdict) = found.removal.get(&id)
+        {
+            said.removal = Some(verdict.said());
+            said.removal_harms = verdict.harms();
         }
         if let Some(copies) = library.copies(id) {
             let local = m.source == Source::Local;
@@ -559,6 +574,59 @@ impl LoadOrder {
             Some((at, self.active.mods()[at].name.clone()))
         };
         rimstack_core::mods::defs::of_mod(&known.members, &known.def_collisions, id, &listed)
+    }
+
+    /// What taking the switched-off mods, still in the newest save, out of it would do; empty
+    /// for nothing said.
+    pub fn left_save(&self, app: &App, library: &Library) -> Sentence {
+        let session = app.session();
+        let deactivated = session.changes().deactivated;
+        let save_ids = app.newest_save();
+        let Some(save_ids) = save_ids.as_ref().as_ref() else {
+            return Sentence::default();
+        };
+        let known = app.conflicts().reading();
+        let Some(found) = known.as_ref() else {
+            return Sentence::default();
+        };
+        let mut names = Vec::new();
+        for id in deactivated {
+            let key = rimstack_core::rimworld::id::split_steam(id).0;
+            if !save_ids.contains(&key) {
+                continue;
+            }
+            let Some((mod_id, m)) = library
+                .ids()
+                .find(|(_, m)| m.key().as_deref() == Some(key.as_str()))
+            else {
+                continue;
+            };
+            let Some(verdict) = found.removal.get(&mod_id) else {
+                continue;
+            };
+            names.push((m.display_name().to_string(), verdict.harms()));
+        }
+        let (harms, safe): (Vec<_>, Vec<_>) = names.into_iter().partition(|(_, harms)| *harms);
+        let named = |which: Vec<String>| {
+            let list = which.join(", ");
+            (!list.is_empty()).then_some(list)
+        };
+        Sentence::joined(
+            " ",
+            [
+                named(harms.into_iter().map(|(name, _)| name).collect()).map(|list| {
+                    say!(
+                        "Taking {} out of the newest save is likely to damage it.",
+                        list
+                    )
+                }),
+                named(safe.into_iter().map(|(name, _)| name).collect())
+                    .map(|list| say!("Taking {} out of it is likely safe.", list)),
+            ]
+            .into_iter()
+            .flatten()
+            .collect(),
+        )
     }
 
     pub fn overview(&self, app: &App) -> Overview {

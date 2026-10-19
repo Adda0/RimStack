@@ -634,6 +634,8 @@ impl App {
             .iter()
             .filter_map(|&i| library.get(i)?.key())
             .collect();
+        // Lookup for un-scanned members read on this thread; `moved` hands them to `found`.
+        let mut scanned_handoff: HashMap<ModId, infer::Scanned> = HashMap::new();
         let read: Vec<(Vec<String>, infer::Scanned)> = members
             .par_iter()
             .map(|&i| {
@@ -668,11 +670,45 @@ impl App {
             &|name| names.contains(name),
             &|folded| library.name_of(folded).is_some(),
         );
+        let member_of: HashMap<ModId, usize> = (members.iter().copied())
+            .enumerate()
+            .map(|(at, id)| (id, at))
+            .collect();
+        // The installed mods of the newest save that are off need their own scan; the game
+        // waits, this run does not.
+        let save_keys: HashSet<String> = self.newest_save().as_ref().clone().unwrap_or_default();
+        let mut removal = HashMap::new();
+        for (id, m) in library.ids() {
+            if m.key().is_none_or(|key| !save_keys.contains(&key)) {
+                continue;
+            }
+            let (category, defines) = match member_of.get(&id) {
+                Some(&at) => (library.category_of(id), &scanned[at].defines),
+                None => {
+                    let loaded = rimstack_core::rimworld::loadfolders::folders(
+                        &m.path,
+                        &library.game_version,
+                        &|m| active.contains(m),
+                    );
+                    let read = scanned_handoff
+                        .entry(id)
+                        .or_insert_with(|| infer::scan(&loaded));
+                    (library.category_of(id), &read.defines)
+                }
+            };
+            let verdict = rimstack_core::mods::removal::removal(category, defines, &m.code.facts);
+            removal.insert(id, verdict);
+        }
+        let def_collisions = rimstack_core::mods::defs::collisions(&defines);
+        let mut scanned: HashMap<ModId, infer::Scanned> =
+            members.iter().copied().zip(scanned).collect();
+        scanned.extend(scanned_handoff);
         let found = super::Conflicts {
             overlaps: conflicts::overlaps(&provided),
-            def_collisions: rimstack_core::mods::defs::collisions(&defines),
-            scanned: members.iter().copied().zip(scanned).collect(),
+            def_collisions,
+            scanned,
             xml_found: members.iter().copied().zip(xml).collect(),
+            removal,
             members,
         };
         self.keep_files_read(generation, found);
