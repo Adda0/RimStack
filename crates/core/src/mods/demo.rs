@@ -70,6 +70,7 @@ pub fn generate(count: usize) -> Vec<Mod> {
                 ),
                 author: AUTHORS[i % AUTHORS.len()].to_string(),
                 version: format!("1.{}.{}", i % 7, i % 13),
+                game: format!("1.{}", i % 7),
                 category,
                 installed: None,
             }

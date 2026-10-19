@@ -136,6 +136,7 @@ pub fn column_choices(kept: &str, load_times: bool) -> Vec<ColumnChoice> {
     vec![
         choice("author", say!("Author")),
         choice("version", say!("Version")),
+        choice("game", say!("Game")),
         choice("load", load),
     ]
 }
@@ -441,12 +442,13 @@ impl LoadOrder {
         self.inactive.set_filter_on(Side::Inactive, text);
     }
 
-    /// "name", "author", "version" or "load"; anything else is load order.
+    /// "name", "author", "version", "game" or "load"; anything else is load order.
     pub fn show_by(&mut self, column: &str, descending: bool) {
         let key = match column {
             "name" => Some(SortKey::Name),
             "author" => Some(SortKey::Author),
             "version" => Some(SortKey::Version),
+            "game" => Some(SortKey::Game),
             "load" => Some(SortKey::Load),
             _ => None,
         };

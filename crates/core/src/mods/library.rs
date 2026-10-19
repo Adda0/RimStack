@@ -15,6 +15,7 @@ use std::path::{Path, PathBuf};
 
 pub use crate::mods::classify::Kinds;
 use crate::mods::classify::{Standing, classify};
+use crate::mods::details;
 use crate::rimworld::code::Code;
 use crate::rimworld::game::Game;
 pub use mod_id::{MOST_MODS, ModId};
@@ -364,11 +365,10 @@ fn row(m: &Installed, id: String, category: Category, installed: ModId, game_ver
         name: m.display_name().to_string(),
         author: about.map(|a| a.authors.join(", ")).unwrap_or_default(),
         version: about
-            .and_then(|a| {
-                a.mod_version
-                    .clone()
-                    .or(a.supported_versions.last().cloned())
-            })
+            .and_then(|a| a.mod_version.clone())
+            .unwrap_or_default(),
+        game: about
+            .and_then(|a| details::newest(&a.supported_versions).map(String::from))
             .unwrap_or_default(),
         category,
         installed: Some(installed),
@@ -441,6 +441,7 @@ impl Library {
                     arranged.missing += 1;
                     arranged.active.push(Mod {
                         id: written.to_string(),
+                        game: String::new(),
                         tags: Vec::new(),
                         local: false,
                         workshop: false,

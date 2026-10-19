@@ -139,6 +139,7 @@ fn a_mod(name: &str, category: Category) -> Mod {
         name: name.to_string(),
         author: "someone".to_string(),
         version: "1.0".to_string(),
+        game: String::new(),
         category,
         installed: None,
         tags: Vec::new(),
