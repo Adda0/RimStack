@@ -28,6 +28,7 @@ pub struct RowView {
     pub name: Sentence,
     pub author: String,
     pub version: String,
+    pub game: String,
     /// 0 for a heading.
     pub number: i32,
     pub count: i32,
@@ -74,6 +75,7 @@ impl RowView {
             name: Sentence::Plain(name.to_string()),
             author: String::new(),
             version: String::new(),
+            game: String::new(),
             number: 0,
             count: 0,
             collapsed: false,
@@ -245,6 +247,7 @@ impl LoadOrder {
             },
             author: m.author.clone(),
             version: m.version.clone(),
+            game: m.game.clone(),
             number: index as i32 + 1,
             count: 0,
             collapsed: false,

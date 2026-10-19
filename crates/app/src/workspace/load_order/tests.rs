@@ -43,6 +43,7 @@ fn the_load_column_is_offered_only_with_load_times_and_says_why_not() {
         [
             ("author", true, false),
             ("version", false, false),
+            ("game", false, false),
             ("load", false, true)
         ]
     );
@@ -51,6 +52,7 @@ fn the_load_column_is_offered_only_with_load_times_and_says_why_not() {
         [
             ("author", true, false),
             ("version", false, false),
+            ("game", false, false),
             ("load", true, false)
         ]
     );

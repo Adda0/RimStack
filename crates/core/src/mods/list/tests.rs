@@ -23,6 +23,7 @@ fn m(name: &str, author: &str, category: Category) -> Mod {
         name: name.into(),
         author: author.into(),
         version: "1.0".into(),
+        game: String::new(),
         category,
         installed: None,
     }
@@ -174,7 +175,9 @@ fn a_list_can_be_shown_by_a_column_without_changing_the_load_order() {
         m("Gamma", "bob", Category::Content),
     ];
     mods[0].load_micros = Some(5_000);
+    mods[0].game = "1.9".to_string();
     mods[2].load_micros = Some(900_000);
+    mods[2].game = "1.10".to_string();
     let mut list = GroupedList::new(mods);
     let shown = |list: &GroupedList| -> Vec<usize> {
         let at = |r: &Row| match r {
@@ -189,9 +192,10 @@ fn a_list_can_be_shown_by_a_column_without_changing_the_load_order() {
     list.show_by(Some((SortKey::Author, true)));
     assert_eq!(shown(&list), [0, 2, 1]);
     list.show_by(Some((SortKey::Load, true)));
-    assert_eq!(shown(&list), [2, 0, 1]);
+    list.show_by(Some((SortKey::Game, false)));
+    assert_eq!(shown(&list), [0, 2, 1], "by game version, earliest first");
     list.set_filter("a");
-    assert_eq!(shown(&list), [2, 0, 1]);
+    assert_eq!(shown(&list), [0, 2, 1]);
     list.set_filter("gamma");
     assert_eq!(shown(&list), [2]);
     list.set_filter("");

@@ -1,3 +1,4 @@
+use crate::base::versions::numbers;
 use crate::mods::library::ModId;
 use std::collections::HashSet;
 
@@ -80,7 +81,10 @@ pub struct Mod {
     pub id: String,
     pub name: String,
     pub author: String,
+    /// The mod's own version; empty when its About.xml names none.
     pub version: String,
+    /// The newest game version it names as supported, as written; empty for none.
+    pub game: String,
     pub category: Category,
     /// `None` for a mod that is not installed and for demo data.
     pub installed: Option<ModId>,
@@ -113,6 +117,8 @@ pub enum SortKey {
     Name,
     Author,
     Version,
+    /// By the numbers of `Mod::game`, so 1.10 comes after 1.9.
+    Game,
     Load,
 }
 
@@ -631,6 +637,13 @@ impl GroupedList {
                 _ => self.mods[i].name.to_lowercase(),
             };
             match key {
+                SortKey::Game => {
+                    shown.sort_by_cached_key(|&i| {
+                        let game = &self.mods[i].game;
+                        let parts = numbers(game);
+                        (game.is_empty(), parts)
+                    });
+                }
                 SortKey::Load => {
                     shown.sort_by_key(|&i| self.mods[i].load_micros);
                 }

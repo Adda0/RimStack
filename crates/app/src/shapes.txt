@@ -213,6 +213,7 @@ mod_rows.at: object
   colour: text
   count: number
   fresh: bool
+  game: text
   groupSize: number
   isHeader: bool
   isSub: bool
