@@ -19,6 +19,7 @@ fn m(name: &str, author: &str, category: Category) -> Mod {
         updated: None,
         downloaded: None,
         supports: Vec::new(),
+        needs_dlcs: Vec::new(),
         name: name.into(),
         author: author.into(),
         version: "1.0".into(),
@@ -287,6 +288,27 @@ fn a_colour_term_shows_the_mods_painted_with_it() {
     assert_eq!(shown(&list), ["Core", "Rimefeller"]);
     list.set_filter("!colour:r");
     assert_eq!(shown(&list).len(), 4);
+}
+
+#[test]
+fn a_needs_term_shows_the_mods_depending_on_that_dlc() {
+    let mut mods = sample().mods().to_vec();
+    mods[1].needs_dlcs = vec!["ludeon.rimworld.biotech".into()]; // Core
+    mods[5].needs_dlcs = vec!["ludeon.rimworld.royalty".into()]; // Rimefeller
+    let mut list = GroupedList::flat(mods);
+    let shown = |list: &GroupedList| -> Vec<String> {
+        let name = |r: &Row| match r {
+            Row::Mod { index } => Some(list.mods()[*index].name.clone()),
+            _ => None,
+        };
+        list.rows().iter().filter_map(name).collect()
+    };
+    list.set_filter("needs:Biotech");
+    assert_eq!(shown(&list), ["Core"]);
+    list.set_filter("needs:ludeon.rimworld");
+    assert_eq!(shown(&list), ["Core", "Rimefeller"]);
+    list.set_filter("!needs:royalty");
+    assert_eq!(shown(&list).len(), 5);
 }
 
 #[test]

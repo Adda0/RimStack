@@ -323,6 +323,22 @@ fn patched(aim: &crate::rimworld::code::Aim) -> String {
     format!("{}.{}", aim.target, aim.method).to_lowercase()
 }
 
+/// Folded package ids of the official DLCs it depends on, for any game version, sorted.
+fn official_dlcs(about: Option<&About>) -> Vec<String> {
+    let Some(about) = about else {
+        return Vec::new();
+    };
+    let deps = &about.dependencies;
+    let mut dlcs: Vec<String> = (deps.base.iter())
+        .chain(deps.by_version.values().flatten())
+        .map(|dep| id::fold(&id::split_steam(dep).0))
+        .filter(|folded| folded.starts_with("ludeon.rimworld."))
+        .collect();
+    dlcs.sort();
+    dlcs.dedup();
+    dlcs
+}
+
 /// `supports` stops at `game_version`: a mod made for a newer game sorts as made for this one.
 fn row(m: &Installed, id: String, category: Category, installed: ModId, game_version: &str) -> Mod {
     let about = m.about.as_ref().ok();
@@ -356,6 +372,7 @@ fn row(m: &Installed, id: String, category: Category, installed: ModId, game_ver
             .unwrap_or_default(),
         category,
         installed: Some(installed),
+        needs_dlcs: official_dlcs(about),
     }
 }
 
@@ -436,6 +453,7 @@ impl Library {
                         updated: None,
                         downloaded: None,
                         supports: Vec::new(),
+                        needs_dlcs: Vec::new(),
                         name: written.to_string(),
                         author: String::new(),
                         version: String::new(),
