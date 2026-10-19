@@ -226,6 +226,19 @@ Item {
             checks.drag(checks.inactiveList, 13 + 26 * 2, checks.activeList, row(5))
             checks.check("a mod dragged from the inactive list is activated where it was dropped", Mods.active.count === count + 1 && checks.nameAt(5) === taken)
 
+            // Filtered to a few mods, a drop below the last row lands just after it (#14).
+            Mods.filtered = "Fixture Mod 04"
+            const shownRows = Mods.active.rows(), lastPlace = Mods.active.indexOf(Mods.active.modIdAt(shownRows - 1))
+            let first = 0
+            while (Mods.inactive.modIdAt(first) < 0)
+                first += 1
+            const added = Mods.inactive.modIdAt(first)
+            checks.drag(checks.inactiveList, 13 + 26 * first, checks.activeList, row(shownRows) + 4)
+            checks.check("a mod dropped below a filtered load order lands after the last mod it shows", Mods.active.indexOf(added) === lastPlace + 1 && lastPlace + 2 < Mods.active.count)
+            Hub.mods.undo()
+            Mods.filtered = ""
+            checks.activeList.positionViewAtBeginning()
+
             events.mouseClick(checks.activeList, 120, row(3), Qt.RightButton, Qt.NoModifier, -1)
             checks.check("the right mouse button selects the mod and opens its menu", Mods.info.name === checks.nameAt(3) && checks.screen.menuOpen)
             menuShown.start()

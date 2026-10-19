@@ -25,6 +25,8 @@ pub mod qobject {
         #[qproperty(bool, active, READ, CONSTANT)]
         #[qproperty(i32, count)]
         #[qproperty(i32, matching)]
+        /// Where a mod dropped below the last row goes, in the whole list.
+        #[qproperty(i32, end_place, cxx_name = "endPlace")]
         type ModRows = super::ModRowsRust;
     }
 
@@ -149,6 +151,7 @@ pub struct ModRowsRust {
     active: bool,
     count: i32,
     matching: i32,
+    end_place: i32,
     shown: Vec<RowView>,
 }
 
@@ -331,6 +334,7 @@ impl qobject::ModRows {
         rows: Vec<RowView>,
         count: usize,
         matching: usize,
+        end_place: usize,
     ) {
         let before: Vec<_> = self.shown.iter().map(|r| r.key.clone()).collect();
         let after: Vec<_> = rows.iter().map(|r| r.key.clone()).collect();
@@ -342,7 +346,8 @@ impl qobject::ModRows {
             None => self.as_mut().renew(rows),
         }
         self.as_mut().set_count(count as i32);
-        self.set_matching(matching as i32);
+        self.as_mut().set_matching(matching as i32);
+        self.set_end_place(end_place as i32);
     }
 
     fn renew(mut self: Pin<&mut Self>, rows: Vec<RowView>) {
