@@ -111,8 +111,12 @@ pub mod qobject {
         fn check_release(self: Pin<&mut SettingsData>);
 
         #[qinvokable]
-        #[cxx_name = "importRimSortRules"]
-        fn import_rimsort_rules(self: &SettingsData) -> QString;
+        #[cxx_name = "importRimSort"]
+        fn import_rimsort(self: &SettingsData) -> QString;
+
+        #[qinvokable]
+        #[cxx_name = "importRimPy"]
+        fn import_rimpy(self: &SettingsData) -> QString;
 
         #[qinvokable]
         #[cxx_name = "setModSettingsAside"]
@@ -359,12 +363,16 @@ impl qobject::SettingsData {
         );
     }
 
-    fn import_rimsort_rules(&self) -> QString {
-        crate::words::said(&self.app().import_rimsort_rules())
+    fn import_rimsort(&self) -> QString {
+        crate::words::said(&self.app().import_rimsort())
     }
 
     fn set_mod_settings_aside(&self) -> QString {
         crate::words::said(&self.app().set_mod_settings_aside())
+    }
+
+    fn import_rimpy(&self) -> QString {
+        crate::words::said(&self.app().import_rimpy())
     }
 
     fn files_changed(&self) {

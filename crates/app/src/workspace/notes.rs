@@ -1,14 +1,66 @@
 use super::App;
 use crate::changes::Changes;
 use rimstack_core::base::locks::Shared;
+use rimstack_core::kept::foreign::{self, Kept};
 use rimstack_core::kept::notes::{self, Note};
 use rimstack_core::mods::library::ModId;
 use rimstack_core::mods::list::Category;
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 
 #[derive(serde::Serialize)]
 pub struct TagOffer {
     tag: String,
     text: String,
+}
+
+/// The swatches of `Theme.qml`, by name, with their colour on a dark theme.
+const SWATCHES: [(&str, &str); 13] = [
+    ("Violet", "#9a8fc2"),
+    ("Slate", "#8d99a6"),
+    ("Blue", "#6fa3c7"),
+    ("Green", "#86b06b"),
+    ("Amber", "#d2a94e"),
+    ("Coral", "#c98277"),
+    ("Teal", "#7fb8b0"),
+    ("Sand", "#c9a36a"),
+    ("Grey", "#a3a3ad"),
+    ("Rose", "#d58fb3"),
+    ("Lime", "#b5c95a"),
+    ("Sky", "#7cc4e8"),
+    ("Orange", "#e09a5c"),
+];
+
+/// The swatch nearest a colour another manager painted with, so it reads in every theme.
+/// Black, RimPy's way of painting nothing, and greys are none.
+fn nearest_swatch(colour: &str) -> Option<&'static str> {
+    let [r, g, b] = foreign::rgb(colour)?.map(i32::from);
+    if r.max(g).max(b) - r.min(g).min(b) < 24 {
+        return None;
+    }
+    let distance = |(_, hex): &&(&str, &str)| {
+        let [sr, sg, sb] = foreign::rgb(hex).unwrap_or_default().map(i32::from);
+        (r - sr).pow(2) + (g - sg).pow(2) + (b - sb).pow(2)
+    };
+    SWATCHES.iter().min_by_key(distance).map(|(name, _)| *name)
+}
+
+/// Tags not here yet go last, a note not here yet goes below this one, a colour only where there is none.
+fn merge(note: &mut Note, kept: &Kept) {
+    for tag in &kept.tags {
+        if !note.tags.iter().any(|had| had.eq_ignore_ascii_case(tag)) {
+            note.tags.push(tag.clone());
+        }
+    }
+    if !kept.note.is_empty() && !note.text.contains(&kept.note) {
+        note.text = match note.text.trim().is_empty() {
+            true => kept.note.clone(),
+            false => format!("{}\n\n{}", note.text.trim_end(), kept.note),
+        };
+    }
+    if note.colour.is_empty() {
+        note.colour = nearest_swatch(&kept.colour).unwrap_or_default().to_string();
+    }
 }
 
 impl App {
@@ -128,6 +180,58 @@ impl App {
     pub fn delete_group(&self, name: &str) -> bool {
         let keys = self.notes().reading().in_group(name);
         self.change_notes_of(&keys, Changes::NOTES, |note| note.remove_tag(name))
+    }
+
+    /// Takes over the tags, notes and colours another manager kept, matched by mod folder;
+    /// nothing kept here is lost. Gives how many mods got something new.
+    pub fn adopt(&self, kept: &[Kept]) -> usize {
+        let loaded = self.library();
+        let Ok((library, _)) = &*loaded else {
+            return 0;
+        };
+        let real = |path: &Path| std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+        let mut by_path: HashMap<PathBuf, String> = HashMap::new();
+        // A folder name, as another machine's path still ends in it; none when two mods share it.
+        let mut by_folder: HashMap<&str, Option<String>> = HashMap::new();
+        for m in &library.installed {
+            let Some(key) = m.key() else { continue };
+            by_path.insert(real(&m.path), key.clone());
+            let shared = by_folder.insert(m.folder.as_str(), Some(key)).is_some();
+            if shared {
+                by_folder.insert(m.folder.as_str(), None);
+            }
+        }
+        let key_of = |k: &Kept| {
+            let folder = || {
+                by_folder
+                    .get(k.folder.file_name()?.to_str()?)
+                    .cloned()
+                    .flatten()
+            };
+            by_path.get(&real(&k.folder)).cloned().or_else(folder)
+        };
+        let found: Vec<(String, &Kept)> =
+            kept.iter().filter_map(|k| Some((key_of(k)?, k))).collect();
+        drop(loaded);
+        let mut all = self.notes().writing();
+        let mut changed = 0;
+        for (key, kept) in found {
+            let before = all.get(&key).cloned().unwrap_or_default();
+            let mut note = before.clone();
+            merge(&mut note, kept);
+            if note != before {
+                all.set(&key, note);
+                changed += 1;
+            }
+        }
+        if changed > 0 {
+            if let Err(problem) = all.write(&self.notes_file()) {
+                rimstack_core::problem!("{problem}");
+            }
+            drop(all);
+            self.publish(Changes::NOTES);
+        }
+        changed
     }
 
     /// For the tag typed after the last comma of `text`: each tag to offer, from those not in
@@ -281,5 +385,63 @@ mod tests {
         assert_eq!(app.user_rules().reading().len(), 1);
         app.change_rule(core, id, false);
         assert_eq!(app.user_rules().reading().len(), 0);
+    }
+
+    #[test]
+    fn another_manager_s_tags_notes_and_colours_are_added_to_what_is_here() {
+        use rimstack_core::kept::foreign::Kept;
+        let (tmp, app) = installed();
+        let id = roads(&app);
+        app.set_note(id, "travel", "far");
+        let kept = |folder: std::path::PathBuf, tags: &[&str], note: &str, colour: &str| Kept {
+            folder,
+            tags: tags.iter().map(|t| t.to_string()).collect(),
+            note: note.into(),
+            colour: colour.into(),
+        };
+        let found = [
+            // By its path here, and by its folder name from another machine.
+            kept(
+                tmp.path().join("game/Mods/roads"),
+                &["TRAVEL", "must"],
+                "breaks saves",
+                "#ff0000",
+            ),
+            kept("/elsewhere/Core".into(), &["core"], "", "#000000"),
+            kept("/elsewhere/gone".into(), &["lost"], "", ""),
+        ];
+        assert_eq!(app.adopt(&found), 2);
+        let notes = rimstack_core::kept::notes::Notes::read(&app.notes_file());
+        let roads = notes.get("ann.roads").unwrap();
+        assert_eq!(roads.tags, ["travel", "must"]);
+        assert_eq!(roads.text, "far\n\nbreaks saves");
+        assert_eq!(roads.colour, "Orange");
+        let core = notes.get("ludeon.rimworld").unwrap();
+        assert_eq!(
+            (core.tags.clone(), core.colour.as_str()),
+            (vec!["core".to_string()], "")
+        );
+        assert_eq!(app.adopt(&found), 0, "taken over once");
+    }
+
+    #[test]
+    fn the_swatches_are_those_of_the_theme() {
+        let theme = include_str!("../../qml/Theme.qml");
+        for (name, dark) in super::SWATCHES {
+            assert!(
+                theme.contains(&format!("[\"{name}\", \"{dark}\"")),
+                "{name} {dark}"
+            );
+        }
+        let listed = theme
+            .split("swatches: [")
+            .nth(1)
+            .unwrap()
+            .split(']')
+            .count();
+        assert!(
+            listed > super::SWATCHES.len(),
+            "a swatch of Theme.qml is missing here"
+        );
     }
 }

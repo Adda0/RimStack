@@ -37,6 +37,9 @@ sysinfo = { version = "0.39", default-features = false, features = ["system"] }
 dunce = "1"
 # Dates in the diagnostics; already built for the app (MIT/Apache-2.0).
 chrono = { version = "0.4", default-features = false, features = ["alloc"] }
+# RimSort keeps tags, notes and colours in SQLite; read only, to import them. Bundled, so
+# no system library is needed (MIT).
+rusqlite = { version = "0.40", features = ["bundled"] }
 
 [dev-dependencies]
 tempfile = "3"

@@ -1,4 +1,5 @@
 pub mod desktop;
+pub mod foreign;
 pub mod journal;
 pub mod launches;
 pub mod lists;
