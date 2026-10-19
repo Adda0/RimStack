@@ -4,6 +4,7 @@ use crate::workspace::load_order::Side;
 use core::pin::Pin;
 use cxx_qt::{CxxQtType, Threading};
 use cxx_qt_lib::{QString, QUrl, QVariant};
+use rimstack_core::base::error::Result;
 use rimstack_core::base::sentence::Sentence;
 use rimstack_core::mods::library::ModId;
 use rimstack_core::rimworld::modsconfig;
@@ -639,5 +640,24 @@ impl qobject::ModsData {
                 Err(problem) => me.told(crate::words::said_of(&problem), QString::from("err")),
             },
         );
+    }
+
+    pub(super) fn reset_settings(mut self: Pin<&mut Self>) {
+        let done = id(self.selected).map(|id| self.app().reset_mod_settings(id));
+        self.as_mut().told_result(done);
+    }
+
+    pub(super) fn set_orphan_settings_aside(mut self: Pin<&mut Self>) {
+        let done = self.app().set_orphan_settings_aside();
+        self.as_mut().told_result(Some(done));
+    }
+
+    fn told_result(mut self: Pin<&mut Self>, done: Option<Result<Sentence>>) {
+        let Some(done) = done else {
+            return;
+        };
+        let tone = QString::from(if done.is_err() { "err" } else { "ok" });
+        let said = crate::words::said_or_why(&done);
+        self.as_mut().told(said, tone);
     }
 }
