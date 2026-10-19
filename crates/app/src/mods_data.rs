@@ -145,9 +145,10 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "draftNote"]
         fn draft_note(self: Pin<&mut ModsData>, mod_id: i32, note: &QString);
+        /// Takes the tag off every mod grouped under it.
         #[qinvokable]
-        #[cxx_name = "draftGroup"]
-        fn draft_group(self: Pin<&mut ModsData>, mod_id: i32, name: &QString);
+        #[cxx_name = "deleteGroup"]
+        fn delete_group(self: Pin<&mut ModsData>, name: &QString);
         #[qinvokable]
         #[cxx_name = "keepDrafts"]
         fn keep_drafts(self: Pin<&mut ModsData>);

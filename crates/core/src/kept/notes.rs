@@ -175,6 +175,19 @@ impl Notes {
         counted.into_iter().take(most).map(|(tag, _)| tag).collect()
     }
 
+    /// Folded package ids of the mods grouped under `name`, in any case: whose first tag it is.
+    pub fn in_group(&self, name: &str) -> Vec<String> {
+        let name = name.trim();
+        if name.is_empty() {
+            return Vec::new();
+        }
+        let grouped = self
+            .by_id
+            .iter()
+            .filter(|(_, n)| n.group().eq_ignore_ascii_case(name));
+        grouped.map(|(k, _)| k.clone()).collect()
+    }
+
     pub fn len(&self) -> usize {
         self.by_id.len()
     }
@@ -226,6 +239,25 @@ mod tests {
             notes.tags_for("m", &tags_in("MAGIC"), 10),
             ["Medieval", "mechs"]
         );
+    }
+
+    #[test]
+    fn a_group_holds_the_mods_whose_first_tag_it_is_in_any_case() {
+        let mut notes = Notes::default();
+        for (id, tags) in [
+            ("A.a", "Medieval, qol"),
+            ("b.b", "qol, medieval"),
+            ("c.c", "MEDIEVAL"),
+        ] {
+            let note = Note {
+                tags: tags_in(tags),
+                ..Note::default()
+            };
+            notes.set(id, note);
+        }
+        assert_eq!(notes.in_group("medieval "), ["a.a", "c.c"]);
+        assert_eq!(notes.in_group("qol"), ["b.b"]);
+        assert!(notes.in_group(" ").is_empty());
     }
 
     #[test]
