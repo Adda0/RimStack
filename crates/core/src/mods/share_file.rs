@@ -105,9 +105,8 @@ fn items(list: Option<Node>) -> Vec<String> {
 }
 
 fn below<'a>(node: &Node<'a, 'a>, names: &[&str]) -> Option<Node<'a, 'a>> {
-    names.iter().fold(Some(*node), |node, name| {
-        node?
-            .children()
+    names.iter().try_fold(*node, |node, name| {
+        node.children()
             .find(|n| n.tag_name().name().eq_ignore_ascii_case(name))
     })
 }
