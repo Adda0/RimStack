@@ -21,4 +21,6 @@ Settings {
     property bool wrapTrace: true
     // A category's own colour, by its number and a name of `Theme.swatches`: "2=Rose,5=Sky".
     property string categoryColours: ""
+    // A list's scrollbar shows only while scrolling or pointed at, as before 1.0.3.
+    property bool idleScrollbars: false
 }
