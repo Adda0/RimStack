@@ -314,9 +314,11 @@ mod tests {
     fn installed_of(now: &[Mod]) -> Vec<Installed> {
         now.iter()
             .map(|m| {
-                let mut about = crate::rimworld::about::About::default();
-                about.package_id = m.package_id.clone();
-                about.mod_version = m.version.clone();
+                let about = crate::rimworld::about::About {
+                    package_id: m.package_id.clone(),
+                    mod_version: m.version.clone(),
+                    ..Default::default()
+                };
                 let (source, git) = match m.source.as_str() {
                     "workshop" => (Source::Workshop, false),
                     "git" => (Source::Local, true),
