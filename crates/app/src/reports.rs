@@ -30,6 +30,12 @@ pub struct FolderVerdict {
     pub said: rimstack_core::base::sentence::Sentence,
 }
 
+#[derive(Serialize, Clone, Debug, PartialEq)]
+pub struct OpenFolder {
+    pub name: rimstack_core::base::sentence::Sentence,
+    pub path: String,
+}
+
 #[derive(Serialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct SettingsReport {
@@ -70,6 +76,8 @@ pub struct SettingsReport {
     pub local_mods: Option<String>,
     pub config_folder: Option<String>,
     pub game_log: Option<String>,
+    /// Those there now, to open from the command palette.
+    pub folders: Vec<OpenFolder>,
     pub steamcmd_folder: String,
     pub settings_file: String,
     pub diagnostics_file: String,
