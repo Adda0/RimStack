@@ -4,6 +4,7 @@ use rimstack_core::said;
 
 mod changes;
 mod downloads_data;
+mod find_data;
 mod game_data;
 mod hub;
 mod jobs;

@@ -280,6 +280,7 @@ ApplicationWindow {
                 { name: Theme.say("Clear filter"), group: Theme.say("Filter"), run: () => filter("") },
 
                 { name: Theme.say("Read the mod folders again"), group: Theme.say("Mods"), run: () => Hub.mods.rescan(), when: !Theme.demo },
+                { name: Theme.say("Search inside the mods' files"), group: Theme.say("Mods"), run: () => findFiles.open(), when: !Theme.demo },
                 { name: Theme.say("Check for updates"), group: Theme.say("Downloads"), run: () => { window.section = 1; Hub.downloads.checkUpdates() }, when: !Theme.demo },
                 { name: Theme.say("Update community rules"), group: Theme.say("Sorting"), run: () => Hub.settings.downloadCommunity(), when: !Theme.demo && !Hub.settings.communityCurrent },
                 { name: Theme.say("Read the saves again"), group: Theme.say("Saves"), run: () => { window.section = 3; Hub.saves.reread() }, when: !Theme.demo },
@@ -320,6 +321,10 @@ ApplicationWindow {
         }
     }
     KeysSheet { id: keysSheet }
+    FindInFiles {
+        id: findFiles
+        onShowMod: modId => window.showMod(modId)
+    }
     Prompt {
         id: question
         readonly property var asked: Notices.asking || ({ title: "", lines: [], label: "", danger: false })
@@ -403,7 +408,7 @@ ApplicationWindow {
                 Mods.save()
             }
             const open = Hub.argument("--open")
-            window.opened = { play: topBar.beforePlay, history: statusBar.historyMenu, keys: keysSheet, search: commands, lists: topBar.listsMenu, tray: statusBar.trayMenu, ask: question }[open] || null
+            window.opened = { play: topBar.beforePlay, history: statusBar.historyMenu, keys: keysSheet, search: commands, lists: topBar.listsMenu, tray: statusBar.trayMenu, ask: question, find: findFiles }[open] || null
             if (window.opened && open !== "ask")
                 window.opened.open()
             if (open === "ask")

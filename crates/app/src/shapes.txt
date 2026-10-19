@@ -104,6 +104,14 @@ downloads.updates: object
       name: text
       now: number
   problem: nothing or text
+find.hits: list
+  []: object
+    file: text
+    folder: text
+    line: number
+    modId: number
+    modName: text
+    text: text
 game.lastStart: object
   errors: number
   time: number
@@ -282,21 +290,16 @@ mods.details: object
   contains: text
   copies: nothing or text
   defsReplacedBy: list
-    []: object
-      defs: number
-      modId: number
-      name: text
-      some: text
+    []: never seen
   defsReplaces: list
-    []: object
-      defs: number
-      modId: number
-      name: text
-      some: text
+    []: never seen
   description: text
   descriptionRich: text
   detected: list
-    []: never seen
+    []: object
+      code: bool
+      name: text
+      why: text
   folder: text
   gameVersions: text
   groupChoices: list
@@ -414,21 +417,16 @@ mods.detailsOf: object
   contains: text
   copies: nothing or text
   defsReplacedBy: list
-    []: object
-      defs: number
-      modId: number
-      name: text
-      some: text
+    []: never seen
   defsReplaces: list
-    []: object
-      defs: number
-      modId: number
-      name: text
-      some: text
+    []: never seen
   description: text
   descriptionRich: text
   detected: list
-    []: never seen
+    []: object
+      code: bool
+      name: text
+      why: text
   folder: text
   gameVersions: text
   groupChoices: list
@@ -656,7 +654,15 @@ mods.overview: object
 mods.packageMods: list
   []: number
 mods.sortMoves: list
-  []: never seen
+  []: object
+    moves: list
+      []: object
+        from: number
+        modId: number
+        name: text
+        to: number
+        why: text
+    name: text
 mods.subsBeside: list
   []: text
 mods.summary: object
