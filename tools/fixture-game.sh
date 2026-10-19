@@ -33,6 +33,7 @@ for n in $(seq -w 1 100); do
         extra="$extra  <modDependencies><li><packageId>fixture.missing</packageId><displayName>Fixture Library</displayName><steamWorkshopUrl>steam://url/CommunityFilePage/123456789</steamWorkshopUrl></li></modDependencies>\n"
     fi
     about "$folder" "fixture.mod$n" "Fixture Mod $n" "$(printf "$extra")" "$version"
+    printf '%s\n' "2941000$(printf %s "$n")" > "$folder/About/PublishedFileId.txt"
     kind=${kinds[$((10#$n % 3))]}
     mkdir -p "$folder/$kind"
     case $kind in

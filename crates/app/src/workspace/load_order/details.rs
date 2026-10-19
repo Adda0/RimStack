@@ -401,6 +401,11 @@ impl LoadOrder {
             said.wins_over = clashes.wins;
             said.conflict_marks = clashes.marks;
             said.placement = near.bottom.then(|| say!("The community rules keep this mod near the bottom of the list, below everything that does not have to follow it."));
+        } else if let Some((_, listed)) = listed
+            && let Some(lack) = describe::lacking(library, listed)
+            && !note.ignored.contains(&lack.key)
+        {
+            said.problems = vec![ProblemSaid::of(listed, &lack)];
         }
         said
     }

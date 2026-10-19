@@ -199,6 +199,28 @@ pub fn missing(workshop: &Names, id: &str) -> (String, Fix) {
     }
 }
 
+/// From a mod whose About.xml was read, a property RimSort looks for that it does not have:
+/// a copy of a Workshop item names the item in `About/PublishedFileId.txt`; a local one without
+/// it can never be checked for updates. Ignorable by the mod's package id and `Trouble::key`.
+pub fn lacking(library: &Library, m: &crate::mods::list::Mod) -> Option<Trouble> {
+    let installed = library.get(m.installed?)?;
+    if installed.source != crate::rimworld::paths::Source::Local
+        || installed.published
+        || installed.about.is_err()
+    {
+        return None;
+    }
+    Some(Trouble {
+        error: false,
+        words: say!(
+            "Names no Workshop item: it has no About/PublishedFileId.txt, so a check cannot tell its updates."
+        ),
+        short: say!("No Workshop id"),
+        fix: Fix::None,
+        key: "no-workshop-id".to_string(),
+    })
+}
+
 pub fn troubles(
     library: &Library,
     mods: &[Mod],
@@ -291,8 +313,32 @@ pub fn troubles(
                 key: "missing".to_string(),
             });
         }
+        if let Some(lack) = lacking(library, m) {
+            own.push(lack);
+        }
     }
     all
+}
+
+/// What `is:incomplete` marks: a mod missing a property RimSort looks for — unreadable About.xml
+/// (no packageId it can be known by), or a local copy that names no Workshop item, unless that
+/// warning is ignored for it (by folded package id).
+pub fn incomplete(
+    installed: Option<&crate::mods::library::Installed>,
+    folded_id: &str,
+    ignored: &HashMap<String, HashSet<String>>,
+) -> bool {
+    let Some(m) = installed else {
+        return false;
+    };
+    if m.about.is_err() {
+        return true;
+    }
+    let lacks_item = m.source == crate::rimworld::paths::Source::Local && !m.published;
+    lacks_item
+        && !ignored
+            .get(folded_id)
+            .is_some_and(|keys| keys.contains("no-workshop-id"))
 }
 
 /// Takes out the problems ignored, by folded package id; an incompatibility ignored on
@@ -489,6 +535,7 @@ mod tests {
         for (folder, about) in abouts {
             fs::create_dir_all(root.join(folder).join("About")).unwrap();
             fs::write(root.join(folder).join("About/About.xml"), about).unwrap();
+            fs::write(root.join(folder).join("About/PublishedFileId.txt"), "1000").unwrap();
         }
         let roots = [ModRoot {
             path: root,
@@ -590,6 +637,10 @@ mod tests {
             fs::create_dir_all(root.join("Royalty/About")).unwrap();
             let own = about.replace("ludeon.rimworld.royalty", &format!("a.{folder}"));
             fs::write(root.join("Royalty/About/About.xml"), own).unwrap();
+            if source == Source::Local {
+                // A copy put in Mods keeps its PublishedFileId.txt, like a redownload.
+                fs::write(root.join("Royalty/About/PublishedFileId.txt"), "2941000\n").unwrap();
+            }
             roots.push(ModRoot { path: root, source });
         }
         let active = ["a.Data".to_string(), "a.Mods".to_string()];
@@ -679,6 +730,49 @@ mod tests {
             "Needs Gone Library, which is not installed."
         );
         assert_eq!(found[0][0].fix, Fix::Subscribe("42".to_string()));
+    }
+
+    #[test]
+    fn a_local_copy_naming_no_workshop_item_is_flagged_until_ignored() {
+        let (tmp, library) = two_mods();
+        let nobody: HashMap<String, HashSet<String>> = HashMap::new();
+        // Both local mods name a Workshop item: nothing is missing.
+        assert!(library.inactive.iter().all(|m| {
+            let installed = library.get(m.installed.expect("installed"));
+            !incomplete(installed, &m.id, &nobody)
+        }));
+
+        std::fs::remove_file(tmp.path().join("Mods/old/About/PublishedFileId.txt")).unwrap();
+        std::fs::remove_file(tmp.path().join("Mods/fine/About/About.xml")).unwrap();
+        let root = tmp.path().join("Mods");
+        let roots = [ModRoot {
+            path: root,
+            source: Source::Local,
+        }];
+        let active = ["a.old".to_string()];
+        let library = build(scan(&roots), &active, "1.6");
+
+        let lack = lacking(&library, &library.active[0]).unwrap();
+        assert_eq!(lack.short.to_string(), "No Workshop id");
+        assert!(!lack.error && lack.key == "no-workshop-id");
+        assert!(lack.words.to_string().contains("PublishedFileId.txt"));
+        // A copy that names no item is incomplete until its warning is ignored.
+        let old = library.active[0].installed.unwrap();
+        assert!(incomplete(library.get(old), "a.old", &nobody));
+        let ignored: HashMap<String, HashSet<String>> = HashMap::from([(
+            "a.old".to_string(),
+            HashSet::from(["no-workshop-id".to_string()]),
+        )]);
+        assert!(!incomplete(library.get(old), "a.old", &ignored));
+        // A mod whose About.xml does not read has no id to ignore anything by.
+        let unreadable = library
+            .inactive
+            .iter()
+            .find(|m| m.installed.is_some() && m.id.is_empty())
+            .unwrap();
+        let unreadable_id = unreadable.installed.unwrap();
+        assert!(incomplete(library.get(unreadable_id), "", &ignored));
+        assert!(lacking(&library, unreadable).is_none());
     }
 
     #[test]
@@ -815,6 +909,7 @@ mod tests {
             let at = tmp.path().join(root).join(folder).join("About");
             fs::create_dir_all(&at).unwrap();
             fs::write(at.join("About.xml"), about).unwrap();
+            fs::write(at.join("PublishedFileId.txt"), "2941000\n").unwrap();
         };
         add(
             "Data",

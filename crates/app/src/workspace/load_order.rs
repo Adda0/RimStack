@@ -517,6 +517,7 @@ impl LoadOrder {
             Side::Active => &self.troubles,
             Side::Inactive => &[],
         };
+        let ignored = rules::ignored(app);
         let mods = self.list(side).mods().iter().enumerate();
         mods.map(|(at, m)| {
             let own = troubles.get(at).map(Vec::as_slice).unwrap_or_default();
@@ -526,6 +527,10 @@ impl LoadOrder {
             let marks = [
                 (own.iter().any(|t| t.error), flag::ERROR),
                 (own.iter().any(|t| !t.error), flag::WARNING),
+                (
+                    rimstack_core::mods::describe::incomplete(installed, &key, &ignored),
+                    flag::INCOMPLETE,
+                ),
                 (
                     m.installed.is_some_and(|i| in_conflict.contains(&i)),
                     flag::CONFLICT,
