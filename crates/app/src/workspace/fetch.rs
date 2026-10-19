@@ -148,6 +148,16 @@ impl App {
                 Err(problem) => Err(problem.clone()),
             })
             .collect();
+        let done: Vec<String> = fetched
+            .items
+            .iter()
+            .zip(&outcomes)
+            .filter(|(_, outcome)| outcome.is_ok())
+            .map(|((id, _), _)| id.clone())
+            .collect();
+        if !done.is_empty() {
+            self.record_steamcmd_downloads(&done);
+        }
         let failed: Vec<&Error> = outcomes.iter().filter_map(|o| o.as_ref().err()).collect();
         Done {
             wrote: failed.len() < outcomes.len(),
@@ -191,10 +201,14 @@ impl App {
                 .ok_or_else(|| Error::refused(said!("SteamCMD is not installed")))?;
             let fetched =
                 redownload::fetch_all(&steamcmd, std::slice::from_ref(&workshop), &scratch);
-            redownload::replace(&folder, fetched.first()?)
+            redownload::replace(&folder, fetched.first()?)?;
+            Ok(workshop)
         });
         Done::of_a_write(match done {
-            Ok(()) => Ok(say!("Downloaded again")),
+            Ok(workshop) => {
+                self.record_steamcmd_downloads(std::slice::from_ref(&workshop));
+                Ok(say!("Downloaded again"))
+            }
             Err(problem) => Err(Error::new(
                 problem.kind(),
                 said!("Not downloaded again: {}", problem.within()),

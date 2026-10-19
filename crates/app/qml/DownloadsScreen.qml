@@ -12,6 +12,7 @@ Item {
     signal showMod(int modId)
 
     readonly property var report: downloads.updates || ({})
+    readonly property var behind: report.steamcmd || []
     readonly property var found: downloads.queue || ({})
     readonly property var queue: found.items || []
     readonly property var repositories: found.repositories || []
@@ -255,7 +256,8 @@ Item {
                     title: Theme.say("SteamCMD")
                     status: [
                         Chip { visible: screen.steamcmd; tone: Theme.ok; icon: "check"; text: Theme.say("Installed") },
-                        Chip { visible: !screen.steamcmd; text: Theme.say("Not installed") }
+                        Chip { visible: !screen.steamcmd; text: Theme.say("Not installed") },
+                        Chip { visible: screen.steamcmd && screen.behind.length > 0; tone: Theme.moved; icon: "download"; text: Theme.plural(screen.behind.length, "{} update available", "{} updates available") }
                     ]
                     Text { width: parent.width; wrapMode: Text.WordWrap; color: Theme.ink3; font.pixelSize: Theme.small; text: Theme.say("Fetches a mod without subscribing."); Tip { text: Theme.say("Valve's own downloader, fetched from Valve into RimStack's data folder. It downloads Workshop mods without a Steam account, into the game's Mods folder. It runs with a home folder of its own, so it cannot touch Steam's settings.") } }
                     actions: [
@@ -266,13 +268,24 @@ Item {
                                 title: Theme.say("Install SteamCMD"),
                                 lines: [Theme.say("Valve's own downloader is fetched from Valve into"), { path: screen.info.steamcmdFolder || "" }, Theme.say("It runs with a home folder of its own there, apart from Steam's settings.")],
                                 label: Theme.say("Install"), run: () => screen.downloads.installSteamcmd() })
+                        },
+                        Btn {
+                            visible: screen.steamcmd && screen.behind.length > 0
+                            enabled: !screen.downloads.taskRunning
+                            icon: "download"
+                            text: Theme.say("Update…")
+                            tip: Theme.say("Asked of Steam when the check above last ran.")
+                            onClicked: Notices.ask({
+                                title: Theme.plural(screen.behind.length, "Update {} mod with SteamCMD", "Update {} mods with SteamCMD"),
+                                lines: [Theme.say("Each's folder in the game's Mods folder is replaced by a fresh download:"), { path: screen.info.localMods || "" }, Theme.say("Only the downloads SteamCMD made are replaced: copies made for a purpose of your own stay.")],
+                                label: Theme.say("Download"), run: () => screen.downloads.updateWithSteamcmd() })
                         }
                     ]
                 }
             }
 
             Card {
-                visible: screen.downloads.updatesBusy || !!screen.report.problem || (screen.report.count || 0) > 0
+                visible: screen.downloads.updatesBusy || !!screen.report.problem || (screen.report.count || 0) > 0 || screen.behind.length > 0
                 title: Theme.say("Newer versions")
                 note: screen.downloads.updatesBusy ? Theme.say("Asking Steam…") : Theme.fill("{} for active mods", screen.activeUpdates.length)
                 actions: [
@@ -321,6 +334,21 @@ Item {
                     visible: screen.inactiveUpdates.length > 3
                     text: screen.inactiveOpen ? Theme.fill("Show {}", 3) : Theme.fill("{} more", (screen.inactiveUpdates.length - 3))
                     onClicked: screen.inactiveOpen = !screen.inactiveOpen
+                }
+                Row {
+                    visible: screen.behind.length > 0
+                    topPadding: 8
+                    spacing: Theme.gap
+                    Text { color: Theme.ink2; font.pixelSize: Theme.small; font.weight: Font.DemiBold; text: Theme.say("SteamCMD downloads") }
+                    Text { color: Theme.ink3; font.pixelSize: Theme.small; text: Theme.say("Update them with SteamCMD, from the card above") }
+                }
+                Column {
+                    visible: screen.behind.length > 0
+                    width: parent.width
+                    Repeater {
+                        model: screen.behind
+                        UpdateRow {}
+                    }
                 }
             }
 
