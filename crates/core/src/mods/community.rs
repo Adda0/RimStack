@@ -109,6 +109,28 @@ impl Community {
     }
 }
 
+/// A `communityRules.json` entry: `later` loads after `earlier`, both package ids folded as the
+/// database keeps them; `earlier_name` the name a reviewer reads and `why` the comment, which
+/// an own rule does not have. Reads back through `parse` as the same rule.
+pub fn entry_for(later: &str, earlier: &str, earlier_name: &str, why: &str) -> String {
+    let comment = if why.is_empty() {
+        Value::Array(Vec::new())
+    } else {
+        Value::Array(vec![Value::String(why.to_string())])
+    };
+    let entry = serde_json::json!({
+        id::fold(later): {
+            "loadAfter": {
+                id::fold(earlier): {
+                    "name": [earlier_name],
+                    "comment": comment,
+                }
+            }
+        }
+    });
+    serde_json::to_string_pretty(&entry).unwrap_or_default()
+}
+
 pub fn parse(text: &str) -> Result<Community, Error> {
     let root: Value = serde_json::from_str(text)
         .map_err(|e| Error::format(said!("community rules are not JSON: {}", e)))?;
@@ -319,6 +341,17 @@ mod tests {
         assert!(community.loads_at_top("Top.Mod"));
         assert!(!community.loads_at_top("krkr.rocketman"));
         assert!(!community.loads_at_top("unknown.mod"));
+    }
+
+    #[test]
+    fn an_exported_entry_reads_back_as_the_rule_it_copies() {
+        let entry = entry_for("B.Mod", "A.Mod", "A mod", "its defs are patched");
+        assert!(entry.contains("\"b.mod\""));
+        assert!(entry.contains("\"A mod\""));
+        assert!(entry.contains("its defs are patched"));
+        let file = format!("{{\"timestamp\": 0, \"rules\": {entry}}}");
+        let pairs = parse(&file).unwrap().pairs();
+        assert_eq!(pairs, [("a.mod".to_string(), "b.mod".to_string())]);
     }
 
     #[test]
