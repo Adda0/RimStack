@@ -68,6 +68,7 @@ Everything else that writes happens only when you ask: converting textures, hidi
 - **Texture conflicts.** Two mods ship the same texture? See them side by side, as a slider or as their difference, and keep the one you want.
 - **PNG to DDS built in.** The game loads faster, with no extra tool, and only the files RimStack made are ever removed.
 - **Find the broken mod.** It switches half your mods off, you play and say whether it still breaks, until one mod is left. Your list comes back after.
+- **Search inside the mods' files.** Find any text or pattern in the active mods' XML while you keep working; every hit opens its mod or folder.
 - **Reads the game's errors.** Thousands of log lines become a few errors, each with the mod its stack trace points at and a report to copy.
 - **Saves.** Which mods each save was played with, what is missing, and its list as your load order in one click.
 - **Downloads and updates.** Paste Workshop, collection or Git links to subscribe, fetch with SteamCMD, or clone. See which mods are behind, and what changed since the game last started.

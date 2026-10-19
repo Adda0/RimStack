@@ -6,6 +6,7 @@ use crate::workspace::downloads::{Checkout, Queue, Updates, updates_shown};
 use crate::workspace::load_order::{LoadOrder, Side, column_choices};
 use crate::workspace::tests::installed;
 use crate::workspace::{logs, saves, textures};
+use rimstack_core::base::sentence::Sentence;
 use rimstack_core::kept::launches;
 use rimstack_core::mods::columns;
 use rimstack_core::mods::library::ModId;
@@ -180,6 +181,7 @@ pub(crate) fn every() -> Shapes {
     saves(&app, &mut shapes);
     textures(&app, &mut shapes);
     search(&app, &mut shapes);
+    in_files(&app, &mut shapes);
     downloads(&app, &mut shapes);
     settings_once_set(&app, &mut shapes);
     shapes
@@ -416,6 +418,28 @@ fn textures(app: &App, shapes: &mut Shapes) {
 fn search(app: &App, shapes: &mut Shapes) {
     shapes.add("search.list", &app.start_hunt(false).list);
     shapes.add("search.end", &app.end_hunt(false));
+}
+
+fn in_files(app: &App, shapes: &mut Shapes) {
+    use crate::workspace::find::{self, Hit, Needle};
+    let stop = std::sync::atomic::AtomicBool::new(false);
+    let roots = app.file_search_roots(false);
+    let (send, got) = std::sync::mpsc::channel::<Vec<Hit>>();
+    let needle = Needle::make("Rock", false, false).unwrap();
+    let found = find::files(
+        &roots,
+        &needle,
+        true,
+        &stop,
+        &|batch| {
+            let _ = send.send(batch.to_vec());
+        },
+        &|_| {},
+    );
+    let hits: Vec<Hit> = got.try_iter().flatten().collect();
+    assert!(!hits.is_empty());
+    assert!(matches!(find::said_of(&found), Sentence::Counted { .. }));
+    shapes.add("find.hits", &hits);
 }
 
 fn downloads(app: &App, shapes: &mut Shapes) {

@@ -150,6 +150,22 @@ Item {
             }
         },
         {
+            section: 2,
+            what: "the search inside the mods' files names mod, file and line for a hit",
+            ready: () => {
+                if (!checks.askedFind) {
+                    checks.askedFind = true
+                    Hub.find.text = "Fixture003"
+                    Hub.find.start()
+                }
+                return !Hub.find.busy && Hub.find.summary.length > 0
+            },
+            ok: () => {
+                const hits = checks.listed(Hub.find.hits)
+                return hits.length === 1 && hits[0].modName === "Fixture Mod 003" && hits[0].file === "Defs/Things.xml" && hits[0].line === 1 && hits[0].text.indexOf("Fixture003") !== -1
+            }
+        },
+        {
             section: 5,
             what: "a font chosen reaches every text already shown",
             ready: () => checks.flipped(() => {
@@ -165,6 +181,7 @@ Item {
         }
     ]
     property bool typed: false
+    property bool askedFind: false
     property bool changed: false
     property string before
     // Changes a setting on one tick and says it is ready on the next, so bindings settle first.
