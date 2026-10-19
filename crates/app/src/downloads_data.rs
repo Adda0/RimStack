@@ -73,6 +73,10 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "installSteamcmd"]
         fn install_steamcmd(self: Pin<&mut DownloadsData>);
+        /// Workshop ids, into the game's Mods folder.
+        #[qinvokable]
+        #[cxx_name = "downloadAll"]
+        fn download_all(self: Pin<&mut DownloadsData>, ids: &QVariant);
         #[qinvokable]
         fn redownload(self: Pin<&mut DownloadsData>, mod_id: i32);
 
