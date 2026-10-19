@@ -575,8 +575,8 @@ Item {
                 }
                 Text {
                     visible: Hub.settings.communityProblem !== ""
-                    x: 198
-                    width: parent.width - 200
+                    x: Theme.sized(190) + Theme.gap
+                    width: parent.width - x
                     wrapMode: Text.WordWrap
                     color: Theme.err
                     font.pixelSize: Theme.body

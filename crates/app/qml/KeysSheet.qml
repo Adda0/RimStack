@@ -55,7 +55,7 @@ Prompt {
                                 }
                             }
                         }
-                        Text { width: group.width - 150 - Theme.gap; wrapMode: Text.WordWrap; color: Theme.ink2; font.pixelSize: Theme.small; text: Theme.say(key.modelData[1]) }
+                        Text { width: group.width - Theme.sized(150) - Theme.gap; wrapMode: Text.WordWrap; color: Theme.ink2; font.pixelSize: Theme.small; text: Theme.say(key.modelData[1]) }
                     }
                 }
             }
