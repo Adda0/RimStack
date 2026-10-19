@@ -24,17 +24,8 @@ impl Bisect {
         }
     }
 
-    fn with_dependents(&self, mut off: Vec<bool>) -> Vec<bool> {
-        loop {
-            let needs_one = |at: usize| self.requires[at].iter().any(|r| off[*r]);
-            let more: Vec<usize> = (0..off.len())
-                .filter(|at| !off[*at] && needs_one(*at))
-                .collect();
-            if more.is_empty() {
-                return off;
-            }
-            more.into_iter().for_each(|at| off[at] = true);
-        }
+    fn with_dependents(&self, off: Vec<bool>) -> Vec<bool> {
+        crate::mods::library::with_needing(&self.requires, off)
     }
 
     /// All `false` when the suspects need each other and cannot be told apart.
@@ -109,30 +100,15 @@ impl Bisect {
 }
 
 pub fn start(library: &Library, mods: &[Mod]) -> Bisect {
-    let abouts = library.abouts(mods);
-    let position = crate::mods::rules::positions(&abouts);
     let installed = |m: &Mod| library.get(m.installed?);
     let fixed: Vec<bool> = mods
         .iter()
         .map(|m| installed(m).is_some_and(|i| i.source == Source::Official))
         .collect();
-    let requires = abouts
-        .iter()
-        .map(|about| {
-            let needed = about.map(|a| a.dependencies.for_version(&library.game_version));
-            let keys = needed.unwrap_or_default().iter();
-            keys.filter_map(|id| {
-                position
-                    .get(&crate::rimworld::id::split_steam(id).0)
-                    .copied()
-            })
-            .collect()
-        })
-        .collect();
     Bisect::new(
         mods.iter().map(|m| m.id.clone()).collect(),
         &fixed,
-        requires,
+        library.requires_within(mods),
     )
 }
 

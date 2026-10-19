@@ -129,6 +129,10 @@ pub struct Details {
     updated: Option<u64>,
     megabytes: Option<f64>,
     requires: Vec<Named>,
+    needed_by: Vec<Named>,
+    /// This mod and the active ones needing it, directly or through another;
+    /// empty when no active mod needs it.
+    off_with: Vec<ModId>,
     load_folders: Vec<Sentence>,
     code: Sentence,
     sub: String,
@@ -268,6 +272,8 @@ impl LoadOrder {
                 .filter(|_| workshop)
                 .map(|bytes| *bytes as f64 / 1_048_576.0),
             requires: details::required(library.requirements(m)),
+            needed_by: details::needed_by(library.needed_by(m), self.active.mods()),
+            off_with: self.off_with(library, id),
             load_folders: self.load_folders(library, m),
             code: Sentence::joined("\n", describe::code(&m.code.facts)),
             ..Details::default()
@@ -397,6 +403,23 @@ impl LoadOrder {
                 .map(|(folder, files)| Branch { folder, files })
                 .collect(),
             assemblies: m.assemblies().join(", "),
+        }
+    }
+
+    fn off_with(&self, library: &rimstack_core::mods::library::Library, id: ModId) -> Vec<ModId> {
+        let mods = self.active.mods();
+        let Some(at) = self.active.position_of(id) else {
+            return Vec::new();
+        };
+        let mut off = vec![false; mods.len()];
+        off[at] = true;
+        let off = rimstack_core::mods::library::with_needing(&library.requires_within(mods), off);
+        let ids: Vec<ModId> = (mods.iter().zip(off))
+            .filter_map(|(m, off)| m.installed.filter(|_| off))
+            .collect();
+        match ids.len() {
+            1 => Vec::new(),
+            _ => ids,
         }
     }
 

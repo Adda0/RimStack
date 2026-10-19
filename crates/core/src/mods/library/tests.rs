@@ -475,3 +475,43 @@ fn an_id_from_an_earlier_reading_finds_nothing_in_the_next() {
     assert_ne!(art, again);
     assert_eq!(after.get(again).unwrap().display_name(), "Art");
 }
+
+#[test]
+fn a_mod_knows_who_needs_it_and_switching_it_off_takes_them_along() {
+    let tmp = tempfile::tempdir().unwrap();
+    let local = tmp.path().join("Mods");
+    add_mod(&local, "lib", &about("a.lib", "Lib", &[]), &["Defs"]);
+    add_mod(&local, "mid", &about("a.mid", "Mid", &["a.lib"]), &["Defs"]);
+    add_mod(&local, "top", &about("a.top", "Top", &["a.mid"]), &["Defs"]);
+    add_mod(&local, "own", &about("a.own", "Own", &[]), &["Defs"]);
+    add_mod(&local, "off", &about("a.off", "Off", &["a.lib"]), &["Defs"]);
+    let roots = [ModRoot {
+        path: local,
+        source: Source::Local,
+    }];
+    let active = ["a.lib", "a.own", "a.mid", "a.top"].map(String::from);
+    let library = build(scan(&roots), &active, "1.6");
+    let lib = library
+        .installed
+        .iter()
+        .find(|m| m.folder == "lib")
+        .unwrap();
+    let mut needing: Vec<String> = library.needed_by(lib).into_iter().map(|n| n.0).collect();
+    needing.sort();
+    assert_eq!(
+        needing,
+        ["Mid", "Off"],
+        "inactive ones too, only direct ones"
+    );
+    let names = |off: Vec<bool>| -> Vec<&str> {
+        (library.active.iter().zip(off))
+            .filter(|(_, off)| *off)
+            .map(|(m, _)| m.name.as_str())
+            .collect()
+    };
+    let requires = library.requires_within(&library.active);
+    let at = library.active.iter().position(|m| m.name == "Lib").unwrap();
+    let mut off = vec![false; library.active.len()];
+    off[at] = true;
+    assert_eq!(names(with_needing(&requires, off)), ["Lib", "Mid", "Top"]);
+}

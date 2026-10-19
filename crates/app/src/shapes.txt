@@ -302,7 +302,15 @@ mods.details: object
   madeFor: nothing or text
   megabytes: nothing
   name: text
+  neededBy: list
+    []: object
+      modId: number
+      name: text
+      note: text
+      trouble: bool
   note: text
+  offWith: list
+    []: number
   offerTrust: bool
   official: bool
   packageId: text
@@ -410,7 +418,15 @@ mods.detailsOf: object
   madeFor: nothing or text
   megabytes: nothing
   name: text
+  neededBy: list
+    []: object
+      modId: number
+      name: text
+      note: text
+      trouble: bool
   note: text
+  offWith: list
+    []: number
   offerTrust: bool
   official: bool
   packageId: text
