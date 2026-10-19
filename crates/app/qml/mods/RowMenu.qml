@@ -71,8 +71,8 @@ QtObject {
             last.push({ text: Theme.say("Warn about its game version again"), run: () => Mods.trust(row.modId, false) })
         else if (about.offerTrust)
             last.push({ text: Theme.say("Ignore the game version mismatch"), icon: "check", run: () => Mods.trust(row.modId, true) })
-        if (about.canBin)
-            last.push({ text: Theme.say("Move to the bin…"), icon: "trash-2", danger: true, run: () => Mods.binRequested(about.name || "", about.path, row.modId) })
+        for (const choice of about.binChoices || [])
+            last.push({ text: Theme.say(choice.text), icon: choice.icon, danger: true, run: () => Mods.binRequested(row.modId, choice.kind, about.path || "") })
         groups.push(last)
         const entries = []
         for (const group of groups.filter(group => group.length > 0)) {

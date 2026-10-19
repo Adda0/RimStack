@@ -243,22 +243,22 @@ Rectangle {
     }
     Prompt {
         id: binPrompt
-        property string name
-        property string folder
         property int modId: -1
-        title: Theme.fill("Move to the bin: {}", binPrompt.name)
+        property int kind: 0
+        property string folder
+        title: Hub.mods.binTitle(binPrompt.modId, binPrompt.kind)
         Text { width: parent.width; wrapMode: Text.WrapAnywhere; color: Theme.ink2; font.pixelSize: Theme.small; text: binPrompt.folder }
-        Text { width: parent.width; wrapMode: Text.WordWrap; color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.say("Steam downloads a Workshop mod again while you stay subscribed to it.") }
+        Text { width: parent.width; wrapMode: Text.WordWrap; color: Theme.ink2; font.pixelSize: Theme.body; text: Hub.mods.binNote(binPrompt.modId, binPrompt.kind) }
         buttons: [
             Btn { text: Theme.say("Cancel"); onClicked: binPrompt.close() },
-            Btn { danger: true; text: Theme.say("Move to the bin"); onClicked: { Mods.binMod(binPrompt.modId); binPrompt.close() } }
+            Btn { danger: true; text: Hub.mods.binLabel(binPrompt.kind); onClicked: { Hub.mods.binKind(binPrompt.modId, binPrompt.kind); binPrompt.close() } }
         ]
     }
     Connections {
         target: Mods
         function onSubNameRequested(modId) { subPrompt.modId = modId; subPrompt.open() }
         function onBulkRequested(what) { bulkPrompt.what = what; bulkPrompt.open() }
-        function onBinRequested(name, folder, modId) { binPrompt.name = name; binPrompt.folder = folder; binPrompt.modId = modId; binPrompt.open() }
+        function onBinRequested(modId, kind, folder) { binPrompt.modId = modId; binPrompt.kind = kind; binPrompt.folder = folder; binPrompt.open() }
     }
     Connections {
         target: Mods

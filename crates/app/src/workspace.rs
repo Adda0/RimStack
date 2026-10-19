@@ -25,7 +25,7 @@ pub mod saves;
 pub mod search;
 mod settings;
 pub mod textures;
-mod upkeep;
+pub mod upkeep;
 pub use settings::{judge_folder, newest_release, short_contrast};
 
 pub static STARTED: OnceLock<Instant> = OnceLock::new();
