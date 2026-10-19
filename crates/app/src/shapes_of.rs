@@ -83,7 +83,7 @@ fn made_up() -> (tempfile::TempDir, App) {
     );
     write(
         &mods.join("roads/Patches/rock.xml"),
-        "<Patch><Operation Class=\"PatchOperationAdd\"><xpath>Defs/ThingDef[defName=\"Rock\"]/comps</xpath><value><li/></value></Operation></Patch>",
+        "<Patch><Operation Class=\"PatchOperationAdd\"><xpath>Defs/ThingDef[defName=\"Rock\"]/comps</xpath><value><li/></value></Operation><Operation Class=\"PatchOperationFindMod\"><mods><li>Gone</li></mods><match Class=\"PatchOperationAdd\"><xpath>Defs/ThingDef[defName=\"Rock\"]/comps</xpath><value><li/></value></match></Operation></Patch>",
     );
     git(&mods.join("roads"), &["init", "--quiet"]);
     git(&mods.join("roads"), &["add", "."]);

@@ -641,15 +641,34 @@ impl App {
                     &library.game_version,
                     &|m| active.contains(m),
                 );
-                (conflicts::provided(&loaded), infer::scan(&loaded))
+                (conflicts::provided(&loaded), infer::scan_checking(&loaded))
             })
             .collect();
         let (provided, scanned): (Vec<_>, Vec<_>) = read.into_iter().unzip();
         let defines: Vec<_> = (scanned.iter()).map(|s| &s.defines).collect();
+        let names: HashSet<String> = (library.ids())
+            .filter_map(|(id, _)| library.get(id).map(|m| m.display_name().to_string()))
+            .collect();
+        let active_names: HashSet<&str> = (members.iter())
+            .filter_map(|&i| library.get(i))
+            .map(|m| m.display_name())
+            .collect();
+        let roots: Vec<_> = (members.iter())
+            .map(|&i| library.get(i).map(|m| m.path.clone()).unwrap_or_default())
+            .collect();
+        let borrowed: Vec<&infer::Scanned> = scanned.iter().collect();
+        let xml = rimstack_core::mods::xmlcheck::check(
+            &borrowed,
+            &roots,
+            &active_names,
+            &|name| names.contains(name),
+            &|folded| library.name_of(folded).is_some(),
+        );
         let found = super::Conflicts {
             overlaps: conflicts::overlaps(&provided),
             def_collisions: rimstack_core::mods::defs::collisions(&defines),
             scanned: members.iter().copied().zip(scanned).collect(),
+            xml_found: members.iter().copied().zip(xml).collect(),
             members,
         };
         self.keep_files_read(generation, found);

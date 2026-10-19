@@ -416,6 +416,7 @@ mods.details: object
       textures: number
   workshop: bool
   workshopPage: nothing or text
+  xmlLeavesOut: nothing or text
   yourRules: list
     []: object
       first: number
@@ -549,6 +550,7 @@ mods.detailsOf: object
       textures: number
   workshop: bool
   workshopPage: nothing or text
+  xmlLeavesOut: nothing or text
   yourRules: list
     []: object
       first: number
