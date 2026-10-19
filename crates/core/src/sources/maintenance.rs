@@ -280,7 +280,18 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let game = tmp.path().join("game");
         std::fs::create_dir_all(&game).unwrap();
-        std::fs::copy("/bin/sleep", game.join("RimWorld")).unwrap();
+        // A script, not a copy of sleep: NixOS has no /bin/sleep, and its coreutils is one program
+        // picking the tool by the name it was started as. The script's path stays on its command line.
+        std::fs::write(
+            game.join("RimWorld"),
+            "#!/bin/sh\nwhile :; do sleep 1; done\n",
+        )
+        .unwrap();
+        let mut mode = std::fs::metadata(game.join("RimWorld"))
+            .unwrap()
+            .permissions();
+        std::os::unix::fs::PermissionsExt::set_mode(&mut mode, 0o755);
+        std::fs::set_permissions(game.join("RimWorld"), mode).unwrap();
         let mut running = (0..50)
             .find_map(|_| {
                 match std::process::Command::new(game.join("RimWorld"))

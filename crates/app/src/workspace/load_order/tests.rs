@@ -386,7 +386,11 @@ fn nothing_is_saved_while_the_game_runs() {
     let mut order = LoadOrder::read(&app, true, Arrange::Category);
     order.take(&app, Side::Inactive, 0, None);
     let game = tmp.path().join("game/RimWorld");
-    std::fs::copy("/bin/sleep", &game).unwrap();
+    // A script: NixOS has no /bin/sleep. Its path stays on the shell's command line.
+    std::fs::write(&game, "#!/bin/sh\nwhile :; do sleep 1; done\n").unwrap();
+    let mut mode = std::fs::metadata(&game).unwrap().permissions();
+    std::os::unix::fs::PermissionsExt::set_mode(&mut mode, 0o755);
+    std::fs::set_permissions(&game, mode).unwrap();
     let mut running = (0..50)
         .find_map(
             |_| match std::process::Command::new(&game).arg("30").spawn() {
