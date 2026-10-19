@@ -1,13 +1,14 @@
 //! Files are searched as text, not parsed: one broken file must not stop the rest.
 
 use crate::base::sentence::Sentence;
+use crate::mods::defs::Def;
 use crate::say;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Scanned {
-    pub defines: HashSet<String>,
+    pub defines: HashSet<Def>,
     pub bases: HashSet<String>,
     pub parents: Vec<(String, PathBuf)>,
     pub patched: Vec<(String, PathBuf)>,
@@ -90,6 +91,73 @@ fn is_name(s: &str) -> bool {
     !s.is_empty() && s.len() < 120 && s.chars().all(|c| c.is_alphanumeric() || "_-.".contains(c))
 }
 
+fn tag_name(tag: &str) -> &str {
+    tag.split(|c: char| !c.is_alphanumeric() && c != '_')
+        .next()
+        .unwrap_or("")
+}
+
+/// The defs the game would load: every `<defName>` an element of `<Defs>` holds, the element
+/// being the def's type. A def written `Abstract="True"` is a template the game never loads.
+/// As text, like the rest of `scan`: one broken file stops nothing.
+fn defs_of(text: &str) -> HashSet<Def> {
+    let mut found = HashSet::new();
+    let mut stack: Vec<String> = Vec::new();
+    // The stack depth a def written `Abstract="True"` began at; nothing it holds is a def.
+    let mut template = 0usize;
+    let mut rest = text;
+    while let Some(at) = rest.find('<') {
+        rest = &rest[at..];
+        let specials = rest[1..].starts_with(['?', '!']);
+        let Some(end) = rest[1..].find('>') else {
+            break;
+        };
+        let tag = &rest[1..1 + end];
+        rest = &rest[end + 2..];
+        if specials {
+            continue;
+        }
+        let name = tag_name(tag.trim_start_matches('/'));
+        if tag.starts_with('/') {
+            while stack.last().is_some_and(|top| *top != name) {
+                stack.pop();
+            }
+            stack.pop();
+            if stack.len() < template {
+                template = 0;
+            }
+            continue;
+        }
+        // A document that is not one `<Defs>` of elements names no def.
+        if stack.is_empty() {
+            if !name.is_empty() && !name.eq_ignore_ascii_case("defs") {
+                break;
+            }
+        } else if stack.len() == 1 && template == 0
+            && (tag.contains("Abstract=\"True\"") || tag.contains("Abstract='True'"))
+        {
+            if !tag.ends_with('/') {
+                template = 2;
+                stack.push(name.to_string());
+            }
+            continue;
+        } else if template == 0 && name.eq_ignore_ascii_case("defName") {
+            let named = rest[..rest.find('<').unwrap_or(rest.len())].trim();
+            if is_name(named) {
+                let kind = stack[1].clone();
+                found.insert(Def {
+                    kind,
+                    name: named.to_string(),
+                });
+            }
+        }
+        if !tag.ends_with('/') {
+            stack.push(name.to_string());
+        }
+    }
+    found
+}
+
 pub fn scan(load_folders: &[PathBuf]) -> Scanned {
     let mut found = Scanned::default();
     for folder in load_folders {
@@ -101,12 +169,7 @@ pub fn scan(load_folders: &[PathBuf]) -> Scanned {
             let Ok(text) = std::fs::read_to_string(&file) else {
                 continue;
             };
-            found.defines.extend(
-                between(&text, "<defName>", "</defName>")
-                    .map(str::trim)
-                    .filter(|s| is_name(s))
-                    .map(String::from),
-            );
+            found.defines.extend(defs_of(&text));
             // `ParentName=` also ends in `Name=`; only a bare ` Name=` is a base.
             found.bases.extend(
                 quoted_after(&text, " Name")
@@ -199,8 +262,12 @@ pub fn infer(
     let mut defined_by: HashMap<&str, Vec<usize>> = HashMap::new();
     let mut base_of: HashMap<&str, Vec<usize>> = HashMap::new();
     for (m, s) in scanned.iter().enumerate() {
+        // One mod naming the same def for two types is still the one defining the name.
+        let mut own: HashSet<&str> = HashSet::new();
         for name in &s.defines {
-            defined_by.entry(name).or_default().push(m);
+            if own.insert(name.name.as_str()) {
+                defined_by.entry(name.name.as_str()).or_default().push(m);
+            }
         }
         for name in &s.bases {
             base_of.entry(name).or_default().push(m);
@@ -318,6 +385,8 @@ mod tests {
         <ThingDef Name="ChairBase" Abstract="True"><thingClass>Building</thingClass></ThingDef>
         <ThingDef ParentName="ChairBase"><defName>Oak_Chair</defName></ThingDef>
         <ThingDef ParentName = 'BuildingBase'><defName> Oak_Table </defName></ThingDef>
+        <TerrainDef><defName>Oak_Floor</defName><texturePath>Floors</texturePath></TerrainDef>
+        <ThingDef Abstract="True"><defName>ChairTemplate</defName></ThingDef>
     </Defs>"#;
 
     const PATCH: &str = r#"<Patch>
@@ -341,9 +410,18 @@ mod tests {
             ("About/About.xml", "<x Name=\"NotADef\"/>"),
         ]);
         let found = scan(&[root.clone(), root.join("1.6")]);
+        let defined = |kind: &str, name: &str| Def {
+            kind: kind.to_string(),
+            name: name.to_string(),
+        };
         assert_eq!(
             found.defines,
-            ["Oak_Chair", "Oak_Table"].map(String::from).into()
+            [
+                defined("ThingDef", "Oak_Chair"),
+                defined("ThingDef", "Oak_Table"),
+                defined("TerrainDef", "Oak_Floor"),
+            ]
+            .into()
         );
         assert_eq!(found.bases, ["ChairBase".to_string()].into());
         let parents: Vec<&str> = found.parents.iter().map(|(p, _)| p.as_str()).collect();
@@ -369,7 +447,12 @@ mod tests {
                 .collect()
         };
         Scanned {
-            defines: set(defines),
+            defines: (defines.iter())
+                .map(|name| Def {
+                    kind: "ThingDef".to_string(),
+                    name: name.to_string(),
+                })
+                .collect(),
             bases: set(bases),
             parents: filed(parents),
             patched: filed(patched),

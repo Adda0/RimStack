@@ -314,6 +314,63 @@ Column {
         }
     }
 
+    // The game keeps the def of the mod that loads last.
+    Card {
+        readonly property int defClashes: (Mods.info.defsReplacedBy || []).length + (Mods.info.defsReplaces || []).length
+        visible: defClashes > 0
+        title: Theme.say("Def conflicts")
+        note: defClashes
+        tone: Theme.warn
+        key: "about-defclashes"
+        spacing: Theme.gap
+        Text {
+            width: parent.width
+            wrapMode: Text.WordWrap
+            color: Theme.ink2
+            font.pixelSize: Theme.body
+            lineHeight: 1.3
+            text: Theme.say("Two active mods define the same def. The mod loading later wins: the game quietly keeps its def.")
+        }
+        Repeater {
+            id: defLoses
+            model: Mods.info.defsReplacedBy || []
+            Column {
+                id: defClash
+                required property var modelData
+                width: side.width
+                spacing: Theme.gapTiny
+                RowLayout {
+                    width: parent.width
+                    spacing: Theme.gapSmall
+                    Chip { tone: Theme.warn; icon: "arrow-down"; text: Theme.fill("loses {}", defClash.modelData.defs) }
+                    Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: defClash.modelData.name }
+                }
+                Text { width: parent.width; wrapMode: Text.WrapAnywhere; color: Theme.ink3; font.pixelSize: Theme.small; text: defClash.modelData.some }
+                Row {
+                    spacing: Theme.gapSmall
+                    Btn { enabled: !Hub.mods.previewing; text: Theme.say("Win all"); tip: Theme.say("Adds an own rule: this mod loads after the other."); onClicked: Mods.winAll(defClash.modelData.modId) }
+                }
+            }
+        }
+        Repeater {
+            id: defWins
+            model: Mods.info.defsReplaces || []
+            Column {
+                id: defWin
+                required property var modelData
+                width: side.width
+                spacing: Theme.gapTiny
+                RowLayout {
+                    width: parent.width
+                    spacing: Theme.gapSmall
+                    Chip { tone: Theme.ok; icon: "arrow-up"; text: Theme.fill("wins {}", defWin.modelData.defs) }
+                    Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: defWin.modelData.name }
+                }
+                Text { width: parent.width; wrapMode: Text.WrapAnywhere; color: Theme.ink3; font.pixelSize: Theme.small; text: defWin.modelData.some }
+            }
+        }
+    }
+
     Card {
         visible: !!Mods.info.replacedBy
         title: Theme.say("Use this instead")

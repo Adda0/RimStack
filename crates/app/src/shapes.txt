@@ -286,13 +286,22 @@ mods.details: object
       loses: bool
   contains: text
   copies: nothing or text
+  defsReplacedBy: list
+    []: object
+      defs: number
+      modId: number
+      name: text
+      some: text
+  defsReplaces: list
+    []: object
+      defs: number
+      modId: number
+      name: text
+      some: text
   description: text
   descriptionRich: text
   detected: list
-    []: object
-      code: bool
-      name: text
-      why: text
+    []: never seen
   folder: text
   gameVersions: text
   groupChoices: list
@@ -409,13 +418,22 @@ mods.detailsOf: object
       loses: bool
   contains: text
   copies: nothing or text
+  defsReplacedBy: list
+    []: object
+      defs: number
+      modId: number
+      name: text
+      some: text
+  defsReplaces: list
+    []: object
+      defs: number
+      modId: number
+      name: text
+      some: text
   description: text
   descriptionRich: text
   detected: list
-    []: object
-      code: bool
-      name: text
-      why: text
+    []: never seen
   folder: text
   gameVersions: text
   groupChoices: list
@@ -643,15 +661,7 @@ mods.overview: object
 mods.packageMods: list
   []: number
 mods.sortMoves: list
-  []: object
-    moves: list
-      []: object
-        from: number
-        modId: number
-        name: text
-        to: number
-        why: text
-    name: text
+  []: never seen
 mods.subsBeside: list
   []: text
 mods.summary: object
