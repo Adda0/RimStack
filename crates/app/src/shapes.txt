@@ -132,6 +132,14 @@ lists.compareList: object
     []: object
       id: text
       name: text
+lists.checkLock: object
+  ids: absent or list
+    []: text
+  present: absent or bool
+  problem: absent or text
+  said: absent or list
+    []: text
+  same: absent or bool
 lists.history: list
   []: object
     bringBack: text

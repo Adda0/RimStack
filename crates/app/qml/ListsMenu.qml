@@ -189,5 +189,74 @@ Popup {
                 }
             }
         }
+
+        Text { topPadding: Theme.gapSmall; color: Theme.ink; font.pixelSize: Theme.title; font.weight: Font.DemiBold; text: Theme.say("For a friend") }
+        Flow {
+            width: parent.width
+            spacing: Theme.gapSmall
+            Btn {
+                icon: "send"
+                text: Theme.say("Write a lockfile…")
+                tip: Theme.say("The load order, with each mod's source and when the Workshop last published its version, as a small file to give a friend")
+                onClicked: listsMenu.writeLockfile()
+            }
+            Btn {
+                text: Theme.say("Check a lockfile…")
+                tip: Theme.say("Tells which of a friend's mods are missing, extra, in another order or another version here")
+                onClicked: listsMenu.checkLockfile()
+            }
+        }
+    }
+
+    function writeLockfile() {
+        close()
+        lockWrite.open()
+    }
+
+    function checkLockfile() {
+        close()
+        lockRead.open()
+    }
+
+    FileDialog {
+        id: lockWrite
+        fileMode: FileDialog.SaveFile
+        nameFilters: [Theme.say("RimStack lockfile") + " (*.lock.json)", Theme.say("Any file") + " (*)"]
+        defaultSuffix: "lock.json"
+        onAccepted: {
+            const said = Hub.lists.writeLock(lockWrite.selectedFile.toString().replace(/^file:\/\//, ""))
+            listsMenu.open()
+            listsMenu.problem = said
+        }
+    }
+    FileDialog {
+        id: lockRead
+        nameFilters: [Theme.say("RimStack lockfile") + " (*.lock.json)", Theme.say("Any file") + " (*)"]
+        onAccepted: {
+            const found = Hub.lists.checkLock(lockRead.selectedFile.toString().replace(/^file:\/\//, ""))
+            if ((found.problem || "") !== "") {
+                listsMenu.open()
+                listsMenu.problem = found.problem
+            } else {
+                lockReport.report = found
+                lockReport.open()
+            }
+        }
+    }
+    Prompt {
+        id: lockReport
+        property var report: ({ said: [], ids: [], present: false })
+        title: Theme.say("Lockfile of the load order")
+        Repeater {
+            model: lockReport.report.same ? [Theme.say("The load order is the lockfile's, every mod the same.")] : lockReport.report.said
+            Text { required property var modelData; width: lockReport.width - lockReport.padding * 2; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: Theme.body; text: modelData }
+        }
+        Btn { text: Theme.say("Close"); onClicked: lockReport.close() }
+        Btn {
+            enabled: lockReport.report.present && lockReport.report.ids.length > 0
+            text: Theme.say("Use this order")
+            tip: Theme.say("The lockfile's order becomes the load order. Save writes it.")
+            onClicked: { listsMenu.useList(lockReport.report.ids); listsMenu.named(""); lockReport.close() }
+        }
     }
 }
