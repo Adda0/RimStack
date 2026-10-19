@@ -7,11 +7,12 @@ import RimStack.Ui
 ListView {
     id: list
     property bool columns: false
+    readonly property real barRoom: bar.width
     readonly property bool wide: columns && width >= Theme.sized(620)
     readonly property bool roomy: columns && width >= Theme.sized(440)
     function roomBeside(shown, author) {
         const taken = shown.reduce((sum, column) => sum + (column === "author" ? author : Mods.columns.widths[column]) + 12, 0)
-        return width - Theme.sized(wide ? 124 : 44) - 90 - taken
+        return width - barRoom - Theme.sized(wide ? 124 : 44) - 90 - taken
     }
     readonly property int nameRoom: Theme.sized(180)
     readonly property int authorWidth: roomBeside(roomy ? Mods.columns.shown : [], Mods.columns.widths.author) >= nameRoom ? Mods.columns.widths.author : Theme.sized(86)
@@ -33,7 +34,7 @@ ListView {
     acceptedButtons: Qt.NoButton
     boundsBehavior: Flickable.StopAtBounds
     Wheel {}
-    ScrollBar.vertical: ScrollBar {}
+    ScrollBar.vertical: Scroller { id: bar; rightPadding: Theme.gapLine + ring.border.width + Theme.gapHair }
     delegate: ModRow {}
     footer: Item {
         id: end
@@ -59,7 +60,7 @@ ListView {
     }
     Keys.onReturnPressed: Mods.activateSelected(list.model)
     Keys.onEnterPressed: Mods.activateSelected(list.model)
-    Rectangle { parent: list; anchors.fill: parent; anchors.margins: Theme.gapLine; z: 2; radius: Theme.corner; color: "transparent"; border.width: 2; border.color: Theme.focus; visible: list.activeFocus }
+    Rectangle { id: ring; parent: list; anchors.fill: parent; anchors.margins: Theme.gapLine; z: 4; radius: Theme.corner; color: "transparent"; border.width: 2; border.color: Theme.focus; visible: list.activeFocus }
 
     property int tick: 0
     readonly property int topCategory: {
@@ -81,7 +82,7 @@ ListView {
             const next = list.itemAt(10, list.contentY + height)
             return next && next.isHeader && !next.isSub && !next.again ? Math.min(0, next.y - list.contentY - height) : 0
         }
-        width: list.width
+        width: list.width - list.barRoom
         height: Theme.control
         color: list.columns ? Theme.win : Theme.panel
         Rectangle { x: 2; width: 3; height: parent.height; color: Theme.categoryColours[list.topCategory] || Theme.ink3; opacity: 0.6 }

@@ -173,7 +173,7 @@ Rectangle {
                     clip: true
                     boundsBehavior: Flickable.StopAtBounds
                     Wheel {}
-                    ScrollBar.vertical: ScrollBar {}
+                    ScrollBar.vertical: Scroller {}
                     model: view.textures
                     currentIndex: view.chosen
                     delegate: Item {

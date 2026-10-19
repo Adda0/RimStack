@@ -77,7 +77,7 @@ Item {
             Keys.onLeftPressed: move(-24)
             Keys.onRightPressed: move(24)
             // Not further left: a list's scroll bar sits there.
-            containmentMask: Item { x: -2; width: 15; height: grip.height }
+            containmentMask: Item { x: -Theme.gapHair; width: grip.width + Theme.gapHair + Theme.gapSmall; height: grip.height }
             Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
                 width: grip.held ? 3 : 1
@@ -85,7 +85,7 @@ Item {
                 color: grip.held ? Theme.focus : Theme.edge
             }
             // Takes no button, so the drag still reaches the divider.
-            MouseArea { x: -2; width: 15; height: parent.height; acceptedButtons: Qt.NoButton; cursorShape: Qt.SizeHorCursor }
+            MouseArea { x: -Theme.gapHair; width: grip.width + Theme.gapHair + Theme.gapSmall; height: parent.height; acceptedButtons: Qt.NoButton; cursorShape: Qt.SizeHorCursor }
             TapHandler { onDoubleTapped: grip.move(grip.first ? 290 - inactivePane.width : detailsPane.width - 360) }
         }
 

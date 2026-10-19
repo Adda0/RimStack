@@ -52,7 +52,7 @@ Item {
     Accessible.selectable: !isHeader
     Accessible.selected: current
 
-    width: listView.width
+    width: listView.width - listView.barRoom
     height: isSub ? Theme.sized(24) : again ? Theme.sized(22) : isHeader ? Theme.sized(32) : comfortable ? Math.max(Theme.sized(52), Theme.row + 10) : Theme.row
 
     property real offset: 0

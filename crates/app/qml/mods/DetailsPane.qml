@@ -12,7 +12,7 @@ Rectangle {
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         Wheel {}
-        ScrollBar.vertical: ScrollBar {}
+        ScrollBar.vertical: Scroller {}
 
         Column {
             id: side

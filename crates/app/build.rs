@@ -47,6 +47,7 @@ fn main() {
                 "qml/Dots.qml",
                 "qml/Slide.qml",
                 "qml/Hint.qml",
+                "qml/Scroller.qml",
                 "qml/KeyCap.qml",
                 "qml/KeysSheet.qml",
                 "qml/Toasts.qml",

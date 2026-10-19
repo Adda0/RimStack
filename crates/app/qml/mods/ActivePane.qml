@@ -261,7 +261,7 @@ Item {
             RowLayout {
                 anchors.fill: parent
                 anchors.leftMargin: Theme.gapWide
-                anchors.rightMargin: Theme.gapWide
+                anchors.rightMargin: Theme.gapWide + view.barRoom
                 spacing: Theme.gapLarge
                 component Heading: Text {
                     id: heading

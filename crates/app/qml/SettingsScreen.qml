@@ -180,7 +180,7 @@ Item {
         contentHeight: page.implicitHeight + 48
         clip: true
         boundsBehavior: Flickable.StopAtBounds
-        ScrollBar.vertical: ScrollBar {}
+        ScrollBar.vertical: Scroller {}
         Wheel {}
 
         Column {
@@ -415,7 +415,7 @@ Item {
                                 clip: true
                                 model: fontPicker.shown
                                 Wheel {}
-                                ScrollBar.vertical: ScrollBar {}
+                                ScrollBar.vertical: Scroller {}
                                 delegate: Rectangle {
                                     id: family
                                     required property string modelData
