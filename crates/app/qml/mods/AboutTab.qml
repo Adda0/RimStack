@@ -249,19 +249,15 @@ Column {
             width: parent.width
             spacing: Theme.gap
             Defined { Layout.preferredWidth: Theme.sized(92); text: Theme.say("Group") }
-            FilterField {
-                id: subBox
-                Layout.fillWidth: true
-                placeholder: Theme.say("A tag to group under")
-                onTextChanged: {
-                    if (subBox.editing)
-                        Hub.mods.draftGroup(Mods.selectedId, subBox.text)
-                }
-                onEditingChanged: Hub.mods.keepDrafts()
-                onAccepted: Hub.mods.keepDrafts()
+            Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: Mods.info.sub || Theme.say("None") }
+            Btn {
+                id: groupButton
+                visible: !!Mods.info.groupChoices
+                menu: true
+                text: Theme.say("Change")
+                tip: Theme.say("A group is a tag the mod is listed under, beside the other mods with it. Choose one in use, start a new one, or delete one for every mod in it.")
+                onClicked: Mods.menuRequested(groupButton, 0, groupButton.height + 2, Mods.groupEntries(Mods.selectedId, Mods.info))
             }
-            // Restoring would blank the field as it takes the focus, and that blank be saved.
-            Binding { target: subBox; property: "text"; value: Mods.info.sub || ""; when: !subBox.editing; restoreMode: Binding.RestoreNone }
         }
     }
 

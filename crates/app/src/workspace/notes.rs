@@ -113,6 +113,17 @@ impl App {
         self.change_notes(ids, Changes::NOTES, |note| note.remove_tag(tag))
     }
 
+    /// How many mods sit under the group `name`.
+    pub fn group_size(&self, name: &str) -> usize {
+        self.notes().reading().in_group(name).len()
+    }
+
+    /// Takes the tag `name` off every mod grouped under it; they stay where they are.
+    pub fn delete_group(&self, name: &str) -> bool {
+        let keys = self.notes().reading().in_group(name);
+        self.change_notes_of(&keys, Changes::NOTES, |note| note.remove_tag(name))
+    }
+
     /// For the tag typed after the last comma of `text`: each tag to offer, from those not in
     /// `had`, with the whole text that adds it.
     pub fn tag_offers(&self, had: &str, text: &str) -> Vec<TagOffer> {

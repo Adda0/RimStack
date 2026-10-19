@@ -271,6 +271,7 @@ mods.details: object
   gameVersions: text
   groupChoices: list
     []: text
+  groupSize: number
   loadFolders: list
     []: text
   loadTime: text
@@ -378,6 +379,7 @@ mods.detailsOf: object
   gameVersions: text
   groupChoices: list
     []: text
+  groupSize: number
   loadFolders: list
     []: text
   loadTime: text

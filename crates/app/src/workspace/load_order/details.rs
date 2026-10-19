@@ -147,6 +147,8 @@ pub struct Details {
     offer_trust: bool,
     can_bin: bool,
     group_choices: Vec<String>,
+    /// How many mods sit under its group, this one too.
+    group_size: usize,
     workshop_page: Option<String>,
     steam_page: Option<String>,
 }
@@ -326,6 +328,7 @@ impl LoadOrder {
         let mut seen = std::collections::HashSet::new();
         choices.retain(|tag| *tag != said.sub && seen.insert(tag.clone()));
         said.group_choices = choices;
+        said.group_size = app.group_size(&said.sub);
         said.can_bin = m.source != Source::Official && self.active.position_of(id).is_none();
         if workshop {
             said.workshop_page = Some(format!(

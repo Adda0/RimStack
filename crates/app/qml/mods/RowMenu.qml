@@ -56,14 +56,8 @@ QtObject {
                 { text: Theme.say("Repository"), icon: "link", run: () => Qt.openUrlExternally(about.repository) },
                 { text: Theme.say("Update"), icon: "download", run: () => Hub.downloads.updateFromGit(row.modId) },
             ])
-        const filing = [{ title: Theme.say("Group under a tag") }]
-        for (const tag of about.groupChoices || [])
-            filing.push({ text: Theme.fill("Group under {}", tag), run: () => Mods.putInSub(row.modId, tag) })
-        filing.push({ text: Theme.say("A new tag…"), icon: "plus", run: () => Mods.subNameRequested(row.modId) })
-        if (about.sub)
-            filing.push({ text: Theme.fill("Remove the tag {}", about.sub), run: () => Mods.putInSub(row.modId, "") })
         if (about.groupChoices)
-            groups.push(filing)
+            groups.push(Mods.groupEntries(row.modId, about))
         const last = []
         if (many && Mods.versionWarned.length > 0)
             last.push({ text: Theme.plural(Mods.versionWarned.length, "Ignore the game version mismatch of {} mod", "Ignore the game version mismatch of {} mods"), icon: "check", run: () => Mods.trustSelected(true) })
