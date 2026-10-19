@@ -2,11 +2,12 @@
 
 use super::{Work, qobject};
 use crate::changes::Changes;
+use crate::qml::values::from_qml;
 use crate::qml::values::to_qml;
 use crate::workspace::fetch::{Done, SteamAsk};
 use core::pin::Pin;
 use cxx_qt::{CxxQtType, Threading};
-use cxx_qt_lib::QString;
+use cxx_qt_lib::{QString, QVariant};
 use rimstack_core::base::sentence::Sentence;
 use rimstack_core::mods::library::ModId;
 use rimstack_core::say;
@@ -166,6 +167,16 @@ impl qobject::DownloadsData {
         self.task(say!("Installing SteamCMD…"), move || {
             app.install_steamcmd()
         });
+    }
+
+    pub(super) fn download_all(self: Pin<&mut Self>, ids: &QVariant) {
+        let ids = from_qml::<Vec<String>>(ids).unwrap_or_default();
+        if ids.is_empty() {
+            return;
+        }
+        let app = self.app();
+        let doing = say!("Downloading {} with SteamCMD…", ids.len());
+        self.task(doing, move || app.download_with_steamcmd(&ids));
     }
 
     pub(super) fn redownload(self: Pin<&mut Self>, mod_id: i32) {

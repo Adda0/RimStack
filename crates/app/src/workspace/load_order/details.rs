@@ -201,6 +201,8 @@ pub struct Overview {
     categories: Vec<&'static str>,
     troubles: Vec<ProblemSaid>,
     to_get: Vec<ProblemSaid>,
+    /// The Workshop ids among them, for SteamCMD.
+    to_download: Vec<String>,
     trouble_groups: Vec<ProblemGroup>,
     needed: Vec<String>,
     version_only: usize,
@@ -570,6 +572,7 @@ impl LoadOrder {
                 .collect(),
             troubles,
             to_get,
+            to_download: self.missing_workshop_ids(),
             trouble_groups,
             needed: tally.needed,
             version_only: tally.version_only,
