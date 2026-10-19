@@ -78,6 +78,7 @@ fn terms(counts: Counts) -> Vec<(&'static str, Sentence)> {
         ),
         ("has:code", say!("ships compiled code")),
         ("patches:", say!("patches this method of the game")),
+        ("def:", say!("defines or patches this def")),
         ("tag:", say!("has this tag")),
         ("colour:", say!("painted with this colour")),
         ("author:", say!("by this author")),
@@ -107,10 +108,12 @@ impl LoadOrder {
                 .iter()
                 .any(|t| t.eq_ignore_ascii_case(&format!("{bang}{term}")))
         };
-        let Some((key, typed)) = partial
-            .split_once(':')
-            .filter(|(key, _)| matches!(*key, "author" | "tag" | "colour" | "patches" | "needs"))
-        else {
+        let Some((key, typed)) = partial.split_once(':').filter(|(key, _)| {
+            matches!(
+                *key,
+                "author" | "tag" | "colour" | "patches" | "def" | "needs"
+            )
+        }) else {
             return terms(counts)
                 .into_iter()
                 .filter(|(term, _)| term.starts_with(partial) && *term != partial && fresh(term))
@@ -129,6 +132,7 @@ impl LoadOrder {
                 "tag" => m.tags.iter().map(|t| as_value(t)).collect(),
                 "colour" => vec![as_value(&m.colour)],
                 "needs" => m.needs_dlcs.iter().map(|d| as_value(d)).collect(),
+                "def" => m.defs.iter().map(|d| as_value(d)).collect(),
                 _ => m.patched.iter().map(|p| as_value(p)).collect(),
             };
             for value in values.into_iter().filter(|v| !v.is_empty()) {
@@ -232,6 +236,20 @@ mod tests {
                 .filter_offers("is:wa", "", &taken, Counts::default())
                 .is_empty()
         );
+    }
+
+    #[test]
+    fn def_values_are_offered_from_every_mod_most_used_first() {
+        let mut order = order();
+        let mut mods = order.active.mods().to_vec();
+        mods[0].defs = ["Steel".to_string(), "Wood".to_string()].into();
+        mods[1].defs = ["Steel".to_string()].into();
+        order.active = GroupedList::new(mods);
+        let mut off = order.inactive.mods().to_vec();
+        off[0].defs = ["wood".to_string()].into();
+        order.inactive = GroupedList::new(off);
+        let offered = terms(order.filter_offers("def:", "", &[], Counts::default()));
+        assert_eq!(offered, ["def:Steel", "def:Wood"]);
     }
 
     #[test]
