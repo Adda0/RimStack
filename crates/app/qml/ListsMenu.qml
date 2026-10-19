@@ -68,6 +68,14 @@ Popup {
                     }
                 }
                 Btn {
+                    text: Theme.say("Compare")
+                    tip: Theme.fill("Shows the mods {} and the load order hold apart or in a different order, and merges the missing ones", saved.modelData.name)
+                    onClicked: {
+                        compareView.listName = saved.modelData.name
+                        compareView.open()
+                    }
+                }
+                Btn {
                     icon: "trash-2"
                     tip: Theme.fill("Delete {}", saved.modelData.name)
                     onClicked: Hub.lists.remove(saved.modelData.name)
@@ -124,6 +132,8 @@ Popup {
                 }
             }
         }
+
+        ListsCompareView { id: compareView }
 
         Text { topPadding: Theme.gapSmall; color: Theme.ink; font.pixelSize: Theme.title; font.weight: Font.DemiBold; text: Theme.say("Clipboard") }
         Flow {

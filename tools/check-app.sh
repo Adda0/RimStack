@@ -79,6 +79,11 @@ echo "check ok    saving the original order gives the original file, byte for by
 run --check=pointer || fail "the pointer checks did not pass"
 cmp -s "$saved" "$tmp/original.xml" || fail "the pointer checks changed the file"
 
+# A saved list against the load order: which mods only one holds, which sit
+# elsewhere, and how the ones the list alone holds join it back.
+run --check=lists || fail "the list checks did not pass"
+cmp -s "$saved" "$tmp/original.xml" || fail "the list checks changed the file"
+
 cmp -s "$real/Config/ModsConfig.xml" "$tmp/original.xml" || fail "THE REAL FILE CHANGED"
 echo "check ok    the real ModsConfig.xml was not touched"
 

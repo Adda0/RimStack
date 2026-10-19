@@ -2,6 +2,7 @@ use crate::base::error::Error;
 use crate::said;
 
 use serde_json::{Value, json};
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
 
@@ -106,6 +107,102 @@ pub fn delete(dir: &Path, name: &str) -> Result<(), Error> {
     std::fs::remove_file(&path).map_err(|e| Error::file(&path, e))
 }
 
+/// How a saved list differs from the current load order.
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct Differences {
+    /// Indices in the saved list of mods only there.
+    pub only_saved: Vec<usize>,
+    /// Indices in the current list of mods only there.
+    pub only_current: Vec<usize>,
+    /// Indices in the saved list of the shared mods not in the longest run
+    /// both lists hold in one order: the fewest moves, not every shifted one.
+    pub moved: Vec<usize>,
+}
+
+/// Ids are matched as the game matches them, case-insensitive.
+pub fn compare(saved: &[String], current: &[String]) -> Differences {
+    let saved_owned: Vec<String> = saved
+        .iter()
+        .map(|id| crate::rimworld::id::fold(id))
+        .collect();
+    let current_owned: Vec<String> = current
+        .iter()
+        .map(|id| crate::rimworld::id::fold(id))
+        .collect();
+    let saved_folded: Vec<&str> = saved_owned.iter().map(String::as_str).collect();
+    let current_folded: Vec<&str> = current_owned.iter().map(String::as_str).collect();
+    let in_saved: HashMap<&str, usize> = saved_folded
+        .iter()
+        .enumerate()
+        .map(|(at, id)| (*id, at))
+        .collect();
+    let in_current: HashMap<&str, usize> = current_folded
+        .iter()
+        .enumerate()
+        .map(|(at, id)| (*id, at))
+        .collect();
+
+    let only_saved = saved_folded
+        .iter()
+        .enumerate()
+        .filter(|(_, id)| !in_current.contains_key(*id))
+        .map(|(at, _)| at)
+        .collect();
+    let only_current = current_folded
+        .iter()
+        .enumerate()
+        .filter(|(_, id)| !in_saved.contains_key(*id))
+        .map(|(at, _)| at)
+        .collect();
+
+    // The shared mods in the current order, as their places in the saved one.
+    let shared: Vec<usize> = current_folded
+        .iter()
+        .filter_map(|id| in_saved.get(id).copied())
+        .collect();
+    // The shared mods standing inside the longest rising run count as still
+    // in place: the run is the most two orders can hold without a move.
+    let mut tails: Vec<usize> = Vec::with_capacity(shared.len());
+    let mut before: Vec<Option<usize>> = Vec::with_capacity(shared.len());
+    for (at, &place) in shared.iter().enumerate() {
+        let run = tails.partition_point(|&tail| shared[tail] < place);
+        before.push(run.checked_sub(1).map(|earlier| tails[earlier]));
+        if run == tails.len() {
+            tails.push(at);
+        } else {
+            tails[run] = at;
+        }
+    }
+    let mut kept = vec![false; shared.len()];
+    if let Some(&end) = tails.last() {
+        let mut at = end;
+        loop {
+            kept[at] = true;
+            let Some(earlier) = before[at] else {
+                break;
+            };
+            at = earlier;
+        }
+    }
+    let rank_of: HashMap<usize, usize> = shared
+        .iter()
+        .enumerate()
+        .map(|(at, &place)| (place, at))
+        .collect();
+    let moved = saved_folded
+        .iter()
+        .enumerate()
+        .filter(|(saved_at, id)| in_current.contains_key(*id) && !kept[rank_of[saved_at]])
+        .map(|(saved_at, _)| saved_at)
+        .collect();
+
+    Differences {
+        only_saved,
+        only_current,
+        moved,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -190,5 +287,55 @@ mod tests {
             load(tmp.path(), "war_crimes").unwrap(),
             ids(&["first.list"])
         );
+    }
+
+    #[test]
+    fn comparing_identical_lists_shows_no_differences() {
+        let list = ids(&["a", "b", "c"]);
+        assert_eq!(compare(&list, &list), Differences::default());
+    }
+
+    #[test]
+    fn comparing_matches_ids_as_the_game_does() {
+        let saved = ids(&["A.B", " C.d"]);
+        let current = ids(&["a.b", "c.D"]);
+        assert_eq!(compare(&saved, &current), Differences::default());
+    }
+
+    #[test]
+    fn comparing_finds_the_mods_only_one_side_holds() {
+        let saved = ids(&["a", "b", "c"]);
+        let current = ids(&["b", "c", "d"]);
+        let diff = compare(&saved, &current);
+        assert_eq!(diff.only_saved, vec![0]);
+        assert_eq!(diff.only_current, vec![2]);
+        assert_eq!(diff.moved, Vec::<usize>::new());
+    }
+
+    #[test]
+    fn one_mod_out_of_place_moves_only_it() {
+        let saved = ids(&["a", "b", "c", "d"]);
+        let current = ids(&["a", "c", "d", "b"]);
+        assert_eq!(compare(&saved, &current).moved, vec![1]);
+        let saved = ids(&["a", "b", "c", "d"]);
+        let current = ids(&["d", "a", "b", "c"]);
+        assert_eq!(compare(&saved, &current).moved, vec![3]);
+    }
+
+    #[test]
+    fn a_reversed_list_keeps_its_longest_run_still() {
+        let saved = ids(&["a", "b", "c"]);
+        let current = ids(&["c", "b", "a"]);
+        assert_eq!(compare(&saved, &current).moved, vec![1, 2]);
+    }
+
+    #[test]
+    fn a_moved_mod_is_named_among_ones_only_elsewhere() {
+        let saved = ids(&["a", "b", "x", "c"]);
+        let current = ids(&["a", "x", "b", "y", "c"]);
+        let diff = compare(&saved, &current);
+        assert_eq!(diff.only_current, vec![3]);
+        assert_eq!(diff.only_saved, Vec::<usize>::new());
+        assert_eq!(diff.moved, vec![2]);
     }
 }

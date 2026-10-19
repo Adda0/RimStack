@@ -47,6 +47,12 @@ pub mod qobject {
 
         #[qinvokable]
         fn original(self: &ListsData) -> QVariant;
+
+        /// `{ onlySaved, onlyCurrent, moved: [{ id, name }], addable: [modId] }`;
+        /// all empty for no such list.
+        #[qinvokable]
+        #[cxx_name = "compareList"]
+        fn compare_list(self: &ListsData, name: &QString) -> QVariant;
     }
 
     unsafe extern "C++" {
@@ -132,5 +138,9 @@ impl qobject::ListsData {
 
     fn original(&self) -> QVariant {
         to_qml(&self.app().original_list())
+    }
+
+    fn compare_list(&self, name: &QString) -> QVariant {
+        to_qml(&self.app().compare_saved(&name.to_string()))
     }
 }

@@ -325,6 +325,19 @@ fn lists(app: &App, shapes: &mut Shapes) {
         &rimstack_core::mods::share::ids_in("ludeon.rimworld\nann.a"),
     );
     shapes.add("lists.original", &app.original_list());
+    shapes.add("lists.compareList", &app.compare_saved("mine"));
+    // The same mods in another order fill "moved".
+    let reordered = vec!["ann.a".to_string(), "ludeon.rimworld".to_string()];
+    app.keep_list("reordered", Some(reordered)).unwrap();
+    shapes.add("lists.compareList", &app.compare_saved("reordered"));
+    // A list with an installed but switched-off mod fills "onlySaved" and
+    // "addable"; one with a mod the install never had fills the written name.
+    let with_hats = vec!["ludeon.rimworld".to_string(), "ann.hats".to_string()];
+    app.keep_list("with hats", Some(with_hats)).unwrap();
+    shapes.add("lists.compareList", &app.compare_saved("with hats"));
+    let with_gone = vec!["ludeon.rimworld".to_string(), "gone.mod".to_string()];
+    app.keep_list("with gone", Some(with_gone)).unwrap();
+    shapes.add("lists.compareList", &app.compare_saved("with gone"));
 }
 
 fn game(app: &App, shapes: &mut Shapes) {
