@@ -112,6 +112,18 @@ Item {
         }
     }
 
+    // External files only (keys): mod drags between the lists fall through to the rows.
+    DropArea {
+        id: zipDrop
+        anchors.fill: parent
+        anchors.leftMargin: rail.width
+        anchors.bottomMargin: bulk.height
+        keys: ["text/uri-list"]
+        onDropped: Hub.mods.installZip(drop.urls[0])
+        Rectangle { visible: parent.containsDrag; anchors.fill: parent; color: Theme.scrim }
+        Text { visible: parent.containsDrag; anchors.centerIn: parent; color: Theme.ink; font.pixelSize: Theme.title; font.weight: Font.DemiBold; text: Theme.say("Let go to install the mod from this .zip") }
+    }
+
     MouseArea {
         visible: drawerLoader.active
         z: 1
