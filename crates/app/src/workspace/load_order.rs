@@ -99,6 +99,7 @@ fn order_text(by: Arrange) -> Sentence {
         Arrange::Updated => say!("Last updated"),
         Arrange::Downloaded => say!("Downloaded"),
         Arrange::Supports => say!("Game version"),
+        Arrange::Size => say!("Folder size"),
     }
 }
 
@@ -178,6 +179,7 @@ fn arranged(app: &App, library: &Library) -> rimstack_core::mods::library::Arran
     for m in all.filter(|m| m.workshop) {
         let folder = m.installed.and_then(|i| library.get(i)).map(|i| &i.folder);
         m.updated = folder.and_then(|f| steam.0.get(f)).copied();
+        m.bytes = folder.and_then(|f| steam.1.get(f)).copied();
     }
     now
 }
@@ -482,6 +484,21 @@ impl LoadOrder {
                 .collect(),
             Side::Inactive => HashSet::new(),
         };
+        // Compute which mods are required by the active list
+        let mut required_ids: HashSet<String> = HashSet::new();
+        for active_mod in self.active.mods() {
+            if let Some(id) = active_mod.installed
+                && let Some(installed) = library.get(id)
+                && let Ok(about) = &installed.about
+            {
+                for dep in about.dependencies.for_version(&library.game_version) {
+                    let dep_key = rimstack_core::rimworld::id::fold(
+                        &rimstack_core::rimworld::id::split_steam(dep).0,
+                    );
+                    required_ids.insert(dep_key);
+                }
+            }
+        }
         let troubles: &[Vec<Trouble>] = match side {
             Side::Active => &self.troubles,
             Side::Inactive => &[],
@@ -517,6 +534,11 @@ impl LoadOrder {
                     flag::NEW,
                 ),
                 (changed.contains(m.id.as_str()), flag::CHANGED),
+                (
+                    m.category == rimstack_core::mods::list::Category::Libraries
+                        && !required_ids.contains(&key),
+                    flag::UNUSED,
+                ),
             ];
             marks
                 .iter()

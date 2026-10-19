@@ -21,6 +21,7 @@ fn m(name: &str, author: &str, category: Category) -> Mod {
         downloaded: None,
         supports: Vec::new(),
         needs_dlcs: Vec::new(),
+        bytes: None,
         name: name.into(),
         author: author.into(),
         version: "1.0".into(),
@@ -335,6 +336,32 @@ fn a_pinned_term_shows_the_mods_sort_leaves_alone() {
 }
 
 #[test]
+fn a_size_term_filters_by_folder_bytes() {
+    let mut mods = sample().mods().to_vec();
+    // Set bytes for testing: multiply MB by 1_048_576 to get bytes
+    mods[0].bytes = Some(50_000_000); // Harmony ~50 MB
+    mods[1].bytes = Some(150_000_000); // Core ~150 MB
+    mods[2].bytes = Some(80_000_000); // Royalty ~80 MB
+    mods[3].bytes = Some(200_000_000); // HugsLib ~200 MB
+    mods[4].bytes = Some(1_000); // Dubs ~0 MB
+    mods[5].bytes = Some(120_000_000); // Rimefeller ~120 MB
+    let mut list = GroupedList::flat(mods);
+    let shown = |list: &GroupedList| -> Vec<String> {
+        let name = |r: &Row| match r {
+            Row::Mod { index } => Some(list.mods()[*index].name.clone()),
+            _ => None,
+        };
+        list.rows().iter().filter_map(name).collect()
+    };
+    // size:>100 means > 100 MB
+    list.set_filter("size:>100");
+    assert_eq!(shown(&list), ["Core", "HugsLib", "Rimefeller"]);
+    // size:<100 means < 100 MB
+    list.set_filter("size:<100");
+    assert_eq!(shown(&list), ["Harmony", "Royalty", "Dubs Bad Hygiene"]);
+}
+
+#[test]
 fn source_terms_tell_the_workshop_from_git_checkouts_and_the_game() {
     let mut mods = sample().mods().to_vec();
     mods[3].local = true; // HugsLib
@@ -499,6 +526,52 @@ fn a_list_can_be_arranged_by_name_category_times_or_game_version() {
     let mut by_name = all.clone();
     by_name.sort_by_key(|n| std::cmp::Reverse(n.to_lowercase()));
     assert_eq!(names(&list), by_name);
+}
+
+#[test]
+fn a_list_can_be_arranged_by_folder_size() {
+    let mut list = sample();
+    let names = |list: &GroupedList| -> Vec<String> {
+        list.mods().iter().map(|m| m.name.clone()).collect()
+    };
+    let mut mods = list.mods().to_vec();
+    // Set bytes: Harmony small, Core huge, Royalty medium, HugsLib none, Dubs tiny, Rimefeller large
+    mods[0].bytes = Some(1_000); // Harmony ~0 MB
+    mods[1].bytes = Some(500_000_000); // Core ~500 MB
+    mods[2].bytes = Some(100_000_000); // Royalty ~100 MB
+    mods[3].bytes = None; // HugsLib no size
+    mods[4].bytes = Some(100); // Dubs ~0 MB
+    mods[5].bytes = Some(300_000_000); // Rimefeller ~300 MB
+    list.set_mods(mods);
+
+    list.arrange(Arrange::Size);
+    assert_eq!(
+        names(&list),
+        [
+            "Core",
+            "Rimefeller",
+            "Royalty",
+            "Harmony",
+            "Dubs Bad Hygiene",
+            "HugsLib"
+        ],
+        "Biggest first, no-size last"
+    );
+
+    let reversed = |by| Arrangement { by, reversed: true };
+    list.arrange(reversed(Arrange::Size));
+    assert_eq!(
+        names(&list),
+        [
+            "Dubs Bad Hygiene",
+            "Harmony",
+            "Royalty",
+            "Rimefeller",
+            "Core",
+            "HugsLib"
+        ],
+        "Smallest first, no-size last"
+    );
 }
 
 #[test]
