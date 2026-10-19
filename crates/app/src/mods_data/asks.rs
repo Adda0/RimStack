@@ -206,6 +206,7 @@ impl qobject::ModsData {
             errors: count(self.errors),
             warnings: count(self.warnings),
             conflicts: count(self.conflicts),
+            defclashes: self.order.in_def_collision(&self.app()).len(),
             behind: count(behind),
         };
         let offers =

@@ -465,6 +465,11 @@ impl LoadOrder {
 
     fn flags(&self, app: &App, library: &Library, side: Side) -> Vec<u16> {
         let in_conflict = self.in_conflict(app);
+        let in_def_collision = if side == Side::Active {
+            self.in_def_collision(app)
+        } else {
+            HashSet::new()
+        };
         let behind = app.behind().reading();
         let mut copies: HashMap<String, usize> = HashMap::new();
         for key in library.installed.iter().filter_map(|m| m.key()) {
@@ -527,6 +532,10 @@ impl LoadOrder {
                     flag::CONFLICT,
                 ),
                 (
+                    m.installed.is_some_and(|i| in_def_collision.contains(&i)),
+                    flag::DEFCLASH,
+                ),
+                (
                     folder.is_some_and(|f| behind.as_ref().is_some_and(|b| b.contains(f))),
                     flag::UPDATED,
                 ),
@@ -565,6 +574,18 @@ impl LoadOrder {
         };
         (0..known.members.len())
             .filter(|&at| !known.overlaps.with(at).is_empty())
+            .map(|at| known.members[at])
+            .collect()
+    }
+
+    /// Sharing at least one def with another active mod, whatever the load order.
+    pub fn in_def_collision(&self, app: &App) -> HashSet<ModId> {
+        let known = app.conflicts().reading();
+        let Some(known) = known.as_ref() else {
+            return HashSet::new();
+        };
+        rimstack_core::mods::defs::in_collision(&known.def_collisions)
+            .into_iter()
             .map(|at| known.members[at])
             .collect()
     }
@@ -615,8 +636,10 @@ impl App {
             })
             .collect();
         let (provided, scanned): (Vec<_>, Vec<_>) = read.into_iter().unzip();
+        let defines: Vec<_> = (scanned.iter()).map(|s| &s.defines).collect();
         let found = super::Conflicts {
             overlaps: conflicts::overlaps(&provided),
+            def_collisions: rimstack_core::mods::defs::collisions(&defines),
             scanned: members.iter().copied().zip(scanned).collect(),
             members,
         };

@@ -329,6 +329,7 @@ fn nothing_found() -> crate::workspace::Conflicts {
     crate::workspace::Conflicts {
         members: Vec::new(),
         overlaps: rimstack_core::mods::conflicts::overlaps(&[]),
+        def_collisions: Vec::new(),
         scanned: Default::default(),
     }
 }

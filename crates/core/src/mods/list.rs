@@ -332,6 +332,7 @@ pub mod flag {
     pub const UNUSED: u16 = 512;
     /// Missing a property RimSort looks for: no readable About.xml, or no named Workshop item.
     pub const INCOMPLETE: u16 = 1024;
+    pub const DEFCLASH: u16 = 2048;
 }
 
 impl Filter {
@@ -369,6 +370,7 @@ impl Filter {
                 Some(("is", "recent")) => Test::Flag(flag::RECENT),
                 Some(("is", "duplicate")) => Test::Flag(flag::DUPLICATE),
                 Some(("is", "incomplete")) => Test::Flag(flag::INCOMPLETE),
+                Some(("is", "defclash")) => Test::Flag(flag::DEFCLASH),
                 Some(("is", "new")) => Test::Flag(flag::NEW),
                 Some(("is", "changed")) => Test::Flag(flag::CHANGED),
                 Some(("is", "unused")) => Test::Flag(flag::UNUSED),

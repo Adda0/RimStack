@@ -145,6 +145,9 @@ pub struct Details {
     loses_to: Vec<Clash>,
     wins_over: Vec<Clash>,
     conflict_marks: std::collections::BTreeMap<ModId, rimstack_core::mods::details::Mark>,
+    /// Active mods loading later whose defs replace this mod's, and the other way round.
+    defs_replaced_by: Vec<rimstack_core::mods::defs::DefClash>,
+    defs_replaces: Vec<rimstack_core::mods::defs::DefClash>,
     loads_after: Vec<Named>,
     loads_before: Vec<Named>,
     required_above: usize,
@@ -400,6 +403,9 @@ impl LoadOrder {
             said.loses_to = clashes.loses;
             said.wins_over = clashes.wins;
             said.conflict_marks = clashes.marks;
+            let defs = self.def_clashes(app, id);
+            said.defs_replaced_by = defs.replaced_by;
+            said.defs_replaces = defs.replaces;
             said.placement = near.bottom.then(|| say!("The community rules keep this mod near the bottom of the list, below everything that does not have to follow it."));
         } else if let Some((_, listed)) = listed
             && let Some(lack) = describe::lacking(library, listed)
@@ -516,6 +522,19 @@ impl LoadOrder {
             Some((at, self.active.mods()[at].name.clone()))
         };
         details::clashes(&known.members, &known.overlaps, id, &listed)
+    }
+
+    /// Active mods defining the same defs; the one loading later's win.
+    fn def_clashes(&self, app: &App, id: ModId) -> rimstack_core::mods::defs::DefClashes {
+        let known = app.conflicts().reading();
+        let Some(known) = known.as_ref() else {
+            return Default::default();
+        };
+        let listed = |id: ModId| {
+            let at = self.active.position_of(id)?;
+            Some((at, self.active.mods()[at].name.clone()))
+        };
+        rimstack_core::mods::defs::of_mod(&known.members, &known.def_collisions, id, &listed)
     }
 
     pub fn overview(&self, app: &App) -> Overview {

@@ -124,6 +124,14 @@ fn made_up() -> (tempfile::TempDir, App) {
     picture(&mods.join("b/Textures/Things/rock.png"), [0, 0, 200, 255]);
     write(&mods.join("a/Textures/Things/rock.dds"), "DDS not really");
     picture(&mods.join("b/Textures/Things/pebble.png"), [0, 200, 0, 255]);
+    write(
+        &mods.join("a/Defs/Things.xml"),
+        "<Defs><ThingDef><defName>Pebble</defName></ThingDef></Defs>",
+    );
+    write(
+        &mods.join("b/Defs/Things.xml"),
+        "<Defs><ThingDef><defName>Pebble</defName></ThingDef></Defs>",
+    );
     picture(&mods.join("lib/Textures/Things/moss.png"), [0, 90, 0, 255]);
     let config = root.join("config");
     write(
