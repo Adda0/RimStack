@@ -67,6 +67,9 @@ fn terms(counts: Counts) -> Vec<(&'static str, Sentence)> {
         ("colour:", say!("painted with this colour")),
         ("author:", say!("by this author")),
         ("needs:", say!("lists this DLC as a dependency")),
+        ("is:unused", say!("a library no active mod needs")),
+        ("size:>", say!("bigger than this many megabytes")),
+        ("size:<", say!("smaller than this many megabytes")),
     ]
 }
 

@@ -242,6 +242,7 @@ mod tests {
             downloaded: None,
             supports: Vec::new(),
             needs_dlcs: Vec::new(),
+            bytes: None,
         };
         names.iter().enumerate().map(one).collect()
     }
