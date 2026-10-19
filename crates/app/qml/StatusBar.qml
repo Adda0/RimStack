@@ -110,6 +110,8 @@ Rectangle {
                 enter: PopIn {}
                 exit: PopOut {}
                 id: trayMenu
+                modal: true
+                dim: false
                 x: parent.width - width
                 y: -height - 10
                 width: Theme.sized(380)

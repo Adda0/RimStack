@@ -305,6 +305,8 @@ Timer {
 
     // `visible` is true from the click; `opened` only once the menu has faded in.
     readonly property alias menuOpen: rowMenu.visible
+    readonly property alias rowMenu: rowMenu
+    readonly property alias viewMenu: activePane.viewMenu
 
     Loader {
         active: (Mods.checkMode !== "" && Mods.checkMode !== "pointer") || Theme.selfTest

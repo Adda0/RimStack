@@ -36,6 +36,9 @@ Popup {
     }
 
     parent: Overlay.overlay
+    // Modal without the dimming: a click on an entry or beside the menu reaches nothing under it.
+    modal: true
+    dim: false
     padding: Theme.gapTiny
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     background: Rectangle { radius: Theme.cornerLarge; color: Theme.bar; border.width: 1; border.color: Theme.line }
@@ -78,6 +81,8 @@ Popup {
                     HoverHandler { id: over }
                     TapHandler {
                         enabled: !entry.off
+                        // Grabbed at the press: a passive grab lets the press reach a row under the menu too.
+                        gesturePolicy: TapHandler.ReleaseWithinBounds
                         onTapped: {
                             menu.close()
                             entry.modelData.run()

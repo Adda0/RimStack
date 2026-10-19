@@ -9,6 +9,7 @@ Item {
     id: activePane
     readonly property bool tight: width < Theme.sized(640)
     readonly property bool stepping: Mods.problemPlace > 0 && Mods.selectedId === Mods.problemMod
+    readonly property alias viewMenu: viewMenu
     function moreEntries() {
         const entries = []
         if (Mods.problemCount > 0) {
@@ -346,6 +347,8 @@ Item {
                         enter: PopIn {}
                         exit: PopOut {}
                         id: viewMenu
+                        modal: true
+                        dim: false
                         x: parent.width - width
                         y: parent.height + 6
                         width: Theme.sized(250)

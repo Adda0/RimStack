@@ -232,6 +232,8 @@ Rectangle {
                 enter: PopIn {}
                 exit: PopOut {}
                 id: beforePlay
+                modal: true
+                dim: false
                 x: parent.width - width
                 y: parent.height + 8
                 width: Theme.sized(320)
