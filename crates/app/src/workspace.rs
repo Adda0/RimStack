@@ -46,6 +46,8 @@ pub struct Conflicts {
     /// Defs two places define alike; by place in `members`. Place order, not load order.
     pub def_collisions: Vec<rimstack_core::mods::defs::Collision>,
     pub scanned: HashMap<library::ModId, rimstack_core::mods::infer::Scanned>,
+    /// What each mod's XML needs that is missing, judged against them all.
+    pub xml_found: HashMap<library::ModId, rimstack_core::mods::xmlcheck::Found>,
 }
 
 pub type Loaded = Result<(library::Library, Duration), rimstack_core::base::error::Error>;

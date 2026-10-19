@@ -2,6 +2,7 @@
 
 use crate::base::sentence::Sentence;
 use crate::mods::defs::Def;
+use crate::mods::xmlcheck;
 use crate::say;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -17,6 +18,8 @@ pub struct Scanned {
     pub uses: Vec<(String, PathBuf)>,
     pub types: HashSet<String>,
     pub patches: Vec<(String, PathBuf)>,
+    /// What `scan_checking` looks at the XML for; empty from `scan`.
+    pub xml: xmlcheck::Read,
 }
 
 fn dlls_of(load_folders: &[PathBuf]) -> Vec<PathBuf> {
@@ -160,6 +163,16 @@ fn defs_of(text: &str) -> HashSet<Def> {
 }
 
 pub fn scan(load_folders: &[PathBuf]) -> Scanned {
+    scan_looking(load_folders, false)
+}
+
+/// `scan`, judging the files' XML too: `xml` holds files that do not parse, patches that fail
+/// when the defs they name are nowhere in the active set, and the mods `MayRequire` names.
+pub fn scan_checking(load_folders: &[PathBuf]) -> Scanned {
+    scan_looking(load_folders, true)
+}
+
+fn scan_looking(load_folders: &[PathBuf], check: bool) -> Scanned {
     let mut found = Scanned::default();
     for folder in load_folders {
         let mut files = Vec::new();
@@ -170,6 +183,9 @@ pub fn scan(load_folders: &[PathBuf]) -> Scanned {
             let Ok(text) = std::fs::read_to_string(&file) else {
                 continue;
             };
+            if check {
+                xmlcheck::read_defs(&text, &file, &mut found.xml);
+            }
             found.defines.extend(defs_of(&text));
             // `ParentName=` also ends in `Name=`; only a bare ` Name=` is a base.
             found.bases.extend(
@@ -189,6 +205,9 @@ pub fn scan(load_folders: &[PathBuf]) -> Scanned {
             let Ok(text) = std::fs::read_to_string(&file) else {
                 continue;
             };
+            if check {
+                xmlcheck::read_patches(&text, &file, &mut found.xml);
+            }
             // Selections are written inside <xpath>, with entities for quotes.
             for xpath in between(&text, "<xpath>", "</xpath>") {
                 let xpath = xpath.replace("&quot;", "\"").replace("&apos;", "'");

@@ -181,6 +181,17 @@ pub fn troubles(
     let ignored = ignored(app);
     let workshop = app.workshop_names();
     let mut found = describe::troubles(library, mods, trust.versions(&trust.trusted), &workshop);
+    let known = app.conflicts().reading();
+    if let Some(read) = known.as_ref() {
+        for (m, own) in mods.iter().zip(&mut found) {
+            let said = m
+                .installed
+                .and_then(|i| read.xml_found.get(&i))
+                .map(rimstack_core::mods::xmlcheck::troubles)
+                .unwrap_or_default();
+            own.extend(said);
+        }
+    }
     describe::without_ignored(&mut found, mods, &ignored);
     let by_you = trust.versions(&trust.excused);
     (found, describe::version_ignored(library, mods, by_you))

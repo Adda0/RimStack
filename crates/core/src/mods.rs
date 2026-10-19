@@ -26,3 +26,4 @@ pub mod texdiff;
 pub mod textures;
 pub mod tree;
 pub mod userrules;
+pub mod xmlcheck;
