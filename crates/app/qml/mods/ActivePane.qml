@@ -362,6 +362,8 @@ Item {
                         exit: PopOut {}
                         id: viewMenu
                         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
+                        modal: true
+                        dim: false
                         x: parent.width - width
                         y: parent.height + 6
                         width: Theme.sized(250)

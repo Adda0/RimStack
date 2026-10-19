@@ -125,6 +125,19 @@ Item {
     function nameAt(row) {
         return Mods.active.at(row).name
     }
+    function entry(menu, text) {
+        menu.contentItem.forceLayout()
+        for (const child of menu.contentItem.children)
+            if (child.modelData && child.modelData.text === text)
+                return child
+        return null
+    }
+    function labelled(item, text) {
+        for (const child of item.children)
+            if (child.text === text)
+                return child
+        return null
+    }
 
     function drag(from, fromY, to, toY) {
         from.parent.ensurePolished()
@@ -262,7 +275,43 @@ Item {
 
             events.mouseClick(checks.activeList, 120, row(3), Qt.RightButton, Qt.NoModifier, -1)
             checks.check("the right mouse button selects the mod and opens its menu", Mods.info.name === checks.nameAt(3) && checks.screen.menuOpen)
-
+            menuShown.start()
+        }
+    }
+    // A menu takes clicks once it has faded in, as a person's would.
+    Timer {
+        id: menuShown
+        interval: 400
+        onTriggered: {
+            const copy = checks.entry(checks.screen.rowMenu, Theme.say("Copy name"))
+            const selected = Mods.selectedId
+            events.mouseClick(copy, copy.width / 2, copy.height / 2, Qt.LeftButton, Qt.NoModifier, -1)
+            checks.check("a click on a menu entry closes the menu", !checks.screen.menuOpen)
+            checks.check("and reaches no row under it", Mods.selectedId === selected)
+            checks.screen.viewMenu.open()
+            viewShown.start()
+        }
+    }
+    Timer {
+        id: viewShown
+        interval: 400
+        onTriggered: {
+            const card = checks.screen.viewMenu
+            const headed = checks.labelled(card.contentItem, Theme.say("Under category headings"))
+            const selected = Mods.selectedId
+            events.mouseClick(headed, headed.width / 2, headed.height / 2, Qt.LeftButton, Qt.NoModifier, -1)
+            checks.check("a click on a button of the View card takes it and reaches no row under it", Mods.prefs.headings === 1 && Mods.selectedId === selected && card.visible)
+            events.mouseClick(checks.activeList, 120, 4 + 13 + 26 * 2, Qt.LeftButton, Qt.NoModifier, -1)
+            checks.check("a click beside the card closes it", !card.opened)
+            checks.check("and selects no row", Mods.selectedId === selected)
+            Mods.prefs.headings = 0
+            cardGone.start()
+        }
+    }
+    Timer {
+        id: cardGone
+        interval: 400
+        onTriggered: {
             const before = checks.inactiveList.contentY
             events.mouseWheel(checks.inactiveList, 120, 200, Qt.NoButton, Qt.NoModifier, 0, -120, -1)
             wheelDone.before = before
