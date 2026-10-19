@@ -240,6 +240,7 @@ mod tests {
             supports: Vec::new(),
             needs_dlcs: Vec::new(),
             bytes: None,
+            translation: false,
         };
         names.iter().enumerate().map(one).collect()
     }

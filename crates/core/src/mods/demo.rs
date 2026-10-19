@@ -64,6 +64,7 @@ pub fn generate(count: usize) -> Vec<Mod> {
                 supports: vec![1, (i % 7) as u64],
                 bytes: None,
                 needs_dlcs: Vec::new(),
+                translation: false,
                 name: format!(
                     "{} {} {}",
                     FIRST[i % FIRST.len()],

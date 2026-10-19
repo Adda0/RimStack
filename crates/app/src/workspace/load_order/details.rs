@@ -134,6 +134,7 @@ pub struct Details {
     /// This mod and the active ones needing it, directly or through another;
     /// empty when no active mod needs it.
     off_with: Vec<ModId>,
+    translates: Option<Sentence>,
     load_folders: Vec<Sentence>,
     code: Sentence,
     sub: String,
@@ -284,6 +285,13 @@ impl LoadOrder {
             requires: details::required(library.requirements(m)),
             needed_by: details::needed_by(library.needed_by(m), self.active.mods()),
             off_with: self.off_with(library, id),
+            translates: library.translated(m).map(|(name, installed)| {
+                if installed {
+                    Sentence::from(name)
+                } else {
+                    say!("{} (not installed)", name)
+                }
+            }),
             load_folders: self.load_folders(library, m),
             code: Sentence::joined("\n", describe::code(&m.code.facts)),
             ..Details::default()

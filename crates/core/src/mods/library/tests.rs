@@ -439,6 +439,56 @@ fn mods_are_found_by_words_of_their_name_the_closest_first() {
 }
 
 #[test]
+fn a_languages_only_mod_translates_what_it_names_or_the_game() {
+    let (_tmp, roots) = sample();
+    let workshop = roots[2].path.clone();
+    add_mod(
+        &workshop,
+        "500",
+        &about(
+            "Test.LibRu",
+            "Lib Russian",
+            &["Ludeon.RimWorld.Royalty", "Test.Lib"],
+        ),
+        &["Languages"],
+    );
+    add_mod(
+        &workshop,
+        "600",
+        "<ModMetaData><packageId>Test.GoneCz</packageId><name>Gone Czech</name>\
+         <loadAfter><li>Gone.Mod</li></loadAfter></ModMetaData>",
+        &["Languages"],
+    );
+    add_mod(
+        &workshop,
+        "700",
+        &about("Test.CoreEs", "Core Spanish", &[]),
+        &["Languages"],
+    );
+    add_mod(
+        &workshop,
+        "800",
+        &about("Test.BothDe", "Both German", &["Test.Lib"]),
+        &["Languages", "Defs"],
+    );
+    let library = build(scan(&roots), &[], "1.6");
+    let says = |folder: &str| {
+        let found = library.inactive.iter().find_map(|m| {
+            let installed = library.get(m.installed?)?;
+            (installed.folder == folder).then(|| (m.translation, library.translated(installed)))
+        });
+        found.unwrap_or_else(|| panic!("no mod in {folder}"))
+    };
+    assert_eq!(says("500"), (true, Some(("Lib".to_string(), true))));
+    // Only named after the game: it still translates the game and its expansions.
+    assert_eq!(says("600"), (true, Some(("Gone.Mod".to_string(), false))));
+    assert_eq!(says("700"), (true, Some(("Core".to_string(), true))));
+    // More than translations alone is an ordinary mod; so is one without a Languages folder.
+    assert!(!says("800").0);
+    assert!(!says("300").0);
+}
+
+#[test]
 fn rows_point_back_at_their_mod_and_requirements_are_named() {
     let (_tmp, roots) = sample();
     let library = build(scan(&roots), &["test.art".to_string()], "1.6");
