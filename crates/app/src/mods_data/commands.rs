@@ -203,9 +203,12 @@ impl qobject::ModsData {
                     name: installed.display_name().to_string(),
                     author: about.map(|a| a.authors.join(", ")).unwrap_or_default(),
                     package_id: about.map(|a| a.package_id.clone()).unwrap_or_default(),
-                    file_id: (installed.source == rimstack_core::rimworld::paths::Source::Workshop)
-                        .then(|| installed.folder.clone())
-                        .unwrap_or_default(),
+                    file_id: if installed.source == rimstack_core::rimworld::paths::Source::Workshop
+                    {
+                        installed.folder.clone()
+                    } else {
+                        String::new()
+                    },
                     supported: about
                         .map(|a| a.supported_versions.clone())
                         .unwrap_or_default(),
