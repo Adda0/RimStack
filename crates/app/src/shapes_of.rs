@@ -390,6 +390,32 @@ fn lists(app: &App, shapes: &mut Shapes) {
     let with_gone = vec!["ludeon.rimworld".to_string(), "gone.mod".to_string()];
     app.keep_list("with gone", Some(with_gone)).unwrap();
     shapes.add("lists.compareList", &app.compare_saved("with gone"));
+    // The lockfile, on this install and against one differing from it.
+    let data = app.data_dir();
+    let kept_lock = data.join("load.lock.json");
+    app.write_lockfile(&kept_lock).unwrap();
+    let same = app.check_lockfile(&kept_lock);
+    shapes.add("lists.checkLock", &crate::reports::Answer::from(same));
+    let other_lock = data.join("other.lock.json");
+    write(
+        &other_lock,
+        &serde_json::json!({
+            "game": "1.5",
+            "dlcs": ["ludeon.rimworld.royalty"],
+            "mods": [
+                { "packageId": "ann.a", "source": "local", "version": "2" },
+                { "packageId": "ann.roads", "source": "workshop", "workshop": "900001", "updated": 1000 },
+                { "packageId": "gone.mod", "source": "local" }
+            ]
+        })
+        .to_string(),
+    );
+    let differing = app.check_lockfile(&other_lock);
+    shapes.add("lists.checkLock", &crate::reports::Answer::from(differing));
+    let broken_lock = data.join("broken.lock.json");
+    write(&broken_lock, "no lockfile");
+    let refused = app.check_lockfile(&broken_lock);
+    shapes.add("lists.checkLock", &crate::reports::Answer::from(refused));
 }
 
 fn game(app: &App, shapes: &mut Shapes) {

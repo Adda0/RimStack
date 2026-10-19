@@ -133,7 +133,8 @@ fn defs_of(text: &str) -> HashSet<Def> {
             if !name.is_empty() && !name.eq_ignore_ascii_case("defs") {
                 break;
             }
-        } else if stack.len() == 1 && template == 0
+        } else if stack.len() == 1
+            && template == 0
             && (tag.contains("Abstract=\"True\"") || tag.contains("Abstract='True'"))
         {
             if !tag.ends_with('/') {
