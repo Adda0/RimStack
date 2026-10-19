@@ -58,6 +58,10 @@ QtObject {
             ])
         if (about.groupChoices)
             groups.push(Mods.groupEntries(row.modId, about))
+        // Paints the selected mods' rows, as RimSort and RimPy users do to spot mods at a glance.
+        if (row.modId >= 0)
+            groups.push([{ title: Theme.say("Colour") }].concat(Mods.swatchEntries(row.colour, name => Hub.mods.paint(Mods.selectedIds, name)),
+                [{ text: Theme.say("No colour"), icon: "x", off: !row.colour, run: () => Hub.mods.paint(Mods.selectedIds, "") }]))
         const last = []
         if (many && Mods.versionWarned.length > 0)
             last.push({ text: Theme.plural(Mods.versionWarned.length, "Ignore the game version mismatch of {} mod", "Ignore the game version mismatch of {} mods"), icon: "check", run: () => Mods.trustSelected(true) })

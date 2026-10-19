@@ -15,6 +15,8 @@ pub struct Note {
     pub category: String,
     /// Problems not to warn about, by `Trouble::key`.
     pub ignored: Vec<String>,
+    /// The name of the swatch its row is painted with; empty for none.
+    pub colour: String,
 }
 
 impl Note {
@@ -82,6 +84,11 @@ impl Notes {
                     .get("ignored")
                     .and_then(Value::as_array)
                     .map_or(Vec::new(), |t| t.iter().filter_map(tag).collect()),
+                colour: v
+                    .get("colour")
+                    .and_then(Value::as_str)
+                    .unwrap_or("")
+                    .to_string(),
             };
             // An older file's `sub` is read as the first tag.
             if let Some(sub) = v.get("sub").and_then(Value::as_str) {
@@ -112,6 +119,9 @@ impl Notes {
                 if !n.ignored.is_empty() {
                     entry["ignored"] = json!(n.ignored);
                 }
+                if !n.colour.is_empty() {
+                    entry["colour"] = json!(n.colour);
+                }
                 (k.clone(), entry)
             })
             .collect();
@@ -128,7 +138,10 @@ impl Notes {
     pub fn set(&mut self, package_id: &str, note: Note) {
         let key = id::fold(package_id);
         let says_nothing = note.tags.is_empty() && note.text.trim().is_empty();
-        let keeps = note.version_ok || !note.category.is_empty() || !note.ignored.is_empty();
+        let keeps = note.version_ok
+            || !note.category.is_empty()
+            || !note.ignored.is_empty()
+            || !note.colour.is_empty();
         if says_nothing && !keeps {
             self.by_id.remove(&key);
         } else {
@@ -271,6 +284,22 @@ mod tests {
         notes.set("Author.Mod", note.clone());
         assert_eq!(notes.get("author.mod"), Some(&note));
         notes.set("AUTHOR.MOD", Note::default());
+        assert!(notes.is_empty());
+    }
+
+    #[test]
+    fn a_colour_alone_is_kept_and_read_back() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("notes.json");
+        let mut notes = Notes::default();
+        let painted = Note {
+            colour: "Rose".into(),
+            ..Note::default()
+        };
+        notes.set("a.a", painted.clone());
+        notes.write(&path).unwrap();
+        assert_eq!(Notes::read(&path).get("a.a"), Some(&painted));
+        notes.set("a.a", Note::default());
         assert!(notes.is_empty());
     }
 

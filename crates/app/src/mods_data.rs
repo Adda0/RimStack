@@ -149,6 +149,9 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "deleteGroup"]
         fn delete_group(self: Pin<&mut ModsData>, name: &QString);
+        /// Paints the rows of these mods with a swatch, by its name; "" takes the colour off.
+        #[qinvokable]
+        fn paint(self: Pin<&mut ModsData>, ids: &QVariant, name: &QString);
         #[qinvokable]
         #[cxx_name = "keepDrafts"]
         fn keep_drafts(self: Pin<&mut ModsData>);

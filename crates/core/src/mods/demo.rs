@@ -55,6 +55,7 @@ pub fn generate(count: usize) -> Vec<Mod> {
                 code: false,
                 patched: Default::default(),
                 sub: String::new(),
+                colour: String::new(),
                 load_micros: None,
                 filed: category,
                 chosen: false,
