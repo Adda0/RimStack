@@ -652,9 +652,10 @@ impl qobject::ModsData {
         for side in [Side::Active, Side::Inactive] {
             let list = self.order.list(side);
             let (count, matching) = (list.mods().len(), list.matching());
+            let end = list.end_place();
             let rows = self.order.rows(&app, side);
             if let Some(model) = self.as_mut().rows(side) {
-                model.show(rows, count, matching);
+                model.show(rows, count, matching, end);
             }
         }
         let (dirty, unsaved, undo, redo) = {
