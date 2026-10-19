@@ -375,6 +375,15 @@ fn patched(aim: &crate::rimworld::code::Aim) -> String {
     format!("{}.{}", aim.target, aim.method).to_lowercase()
 }
 
+/// Folder size in bytes by walking its entries; `None` if walk fails.
+fn folder_bytes(path: &Path) -> Option<u64> {
+    crate::base::walk::whole_tree(path)
+        .ok()?
+        .into_iter()
+        .filter_map(|entry| std::fs::metadata(&entry.path).ok().map(|m| m.len()))
+        .reduce(|a, b| a.saturating_add(b))
+}
+
 /// Folded package ids of the official DLCs it depends on, for any game version, sorted.
 fn official_dlcs(about: Option<&About>) -> Vec<String> {
     let Some(about) = about else {
@@ -424,6 +433,10 @@ fn row(m: &Installed, id: String, category: Category, installed: ModId, game_ver
             .unwrap_or_default(),
         category,
         installed: Some(installed),
+        // Steam keeps a Workshop folder's size; walking thousands of them would take long.
+        bytes: (m.source != Source::Workshop)
+            .then(|| folder_bytes(&m.path))
+            .flatten(),
         needs_dlcs: official_dlcs(about),
     }
 }
@@ -513,6 +526,7 @@ impl Library {
                         version: String::new(),
                         category: Category::Content,
                         installed: None,
+                        bytes: None,
                     });
                 }
             }

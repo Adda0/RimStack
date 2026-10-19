@@ -112,6 +112,8 @@ pub struct Mod {
     pub pinned: bool,
     /// Folded package ids of official DLCs this mod lists as dependencies.
     pub needs_dlcs: Vec<String>,
+    /// Bytes its folder takes on disk; `None` for a mod that is not installed.
+    pub bytes: Option<u64>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -136,15 +138,18 @@ pub enum Arrange {
     Downloaded,
     /// By the newest game version supported, newest first.
     Supports,
+    /// Biggest folder first.
+    Size,
 }
 
 impl Arrange {
-    pub const ALL: [Arrange; 5] = [
+    pub const ALL: [Arrange; 6] = [
         Self::Category,
         Self::Name,
         Self::Updated,
         Self::Downloaded,
         Self::Supports,
+        Self::Size,
     ];
 
     pub fn key(self) -> &'static str {
@@ -154,6 +159,7 @@ impl Arrange {
             Self::Updated => "updated",
             Self::Downloaded => "downloaded",
             Self::Supports => "supports",
+            Self::Size => "size",
         }
     }
 
@@ -169,8 +175,8 @@ impl Arrange {
     }
 }
 
-/// An order and which way it runs: reversed, the oldest, the lowest version or Z comes first,
-/// and those without a time or version still go last.
+/// An order and which way it runs: reversed, the oldest, the lowest version, the smallest or Z
+/// comes first, and those without a time, version or size still go last.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Arrangement {
     pub by: Arrange,
@@ -249,6 +255,9 @@ enum Test {
     Pinned,
     Needs(String),
     Patches(String),
+    /// Megabytes given as bytes.
+    Bigger(u64),
+    Smaller(u64),
     Flag(u16),
 }
 
@@ -276,6 +285,8 @@ impl Test {
             Test::Pinned => m.pinned,
             Test::Patches(p) => m.patched.iter().any(|at| at.contains(p.as_str())),
             Test::Needs(dlc) => m.needs_dlcs.iter().any(|own| own.contains(dlc.as_str())),
+            Test::Bigger(bytes) => m.bytes.is_some_and(|own| own > *bytes),
+            Test::Smaller(bytes) => m.bytes.is_some_and(|own| own < *bytes),
             Test::Flag(f) => flags & f != 0,
         }
     }
@@ -318,6 +329,7 @@ pub mod flag {
     pub const DUPLICATE: u16 = 64;
     pub const NEW: u16 = 128;
     pub const CHANGED: u16 = 256;
+    pub const UNUSED: u16 = 512;
 }
 
 impl Filter {
@@ -356,6 +368,10 @@ impl Filter {
                 Some(("is", "duplicate")) => Test::Flag(flag::DUPLICATE),
                 Some(("is", "new")) => Test::Flag(flag::NEW),
                 Some(("is", "changed")) => Test::Flag(flag::CHANGED),
+                Some(("is", "unused")) => Test::Flag(flag::UNUSED),
+                Some(("size", bound)) => {
+                    size_test(bound).unwrap_or_else(|| Test::Word(term.to_string()))
+                }
                 _ => Test::Word(term.to_string()),
             };
             filter.tests.push((test, wanted));
@@ -387,6 +403,21 @@ impl Filter {
             .iter()
             .all(|(test, wanted)| test.passes(m, haystack, flags) == *wanted)
     }
+}
+
+/// `>N` or `<N` megabytes, as `size:` takes it.
+fn size_test(bound: &str) -> Option<Test> {
+    let (over, number) = match bound.split_at_checked(1)? {
+        (">", number) => (true, number),
+        ("<", number) => (false, number),
+        _ => return None,
+    };
+    let megabytes: f64 = number.parse().ok().filter(|mb: &f64| *mb >= 0.0)?;
+    let bytes = (megabytes * 1_048_576.0) as u64;
+    Some(match over {
+        true => Test::Bigger(bytes),
+        false => Test::Smaller(bytes),
+    })
 }
 
 impl GroupedList {
@@ -447,12 +478,14 @@ impl GroupedList {
             Arrange::Supports => mods.sort_by_cached_key(|m| {
                 (m.supports.is_empty(), Reverse(m.supports.clone()), name(m))
             }),
+            Arrange::Size => mods.sort_by_cached_key(|m| (newest(m.bytes), name(m))),
         }
         if reversed {
             let unknown = |m: &Mod| match by {
                 Arrange::Updated => m.updated.is_none(),
                 Arrange::Downloaded => m.downloaded.is_none(),
                 Arrange::Supports => m.supports.is_empty(),
+                Arrange::Size => m.bytes.is_none(),
                 Arrange::Category | Arrange::Name => false,
             };
             let known = mods.iter().position(unknown).unwrap_or(mods.len());

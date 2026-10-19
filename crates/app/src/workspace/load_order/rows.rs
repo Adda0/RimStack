@@ -4,6 +4,7 @@ use super::{LoadOrder, Side, side_index};
 use crate::App;
 use rimstack_core::base::elapsed;
 use rimstack_core::base::sentence::Sentence;
+use rimstack_core::base::sizes;
 use rimstack_core::mods::describe::{Fix, Trouble};
 use rimstack_core::mods::library::{Library, ModId};
 use rimstack_core::mods::list::{Arrange, Category, Mod, Row};
@@ -119,6 +120,13 @@ fn measure(by: Arrange, m: &Mod) -> Sentence {
             Sentence::Plain(parts.join("."))
         }
         Arrange::Category | Arrange::Name => Sentence::default(),
+        Arrange::Size => match m.bytes {
+            Some(bytes) => {
+                let (said, _) = sizes::together(bytes as f64 / 1_048_576.0, 0.0);
+                said
+            }
+            None => Sentence::default(),
+        },
     }
 }
 

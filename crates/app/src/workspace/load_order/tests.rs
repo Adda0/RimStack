@@ -1,5 +1,6 @@
 use super::*;
 use crate::workspace::tests::installed;
+use rimstack_core::mods::list::Row;
 
 fn roads_made_for_an_older_game(tmp: &tempfile::TempDir) {
     let about = "<ModMetaData><packageId>Ann.Roads</packageId><name>Ann.Roads</name><supportedVersions><li>1.5</li></supportedVersions></ModMetaData>";
@@ -385,4 +386,52 @@ fn a_mod_not_installed_taken_off_the_list_is_gone_from_both() {
     assert_eq!(inactive, ["ann.roads"]);
     assert!(order.undo(&app));
     assert_eq!(app.session().current(), ["gone.mod", "ludeon.rimworld"]);
+}
+
+#[test]
+fn a_library_no_active_mod_needs_is_unused_until_one_does() {
+    let (tmp, app) = installed();
+    let add = |folder: &str, id: &str, needs: &str| {
+        let about = tmp.path().join("game/Mods").join(folder).join("About");
+        std::fs::create_dir_all(&about).unwrap();
+        let deps = match needs {
+            "" => String::new(),
+            id => {
+                format!("<modDependencies><li><packageId>{id}</packageId></li></modDependencies>")
+            }
+        };
+        let xml = format!(
+            "<ModMetaData><packageId>{id}</packageId><name>{id}</name>{deps}</ModMetaData>"
+        );
+        std::fs::write(about.join("About.xml"), xml).unwrap();
+    };
+    // Two mods needing it make it a library.
+    add("lib", "a.lib", "");
+    add("b", "a.b", "a.lib");
+    add("c", "a.c", "a.lib");
+    std::fs::write(
+        tmp.path().join("config/Config/ModsConfig.xml"),
+        "<ModsConfigData><activeMods><li>ludeon.rimworld</li><li>a.lib</li></activeMods></ModsConfigData>",
+    )
+    .unwrap();
+    app.rescan();
+    let mut order = LoadOrder::read(&app, true, Arrange::Category);
+    let shown = |order: &LoadOrder, side| -> Vec<String> {
+        let list = order.list(side);
+        let id = |r: &Row| match r {
+            Row::Mod { index } => Some(list.mods()[*index].id.clone()),
+            _ => None,
+        };
+        list.rows().iter().filter_map(id).collect()
+    };
+    order.set_filter("is:unused");
+    assert_eq!(shown(&order, Side::Active), ["a.lib"]);
+    let b = order
+        .list(Side::Inactive)
+        .mods()
+        .iter()
+        .position(|m| m.id == "a.b");
+    order.take(&app, Side::Inactive, b.unwrap(), None);
+    order.set_filter("is:unused");
+    assert!(shown(&order, Side::Active).is_empty());
 }
