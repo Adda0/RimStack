@@ -215,6 +215,10 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "copyToLocal"]
         fn copy_to_local(self: Pin<&mut ModsData>, mod_id: i32);
+        /// The chosen mods, whose copies then win over Steam's in the Workshop folder.
+        #[qinvokable]
+        #[cxx_name = "copyManyToLocal"]
+        fn copy_many_to_local(self: Pin<&mut ModsData>, ids: &QVariant);
         /// A dropped or picked .zip becomes a mod in the game's Mods folder.
         #[qinvokable]
         #[cxx_name = "installZip"]

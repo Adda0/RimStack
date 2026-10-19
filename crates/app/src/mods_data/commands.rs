@@ -659,6 +659,42 @@ impl qobject::ModsData {
         );
     }
 
+    pub(super) fn copy_many_to_local(mut self: Pin<&mut Self>, given: &QVariant) {
+        let Some(ids) = ids(given) else {
+            return;
+        };
+        if ids.is_empty() {
+            return;
+        }
+        self.as_mut().set_upkeep_problem(QString::default());
+        let app = self.app();
+        crate::jobs::run(
+            "copy to the game folder",
+            self.qt_thread(),
+            move || app.copy_many_to_local(&ids),
+            |mut me, done: Result<rimstack_core::sources::maintenance::Copied>| match done {
+                Ok(copies) => {
+                    let said = match copies.present {
+                        0 => say_n!(
+                            copies.copied,
+                            "{} mod copied to the game's Mods folder",
+                            "{} mods copied to the game's Mods folder"
+                        ),
+                        _ => say!(
+                            "{} copied, {} were there already and stay",
+                            copies.copied,
+                            copies.present
+                        ),
+                    };
+                    me.as_mut()
+                        .told(crate::words::said(&said), QString::from("ok"));
+                    me.as_mut().rescan();
+                }
+                Err(problem) => me.set_upkeep_problem(crate::words::said_of(&problem)),
+            },
+        );
+    }
+
     pub(super) fn install_zip(self: Pin<&mut Self>, chosen: &QUrl) {
         // A file:// URL and a bare path are taken; anything else is refused.
         let file = chosen.to_local_file().map(|local| local.to_string());
