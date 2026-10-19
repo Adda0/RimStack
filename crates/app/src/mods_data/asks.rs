@@ -1,6 +1,6 @@
 use super::{id, ids, qobject};
 use crate::qml::values::{from_qml, to_qml};
-use crate::workspace::load_order::{LoadOrder, Side};
+use crate::workspace::load_order::{LoadOrder, Side, column_choices, column_note};
 use core::pin::Pin;
 use cxx_qt::{CxxQtType, Threading};
 use cxx_qt_lib::{QString, QVariant};
@@ -263,6 +263,14 @@ impl qobject::ModsData {
             &column.to_string(),
             width,
         ))
+    }
+
+    pub(super) fn column_choices(&self, kept: &QString, load_times: bool) -> QVariant {
+        to_qml(&column_choices(&kept.to_string(), load_times))
+    }
+
+    pub(super) fn column_note(&self, load_times: bool) -> QString {
+        crate::words::said(&column_note(load_times))
     }
 
     pub(super) fn column_pressed(

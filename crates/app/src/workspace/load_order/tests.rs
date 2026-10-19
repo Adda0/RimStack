@@ -31,6 +31,34 @@ fn the_two_lists_are_the_load_order_and_the_rest() {
 }
 
 #[test]
+fn the_load_column_is_offered_only_with_load_times_and_says_why_not() {
+    let shown = |kept, times| -> Vec<(&str, bool, bool)> {
+        column_choices(kept, times)
+            .iter()
+            .map(|c| (c.column, c.shown, c.off))
+            .collect()
+    };
+    assert_eq!(
+        shown("author,load", false),
+        [
+            ("author", true, false),
+            ("version", false, false),
+            ("load", false, true)
+        ]
+    );
+    assert_eq!(
+        shown("author,load", true),
+        [
+            ("author", true, false),
+            ("version", false, false),
+            ("load", true, false)
+        ]
+    );
+    assert!(column_note(false).to_string().contains("Loading Progress"));
+    assert!(column_note(true).is_empty());
+}
+
+#[test]
 fn a_side_term_filters_its_own_list_and_empties_the_other() {
     let (_tmp, app) = installed();
     let mut order = LoadOrder::read(&app, true, Arrange::Category);
