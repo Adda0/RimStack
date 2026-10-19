@@ -414,6 +414,7 @@ mods.details: object
   xmlLeavesOut: nothing or text
   yourRules: list
     []: object
+      community: text
       first: number
       said: text
       then: number
@@ -548,6 +549,7 @@ mods.detailsOf: object
   xmlLeavesOut: nothing or text
   yourRules: list
     []: object
+      community: text
       first: number
       said: text
       then: number

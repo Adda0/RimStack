@@ -113,6 +113,8 @@ pub struct OwnRule {
     pub first: ModId,
     pub then: ModId,
     pub said: Sentence,
+    /// The rule as a `communityRules.json` entry, to send upstream.
+    pub community: String,
 }
 
 pub fn own_rules(yours: &[Rule], at: usize, mods: &[Mod]) -> Vec<OwnRule> {
@@ -123,10 +125,17 @@ pub fn own_rules(yours: &[Rule], at: usize, mods: &[Mod]) -> Vec<OwnRule> {
                 true => crate::say!("Loads after {}", mods[rule.first].name),
                 false => crate::say!("Loads before {}", mods[rule.then].name),
             };
+            let community = crate::mods::community::entry_for(
+                &mods[rule.then].id,
+                &mods[rule.first].id,
+                &mods[rule.first].name,
+                "",
+            );
             Some(OwnRule {
                 first: mods[rule.first].installed?,
                 then: mods[rule.then].installed?,
                 said,
+                community,
             })
         })
         .collect()
