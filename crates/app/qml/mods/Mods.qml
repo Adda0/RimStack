@@ -194,6 +194,7 @@ Item {
 
     readonly property string upkeepProblem: Hub.mods.upkeepProblem
     function copyToLocal(modId) { Hub.mods.copyToLocal(modId) }
+    function copySelectedToLocal() { Hub.mods.copyManyToLocal(selectedIds) }
 
     readonly property Columns columns: Columns {
         prefs: mods.prefs

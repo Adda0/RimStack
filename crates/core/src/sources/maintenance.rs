@@ -19,6 +19,30 @@ pub fn copy_to_local(mod_root: &Path, local_mods: &Path) -> Result<PathBuf> {
     Ok(to)
 }
 
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct Copied {
+    pub copied: usize,
+    /// Of that name already, so left to win.
+    pub present: usize,
+}
+
+/// Each mod's folder under its own name, as `copy_to_local` puts it. A folder that refuses the
+/// copy because it is already there is set aside, not an error: the run does what it can.
+/// Off the window's thread: big mods take a while.
+pub fn copy_many_to_local(roots: &[PathBuf], local_mods: &Path) -> Result<Copied> {
+    let mut done = Copied::default();
+    for from in roots {
+        match copy_to_local(from, local_mods) {
+            Ok(_) => done.copied += 1,
+            Err(problem) if problem.kind() == crate::base::error::Kind::Refused => {
+                done.present += 1
+            }
+            Err(problem) => return Err(problem),
+        }
+    }
+    Ok(done)
+}
+
 /// What goes when a mod's files go but its DDS textures stay, so that the
 /// game loads the PNGs instead and a resubscribe needs no conversion again.
 pub fn files_except_dds(mod_root: &Path) -> Vec<PathBuf> {
@@ -330,6 +354,34 @@ mod tests {
         assert_eq!(
             copy_to_local(&workshop, &local).unwrap_err().kind(),
             crate::base::error::Kind::Refused
+        );
+    }
+
+    #[test]
+    fn a_batch_is_copied_while_a_mod_already_local_wins_and_is_counted_aside() {
+        let tmp = tempfile::tempdir().unwrap();
+        let (ws, local) = (tmp.path().join("ws"), tmp.path().join("Mods"));
+        let mod_at = |name: &str| {
+            let at = ws.join(name);
+            std::fs::create_dir_all(at.join("About")).unwrap();
+            std::fs::write(at.join("About/About.xml"), name).unwrap();
+            at
+        };
+        let (one, two) = (mod_at("123"), mod_at("456"));
+        std::fs::create_dir_all(&local).unwrap();
+        copy_to_local(&one, &local).unwrap();
+
+        let done = copy_many_to_local(&[one.clone(), two], &local).unwrap();
+        assert_eq!((done.copied, done.present), (1, 1));
+        assert_eq!(
+            std::fs::read_to_string(local.join("456/About/About.xml")).unwrap(),
+            "456"
+        );
+        let again = copy_many_to_local(&[one, local.join("456")], &local).unwrap();
+        assert_eq!(
+            (again.copied, again.present),
+            (0, 2),
+            "456 wins over its copy"
         );
     }
 

@@ -36,11 +36,17 @@ QtObject {
                 { text: Theme.say("Page in Steam"), icon: "external-link", run: () => Qt.openUrlExternally(about.steamPage) },
                 { text: Theme.say("Page in the browser"), icon: "external-link", run: () => Qt.openUrlExternally(page) },
                 { text: Theme.say("Copy link"), icon: "copy", run: () => Theme.copy(page) },
-                { text: Theme.say("Copy to the game's Mods folder…"), icon: "copy", run: () => Notices.ask({
+            ]
+            if (many)
+                steam.push({ text: Theme.plural(Mods.selectedCount, "Copy {} mod to the game's Mods folder…", "Copy {} mods to the game's Mods folder…"), icon: "copy", run: () => Notices.ask({
+                    title: Theme.plural(Mods.selectedCount, "Copy {} mod to the game's Mods folder", "Copy {} mods to the game's Mods folder"),
+                    lines: [Theme.say("Whole folders are copied, which can take a while. Into"), { path: Hub.settings.report.localMods || "" }, Theme.say("The Workshop copies stay where they are; Steam keeps updating those, not these. A mod that is there already stays as it is.")],
+                    label: Theme.say("Copy"), run: () => Mods.copySelectedToLocal() }) })
+            else
+                steam.push({ text: Theme.say("Copy to the game's Mods folder…"), icon: "copy", run: () => Notices.ask({
                     title: Theme.fill("Copy {} to the game's Mods folder", (about.name || "")),
                     lines: [Theme.say("From"), { path: about.path }, Theme.say("Into"), { path: Hub.settings.report.localMods || "" }, Theme.say("The Workshop copy stays where it is; Steam keeps updating that one, not this.")],
-                    label: Theme.say("Copy"), run: () => Mods.copyToLocal(row.modId) }) },
-            ]
+                    label: Theme.say("Copy"), run: () => Mods.copyToLocal(row.modId) }) })
             if (Hub.settings.report.steamcmd)
                 steam.push({ text: Theme.say("Download again with SteamCMD…"), icon: "download", run: () => Notices.ask({
                     title: Theme.fill("Download {} again", (about.name || "")),

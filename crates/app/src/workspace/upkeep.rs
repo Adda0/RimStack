@@ -110,6 +110,24 @@ impl App {
         rimstack_core::sources::maintenance::copy_to_local(&from, &local)
     }
 
+    /// Off the window's thread: many Workshop folders are gigabytes of copying.
+    pub fn copy_many_to_local(
+        &self,
+        ids: &[ModId],
+    ) -> Result<rimstack_core::sources::maintenance::Copied, Error> {
+        let local = self
+            .paths()
+            .local_mods()
+            .ok_or_else(|| Error::refused(said!("The game's folder is not known")))?;
+        let loaded = self.library();
+        let (library, _) = loaded.as_ref().as_ref().map_err(Clone::clone)?;
+        let roots: Vec<PathBuf> = ids
+            .iter()
+            .filter_map(|&id| library.get(id).map(|m| m.path.clone()))
+            .collect();
+        rimstack_core::sources::maintenance::copy_many_to_local(&roots, &local)
+    }
+
     /// The title and the note of the prompt that confirms `kind` for this mod.
     pub fn bin_prompt(&self, id: ModId, kind: i32) -> (Sentence, Sentence) {
         let made = self
