@@ -175,7 +175,7 @@ fn cxx_name_in(attributes: &str) -> Option<&str> {
     rest.split('"').next()
 }
 
-const UNFILLED: [(&str, &str); 19] = [
+const UNFILLED: [(&str, &str); 22] = [
     ("logs.since", "a clean launch before the last"),
     (
         "mods.details.megabytes",
@@ -190,6 +190,10 @@ const UNFILLED: [(&str, &str); 19] = [
         "a built assembly with Harmony patches",
     ),
     ("mods.details.placement", "the community's rules"),
+    (
+        "mods.details.detected",
+        "loadAfter or loadBefore in the mods' own files",
+    ),
     ("mods.details.replacedBy", "the list of replaced mods"),
     ("mods.details.replacedById", "the list of replaced mods"),
     (
@@ -213,6 +217,10 @@ const UNFILLED: [(&str, &str); 19] = [
         "a built assembly with Harmony patches",
     ),
     ("mods.detailsOf.placement", "the community's rules"),
+    (
+        "mods.detailsOf.detected",
+        "loadAfter or loadBefore in the mods' own files",
+    ),
     ("mods.detailsOf.replacedBy", "the list of replaced mods"),
     ("mods.detailsOf.replacedById", "the list of replaced mods"),
     (
@@ -225,6 +233,7 @@ const UNFILLED: [(&str, &str); 19] = [
     ),
     ("mods.overview.communityMods", "the community's rules"),
     ("mods.overview.communityTime", "the community's rules"),
+    ("mods.sortMoves", "a sort that would move a made-up mod"),
 ];
 
 #[test]

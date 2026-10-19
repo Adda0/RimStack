@@ -114,6 +114,8 @@ pub struct Mod {
     pub needs_dlcs: Vec<String>,
     /// Bytes its folder takes on disk; `None` for a mod that is not installed.
     pub bytes: Option<u64>,
+    /// Its folders hold only translations of keyed strings, nothing else.
+    pub translation: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -254,6 +256,7 @@ enum Test {
     Code,
     Pinned,
     Needs(String),
+    Translation,
     Patches(String),
     /// Megabytes given as bytes.
     Bigger(u64),
@@ -287,6 +290,7 @@ impl Test {
             Test::Needs(dlc) => m.needs_dlcs.iter().any(|own| own.contains(dlc.as_str())),
             Test::Bigger(bytes) => m.bytes.is_some_and(|own| own > *bytes),
             Test::Smaller(bytes) => m.bytes.is_some_and(|own| own < *bytes),
+            Test::Translation => m.translation,
             Test::Flag(f) => flags & f != 0,
         }
     }
@@ -377,6 +381,7 @@ impl Filter {
                 Some(("size", bound)) => {
                     size_test(bound).unwrap_or_else(|| Test::Word(term.to_string()))
                 }
+                Some(("is", "translation")) => Test::Translation,
                 _ => Test::Word(term.to_string()),
             };
             filter.tests.push((test, wanted));

@@ -117,6 +117,14 @@ game.lastStart: object
   time: number
 game.resetByGame: list
   []: text
+lists.checkLock: object
+  ids: absent or list
+    []: text
+  present: absent or bool
+  problem: absent or text
+  said: absent or list
+    []: text
+  same: absent or bool
 lists.compareList: object
   addable: list
     []: number
@@ -132,14 +140,6 @@ lists.compareList: object
     []: object
       id: text
       name: text
-lists.checkLock: object
-  ids: absent or list
-    []: text
-  present: absent or bool
-  problem: absent or text
-  said: absent or list
-    []: text
-  same: absent or bool
 lists.history: list
   []: object
     bringBack: text
@@ -302,16 +302,21 @@ mods.details: object
   contains: text
   copies: nothing or text
   defsReplacedBy: list
-    []: never seen
+    []: object
+      defs: number
+      modId: number
+      name: text
+      some: text
   defsReplaces: list
-    []: never seen
+    []: object
+      defs: number
+      modId: number
+      name: text
+      some: text
   description: text
   descriptionRich: text
   detected: list
-    []: object
-      code: bool
-      name: text
-      why: text
+    []: never seen
   folder: text
   gameVersions: text
   groupChoices: list
@@ -393,6 +398,7 @@ mods.details: object
   tagList: list
     []: text
   tags: text
+  translates: nothing or text
   unreadable: nothing or text
   updated: nothing
   url: text
@@ -429,16 +435,21 @@ mods.detailsOf: object
   contains: text
   copies: nothing or text
   defsReplacedBy: list
-    []: never seen
+    []: object
+      defs: number
+      modId: number
+      name: text
+      some: text
   defsReplaces: list
-    []: never seen
+    []: object
+      defs: number
+      modId: number
+      name: text
+      some: text
   description: text
   descriptionRich: text
   detected: list
-    []: object
-      code: bool
-      name: text
-      why: text
+    []: never seen
   folder: text
   gameVersions: text
   groupChoices: list
@@ -520,6 +531,7 @@ mods.detailsOf: object
   tagList: list
     []: text
   tags: text
+  translates: nothing or text
   unreadable: nothing or text
   updated: nothing
   url: text
@@ -666,15 +678,7 @@ mods.overview: object
 mods.packageMods: list
   []: number
 mods.sortMoves: list
-  []: object
-    moves: list
-      []: object
-        from: number
-        modId: number
-        name: text
-        to: number
-        why: text
-    name: text
+  []: never seen
 mods.subsBeside: list
   []: text
 mods.summary: object

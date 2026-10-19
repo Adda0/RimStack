@@ -22,6 +22,7 @@ fn m(name: &str, author: &str, category: Category) -> Mod {
         supports: Vec::new(),
         needs_dlcs: Vec::new(),
         bytes: None,
+        translation: false,
         name: name.into(),
         author: author.into(),
         version: "1.0".into(),
@@ -382,6 +383,25 @@ fn source_terms_tell_the_workshop_from_git_checkouts_and_the_game() {
     assert_eq!(names(&list), ["HugsLib"]);
     list.set_filter("is:git is:workshop");
     assert!(names(&list).is_empty());
+}
+
+#[test]
+fn an_is_translation_term_keeps_only_translation_mods() {
+    let mut mods = sample().mods().to_vec();
+    mods[0].translation = true; // Harmony
+    let mut list = GroupedList::flat(mods);
+    let names = |list: &GroupedList| -> Vec<String> {
+        let rows = list.rows().iter();
+        let index = rows.filter_map(|r| match r {
+            Row::Mod { index } => Some(*index),
+            _ => None,
+        });
+        index.map(|i| list.mods()[i].name.clone()).collect()
+    };
+    list.set_filter("is:translation");
+    assert_eq!(names(&list), ["Harmony"]);
+    list.set_filter("!is:translation");
+    assert_eq!(names(&list).len(), 5);
 }
 
 #[test]

@@ -205,6 +205,7 @@ Column {
         Repeater {
             model: [
                 [Theme.say("Contains"), [Mods.info.contains, Mods.textures.count ? Theme.plural(Mods.textures.count, "{} texture", "{} textures") : ""].filter(s => s).join("; ")],
+                [Theme.say("Translates"), Mods.info.translates],
                 [Theme.say("Code"), Mods.info.code],
                 [Theme.say("Load time"), Mods.info.loadTime],
             ].filter(pair => pair[1])

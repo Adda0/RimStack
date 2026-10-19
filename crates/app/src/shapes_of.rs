@@ -105,6 +105,16 @@ fn made_up() -> (tempfile::TempDir, App) {
         "<modDependencies><li><packageId>Ann.Lib</packageId><displayName>Lib</displayName></li><li><packageId>gone.mod</packageId><displayName>Gone</displayName></li></modDependencies>",
     );
     a_mod(&game, "lib", "Ann.Lib", "");
+    a_mod(
+        &game,
+        "lib-ru",
+        "Ann.LibRu",
+        "<modDependencies><li><packageId>Ann.Lib</packageId><displayName>Ann.Lib</displayName></li></modDependencies>",
+    );
+    write(
+        &mods.join("lib-ru/Languages/Russian/Keyed/Lib.xml"),
+        "<LanguageData><Rock>Камень</Rock></LanguageData>",
+    );
     write(&mods.join("broken/About/About.xml"), "<ModMetaData><name>");
     let workshop = root.join("workshop/900002");
     write(
@@ -261,6 +271,7 @@ fn mods(app: &App, shapes: &mut Shapes) {
     );
     let (shop, broken) = (by_folder(app, "900002"), by_folder(app, "broken"));
     let (hats, subscribed_hats) = (by_folder(app, "hats"), by_folder(app, "900003"));
+    let lib_ru = by_folder(app, "lib-ru");
     app.set_note(a, "Stone, Grey", "Read first");
     app.change_rule(a, b, true);
     app.set_version_ok(&[roads], true);
@@ -282,7 +293,7 @@ fn mods(app: &App, shapes: &mut Shapes) {
             shapes.add("mods.notInstalled", &gone);
         }
     }
-    for id in [roads, a, b, shop, broken, hats, subscribed_hats] {
+    for id in [roads, a, b, shop, broken, hats, subscribed_hats, lib_ru] {
         shapes.add("mods.details", &order.details(app, id));
         shapes.add("mods.detailsOf", &order.details(app, id));
         shapes.add("mods.filesOf", &LoadOrder::files(app, id));
