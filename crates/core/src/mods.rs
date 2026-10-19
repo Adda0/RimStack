@@ -16,6 +16,7 @@ pub mod library;
 pub mod list;
 pub mod lock;
 pub mod ordering;
+pub mod removal;
 pub mod rules;
 pub mod session;
 pub mod share;

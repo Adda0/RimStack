@@ -164,6 +164,7 @@ Item {
                 Rectangle { implicitWidth: 7; implicitHeight: 7; radius: Math.min(width, height) / 2; color: Theme.warn }
                 Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: Theme.fill("Not saved: {}", Hub.mods.unsaved) }
                 Btn { text: Theme.say("Show"); tip: Theme.say("Only the mods moved or activated since the last save"); onClicked: activePane.toggleTerm("is:changed") }
+                Text { visible: !!Hub.mods.leftSave; color: Theme.warn; font.pixelSize: Theme.small; text: Hub.mods.leftSave }
                 Btn { text: Theme.say("Discard"); tip: Theme.say("Back to the saved list. Undo brings the changes back."); onClicked: Hub.mods.discardChanges() }
                 Btn { primary: true; text: Theme.say("Save"); onClicked: Mods.save() }
             }
