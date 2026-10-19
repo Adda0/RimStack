@@ -156,7 +156,7 @@ pub struct ModRowsRust {
 }
 
 /// From the first role Qt leaves free.
-const ROLES: [&str; 30] = [
+const ROLES: [&str; 31] = [
     "isHeader",
     "isSub",
     "again",
@@ -187,6 +187,7 @@ const ROLES: [&str; 30] = [
     "madeFor",
     "measure",
     "colour",
+    "game",
 ];
 const FIRST_ROLE: i32 = 257;
 
@@ -239,6 +240,7 @@ fn cell(row: &RowView, field: usize) -> Option<Cell<'_>> {
         27 => Text(&row.made_for),
         28 => Said(&row.measure),
         29 => Text(&row.colour),
+        30 => Text(&row.game),
         _ => return None,
     })
 }
