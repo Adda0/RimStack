@@ -322,6 +322,53 @@ impl Library {
             })
             .collect()
     }
+
+    /// The installed mods requiring `m` on this game version: name and library id.
+    pub fn needed_by(&self, m: &Installed) -> Vec<(String, ModId)> {
+        let Some(key) = m.key() else {
+            return Vec::new();
+        };
+        let needs = |about: &About| {
+            let deps = about.dependencies.for_version(&self.game_version);
+            deps.iter()
+                .any(|dep| id::fold(&id::split_steam(dep).0) == key)
+        };
+        self.ids()
+            .filter(|(_, other)| other.about.as_ref().is_ok_and(needs))
+            .map(|(at, other)| (other.display_name().to_string(), at))
+            .collect()
+    }
+
+    /// For each of `mods`, the places in `mods` of the ones it requires on this game version.
+    pub fn requires_within(&self, mods: &[Mod]) -> Vec<Vec<usize>> {
+        let abouts = self.abouts(mods);
+        let position = crate::mods::rules::positions(&abouts);
+        let place = |dep: &String| position.get(&id::split_steam(dep).0).copied();
+        abouts
+            .iter()
+            .map(|about| match about {
+                Some(a) => (a.dependencies.for_version(&self.game_version).iter())
+                    .filter_map(place)
+                    .collect(),
+                None => Vec::new(),
+            })
+            .collect()
+    }
+}
+
+/// `off` grown by every mod needing one in it, directly or through another;
+/// `requires` as [`Library::requires_within`] gives it.
+pub fn with_needing(requires: &[Vec<usize>], mut off: Vec<bool>) -> Vec<bool> {
+    loop {
+        let needs_one = |at: usize| requires[at].iter().any(|r| off[*r]);
+        let more: Vec<usize> = (0..off.len())
+            .filter(|at| !off[*at] && needs_one(*at))
+            .collect();
+        if more.is_empty() {
+            return off;
+        }
+        more.into_iter().for_each(|at| off[at] = true);
+    }
 }
 
 fn patched(aim: &crate::rimworld::code::Aim) -> String {

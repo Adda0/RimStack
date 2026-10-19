@@ -87,7 +87,12 @@ fn made_up() -> (tempfile::TempDir, App) {
     git(&mods.join("roads"), &["init", "--quiet"]);
     git(&mods.join("roads"), &["add", "."]);
     git(&mods.join("roads"), &["commit", "--quiet", "-m", "Roads"]);
-    a_mod(&game, "a", "Ann.A", "");
+    a_mod(
+        &game,
+        "a",
+        "Ann.A",
+        "<modDependencies><li><packageId>Ann.Roads</packageId><displayName>Ann.Roads</displayName></li></modDependencies>",
+    );
     write(
         &mods.join("a/Defs/Things.xml"),
         "<Defs><ThingDef><defName>Rock</defName></ThingDef></Defs>",
