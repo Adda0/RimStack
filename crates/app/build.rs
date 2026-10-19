@@ -106,6 +106,7 @@ fn main() {
                 "qml/FirstRun.qml",
                 "qml/Commands.qml",
                 "qml/CompareView.qml",
+                "qml/FindInFiles.qml",
             ]),
     )
     .qrc_resources(["assets/rimstack.svg"])
@@ -123,6 +124,7 @@ fn main() {
         "src/search_data.rs",
         "src/textures_data.rs",
         "src/downloads_data.rs",
+        "src/find_data.rs",
     ]);
     let msvc = std::env::var("CARGO_CFG_TARGET_ENV").is_ok_and(|env| env == "msvc");
     // SAFETY: one more source for the same compiler, nothing set that the generated code relies on.

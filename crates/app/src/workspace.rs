@@ -14,6 +14,7 @@ use std::time::{Duration, Instant};
 pub mod changed;
 pub mod downloads;
 pub mod fetch;
+pub mod find;
 mod game;
 mod install;
 pub mod lists;
