@@ -242,7 +242,9 @@ fn on_unity(game_version: Option<&str>) -> bool {
     parsed.is_some_and(|version| version < (1, 7))
 }
 
-fn native_settings(os: Os, home: &Path, game_version: Option<&str>) -> Vec<PathBuf> {
+/// The settings folders the game itself names, before any choice of
+/// RimStack's: where Unity's own log lands even under `-savedatafolder=`.
+pub fn native_settings(os: Os, home: &Path, game_version: Option<&str>) -> Vec<PathBuf> {
     match os {
         Os::Linux => vec![
             home.join(".config/unity3d").join(SETTINGS),

@@ -121,7 +121,7 @@ pub fn notes_asked(since: &SinceLaunch) -> Vec<(String, u64)> {
 
 impl App {
     fn at_launch_file(&self) -> PathBuf {
-        self.data_dir().join("at-launch.json")
+        self.own_dir().join("at-launch.json")
     }
 
     pub fn record_versions(&self) {

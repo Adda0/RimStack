@@ -102,7 +102,9 @@ enum Holds {
 
 const SWITCH: Holds = Holds::Choice(&["on", "off"]);
 
-const KNOWN: [(&str, Holds); 21] = [
+const KNOWN: [(&str, Holds); 22] = [
+    // The setup in use: decided and written by a switch, never typed.
+    ("instance", Holds::Text),
     ("game", Holds::Text),
     ("config", Holds::Text),
     ("workshop", Holds::Text),

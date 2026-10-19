@@ -21,7 +21,7 @@ pub struct Hunt {
 
 impl App {
     fn search_file(&self) -> PathBuf {
-        self.data_dir().join("bisect.json")
+        self.own_dir().join("bisect.json")
     }
 
     fn shown(&self, search: Option<&Bisect>) -> Hunt {
@@ -78,7 +78,7 @@ impl App {
             .saves_dir()
             .and_then(|dir| saves::list(&dir).into_iter().next());
         if let Some(save) = newest {
-            let kept = self.data_dir().join("save-before-search");
+            let kept = self.own_dir().join("save-before-search");
             let copied = saves::back_up(&save.path, &kept, super::now_secs(), SAVES_BEFORE_SEARCH);
             if let Err(problem) = copied {
                 rimstack_core::problem!("{problem}");

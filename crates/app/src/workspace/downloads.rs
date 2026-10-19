@@ -99,7 +99,7 @@ pub struct Queue {
 
 impl App {
     fn checked_file(&self) -> PathBuf {
-        self.data_dir().join("updates.json")
+        self.own_dir().join("updates.json")
     }
 
     pub fn last_check(&self) -> LastCheck {

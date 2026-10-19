@@ -221,6 +221,7 @@ impl App {
                 .cloned()
                 .collect(),
             data_folder: self.data_dir().to_string_lossy().into_owned(),
+            setups: self.setups(),
             local_mods: shown(&paths.local_mods()),
             config_folder: shown(&paths.config.as_ref().map(|c| c.join("Config"))),
             game_log: shown(&self.game_log()),
@@ -681,11 +682,11 @@ impl App {
         }
     }
 
-    /// A dated, unused folder named mod-settings in RimStack's own data folder.
+    /// A dated, unused folder named mod-settings in the setup's own data folder.
     fn settings_aside_dir(&self) -> PathBuf {
         rimstack_core::sources::maintenance::free_folder(
             &self
-                .data_dir()
+                .own_dir()
                 .join(format!("mod-settings-{}", super::now_secs())),
         )
     }

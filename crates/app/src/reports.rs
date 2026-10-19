@@ -36,6 +36,17 @@ pub struct OpenFolder {
     pub path: String,
 }
 
+#[derive(Serialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SetupRow {
+    /// What the button shows: "Default" wants a translation, a setup's name stands.
+    pub shown: rimstack_core::base::sentence::Sentence,
+    /// The folder name, never translated.
+    pub name: String,
+    pub current: bool,
+    pub removable: bool,
+}
+
 #[derive(Serialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct SettingsReport {
@@ -73,6 +84,8 @@ pub struct SettingsReport {
     pub rimpy: bool,
     pub official: Vec<rimstack_core::rimworld::official::Official>,
     pub data_folder: String,
+    /// "Default" first.
+    pub setups: Vec<SetupRow>,
     pub local_mods: Option<String>,
     pub config_folder: Option<String>,
     pub game_log: Option<String>,
