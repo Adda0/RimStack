@@ -153,6 +153,7 @@ fn a_mod(name: &str, category: Category) -> Mod {
         updated: None,
         downloaded: None,
         supports: Vec::new(),
+        needs_dlcs: Vec::new(),
     }
 }
 

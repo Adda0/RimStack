@@ -65,6 +65,7 @@ fn terms(counts: Counts) -> Vec<(&'static str, Sentence)> {
         ("tag:", say!("has this tag")),
         ("colour:", say!("painted with this colour")),
         ("author:", say!("by this author")),
+        ("needs:", say!("lists this DLC as a dependency")),
     ]
 }
 
@@ -89,7 +90,7 @@ impl LoadOrder {
         };
         let Some((key, typed)) = partial
             .split_once(':')
-            .filter(|(key, _)| matches!(*key, "author" | "tag" | "colour" | "patches"))
+            .filter(|(key, _)| matches!(*key, "author" | "tag" | "colour" | "patches" | "needs"))
         else {
             return terms(counts)
                 .into_iter()
@@ -108,6 +109,7 @@ impl LoadOrder {
                 "author" => m.author.split(',').map(as_value).collect(),
                 "tag" => m.tags.iter().map(|t| as_value(t)).collect(),
                 "colour" => vec![as_value(&m.colour)],
+                "needs" => m.needs_dlcs.iter().map(|d| as_value(d)).collect(),
                 _ => m.patched.iter().map(|p| as_value(p)).collect(),
             };
             for value in values.into_iter().filter(|v| !v.is_empty()) {
@@ -210,6 +212,35 @@ mod tests {
             order()
                 .filter_offers("is:wa", "", &taken, Counts::default())
                 .is_empty()
+        );
+    }
+
+    #[test]
+    fn needs_values_are_the_dlcs_mods_depend_on_most_used_first() {
+        let mods = vec![
+            Mod {
+                name: "a".into(),
+                needs_dlcs: vec!["ludeon.rimworld.biotech".to_string()],
+                ..rimstack_core::mods::demo::generate(1).remove(0)
+            },
+            Mod {
+                name: "b".into(),
+                needs_dlcs: vec![
+                    "ludeon.rimworld.biotech".to_string(),
+                    "ludeon.rimworld.royalty".to_string(),
+                ],
+                ..rimstack_core::mods::demo::generate(1).remove(0)
+            },
+        ];
+        let mut order = LoadOrder::empty(true);
+        order.active = GroupedList::new(mods);
+        let offers = order.filter_offers("needs:", "", &[], Counts::default());
+        assert_eq!(
+            terms(offers),
+            [
+                "needs:ludeon.rimworld.biotech",
+                "needs:ludeon.rimworld.royalty"
+            ]
         );
     }
 }
