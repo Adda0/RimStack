@@ -404,6 +404,7 @@ mods.details: object
   tagList: list
     []: text
   tags: text
+  translates: nothing or text
   unreadable: nothing or text
   updated: nothing
   url: text
@@ -537,6 +538,7 @@ mods.detailsOf: object
   tagList: list
     []: text
   tags: text
+  translates: nothing or text
   unreadable: nothing or text
   updated: nothing
   url: text

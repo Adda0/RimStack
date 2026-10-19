@@ -160,6 +160,7 @@ fn a_mod(name: &str, category: Category) -> Mod {
         supports: Vec::new(),
         needs_dlcs: Vec::new(),
         bytes: None,
+        translation: false,
     }
 }
 

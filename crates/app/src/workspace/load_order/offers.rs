@@ -68,6 +68,7 @@ fn terms(counts: Counts) -> Vec<(&'static str, Sentence)> {
         ("is:local", say!("in the game's Mods folder")),
         ("is:git", say!("a git checkout")),
         ("is:pinned", say!("left where it is by Sort")),
+        ("is:translation", say!("translates another mod")),
         ("is:notinsave", say!("active, and not in the newest save")),
         ("is:recent", say!("updated by Steam in the last week")),
         ("is:duplicate", say!("installed more than once")),
