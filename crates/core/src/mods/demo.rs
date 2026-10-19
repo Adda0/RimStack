@@ -55,6 +55,7 @@ pub fn generate(count: usize) -> Vec<Mod> {
                 code: false,
                 patched: Default::default(),
                 sub: String::new(),
+                colour: String::new(),
                 load_micros: None,
                 // Spread over about a year, in no order the names have.
                 updated: Some(1_700_000_000 + (i as u64 * 7_919_993 % 31_000_000)),

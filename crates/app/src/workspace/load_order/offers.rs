@@ -1,5 +1,5 @@
 //! What the filter field offers for the word being typed: the terms, and for `author:`,
-//! `tag:` and `patches:` the values the mods have.
+//! `tag:`, `colour:` and `patches:` the values the mods have.
 
 use super::LoadOrder;
 use rimstack_core::base::sentence::Sentence;
@@ -63,6 +63,7 @@ fn terms(counts: Counts) -> Vec<(&'static str, Sentence)> {
         ("has:code", say!("ships compiled code")),
         ("patches:", say!("patches this method of the game")),
         ("tag:", say!("has this tag")),
+        ("colour:", say!("painted with this colour")),
         ("author:", say!("by this author")),
     ]
 }
@@ -88,7 +89,7 @@ impl LoadOrder {
         };
         let Some((key, typed)) = partial
             .split_once(':')
-            .filter(|(key, _)| matches!(*key, "author" | "tag" | "patches"))
+            .filter(|(key, _)| matches!(*key, "author" | "tag" | "colour" | "patches"))
         else {
             return terms(counts)
                 .into_iter()
@@ -106,6 +107,7 @@ impl LoadOrder {
             let values: Vec<String> = match key {
                 "author" => m.author.split(',').map(as_value).collect(),
                 "tag" => m.tags.iter().map(|t| as_value(t)).collect(),
+                "colour" => vec![as_value(&m.colour)],
                 _ => m.patched.iter().map(|p| as_value(p)).collect(),
             };
             for value in values.into_iter().filter(|v| !v.is_empty()) {
@@ -186,6 +188,17 @@ mod tests {
             terms(order.filter_offers("author:arg", "", &[], none)),
             ["author:Sarg"]
         );
+    }
+
+    #[test]
+    fn the_colours_in_use_are_offered_after_colour() {
+        let mut order = order();
+        let mut mods = order.active.mods().to_vec();
+        mods[0].colour = "Rose".into();
+        mods[1].colour = "Rose".into();
+        order.active = GroupedList::new(mods);
+        let offered = order.filter_offers("colour:", "", &[], Counts::default());
+        assert_eq!(terms(offered), ["colour:Rose"]);
     }
 
     #[test]

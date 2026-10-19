@@ -102,6 +102,8 @@ pub struct Mod {
     /// The newest game version it names as supported, by numbers, at most the installed game's;
     /// empty for none.
     pub supports: Vec<u64>,
+    /// The swatch its row is painted with; empty for none.
+    pub colour: String,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -229,6 +231,7 @@ enum Test {
     Word(String),
     Author(String),
     Tag(String),
+    Colour(String),
     Local,
     Workshop,
     Git,
@@ -251,6 +254,9 @@ impl Test {
                 .tags
                 .iter()
                 .any(|own| own.to_lowercase().replace(' ', "_").starts_with(t.as_str())),
+            Test::Colour(c) => {
+                m.colour.to_lowercase().starts_with(c.as_str()) && !m.colour.is_empty()
+            }
             Test::Local => m.local,
             Test::Workshop => m.workshop,
             Test::Git => m.git,
@@ -312,6 +318,7 @@ impl Filter {
             let test = match term.split_once(':') {
                 Some(("author", name)) if !name.is_empty() => Test::Author(name.to_string()),
                 Some(("tag", label)) if !label.is_empty() => Test::Tag(label.to_string()),
+                Some(("colour", name)) if !name.is_empty() => Test::Colour(name.to_string()),
                 Some(("is", "local")) => Test::Local,
                 Some(("is", "workshop")) => Test::Workshop,
                 Some(("is", "git")) => Test::Git,

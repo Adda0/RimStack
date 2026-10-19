@@ -201,11 +201,16 @@ Item {
         loadTimes: mods.overview.loadTimes === true
         onShownByAsked: Hub.mods.showBy(shownBy, descending)
     }
+    // A menu entry for each swatch, the chosen one ticked.
+    function swatchEntries(chosen, pick) {
+        const entries = []
+        for (const swatch of Theme.swatches)
+            entries.push({ text: Theme.say(swatch[0]) + (swatch[0] === chosen ? "  ✓" : ""), colour: Theme.swatch(swatch[0]), run: () => pick(swatch[0]) })
+        return entries
+    }
     function categoryMenu(item, x, y, category) {
         const chosen = Theme.chosenSwatches[category] || Theme.swatches[category][0]
-        const entries = [{ title: Theme.categoryNames[category] }]
-        for (const swatch of Theme.swatches)
-            entries.push({ text: Theme.say(swatch[0]) + (swatch[0] === chosen ? "  ✓" : ""), colour: Theme.swatch(swatch[0]), run: () => Theme.paintCategory(category, swatch[0]) })
+        const entries = [{ title: Theme.categoryNames[category] }].concat(swatchEntries(chosen, name => Theme.paintCategory(category, name)))
         entries.push({ line: true })
         entries.push({ text: Theme.say("Its own colour"), icon: "undo-2", off: !Theme.chosenSwatches[category], run: () => Theme.paintCategory(category, "") })
         menuRequested(item, x, y, entries)

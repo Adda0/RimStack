@@ -210,6 +210,7 @@ mod_rows.at: object
   author: text
   category: number
   collapsed: bool
+  colour: text
   count: number
   fresh: bool
   groupSize: number
