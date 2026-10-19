@@ -64,6 +64,7 @@ fn main() {
                 "qml/LaunchRecord.qml",
                 "qml/RowKeys.qml",
                 "qml/Wheel.qml",
+                "qml/ListBar.qml",
                 "qml/PopMenu.qml",
                 "qml/FilterField.qml",
                 "qml/GroupTitle.qml",
