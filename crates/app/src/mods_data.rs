@@ -5,6 +5,8 @@ pub mod qobject {
         type QString = cxx_qt_lib::QString;
         include!("cxx-qt-lib/qvariant.h");
         type QVariant = cxx_qt_lib::QVariant;
+        include!("cxx-qt-lib/qurl.h");
+        type QUrl = cxx_qt_lib::QUrl;
 
         include!("rimstack-app/src/mod_rows.cxxqt.h");
         type ModRows = crate::mod_rows::qobject::ModRows;
@@ -211,6 +213,10 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "copyToLocal"]
         fn copy_to_local(self: Pin<&mut ModsData>, mod_id: i32);
+        /// A dropped or picked .zip becomes a mod in the game's Mods folder.
+        #[qinvokable]
+        #[cxx_name = "installZip"]
+        fn install_zip(self: Pin<&mut ModsData>, chosen: &QUrl);
 
         #[qinvokable]
         #[cxx_name = "versionWarned"]

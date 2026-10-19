@@ -7,7 +7,7 @@ use rimstack_core::mods::library::{Installed, ModId};
 use rimstack_core::rimworld::paths::Source;
 use rimstack_core::{said, say, say_n};
 use serde::Serialize;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 impl App {
     fn installed_mod<T>(&self, id: ModId, with: impl FnOnce(&Installed) -> T) -> Result<T, Error> {
@@ -84,6 +84,21 @@ impl App {
                 _ => Ok(m.path.clone()),
             }
         })?
+    }
+
+    /// A dropped or picked archive lands in the game's Mods folder; never
+    /// while RimWorld runs, or it would read a mod it was not told about.
+    pub fn install_zip(&self, zip: &Path) -> Result<PathBuf, Error> {
+        if self.game_running() {
+            return Err(Error::refused(said!(
+                "RimWorld is running. Close the game before installing a mod."
+            )));
+        }
+        let local = self
+            .paths()
+            .local_mods()
+            .ok_or_else(|| Error::refused(said!("The game's folder is not known")))?;
+        rimstack_core::sources::zip_install::install_zip(zip, &local)
     }
 
     pub fn copy_to_local(&self, id: ModId) -> Result<PathBuf, Error> {
@@ -256,5 +271,33 @@ mod tests {
         let copy = app.copy_to_local(hats).unwrap();
         assert_eq!(copy, tmp.path().join("game/Mods/123"));
         assert_eq!(app.copy_to_local(hats).unwrap_err().kind(), Kind::Refused);
+    }
+
+    #[test]
+    fn a_zip_lands_in_the_game_s_mods_folder_once_and_shows_after_a_rescan() {
+        let (tmp, app) = installed();
+        let zip_path = tmp.path().join("hats.zip");
+        let file = std::fs::File::create(&zip_path).unwrap();
+        let mut zip = zip::ZipWriter::new(file);
+        zip.start_file(
+            "Hats/About/About.xml",
+            zip::write::SimpleFileOptions::default(),
+        )
+        .unwrap();
+        std::io::Write::write_all(
+            &mut zip,
+            b"<ModMetaData><packageId>Ann.Hats</packageId></ModMetaData>",
+        )
+        .unwrap();
+        zip.finish().unwrap();
+        let landed = app.install_zip(&zip_path).unwrap();
+        assert_eq!(landed, tmp.path().join("game/Mods/Hats"));
+        assert!(landed.join("About/About.xml").is_file());
+        assert_eq!(
+            app.install_zip(&zip_path).unwrap_err().kind(),
+            Kind::Refused
+        );
+        app.rescan();
+        let _ = by_folder(&app, "Hats");
     }
 }

@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
+import QtQuick.Dialogs
 import RimStack.Ui
 
 Rectangle {
@@ -94,9 +95,16 @@ Rectangle {
                 tip: Hub.mods.inactiveOrders.direction
                 onClicked: Mods.prefs.inactiveReversed = !Mods.prefs.inactiveReversed
             }
+            Btn { visible: !pane.drawer; compact: true; icon: "download"; spoken: Theme.say("Install from zip…"); tip: Theme.say("Install a mod from a .zip on this computer"); onClicked: zipPick.open() }
             Btn { visible: !pane.drawer; text: Theme.say("Hide"); tip: Theme.say("To a rail at the left edge; its button opens the list over the load order"); onClicked: Mods.prefs.inactiveHidden = true }
             Btn { visible: pane.drawer; text: Theme.say("Pin"); tip: Theme.say("Beside the load order, always open"); onClicked: Mods.prefs.inactiveHidden = false }
             }
+        }
+        FileDialog {
+            id: zipPick
+            title: Theme.say("Install from zip…")
+            nameFilters: [Theme.say("Mod archives (*.zip)")]
+            onAccepted: Hub.mods.installZip(zipPick.selectedFile)
         }
         ModsFilter {
             id: mirror
