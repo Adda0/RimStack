@@ -886,6 +886,8 @@
  "Tagged {} mod: {}": "Отмечен {} мод: {}",
  "Tagged {} mods: {}": "Отмечено {} мода: {}|Отмечено {} модов: {}",
  "Tags and note": "Теги и заметка",
+ "Tags, notes or colours for {} mod, now here too.": "Tags, notes or colours for {} mod, now here too.",
+ "Tags, notes or colours for {} mods, now here too.": "Tags, notes or colours for {} mods, now here too.",
  "Tag…": "Тег…",
  "Take off the list": "Убрать из списка",
  "Take this tag off these mods": "Снять этот тег с этих модов",

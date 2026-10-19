@@ -7,6 +7,7 @@ use rimstack_core::base::error::Error;
 use rimstack_core::base::locks::Shared;
 use rimstack_core::base::sentence::Sentence;
 use rimstack_core::base::translate::{LOCALE, detected};
+use rimstack_core::kept::foreign;
 use rimstack_core::kept::{owntheme, settings::Switch};
 use rimstack_core::mods::community;
 use rimstack_core::rimworld::workshopdb;
@@ -102,11 +103,27 @@ impl App {
         self.settings_file().with_file_name("theme.json")
     }
 
+    fn rimsort_dir(&self) -> PathBuf {
+        self.data_dir().with_file_name("RimSort")
+    }
+
     fn rimsort_rules_file(&self) -> PathBuf {
-        self.data_dir()
-            .with_file_name("RimSort")
-            .join("dbs")
-            .join("userRules.json")
+        self.rimsort_dir().join("dbs").join("userRules.json")
+    }
+
+    /// Its tags, notes and colours, kept for its first instance.
+    fn rimsort_notes_file(&self) -> PathBuf {
+        self.rimsort_dir()
+            .join("instances")
+            .join("Default")
+            .join("aux_metadata.db")
+    }
+
+    /// Where RimPy keeps its settings on Windows, mod colours among them.
+    fn rimpy_file(&self) -> PathBuf {
+        self.home
+            .join("AppData/LocalLow/RimPy Mod Manager")
+            .join("config.ini")
     }
 
     pub fn keep_setting(&self, name: &str, value: &str) -> Result<(), Error> {
@@ -159,7 +176,8 @@ impl App {
                 .map(String::from)
                 .collect(),
             setup_done: settings.get("setupDone").is_some(),
-            rimsort_rules: self.rimsort_rules_file().is_file(),
+            rimsort: self.rimsort_rules_file().is_file() || self.rimsort_notes_file().is_file(),
+            rimpy: self.rimpy_file().is_file(),
             official: self
                 .install()
                 .official()
@@ -454,7 +472,41 @@ impl App {
         self.keep_setting("versionAsideFor", aside_for)
     }
 
-    pub fn import_rimsort_rules(&self) -> Sentence {
+    /// Rules, then tags, notes and colours: whichever RimSort has.
+    pub fn import_rimsort(&self) -> Sentence {
+        let mut said = Vec::new();
+        if self.rimsort_rules_file().is_file() || !self.rimsort_notes_file().is_file() {
+            said.push(self.import_rimsort_rules());
+        }
+        if self.rimsort_notes_file().is_file() {
+            let path = self.rimsort_notes_file();
+            said.push(match foreign::rimsort(&path) {
+                Ok(kept) => self.adopted(&kept),
+                Err(problem) => problem.sentence().clone(),
+            });
+        }
+        Sentence::joined(" ", said)
+    }
+
+    pub fn import_rimpy(&self) -> Sentence {
+        let path = self.rimpy_file();
+        match std::fs::read_to_string(&path) {
+            Ok(text) => self.adopted(&foreign::rimpy(&text)),
+            Err(e) => Error::file(&path, e).sentence().clone(),
+        }
+    }
+
+    fn adopted(&self, kept: &[foreign::Kept]) -> Sentence {
+        let added = self.adopt(kept);
+        say_n!(
+            added,
+            "Tags, notes or colours for {} mod, now here too.",
+            "Tags, notes or colours for {} mods, now here too.",
+            added
+        )
+    }
+
+    fn import_rimsort_rules(&self) -> Sentence {
         let path = self.rimsort_rules_file();
         let read = std::fs::read_to_string(&path).map_err(|e| Error::file(&path, e));
         let pairs = match read.and_then(|text| Ok(community::parse(&text)?.pairs())) {
@@ -656,9 +708,11 @@ mod tests {
     }
 
     #[test]
-    fn rimsort_rules_missing_say_why() {
+    fn rimsort_missing_says_why() {
         let (_tmp, app) = installed();
-        let said = app.import_rimsort_rules();
+        let said = app.import_rimsort();
         assert!(said.to_string().contains("userRules.json"), "{said}");
+        let said = app.import_rimpy();
+        assert!(said.to_string().contains("config.ini"), "{said}");
     }
 }
