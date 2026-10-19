@@ -111,6 +111,8 @@ pub struct Mod {
     pub supports: Vec<u64>,
     /// The swatch its row is painted with; empty for none.
     pub colour: String,
+    /// Folded package ids of official DLCs this mod lists as dependencies.
+    pub needs_dlcs: Vec<String>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -243,6 +245,7 @@ enum Test {
     Workshop,
     Git,
     Code,
+    Needs(String),
     Patches(String),
     Flag(u16),
 }
@@ -269,6 +272,7 @@ impl Test {
             Test::Git => m.git,
             Test::Code => m.code,
             Test::Patches(p) => m.patched.iter().any(|at| at.contains(p.as_str())),
+            Test::Needs(dlc) => m.needs_dlcs.iter().any(|own| own.contains(dlc.as_str())),
             Test::Flag(f) => flags & f != 0,
         }
     }
@@ -342,6 +346,7 @@ impl Filter {
                 Some(("is", "warning")) => Test::Flag(flag::WARNING),
                 Some(("is", "conflict")) => Test::Flag(flag::CONFLICT),
                 Some(("is", "updated")) => Test::Flag(flag::UPDATED),
+                Some(("needs", name)) if !name.is_empty() => Test::Needs(name.to_string()),
                 Some(("is", "notinsave")) => Test::Flag(flag::NOT_IN_SAVE),
                 Some(("is", "recent")) => Test::Flag(flag::RECENT),
                 Some(("is", "duplicate")) => Test::Flag(flag::DUPLICATE),

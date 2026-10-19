@@ -222,6 +222,7 @@ mod tests {
             updated: None,
             downloaded: None,
             supports: Vec::new(),
+            needs_dlcs: Vec::new(),
         };
         names.iter().enumerate().map(one).collect()
     }
