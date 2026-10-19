@@ -157,8 +157,8 @@ Column {
                 required property var modelData
                 width: side.width
                 implicitHeight: factValue.implicitHeight
-                Text { width: Theme.sized(92); color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.say(fact.modelData[0]) }
-                CopyText { id: factValue; x: 96; width: parent.width - 96; text: fact.modelData[1] }
+                Text { id: factName; width: Theme.sized(92); color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.say(fact.modelData[0]) }
+                CopyText { id: factValue; anchors.left: factName.right; anchors.leftMargin: 4; anchors.right: parent.right; text: fact.modelData[1] }
             }
         }
         RowLayout {

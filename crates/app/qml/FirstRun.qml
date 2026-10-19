@@ -112,7 +112,7 @@ Rectangle {
         width: parent.width
         height: Math.max(44, held.implicitHeight + 16, named.implicitHeight + 16)
         Text { id: named; x: 12; width: Theme.sized(190); anchors.verticalCenter: parent.verticalCenter; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: Theme.body; text: pick.what }
-        Flow { id: held; x: 214; width: parent.width - 226; anchors.verticalCenter: parent.verticalCenter; spacing: Theme.gapSmall }
+        Flow { id: held; anchors.left: named.right; anchors.leftMargin: 12; anchors.right: parent.right; anchors.rightMargin: 12; anchors.verticalCenter: parent.verticalCenter; spacing: Theme.gapSmall }
         Rectangle { visible: !pick.last; anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.line }
     }
 
