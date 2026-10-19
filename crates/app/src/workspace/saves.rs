@@ -199,7 +199,7 @@ impl App {
         else {
             return Ok(());
         };
-        let backups = self.data_dir().join(into);
+        let backups = self.own_dir().join(into);
         saves::back_up(&newest.path, &backups, super::now_secs(), kept).map(drop)
     }
 }
@@ -256,7 +256,7 @@ mod tests {
         std::fs::create_dir_all(&saves).unwrap();
         std::fs::write(saves.join("Colony.rws"), SAVE).unwrap();
         app.back_up_newest_save("save-backups", 5).unwrap();
-        let kept = std::fs::read_dir(app.data_dir().join("save-backups"))
+        let kept = std::fs::read_dir(app.own_dir().join("save-backups"))
             .unwrap()
             .count();
         assert_eq!(kept, 1);

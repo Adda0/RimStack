@@ -17,6 +17,7 @@ pub mod fetch;
 pub mod find;
 mod game;
 mod install;
+mod instances;
 pub mod lists;
 pub mod load_order;
 pub mod logs;
@@ -71,6 +72,9 @@ pub struct App {
     system_languages: Vec<String>,
     detected_language: Derived<u64, String>,
     settings: RwLock<Settings>,
+    /// The setup in use; `settings` always holds its merged view. Written, and
+    /// then `settings`, never the other way around.
+    setup: RwLock<instances::Setup>,
     install: Reread<install::Install>,
     session: OnceLock<Mutex<Session>>,
     notes: OnceLock<RwLock<Notes>>,
@@ -116,11 +120,14 @@ impl App {
         given: paths::Overrides,
     ) -> Self {
         let settings_dir = settings_root.join("RimStack");
+        let data_dir = data_root.join("RimStack");
+        let setup = instances::Setup::read(&data_dir, &settings_dir.join("settings.json"));
         Self {
-            settings: RwLock::new(Settings::read(&settings_dir.join("settings.json"))),
+            settings: RwLock::new(setup.merged()),
+            setup: RwLock::new(setup),
             home,
             settings_dir,
-            data_dir: data_root.join("RimStack"),
+            data_dir,
             given,
             system_languages: Vec::new(),
             detected_language: Derived::default(),
@@ -172,11 +179,11 @@ impl App {
     }
 
     pub fn launches_file(&self) -> PathBuf {
-        self.data_dir.join("launches.json")
+        self.own_dir().join("launches.json")
     }
 
     pub fn kept_logs_dir(&self) -> PathBuf {
-        self.data_dir.join("logs")
+        self.own_dir().join("logs")
     }
 
     pub fn git(&self) -> &Option<String> {
@@ -184,7 +191,7 @@ impl App {
     }
 
     pub fn notes_file(&self) -> PathBuf {
-        self.data_dir.join("notes.json")
+        self.own_dir().join("notes.json")
     }
 
     pub fn user_rules_file(&self) -> PathBuf {
@@ -192,7 +199,7 @@ impl App {
     }
 
     pub fn seen_file(&self) -> PathBuf {
-        self.data_dir.join("seen.txt")
+        self.own_dir().join("seen.txt")
     }
 
     pub fn settings(&self) -> RwLockReadGuard<'_, Settings> {
@@ -204,9 +211,10 @@ impl App {
         name: &str,
         value: &str,
     ) -> Result<(), rimstack_core::base::error::Error> {
-        let mut settings = self.settings.writing();
-        settings.set(name, value)?;
-        settings.write(&self.settings_file())
+        let mut setup = self.setup.writing();
+        setup.set(&self.data_dir, &self.settings_file(), name, value)?;
+        *self.settings.writing() = setup.merged();
+        Ok(())
     }
 
     /// Ids: "rules", "worksOn", "replacements", "names"; on unless `databasesOff` lists them.
@@ -221,7 +229,12 @@ impl App {
     }
 
     fn find_paths(&self) -> paths::Paths {
-        let mut given = self.given.clone();
+        // Under "Default" the environment answers first, as ever; another
+        // setup names its own folders, or falls back to it.
+        let mut given = match self.setup_is_default() {
+            true => self.given.clone(),
+            false => paths::Overrides::default(),
+        };
         let settings = self.settings();
         let set = |name: &str| settings.get(name).map(PathBuf::from);
         given.game = given.game.or(set("game"));
@@ -358,10 +371,26 @@ impl App {
         let Some(config) = paths.config.as_ref() else {
             return Vec::new();
         };
-        vec![
+        let mut logs = vec![
             config.join("Player.log"),
             config.join("Logs").join("Player.log"),
-        ]
+        ];
+        // Unity's own log ignores `-savedatafolder`: under another setup it
+        // can still land in the game's everyday settings folder.
+        if !self.setup_is_default() {
+            let native = paths::native_settings(
+                rimstack_core::rimworld::paths::Os::running(),
+                &self.home,
+                paths.game_version.as_deref(),
+            );
+            for dir in native {
+                let log = dir.join("Player.log");
+                if !logs.contains(&log) {
+                    logs.push(log);
+                }
+            }
+        }
+        logs
     }
 
     pub fn log_written(&self) -> u64 {

@@ -219,6 +219,45 @@ Item {
                 width: parent.width
                 spacing: Theme.gapSmall
                 visible: screen.part === 0 || screen.finding !== ""
+                GroupTitle { visible: screen.finding === ""; text: Theme.say("Setups") }
+                Text { visible: screen.finding === ""; width: parent.width; bottomPadding: Theme.gapSmall; wrapMode: Text.WordWrap; color: Theme.ink3; font.pixelSize: Theme.small; text: Theme.say("A setup keeps its own game, Config and saves, and Workshop folders, launch arguments, lists, notes, launches and logs. Everything else is shared. “Default” is as RimStack always was.") }
+                Line {
+                    title: Theme.say("Setup in use")
+                    tip: Theme.say("Switching reads the mod folders of the setups it leaves and comes to again.")
+                    Flow {
+                        Layout.fillWidth: true
+                        spacing: Theme.gapSmall
+                        Repeater {
+                            model: screen.info.setups || []
+                            Row {
+                                id: setup
+                                required property var modelData
+                                spacing: Theme.gapSmall
+                                Btn {
+                                    text: setup.modelData.shown
+                                    primary: setup.modelData.current
+                                    enabled: !setup.modelData.current
+                                    tip: Theme.fill("Switch to {}", setup.modelData.shown)
+                                    onClicked: { Mods.prefs.listName = ""; Hub.settings.useSetup(setup.modelData.name) }
+                                }
+                                Btn {
+                                    visible: setup.modelData.removable && !setup.modelData.current
+                                    icon: "trash-2"
+                                    tip: Theme.fill("Remove {}: its folder is kept, only aside", setup.modelData.shown)
+                                    onClicked: Hub.settings.removeSetup(setup.modelData.name)
+                                }
+                            }
+                        }
+                    }
+                }
+                Line {
+                    title: Theme.say("New setup")
+                    tip: Theme.say("It starts with the folders and launch of the one in use, under a Config and saves folder of its own. Rename names the setup in use.")
+                    FilterField { id: setupName; Layout.fillWidth: true; placeholder: Theme.say("A name for it") }
+                    Btn { text: Theme.say("Add"); tip: Theme.say("The named setup is made, still not in use"); onClicked: { Hub.settings.addSetup(setupName.text); setupName.text = "" } }
+                    Btn { text: Theme.say("Rename"); tip: Theme.say("The setup in use answers to the typed name"); onClicked: { Hub.settings.renameSetup(setupName.text); setupName.text = "" } }
+                }
+
                 GroupTitle { visible: screen.finding === ""; text: Theme.say("Folders") }
                 Text { visible: screen.finding === ""; width: parent.width; bottomPadding: Theme.gapSmall; wrapMode: Text.WordWrap; color: Theme.ink3; font.pixelSize: Theme.small; text: Theme.say("Found through Steam. Type a folder to use another; empty the box to find it again.") }
                 Folder { title: Theme.say("RimWorld"); note: screen.info.gameVersion ? Theme.fill("version {}", screen.info.gameVersion) : ""; name: "game"; inUse: screen.info.game || ""; setByHand: screen.info.setGame || "" }
