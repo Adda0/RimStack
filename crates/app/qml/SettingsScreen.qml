@@ -575,8 +575,25 @@ Item {
                             onFlipped: on => Hub.settings.useDatabase(database.modelData.id, on)
                         }
                         Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: Theme.body; text: database.modelData.use }
+                        Btn {
+                            visible: database.modelData.refreshable
+                            enabled: !Hub.settings.namesBusy
+                            icon: "refresh-cw"
+                            text: Hub.settings.namesBusy ? Theme.say("Refreshing…") : Theme.say("Refresh")
+                            tip: Theme.say("Names every installed Workshop mod, and asks Steam again about the missing mods of your lists. Kept separately: a new download never removes them.")
+                            onClicked: Hub.settings.refreshNames()
+                        }
                         Text { visible: database.modelData.updated > 0; color: Theme.ink2; font.pixelSize: Theme.small; text: Theme.day(database.modelData.updated) }
                     }
+                }
+                Text {
+                    visible: Hub.settings.namesSaid !== ""
+                    x: Theme.sized(190) + Theme.gap
+                    width: parent.width - x
+                    wrapMode: Text.WordWrap
+                    color: Theme.ink2
+                    font.pixelSize: Theme.body
+                    text: Hub.settings.namesSaid
                 }
                 Text {
                     visible: Hub.settings.communityProblem !== ""

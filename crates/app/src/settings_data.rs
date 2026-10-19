@@ -29,6 +29,8 @@ pub mod qobject {
         #[qproperty(QString, community_problem, cxx_name = "communityProblem")]
         #[qproperty(QVariant, release)]
         #[qproperty(bool, release_busy, cxx_name = "releaseBusy")]
+        #[qproperty(bool, names_busy, cxx_name = "namesBusy")]
+        #[qproperty(QString, names_said, cxx_name = "namesSaid")]
         #[qproperty(QString, problem)]
         type SettingsData = super::SettingsDataRust;
     }
@@ -107,6 +109,10 @@ pub mod qobject {
         fn download_community(self: Pin<&mut SettingsData>);
 
         #[qinvokable]
+        #[cxx_name = "refreshNames"]
+        fn refresh_names(self: Pin<&mut SettingsData>);
+
+        #[qinvokable]
         #[cxx_name = "checkRelease"]
         fn check_release(self: Pin<&mut SettingsData>);
 
@@ -154,6 +160,8 @@ pub struct SettingsDataRust {
     community_problem: QString,
     release: QVariant,
     release_busy: bool,
+    names_busy: bool,
+    names_said: QString,
     problem: QString,
     app: crate::hub::Given,
 }
@@ -328,6 +336,27 @@ impl qobject::SettingsData {
     fn use_font(self: Pin<&mut Self>, family: &QString) -> QString {
         self.keep(&QString::from("font"), family);
         qobject::set_font_family(family)
+    }
+
+    fn refresh_names(mut self: Pin<&mut Self>) {
+        if self.names_busy {
+            return;
+        }
+        self.as_mut().set_names_busy(true);
+        self.as_mut().set_names_said(QString::default());
+        let app = self.app();
+        crate::jobs::run(
+            "workshop names refresh",
+            self.qt_thread(),
+            move || app.refresh_workshop_names(),
+            |mut me, done| {
+                me.as_mut().set_names_said(match &done {
+                    Ok(said) => crate::words::said(said),
+                    Err(why) => crate::words::said_of(why),
+                });
+                me.as_mut().set_names_busy(false);
+            },
+        );
     }
 
     fn download_community(mut self: Pin<&mut Self>) {
