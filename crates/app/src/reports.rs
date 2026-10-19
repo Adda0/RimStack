@@ -82,6 +82,7 @@ pub struct SettingsReport {
     pub settings_file: String,
     pub diagnostics_file: String,
     pub version: String,
+    pub orphan_settings: Vec<String>,
 }
 
 #[derive(Serialize, Default)]

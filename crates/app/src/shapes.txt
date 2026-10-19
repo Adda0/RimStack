@@ -367,6 +367,8 @@ mods.details: object
       name: text
       note: text
       trouble: bool
+  settingsFiles: list
+    []: text
   source: text
   steamPage: nothing or text
   sub: text
@@ -489,6 +491,8 @@ mods.detailsOf: object
       name: text
       note: text
       trouble: bool
+  settingsFiles: list
+    []: text
   source: text
   steamPage: nothing or text
   sub: text
@@ -769,6 +773,8 @@ settings.report: object
       author: text
       name: text
       picture: text
+  orphanSettings: list
+    []: text
   replacementsIgnored: list
     []: text
   rimpy: bool

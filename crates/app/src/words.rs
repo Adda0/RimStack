@@ -82,6 +82,14 @@ pub fn why_not<T>(done: &Result<T, Error>) -> QString {
     done.as_ref().err().map_or_else(QString::default, said_of)
 }
 
+/// What was done, or why it was refused.
+pub fn said_or_why(done: &Result<Sentence, Error>) -> QString {
+    match done {
+        Ok(sentence) => said(sentence),
+        Err(problem) => said_of(problem),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

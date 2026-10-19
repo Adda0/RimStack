@@ -138,6 +138,14 @@ fn made_up() -> (tempfile::TempDir, App) {
         "faction:New Hope,nbColonist:3,seed:abc",
     );
     write(&config.join("RimSaves/Previews/Colony.jpg"), "jpeg");
+    write(
+        &config.join("Config/Mod_roads_RoadsMod.xml"),
+        "<SettingsBlock/>",
+    );
+    write(
+        &config.join("Config/Mod_gone_GoneMod.xml"),
+        "<SettingsBlock/>",
+    );
     app.rescan();
     launches::record(&app.launches_file(), &["ludeon.rimworld".to_string()], 1).unwrap();
     app.mark_all_seen();
