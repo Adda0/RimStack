@@ -743,6 +743,7 @@ settings.databases: list
     id: text
     name: text
     on: bool
+    refreshable: bool
     updated: number
     use: text
     waiting: bool

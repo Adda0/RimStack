@@ -443,6 +443,7 @@ impl App {
                     updated,
                     on,
                     waiting,
+                    refreshable: id == "names",
                 }
             })
             .collect()
@@ -485,8 +486,12 @@ impl App {
         }
         if self.database_on("names") {
             let file = workshopdb::file_in(data);
+            let own_file = workshopdb::own_file_in(data);
             match workshopdb::download(&file) {
-                Ok(fresh) => self.workshop_names.put(super::written(file), fresh),
+                Ok(fresh) => self.workshop_names.put(
+                    (super::written(file), super::written(own_file.clone())),
+                    workshopdb::merged(fresh, workshopdb::read(&own_file)),
+                ),
                 Err(why) => failed.push(why),
             }
         }
@@ -495,6 +500,113 @@ impl App {
             rimstack_core::problem!("{why}");
         }
         failed.into_iter().next().map_or(Ok(()), Err)
+    }
+
+    /// Names the installed Workshop mods, and refreshes from Steam the names of mods the load
+    /// order or a saved list refers to that are not installed. Kept beside the download.
+    pub fn refresh_workshop_names(&self) -> Result<Sentence> {
+        use rimstack_core::rimworld::{id, paths::Source, workshop::fetch_details};
+        let data = self.data_dir();
+        let (file, own_file) = (workshopdb::file_in(data), workshopdb::own_file_in(data));
+        let mut own = workshopdb::read(&own_file);
+        let library = self.library();
+        let library = library.as_ref().as_ref().map(|(library, _)| library).ok();
+        let mut changed = 0;
+        let workshop = library
+            .into_iter()
+            .flat_map(|library| library.installed.iter())
+            .filter(|m| m.source == Source::Workshop);
+        for m in workshop {
+            let (Some(key), Ok(about)) = (m.key(), &m.about) else {
+                continue;
+            };
+            let name = about
+                .name
+                .clone()
+                .unwrap_or_else(|| about.package_id.clone());
+            let item = workshopdb::Item {
+                workshop_id: m.folder.clone(),
+                name,
+            };
+            if own.get(&key) != Some(&item) {
+                own.insert(key, item);
+                changed += 1;
+            }
+        }
+        let merged = workshopdb::merged(workshopdb::read(&file), own.clone());
+        let installed_ids: Vec<String> = library
+            .into_iter()
+            .flat_map(|library| &library.installed)
+            .filter_map(|m| m.key())
+            .collect();
+        let missing = |ids: &[String]| {
+            ids.iter()
+                .map(|folder_id| id::fold(folder_id))
+                .filter(|folded| !installed_ids.contains(folded))
+                .filter_map(|folded| {
+                    merged
+                        .get(&folded)
+                        .map(|item| (folded, item.workshop_id.clone()))
+                })
+                .collect::<Vec<(String, String)>>()
+        };
+        let mut ids: Vec<(String, String)> = missing(self.session().current());
+        for dir in [self.lists_dir(), self.snapshots_dir()] {
+            for saved in rimstack_core::kept::lists::all(&dir) {
+                if let Ok(here) = rimstack_core::kept::lists::load(&dir, &saved.name) {
+                    ids.extend(missing(&here));
+                }
+            }
+        }
+        ids.sort_unstable();
+        ids.dedup();
+        let workshop_ids: Vec<String> = ids.iter().map(|(_, id)| id.clone()).collect();
+        let mut renamed = 0;
+        let by_id: std::collections::HashMap<&str, &str> = ids
+            .iter()
+            .map(|(folded, id)| (id.as_str(), folded.as_str()))
+            .collect();
+        for found in fetch_details(&workshop_ids)? {
+            let Some(folded) = by_id.get(found.id.as_str()) else {
+                continue;
+            };
+            let item = workshopdb::Item {
+                workshop_id: found.id.clone(),
+                name: found.title,
+            };
+            // Only a real change comes into `own`: the download's entry unchanged stays its own.
+            if merged.get(*folded) != Some(&item) && own.get(*folded) != Some(&item) {
+                own.insert(folded.to_string(), item);
+                renamed += 1;
+            }
+        }
+        workshopdb::store(&own, &own_file)?;
+        self.workshop_names.put(
+            (super::written(file.clone()), super::written(own_file)),
+            workshopdb::merged(workshopdb::read(&file), own),
+        );
+        self.publish(Changes::COMMUNITY | Changes::PROBLEMS);
+        let mut said: Vec<Sentence> = Vec::new();
+        if changed > 0 {
+            said.push(say_n!(
+                changed,
+                "Names of {} installed mod refreshed.",
+                "Names of {} installed mods refreshed.",
+                changed
+            ));
+        }
+        if renamed > 0 {
+            said.push(say_n!(
+                renamed,
+                "Names of {} mod re-read from Steam.",
+                "Names of {} mods re-read from Steam.",
+                renamed
+            ));
+        }
+        if said.is_empty() {
+            said.push(say!("Nothing changed."));
+        }
+        Ok(Sentence::joined(" ", said))
     }
 
     /// 0: the game version, 1: the installed version, 2: never.

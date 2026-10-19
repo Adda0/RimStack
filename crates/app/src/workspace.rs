@@ -79,7 +79,7 @@ pub struct App {
     community: Derived<Written, Option<community::Community>>,
     works_on: Derived<Written, HashSet<String>>,
     replacements: Derived<Written, Replacements>,
-    workshop_names: Derived<Written, rimstack_core::rimworld::workshopdb::Names>,
+    workshop_names: Derived<(Written, Written), rimstack_core::rimworld::workshopdb::Names>,
     texture_manifest: Derived<Written, rimstack_core::mods::textures::Manifest>,
     steamcmd: Reread<Option<PathBuf>>,
     conflicts: RwLock<Option<Conflicts>>,
@@ -445,10 +445,13 @@ impl App {
     }
 
     pub fn workshop_names(&self) -> Arc<rimstack_core::rimworld::workshopdb::Names> {
-        let file = rimstack_core::rimworld::workshopdb::file_in(&self.data_dir);
-        self.workshop_names.get(written(file.clone()), || {
-            rimstack_core::rimworld::workshopdb::read(&file)
-        })
+        use rimstack_core::rimworld::workshopdb;
+        let file = workshopdb::file_in(&self.data_dir);
+        let own = workshopdb::own_file_in(&self.data_dir);
+        self.workshop_names
+            .get((written(file.clone()), written(own.clone())), || {
+                workshopdb::read_with_own(&file, &own)
+            })
     }
 
     /// Re-read only once written.
