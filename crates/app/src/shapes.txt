@@ -240,6 +240,13 @@ mods.carried: object
   also: map
     {}: bool
   first: number
+mods.columnChoices: list
+  []: object
+    column: text
+    mark: text
+    off: bool
+    shown: bool
+    text: text
 mods.columnPressed: list
   []: bool or text
 mods.columnWidths: map
@@ -269,6 +276,7 @@ mods.details: object
   gameVersions: text
   groupChoices: list
     []: text
+  groupSize: number
   loadFolders: list
     []: text
   loadTime: text
@@ -376,6 +384,7 @@ mods.detailsOf: object
   gameVersions: text
   groupChoices: list
     []: text
+  groupSize: number
   loadFolders: list
     []: text
   loadTime: text

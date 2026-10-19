@@ -14,7 +14,6 @@ pub(super) struct Drafts {
     pause: Lane,
     fade: Lane,
     note: Option<(i32, String)>,
-    group: Option<(i32, String)>,
 }
 
 impl qobject::ModsData {
@@ -25,11 +24,6 @@ impl qobject::ModsData {
     pub(super) fn draft_note(mut self: Pin<&mut Self>, mod_id: i32, note: &QString) {
         let draft = (mod_id, note.to_string());
         self.as_mut().drafts_mut().note = Some(draft);
-        self.wait_for_drafts();
-    }
-
-    pub(super) fn draft_group(mut self: Pin<&mut Self>, mod_id: i32, name: &QString) {
-        self.as_mut().drafts_mut().group = Some((mod_id, name.to_string()));
         self.wait_for_drafts();
     }
 
@@ -51,16 +45,11 @@ impl qobject::ModsData {
     pub(super) fn keep_drafts(mut self: Pin<&mut Self>) {
         let drafts = self.as_mut().drafts_mut();
         drafts.pause.cancel();
-        let (note, group) = (drafts.note.take(), drafts.group.take());
+        let Some((mod_id, note)) = drafts.note.take() else {
+            return;
+        };
         let app = self.app();
-        let mut changed = false;
-        if let Some((mod_id, note)) = note {
-            changed |= id(mod_id).is_some_and(|id| app.set_note_text(id, &note));
-        }
-        if let Some((mod_id, name)) = group {
-            changed |= id(mod_id).is_some_and(|id| app.set_group(&[id], &name));
-        }
-        if !changed {
+        if !id(mod_id).is_some_and(|id| app.set_note_text(id, &note)) {
             return;
         }
         self.as_mut().order_mut().sync(&app);

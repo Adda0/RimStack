@@ -221,6 +221,22 @@ Item {
         return entries
     }
 
+    // The groups beside the mod, a new one, out of its group, and its group deleted for every mod in it.
+    function groupEntries(modId, about) {
+        const entries = [{ title: Theme.say("Group under a tag") }]
+        for (const tag of about.groupChoices || [])
+            entries.push({ text: Theme.fill("Group under {}", tag), run: () => putInSub(modId, tag) })
+        entries.push({ text: Theme.say("A new group…"), icon: "plus", run: () => subNameRequested(modId) })
+        if (about.sub) {
+            entries.push({ text: Theme.fill("Remove the tag {}", about.sub), run: () => putInSub(modId, "") })
+            entries.push({ text: Theme.fill("Delete the group {}…", about.sub), icon: "trash-2", danger: true, run: () => Notices.ask({
+                title: Theme.fill("Delete the group {}", about.sub),
+                lines: [Theme.plural(about.groupSize, "{} mod is in it. It keeps its place in the load order and loses only this tag.", "{} mods are in it. They keep their places in the load order and lose only this tag.")],
+                label: Theme.say("Delete the group"), run: () => Hub.mods.deleteGroup(about.sub) }) })
+        }
+        return entries
+    }
+
     readonly property RowMenu menus: RowMenu {}
     function rowMenu(row, x, y) {
         menus.open(row, x, y)

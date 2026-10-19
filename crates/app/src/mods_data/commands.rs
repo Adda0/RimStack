@@ -396,6 +396,14 @@ impl qobject::ModsData {
         self.show();
     }
 
+    pub(super) fn delete_group(mut self: Pin<&mut Self>, name: &QString) {
+        let app = self.app();
+        if app.delete_group(&name.to_string()) {
+            self.as_mut().order_mut().sync(&app);
+            self.show();
+        }
+    }
+
     pub(super) fn file_under(mut self: Pin<&mut Self>, mod_id: i32, label: &QString) {
         let Some(id) = id(mod_id) else {
             return;
