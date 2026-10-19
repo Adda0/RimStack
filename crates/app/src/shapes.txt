@@ -109,6 +109,21 @@ game.lastStart: object
   time: number
 game.resetByGame: list
   []: text
+lists.compareList: object
+  addable: list
+    []: number
+  moved: list
+    []: object
+      id: text
+      name: text
+  onlyCurrent: list
+    []: object
+      id: text
+      name: text
+  onlySaved: list
+    []: object
+      id: text
+      name: text
 lists.history: list
   []: object
     bringBack: text

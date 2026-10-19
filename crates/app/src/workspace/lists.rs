@@ -3,6 +3,7 @@ use crate::changes::Changes;
 use rimstack_core::base::error::Error;
 use rimstack_core::base::sentence::Sentence;
 use rimstack_core::kept::{journal, lists};
+use rimstack_core::mods::library::ModId;
 use rimstack_core::rimworld::modsconfig;
 use rimstack_core::say;
 use serde::Serialize;
@@ -115,6 +116,26 @@ pub struct HistoryLine {
     pub bring_back: String,
 }
 
+/// A mod in a comparison group.
+#[derive(Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ComparedMod {
+    pub id: String,
+    pub name: String,
+}
+
+/// Comparison of a saved list against the current load order.
+#[derive(Serialize, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct Comparison {
+    pub only_saved: Vec<ComparedMod>,
+    pub only_current: Vec<ComparedMod>,
+    pub moved: Vec<ComparedMod>,
+    /// The saved-only mods that are installed, given to `takeAll` to join the
+    /// load order in the saved list's own order.
+    pub addable: Vec<ModId>,
+}
+
 impl App {
     pub fn saved_lists(&self) -> Vec<lists::Saved> {
         lists::all(&self.lists_dir())
@@ -191,6 +212,54 @@ impl App {
         let original = config.with_file_name("ModsConfig.xml.rimstack-original");
         modsconfig::read(&original).ok().map(|config| config.active)
     }
+
+    /// A saved list against the load order as it is: all groups empty for no
+    /// such list, or before the library is read.
+    pub fn compare_saved(&self, name: &str) -> Comparison {
+        let Some(saved) = self.list_named(name) else {
+            return Comparison::default();
+        };
+        let current = self.session().current().to_vec();
+        let loaded = self.library();
+        let Ok((library, _)) = &*loaded else {
+            return Comparison::default();
+        };
+
+        let diff = lists::compare(&saved, &current);
+        let arranged_saved = library.arrange(&saved);
+        let arranged_current = library.arrange(&current);
+
+        let shown = |at: usize, arranged: &rimstack_core::mods::library::Arranged| {
+            let m = &arranged.active[at];
+            ComparedMod {
+                id: m.id.clone(),
+                name: m.name.clone(),
+            }
+        };
+
+        Comparison {
+            only_saved: diff
+                .only_saved
+                .iter()
+                .map(|&at| shown(at, &arranged_saved))
+                .collect(),
+            only_current: diff
+                .only_current
+                .iter()
+                .map(|&at| shown(at, &arranged_current))
+                .collect(),
+            moved: diff
+                .moved
+                .iter()
+                .map(|&at| shown(at, &arranged_saved))
+                .collect(),
+            addable: diff
+                .only_saved
+                .iter()
+                .filter_map(|&at| arranged_saved.active[at].installed)
+                .collect(),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -246,5 +315,42 @@ mod tests {
         );
         assert_eq!(app.snapshot_named(&snapshot).unwrap(), ["a.b"]);
         assert_eq!(app.original_list(), None);
+    }
+
+    #[test]
+    fn comparing_a_saved_list_with_the_load_order_groups_each_mod() {
+        let (_tmp, app) = installed();
+        let saved = vec![
+            "ludeon.rimworld".to_string(),
+            "ann.roads".to_string(),
+            "gone.mod".to_string(),
+        ];
+        app.keep_list("run", Some(saved)).unwrap();
+
+        // Only rimworld active: the mods the run switched off are saved-only.
+        app.session().record(vec!["ludeon.rimworld".to_string()]);
+        let comp = app.compare_saved("run");
+        fn ids(mods: &[ComparedMod]) -> Vec<&str> {
+            mods.iter().map(|m| m.id.as_str()).collect()
+        }
+        assert_eq!(ids(&comp.only_saved), ["ann.roads", "gone.mod"]);
+        assert_eq!(ids(&comp.only_current), Vec::<&str>::new());
+        assert_eq!(ids(&comp.moved), Vec::<&str>::new());
+        // A saved-only mod that is not installed cannot join the load order.
+        assert_eq!(comp.addable.len(), 1);
+
+        // The same mods, but the load order places roads first.
+        app.session()
+            .record(vec!["ann.roads".to_string(), "ludeon.rimworld".to_string()]);
+        let comp = app.compare_saved("run");
+        assert_eq!(ids(&comp.only_saved), ["gone.mod"]);
+        assert_eq!(ids(&comp.only_current), Vec::<&str>::new());
+        assert_eq!(ids(&comp.moved), ["ann.roads"]);
+        assert_eq!(comp.addable.len(), 0);
+
+        let none = app.compare_saved("absent");
+        assert!(
+            none.only_saved.is_empty() && none.only_current.is_empty() && none.moved.is_empty()
+        );
     }
 }
