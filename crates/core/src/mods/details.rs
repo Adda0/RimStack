@@ -214,6 +214,7 @@ mod tests {
             code: false,
             patched: Default::default(),
             sub: String::new(),
+            colour: String::new(),
             load_micros: None,
             updated: None,
             downloaded: None,

@@ -113,6 +113,12 @@ impl App {
         self.change_notes(ids, Changes::NOTES, |note| note.remove_tag(tag))
     }
 
+    /// An empty name takes the colour off.
+    pub fn set_colour(&self, ids: &[ModId], name: &str) -> bool {
+        let name = name.trim().to_string();
+        self.change_notes(ids, Changes::NOTES, |note| note.colour = name.clone())
+    }
+
     /// How many mods sit under the group `name`.
     pub fn group_size(&self, name: &str) -> usize {
         self.notes().reading().in_group(name).len()

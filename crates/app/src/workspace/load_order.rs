@@ -161,6 +161,7 @@ fn arranged(app: &App, library: &Library) -> rimstack_core::mods::library::Arran
         if let Some(note) = key.and_then(|k| notes.get(&k)) {
             m.tags = note.tags.clone();
             m.sub = note.group().to_string();
+            m.colour = note.colour.clone();
             // Filed by hand: that stands over what RimStack worked out.
             if let Some(chosen) = Category::from_kept(&note.category) {
                 m.category = chosen;
