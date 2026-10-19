@@ -138,6 +138,8 @@ pub struct Database {
     pub updated: u64,
     pub on: bool,
     pub waiting: bool,
+    /// A Refresh makes sense only for "names". QML reads this instead of the id.
+    pub refreshable: bool,
 }
 
 #[cfg(test)]
