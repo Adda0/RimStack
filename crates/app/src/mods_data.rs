@@ -21,6 +21,8 @@ pub mod qobject {
         #[qproperty(bool, dirty)]
         /// Empty for none.
         #[qproperty(QString, unsaved)]
+        /// Removing a switched-off mod in the newest save; empty for nothing said.
+        #[qproperty(QString, left_save, cxx_name = "leftSave")]
         #[qproperty(bool, can_undo, cxx_name = "canUndo")]
         #[qproperty(bool, can_redo, cxx_name = "canRedo")]
         #[qproperty(bool, previewing)]
@@ -374,6 +376,7 @@ pub struct ModsDataRust {
     textures_of: i32,
     dirty: bool,
     unsaved: QString,
+    left_save: QString,
     can_undo: bool,
     can_redo: bool,
     previewing: bool,
@@ -428,6 +431,7 @@ impl Default for ModsDataRust {
             textures_of: -1,
             dirty: false,
             unsaved: QString::default(),
+            left_save: QString::default(),
             can_undo: false,
             can_redo: false,
             previewing: false,
@@ -711,8 +715,15 @@ impl qobject::ModsData {
             )
         };
         let installed = self.order.is_installed();
+        let left_save = {
+            match &*app.library() {
+                Ok((library, _)) => crate::words::said(&self.order.left_save(&app, library)),
+                Err(_) => QString::default(),
+            }
+        };
         self.as_mut().set_dirty(dirty && installed);
         self.as_mut().set_unsaved(crate::words::said(&unsaved));
+        self.as_mut().set_left_save(left_save);
         self.as_mut().set_can_undo(undo);
         self.as_mut().set_can_redo(redo);
         let order = &self.order;

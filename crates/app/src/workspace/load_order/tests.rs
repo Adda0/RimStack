@@ -354,6 +354,80 @@ fn made_up_lists_have_rows_and_no_problems() {
     assert_eq!(order.errors_and_warnings(), (0, 0));
 }
 
+#[test]
+fn a_mod_of_the_newest_save_switched_off_says_what_removal_would_do() {
+    let (tmp, app) = installed();
+    // A textures-only mod, and one defining things, both active and in the newest save.
+    std::fs::create_dir_all(tmp.path().join("game/Mods/roads/Defs")).unwrap();
+    std::fs::write(
+        tmp.path().join("game/Mods/roads/Defs/Things.xml"),
+        "<Defs><ThingDef><defName>Rock</defName></ThingDef></Defs>",
+    )
+    .unwrap();
+    let about = "<ModMetaData><packageId>Ann.Pale</packageId><name>Pale</name></ModMetaData>";
+    std::fs::create_dir_all(tmp.path().join("game/Mods/pale/About")).unwrap();
+    std::fs::create_dir_all(tmp.path().join("game/Mods/pale/Textures")).unwrap();
+    std::fs::write(tmp.path().join("game/Mods/pale/About/About.xml"), about).unwrap();
+    std::fs::write(
+        tmp.path().join("game/Mods/pale/Textures/rock.png"),
+        [0, 0, 0, 0],
+    )
+    .unwrap();
+    std::fs::write(
+        tmp.path().join("config/Config/ModsConfig.xml"),
+        "<ModsConfigData><activeMods><li>ludeon.rimworld</li><li>ann.roads</li><li>ann.pale</li></activeMods></ModsConfigData>",
+    )
+    .unwrap();
+    std::fs::create_dir_all(tmp.path().join("config/Saves")).unwrap();
+    std::fs::write(
+        tmp.path().join("config/Saves/Colony.rws"),
+        "<savegame><meta><gameVersion>1.6.4871 rev600</gameVersion><modIds><li>ludeon.rimworld</li><li>ann.roads</li><li>ann.pale</li></modIds><modNames><li>Core</li><li>Ann.Roads</li><li>Pale</li></modNames></meta><game/></savegame>",
+    )
+    .unwrap();
+    let mut order = LoadOrder::read(&app, true, Arrange::Category);
+    order.settle(&app);
+    let members = order.files_to_read(&app).unwrap();
+    app.read_active_files(members);
+    // While it stands on the active list its details say what removing it would do.
+    use rimstack_core::mods::removal::Removal;
+    let roads = roads(&order, Side::Active);
+    assert_eq!(
+        app.conflicts()
+            .reading()
+            .as_ref()
+            .map(|found| found.removal.get(&roads)),
+        Some(Some(&Removal::Defs(vec!["ThingDef".to_string()]))),
+    );
+    let said = order.details(&app, roads);
+    let as_json = crate::qml::values::as_shown(&said);
+    assert_eq!(
+        as_json.get("removal").and_then(|v| v.as_str()),
+        Some("Removing it mid-save likely damages the save, which keeps what it defines: ThingDef"),
+    );
+    assert_eq!(
+        as_json.get("removalHarms").and_then(|v| v.as_bool()),
+        Some(true),
+    );
+    // Switched off, taking both out of the save is put in words, the damage first.
+    let all: Vec<ModId> = (order.list(Side::Active).mods().iter())
+        .filter(|m| m.id != "ludeon.rimworld")
+        .filter_map(|m| m.installed)
+        .collect();
+    order.take_all(&app, Side::Active, &all);
+    if let Some(members) = order.files_to_read(&app) {
+        app.read_active_files(members);
+    }
+    let library = (*app.library())
+        .as_ref()
+        .ok()
+        .map(|(l, _)| l.clone())
+        .unwrap();
+    assert_eq!(
+        order.left_save(&app, &library).to_string(),
+        "Taking Ann.Roads out of the newest save is likely to damage it. Taking Pale out of it is likely safe.",
+    );
+}
+
 fn nothing_found() -> crate::workspace::Conflicts {
     crate::workspace::Conflicts {
         members: Vec::new(),
@@ -361,6 +435,7 @@ fn nothing_found() -> crate::workspace::Conflicts {
         def_collisions: Vec::new(),
         scanned: Default::default(),
         xml_found: Default::default(),
+        removal: Default::default(),
     }
 }
 

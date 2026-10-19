@@ -48,6 +48,8 @@ pub struct Conflicts {
     pub scanned: HashMap<library::ModId, rimstack_core::mods::infer::Scanned>,
     /// What each mod's XML needs that is missing, judged against them all.
     pub xml_found: HashMap<library::ModId, rimstack_core::mods::xmlcheck::Found>,
+    /// What removing mid-save would do, for the installed mods in the newest save.
+    pub removal: HashMap<library::ModId, rimstack_core::mods::removal::Removal>,
 }
 
 pub type Loaded = Result<(library::Library, Duration), rimstack_core::base::error::Error>;

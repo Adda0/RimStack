@@ -384,6 +384,8 @@ mods.details: object
       short: text
       words: text
   problemsIgnored: number
+  removal: nothing or text
+  removalHarms: bool
   replacedBy: nothing
   replacedById: nothing
   replacedByVersions: nothing
@@ -519,6 +521,8 @@ mods.detailsOf: object
       short: text
       words: text
   problemsIgnored: number
+  removal: nothing or text
+  removalHarms: bool
   replacedBy: nothing
   replacedById: nothing
   replacedByVersions: nothing
