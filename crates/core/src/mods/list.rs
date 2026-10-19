@@ -509,6 +509,13 @@ impl GroupedList {
         (0..self.mods.len()).filter(|&i| self.matches(i)).count()
     }
 
+    /// Where a mod dropped below the last row goes: after the last mod the filter shows,
+    /// so a drop under a filtered list lands beside what it shows, not at the very end.
+    pub fn end_place(&self) -> usize {
+        let last_shown = (0..self.mods.len()).rev().find(|&i| self.matches(i));
+        last_shown.map_or(self.mods.len(), |i| i + 1)
+    }
+
     pub fn set_filter(&mut self, text: &str) {
         self.filter = Filter::parse(text);
         self.side = None;
