@@ -294,6 +294,7 @@ mod_rows.at: object
   outdated: bool
   picture: text
   preview: text
+  size: text
   source: number
   tags: text
   trouble: number
@@ -750,6 +751,19 @@ mods.tagsFor: list
 mods.textures: object
   count: number
   ddsMade: number
+mods.usage: object
+  active: number
+  activeText: text
+  git: number
+  gitText: text
+  inactive: number
+  inactiveText: text
+  local: number
+  localText: text
+  unplayed: number
+  unplayedText: text
+  workshop: number
+  workshopText: text
 mods.versionWarned: list
   []: number
 saves.folders: list

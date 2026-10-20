@@ -424,13 +424,26 @@ Item {
         check("within what a column may take", Mods.columns.chosenWidths.author === 420)
         Mods.prefs.columnSizes = sizesBefore
         const listed = Mods.columns.menu()
-        check("the column menu lists every column, the shown ones marked", listed.length === 4 && listed[0].text.startsWith("✓"))
+        check("the column menu lists every column, the shown ones marked", listed.length === 5 && listed[0].text.startsWith("✓"))
         const times = Mods.overview.loadTimes === true
-        check("the Load column is offered only with load times, and otherwise says where they come from", listed[3].off === !times && (Mods.columns.note !== "") === !times && (times || listed[3].text.indexOf("Loading Progress") >= 0))
+        check("the Load column is offered only with load times, and otherwise says where they come from", listed[4].off === !times && (Mods.columns.note !== "") === !times && (times || listed[4].text.indexOf("Loading Progress") >= 0))
         Mods.columns.toggle("game")
         check("the Game column can be shown", Mods.columns.shown.indexOf("game") >= 0)
         Mods.columns.toggle("game")
         check("and hidden again", Mods.columns.shown.indexOf("game") === -1)
+
+        const sized = () => { for (let r = 0; r < Mods.active.rows(); r++) if (Mods.active.at(r).modId >= 0) return Mods.active.at(r); return null }
+        Mods.columns.toggle("size")
+        check("the Size column is offered and shows a size", Mods.columns.shown.indexOf("size") >= 0 && sized().size !== "")
+        Mods.columns.showBy("size")
+        check("and the load order can be shown by it", Mods.columns.shownBy === "size" && Mods.active.rows() >= Mods.active.count)
+        Mods.columns.showBy("size")
+        Mods.columns.showBy("size")
+        Mods.columns.toggle("size")
+        const usage = Hub.mods.usage
+        check("the summary counts the disk space of both sides", usage !== null && usage.active > 0 && usage.inactive > 0 && usage.activeText !== "" && usage.inactiveText !== "")
+        check("the workshop mod's bytes count as workshop", usage.workshop > 0)
+        check("mods in no save, list or order count as not played", usage.unplayed > 0)
 
         const subRows = () => { let n = 0; for (let r = 0; r < Mods.active.rows(); r++) if (Mods.active.at(r).isSub === true) n += 1; return n }
         const before = subRows()

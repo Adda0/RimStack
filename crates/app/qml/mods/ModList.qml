@@ -21,7 +21,7 @@ ListView {
     readonly property int authorWidth: roomBeside(roomy ? Mods.columns.shown : [], Mods.columns.widths.author) >= nameRoom ? Mods.columns.widths.author : Theme.sized(86)
     readonly property var fitting: {
         let shown = roomy ? Mods.columns.shown.slice() : []
-        for (const column of ["load", "author", "version", "game"]) {
+        for (const column of ["load", "size", "author", "version", "game"]) {
             if (roomBeside(shown, authorWidth) >= nameRoom)
                 break
             shown = shown.filter(other => other !== column)
