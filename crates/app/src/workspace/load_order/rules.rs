@@ -199,6 +199,9 @@ pub fn troubles(
             }
         }
     }
+    for (own, duplicate) in found.iter_mut().zip(describe::duplicates(library, mods)) {
+        own.extend(duplicate);
+    }
     let known = app.conflicts().reading();
     if let Some(read) = known.as_ref() {
         for (m, own) in mods.iter().zip(&mut found) {

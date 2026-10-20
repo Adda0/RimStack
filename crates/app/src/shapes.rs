@@ -175,8 +175,17 @@ fn cxx_name_in(attributes: &str) -> Option<&str> {
     rest.split('"').next()
 }
 
-const UNFILLED: [(&str, &str); 22] = [
+const UNFILLED: [(&str, &str); 28] = [
     ("logs.since", "a clean launch before the last"),
+    (
+        "mods.details.copies.[].megabytes",
+        "Steam's record of the Workshop folder",
+    ),
+    ("mods.details.copies.[].note", "the copy the game reads"),
+    (
+        "mods.details.copies.[].useAs",
+        "a copy the load order names",
+    ),
     (
         "mods.details.megabytes",
         "Steam's record of the Workshop folder",
@@ -203,6 +212,15 @@ const UNFILLED: [(&str, &str); 22] = [
     (
         "mods.details.requires.[].modId",
         "never given: the list takes no action",
+    ),
+    (
+        "mods.detailsOf.copies.[].megabytes",
+        "Steam's record of the Workshop folder",
+    ),
+    ("mods.detailsOf.copies.[].note", "the copy the game reads"),
+    (
+        "mods.detailsOf.copies.[].useAs",
+        "a copy the load order names",
     ),
     (
         "mods.detailsOf.megabytes",

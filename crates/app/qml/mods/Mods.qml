@@ -184,6 +184,8 @@ Item {
     }
 
     function fixAll() { Hub.mods.fixAll() }
+    // The load order's entry is made to name this copy of a doubled id instead.
+    function useCopy(modId, useAs) { Hub.mods.useCopy(modId, useAs) }
     function winAll(otherId) { Hub.mods.winOver(selectedId, otherId) }
 
     // No warning about the game version while the game stays on `version`;

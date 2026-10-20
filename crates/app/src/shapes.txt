@@ -299,6 +299,7 @@ mod_rows.at: object
   tags: text
   trouble: number
   troubleText: text
+  troubleTip: text
   twin: bool
   version: text
   versionIgnored: bool
@@ -326,9 +327,6 @@ mods.details: object
       icon: text
       kind: number
       text: text
-  binLocalCopy: nothing or object
-    modId: number
-    path: text
   category: text
   categoryChosen: text
   code: text
@@ -336,7 +334,17 @@ mods.details: object
     {}: object
       loses: bool
   contains: text
-  copies: nothing or text
+  copies: list
+    []: object
+      folder: text
+      megabytes: nothing
+      modId: number
+      note: nothing
+      path: text
+      source: text
+      useAs: nothing
+      used: bool
+      version: text
   defsReplacedBy: list
     []: object
       defs: number
@@ -463,9 +471,6 @@ mods.detailsOf: object
       icon: text
       kind: number
       text: text
-  binLocalCopy: nothing or object
-    modId: number
-    path: text
   category: text
   categoryChosen: text
   code: text
@@ -473,7 +478,17 @@ mods.detailsOf: object
     {}: object
       loses: bool
   contains: text
-  copies: nothing or text
+  copies: list
+    []: object
+      folder: text
+      megabytes: nothing
+      modId: number
+      note: nothing
+      path: text
+      source: text
+      useAs: nothing
+      used: bool
+      version: text
   defsReplacedBy: list
     []: object
       defs: number
