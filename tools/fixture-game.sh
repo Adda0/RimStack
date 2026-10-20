@@ -41,6 +41,11 @@ for n in $(seq -w 1 100); do
         Patches) printf '<Patch><Operation Class="PatchOperationAdd"><xpath>Defs</xpath><value/></Operation></Patch>\n' > "$folder/Patches/Patch.xml" ;;
         Textures) base64 -d <<< "$png" > "$folder/Textures/Fixture$n.png" ;;
     esac
+    if [ "$n" = 012 ]; then
+        # A bundled Harmony: the scan reads its size; not being an assembly, no version.
+        mkdir -p "$folder/Assemblies"
+        printf 'not an assembly' > "$folder/Assemblies/0Harmony.dll"
+    fi
 done
 # A translation: nothing but a Languages folder, loading after the mod it translates.
 folder="$game/Mods/fixture-translation"

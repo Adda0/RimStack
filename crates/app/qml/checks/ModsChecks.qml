@@ -526,6 +526,10 @@ Item {
         Notices.dismiss(Notices.shown[0].key)
         check("an offer runs and goes", undone && Notices.shown.length === 1 && Notices.earlier.length === 3)
         check("every problem has its words and its fix", Mods.troubles.every(t => t.words !== "" && t.group !== "") && Mods.troubles.length >= Hub.mods.errors)
+        const bundled = Mods.troubles.filter(t => t.ignore === "assembly-harmony")
+        Mods.filtered = "is:assemblies"
+        check("a mod shipping its own 0Harmony.dll is a problem, and is:assemblies finds it", bundled.length === 1 && bundled[0].name === "Fixture Mod 012" && Mods.active.matching === 1)
+        Mods.filtered = ""
         Mods.previewSort()
         const sortLines = Hub.mods.sortMoves()
         check("each move of a sort has a reason", !Hub.mods.previewing || sortLines.every(group => group.name !== "" && group.moves.every(m => m.why !== "")))

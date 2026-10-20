@@ -345,6 +345,8 @@ pub mod flag {
     pub const DEFCLASH: u16 = 2048;
     /// Off, and named by no save, no saved list and no kept order: a cleanup candidate.
     pub const UNPLAYED: u16 = 4096;
+    /// Ships a dll an active mod also ships differently, or bundles 0Harmony.
+    pub const ASSEMBLIES: u16 = 8192;
 }
 
 impl Filter {
@@ -389,6 +391,7 @@ impl Filter {
                 Some(("is", "changed")) => Test::Flag(flag::CHANGED),
                 Some(("is", "unused")) => Test::Flag(flag::UNUSED),
                 Some(("is", "unplayed")) => Test::Flag(flag::UNPLAYED),
+                Some(("is", "assemblies")) => Test::Flag(flag::ASSEMBLIES),
                 Some(("size", bound)) => {
                     size_test(bound).unwrap_or_else(|| Test::Word(term.to_string()))
                 }

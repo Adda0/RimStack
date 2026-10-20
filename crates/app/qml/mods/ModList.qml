@@ -72,7 +72,8 @@ ListView {
         if (drawn < 0 || count === 0 || !model.at(0).isHeader)
             return -1
         const top = indexAt(10, contentY + 1)
-        if (top < 0)
+        // Right after a filter shrinks the rows, a delegate past the end can still be found here.
+        if (top < 0 || top >= model.rows())
             return -1
         const row = model.at(top)
         return row.isHeader && !row.isSub ? -1 : row.category
