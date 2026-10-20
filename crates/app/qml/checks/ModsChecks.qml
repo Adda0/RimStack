@@ -384,6 +384,13 @@ Item {
         check("a mod's first tag is the group it sits under", subRows() === before + 1 && Mods.info.sub === "check-tag")
         Mods.putInSub(tagged, "other")
         check("grouping under another of its tags moves that tag first", Mods.info.sub === "other" && Mods.info.tags === "other, check-tag")
+        const grouped = Mods.nthMod(Mods.active, 0) === tagged ? Mods.nthMod(Mods.active, 1) : Mods.nthMod(Mods.active, 0)
+        Mods.putInSub(grouped, "other")
+        const groupMenu = Mods.groupEntries(tagged, Mods.info).map(entry => entry.text || "")
+        check("the group menu offers a new group and deleting its group, which holds both mods", Mods.info.groupSize === 2 && groupMenu.indexOf(Theme.say("A new group…")) >= 0 && groupMenu.indexOf(Theme.fill("Delete the group {}…", "other")) >= 0)
+        Hub.mods.deleteGroup("other")
+        check("a group deleted takes its tag off both mods and leaves their other tags", Mods.info.tags === "check-tag" && !Mods.about(grouped).tags)
+        Hub.mods.keepNote(grouped, "", "")
         Hub.mods.keepNote(tagged, "", "")
         check("and without tags it is in no group", subRows() === before && !Mods.info.sub)
 
