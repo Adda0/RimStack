@@ -294,6 +294,10 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "besideMod"]
         fn beside_mod(self: &ModsData, active: bool, mod_id: i32) -> i32;
+        /// The installed mods with a row, top to bottom.
+        #[qinvokable]
+        #[cxx_name = "shownIds"]
+        fn shown_ids(self: &ModsData, active: bool) -> QVariant;
         /// Null unless both are shown.
         #[qinvokable]
         #[cxx_name = "othersThrough"]

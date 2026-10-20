@@ -331,6 +331,7 @@ fn mods(app: &App, shapes: &mut Shapes) {
     let same = order.same_mods_in(&order);
     shapes.add("mods.carried", &order.carried(&same, &[a, b]));
     shapes.add("mods.carried", &order.carried(&same, &[]));
+    shapes.add("mods.shownIds", &ids(list.shown_installed()));
     let ordered = list.in_load_order(a, b);
     shapes.add(
         "mods.inLoadOrder",
