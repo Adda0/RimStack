@@ -62,19 +62,22 @@ fn the_load_column_is_offered_only_with_load_times_and_says_why_not() {
 }
 
 #[test]
-fn a_side_term_filters_its_own_list_and_empties_the_other() {
+fn a_side_term_filters_its_own_list_and_leaves_the_other_whole() {
     let (_tmp, app) = installed();
     let mut order = LoadOrder::read(&app, true, Arrange::Category);
-    let matching = |order: &LoadOrder| {
-        let count = |side| order.list(side).matching();
-        (count(Side::Active), count(Side::Inactive))
+    let state = |order: &LoadOrder| {
+        let side = |side| {
+            let list = order.list(side);
+            (list.matching(), list.beyond_filter())
+        };
+        (side(Side::Active), side(Side::Inactive))
     };
     order.set_filter("is:inactive");
-    assert_eq!(matching(&order), (0, 1));
+    assert_eq!(state(&order), ((1, true), (1, false)));
     order.set_filter("is:active");
-    assert_eq!(matching(&order), (1, 0));
+    assert_eq!(state(&order), ((1, false), (1, true)));
     order.set_filter("");
-    assert_eq!(matching(&order), (1, 1));
+    assert_eq!(state(&order), ((1, false), (1, false)));
 }
 
 #[test]

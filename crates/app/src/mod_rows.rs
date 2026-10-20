@@ -27,6 +27,8 @@ pub mod qobject {
         #[qproperty(i32, matching)]
         /// Where a mod dropped below the last row goes, in the whole list.
         #[qproperty(i32, end_place, cxx_name = "endPlace")]
+        /// The filter only applies to the other side; everything here shows, unfiltered.
+        #[qproperty(bool, beyond_filter, cxx_name = "beyondFilter")]
         type ModRows = super::ModRowsRust;
     }
 
@@ -152,6 +154,8 @@ pub struct ModRowsRust {
     count: i32,
     matching: i32,
     end_place: i32,
+    /// The filter only applies to the other side; everything here shows, unfiltered.
+    beyond_filter: bool,
     shown: Vec<RowView>,
 }
 
@@ -339,6 +343,7 @@ impl qobject::ModRows {
         count: usize,
         matching: usize,
         end_place: usize,
+        beyond_filter: bool,
     ) {
         let before: Vec<_> = self.shown.iter().map(|r| r.key.clone()).collect();
         let after: Vec<_> = rows.iter().map(|r| r.key.clone()).collect();
@@ -351,7 +356,8 @@ impl qobject::ModRows {
         }
         self.as_mut().set_count(count as i32);
         self.as_mut().set_matching(matching as i32);
-        self.set_end_place(end_place as i32);
+        self.as_mut().set_end_place(end_place as i32);
+        self.as_mut().set_beyond_filter(beyond_filter);
     }
 
     fn renew(mut self: Pin<&mut Self>, rows: Vec<RowView>) {
