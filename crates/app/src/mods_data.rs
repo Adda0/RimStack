@@ -99,6 +99,9 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "toEdge"]
         fn to_edge(self: Pin<&mut ModsData>, ids: &QVariant, top: bool);
+        /// Moves each mod `by` places, keeping their order; false when none moved.
+        #[qinvokable]
+        fn nudge(self: Pin<&mut ModsData>, active: bool, ids: &QVariant, by: i32) -> bool;
         #[qinvokable]
         #[cxx_name = "toggleCategory"]
         fn toggle_category(self: Pin<&mut ModsData>, active: bool, category: i32);
@@ -306,10 +309,6 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "inLoadOrder"]
         fn in_load_order(self: &ModsData, a: i32, b: i32) -> QVariant;
-        /// -1 off the list.
-        #[qinvokable]
-        #[cxx_name = "nudgeTo"]
-        fn nudge_to(self: &ModsData, active: bool, mod_id: i32, by: i32) -> i32;
         #[qinvokable]
         #[cxx_name = "subsBeside"]
         fn subs_beside(self: &ModsData, mod_id: i32) -> QVariant;

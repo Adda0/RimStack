@@ -80,7 +80,7 @@ Item {
             selectAll(model)
             break
         case Qt.AltModifier:
-            nudge(model, by)
+            model.active && columns.shownBy === "" && Math.abs(by) === list.count ? selectedToEdge(by < 0) : nudge(model, by)
             break
         case Qt.Key_Return:
         case Qt.Key_Enter:
@@ -99,6 +99,8 @@ Item {
         const position = selectedId >= 0 ? model.indexOf(selectedId) : -1
         if (position < 0 || Hub.mods.previewing)
             return
+        if (selectedCount > 1)
+            return moveSelected()
         const next = Hub.mods.besideMod(model.active, selectedId)
         moveAcross(model, position, selectedId)
         if (next >= 0)
@@ -190,7 +192,10 @@ Item {
 
     function tagSelected(tag) { Hub.mods.addTag(selectedIds, tag) }
     function subSelected(name) { Hub.mods.group(selectedIds, name) }
-    function selectedToEdge(top) { Hub.mods.toEdge(selectedIds, top) }
+    function selectedToEdge(top) {
+        Hub.mods.toEdge(selectedIds, top)
+        reveal(active, active.rowOf(active.indexOf(selectedId)), false)
+    }
 
     signal editRequested(string what)
 
@@ -308,13 +313,10 @@ Item {
     }
 
     function nudge(model, by) {
-        const at = model.indexOf(selectedId)
-        const to = Hub.mods.nudgeTo(model.active, selectedId, by)
-        if (to < 0 || Hub.mods.previewing || (model.active && columns.shownBy !== ""))
+        if (Hub.mods.previewing || (model.active && columns.shownBy !== "") || !Hub.mods.nudge(model.active, selectedIds, by))
             return
         slide(selectedId, -by)
-        Hub.mods.moveMod(model.active, at, to)
-        reveal(model, model.rowOf(to), false)
+        reveal(model, model.rowOf(model.indexOf(cursor)), false)
     }
 
     readonly property var fresh: Theme.demo ? [] : (Hub.mods.fresh || [])

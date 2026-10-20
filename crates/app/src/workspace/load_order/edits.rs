@@ -85,6 +85,20 @@ impl LoadOrder {
         self.settle(app);
     }
 
+    /// False when there is no mod to move or one would leave the list.
+    pub fn nudge(&mut self, app: &App, side: Side, ids: &[ModId], by: isize) -> bool {
+        let found = self.list(side).nudged(ids, by);
+        let Some(moves) = found.filter(|moves| !moves.is_empty()) else {
+            return false;
+        };
+        self.end_preview();
+        for (from, to) in moves {
+            self.list_mut(side).move_mod(from, to);
+        }
+        self.settle(app);
+        true
+    }
+
     pub fn toggle_category(&mut self, app: &App, side: Side, category: Category) {
         self.list_mut(side).toggle(category);
         self.settle(app);
