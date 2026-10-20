@@ -229,17 +229,12 @@ Rectangle {
                 border.color: Theme.bar
                 Text { id: inTheWayCount; anchors.centerIn: parent; color: Theme.win; font.pixelSize: Theme.caption; font.weight: Font.Bold; text: Theme.count(bar.inTheWay.length) }
             }
-            Popup {
-                enter: PopIn {}
-                exit: PopOut {}
+            PopCard {
                 id: beforePlay
-                modal: true
-                dim: false
                 x: parent.width - width
                 y: parent.height + 8
                 width: Theme.sized(320)
                 padding: Theme.gapLarge
-                background: Rectangle { radius: Theme.cornerLarge; color: Theme.bar; border.width: 1; border.color: Theme.line }
                 contentItem: Column {
                     spacing: Theme.gap
                     Text { color: Theme.ink; font.pixelSize: Theme.title; font.weight: Font.DemiBold; text: Theme.say("Before you play") }

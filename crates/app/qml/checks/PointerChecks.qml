@@ -558,7 +558,7 @@ Item {
             stop()
             if (Mods.comparing === null) {
                 checks.keys()
-                Qt.exit(checks.failed > 0 ? 1 : 0)
+                popups.start()
             } else
                 zooming.start()
         }
@@ -576,7 +576,83 @@ Item {
             events.keyClick(Qt.Key_Down, Qt.NoModifier, -1)
             checks.check("the down key shows the next shared texture", view.textures.length < 2 || view.chosen === before + 1)
             checks.keys()
-            Qt.exit(checks.failed > 0 ? 1 : 0)
+            popups.start()
+        }
+    }
+
+    // Dialogs, popups and shared controls by keyboard, one step every 400 ms: popups take
+    // clicks and keys only once they have faded in.
+    property int ran: 0
+    function ask() {
+        Notices.ask({ title: "Check", lines: [], label: "Run", run: () => checks.ran += 1 })
+    }
+    function asked() {
+        return Notices.asking !== null
+    }
+    function focused() {
+        return screen.Window.activeFocusItem
+    }
+    readonly property var popupSteps: [
+        () => {
+            Mods.select(Mods.nthMod(Mods.active, 0), true)
+            checks.activeList.forceActiveFocus()
+            checks.ask()
+        },
+        () => {
+            const count = Mods.active.count, selected = Mods.selectedId
+            events.keyClick(Qt.Key_Return, Qt.NoModifier, -1)
+            check("Enter in a confirmation runs its main action, and not the list's under it", checks.ran === 1 && Mods.active.count === count && Mods.selectedId === selected && Mods.selectedActive)
+        },
+        () => {
+            check("and once it closes the keys are back on the list", !checks.asked() && checks.activeList.activeFocus)
+            checks.ask()
+        },
+        () => {
+            events.keyClick(Qt.Key_Tab, Qt.NoModifier, -1)
+            events.keyClick(Qt.Key_Return, Qt.NoModifier, -1)
+        },
+        () => {
+            check("Tab in a confirmation goes to Cancel, and Enter there runs nothing", checks.ran === 1 && !checks.asked())
+            checks.ask()
+        },
+        () => {
+            const selected = Mods.selectedId
+            events.keyClick(Qt.Key_Tab, Qt.NoModifier, -1)
+            events.keyClick(Qt.Key_Tab, Qt.NoModifier, -1)
+            const inside = checks.focused().text === "Run"
+            events.keyClick(Qt.Key_Escape, Qt.NoModifier, -1)
+            check("Tab goes round a confirmation's buttons and Esc cancels it", inside && checks.ran === 1 && Mods.selectedId === selected)
+        },
+        () => {
+            check("and closes it", !checks.asked())
+            checks.screen.viewMenu.open()
+        },
+        () => {
+            const card = checks.screen.viewMenu, headings = Mods.prefs.headings
+            const first = checks.focused().text === Theme.say("Under category headings")
+            events.keyClick(Qt.Key_Return, Qt.NoModifier, -1)
+            const under = Mods.prefs.headings === 1
+            events.keyClick(Qt.Key_Tab, Qt.NoModifier, -1)
+            const next = checks.focused().text === Theme.say("One numbered list")
+            events.keyClick(Qt.Key_Return, Qt.NoModifier, -1)
+            check("a card of buttons opens on its first, Enter presses it and Tab goes to the next", first && under && next && Mods.prefs.headings === 0)
+            events.keyClick(Qt.Key_Escape, Qt.NoModifier, -1)
+            check("and Esc closes it", !card.opened)
+            Mods.prefs.headings = headings
+        },
+    ]
+    Timer {
+        id: popups
+        property int at: 0
+        interval: 400
+        repeat: true
+        // A step that throws is not run again; one that returns false is, until it is ready.
+        onTriggered: {
+            if (at === checks.popupSteps.length) {
+                stop()
+                Qt.exit(checks.failed > 0 ? 1 : 0)
+            } else if (checks.popupSteps[at++]() === false)
+                at -= 1
         }
     }
 }

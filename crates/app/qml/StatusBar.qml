@@ -91,8 +91,13 @@ Rectangle {
             visible: strip.tasks.length > 0
             anchors.verticalCenter: parent.verticalCenter
             spacing: Theme.gapSmall
+            activeFocusOnTab: true
             Accessible.role: Accessible.Button
             Accessible.name: Theme.say("Background work")
+            Accessible.onPressAction: trayMenu.open()
+            Keys.onReturnPressed: trayMenu.open()
+            Keys.onEnterPressed: trayMenu.open()
+            Keys.onSpacePressed: trayMenu.open()
             Icon {
                 anchors.verticalCenter: parent.verticalCenter
                 name: "refresh-cw"
@@ -104,21 +109,17 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 color: Theme.ink
                 font.pixelSize: Theme.small
+                font.underline: tray.activeFocus
                 text: strip.tasks.length === 1 ? strip.tasks[0].text : Theme.fill("{} tasks running", strip.tasks.length)
             }
             HoverHandler { cursorShape: Qt.PointingHandCursor }
             TapHandler { onTapped: trayMenu.open() }
-            Popup {
-                enter: PopIn {}
-                exit: PopOut {}
+            PopCard {
                 id: trayMenu
-                modal: true
-                dim: false
                 x: parent.width - width
                 y: -height - Theme.gapMedium
                 width: Theme.sized(380)
                 padding: Theme.gapLarge
-                background: Rectangle { radius: Theme.cornerLarge; color: Theme.bar; border.width: 1; border.color: Theme.line }
                 contentItem: Column {
                     spacing: Theme.gap
                     Text { color: Theme.ink; font.pixelSize: Theme.title; font.weight: Font.DemiBold; text: Theme.say("Background work") }
