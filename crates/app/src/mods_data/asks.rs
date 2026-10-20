@@ -166,6 +166,12 @@ impl qobject::ModsData {
         to_qml(&others.map(|ids| ids.into_iter().map(ModId::to_qml).collect::<Vec<_>>()))
     }
 
+    pub(super) fn shown_ids(&self, active: bool) -> QVariant {
+        let list = self.order.list(Side::of(active));
+        let shown = list.shown_installed().into_iter().map(ModId::to_qml);
+        to_qml(&shown.collect::<Vec<_>>())
+    }
+
     pub(super) fn in_load_order(&self, a: i32, b: i32) -> QVariant {
         let list = self.order.list(Side::Active);
         let ordered = id(a).zip(id(b)).and_then(|(a, b)| list.in_load_order(a, b));

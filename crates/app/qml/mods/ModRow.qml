@@ -127,6 +127,17 @@ Item {
         color: row.current ? Theme.accent : conflicts ? Theme.warn : row.movedFrom > 0 ? Theme.moved : Theme.hover
         opacity: row.current ? 1 : conflicts ? 0.12 : row.movedFrom > 0 ? 0.1 : hover.hovered && !row.isHeader ? 0.04 : 0
     }
+    // Where Shift or Ctrl with the arrows went, once that is not the one mod selected.
+    Rectangle {
+        visible: row.modId >= 0 && row.modId === Mods.cursor && row.listView.activeFocus && (Mods.selectedCount > 1 || !row.current)
+        anchors.fill: parent
+        anchors.leftMargin: Theme.gap
+        anchors.rightMargin: Theme.gapSmall
+        radius: Theme.corner
+        color: "transparent"
+        border.width: 2
+        border.color: row.current ? Theme.onSelected : Theme.focus
+    }
     HoverHandler { id: hover }
     Tip { text: !row.isHeader && nameText.truncated ? row.name : ""; over: hover.hovered && !quick.hovered }
 

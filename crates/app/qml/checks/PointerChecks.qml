@@ -222,6 +222,18 @@ Item {
         const atTop = Mods.selectedId === first
         events.keyClick(Qt.Key_PageDown, Qt.NoModifier, -1)
         check("a mod list takes Home, End and Page Down", atEnd && atTop && Mods.active.indexOf(Mods.selectedId) > 1)
+        events.keyClick(Qt.Key_Home, Qt.NoModifier, -1)
+        events.keyClick(Qt.Key_Down, Qt.ShiftModifier, -1)
+        events.keyClick(Qt.Key_Down, Qt.ShiftModifier, -1)
+        const three = Mods.selectedCount === 3
+        events.keyClick(Qt.Key_Up, Qt.ShiftModifier, -1)
+        check("Shift with the arrows selects through from the first mod selected", three && Mods.selectedCount === 2 && Mods.selectedId === first)
+        events.keyClick(Qt.Key_Down, Qt.ControlModifier, -1)
+        const kept = Mods.selectedCount === 2
+        events.keyClick(Qt.Key_Space, Qt.ControlModifier, -1)
+        check("Ctrl with the arrows goes on without selecting and Ctrl+Space adds the mod", kept && Mods.selectedCount === 3 && Mods.also[Mods.cursor] === true)
+        events.keyClick(Qt.Key_A, Qt.ControlModifier, -1)
+        check("Ctrl+A selects every mod shown", Mods.selectedCount === Hub.mods.shownIds(true).length && Mods.selectedId === first)
         Mods.select(-1, false)
     }
 

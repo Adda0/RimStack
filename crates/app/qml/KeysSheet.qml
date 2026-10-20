@@ -10,7 +10,18 @@ Prompt {
     readonly property var groups: [
         [Theme.say("Everywhere"), [[Theme.say("Ctrl + K"), Theme.say("Search mods, commands and settings")], [Theme.say("Ctrl + 1 to 6"), Theme.say("Mods, Downloads, Textures, Saves, Logs, Settings")], ["?", Theme.say("This page")], [Theme.say("Left, Right"), Theme.say("Move a choice or the section")], [Theme.say("Tab"), Theme.say("Next control")], [Theme.say("Home, End, Page Up, Page Down"), Theme.say("To either end of a list, or a page further")], [Theme.say("Esc"), Theme.say("Close, cancel, clear the selection")]]],
         [Theme.say("Load order"), [[Theme.say("Ctrl + S"), Theme.say("Save")], [Theme.say("Ctrl + Z"), Theme.say("Undo")], [Theme.say("Ctrl + Shift + Z"), Theme.say("Redo")], [Theme.say("Ctrl + F"), Theme.say("Filter the load order")]]],
-        [Theme.say("A list of mods"), [[Theme.say("Up, Down"), Theme.say("Select the mod above or below")], [Theme.say("Enter"), Theme.say("Activate or deactivate")], [Theme.say("Alt + Up, Alt + Down"), Theme.say("Move the mod one place")], [Theme.say("Ctrl + click"), Theme.say("Add or remove one from the selection")], [Theme.say("Shift + click"), Theme.say("Select through")], ["T", Theme.say("Type its tags")], ["N", Theme.say("Type its note")], [Theme.say("Menu"), Theme.say("The mod's menu")]]],
+        [Theme.say("A list of mods"), [
+            [Theme.say("Up, Down"), Theme.say("Select the mod above or below")],
+            [Theme.say("Enter"), Theme.say("Activate or deactivate")],
+            [Theme.say("Alt + Up, Alt + Down"), Theme.say("Move the mod one place")],
+            [Theme.say("Shift + click, Shift + Up, Shift + Down"), Theme.say("Select through")],
+            [Theme.say("Ctrl + Up, Ctrl + Down"), Theme.say("Go on without selecting")],
+            [Theme.say("Ctrl + click, Ctrl + Space"), Theme.say("Add or remove one from the selection")],
+            [Theme.say("Shift, Ctrl"), Theme.say("The same with Home, End, Page Up and Page Down")],
+            [Theme.say("Ctrl + A"), Theme.say("Select every mod shown")],
+            ["T", Theme.say("Type its tags")],
+            ["N", Theme.say("Type its note")],
+            [Theme.say("Menu"), Theme.say("The mod's menu")]]],
         [Theme.say("Texture comparison"), [[Theme.say("Up, Down"), Theme.say("Previous or next texture")], ["1, 2", Theme.say("Keep the first or the second mod's")], [Theme.say("Esc"), Theme.say("Back to the lists")]]],
     ]
     GridLayout {

@@ -26,6 +26,13 @@ impl GroupedList {
         rows.filter_map(|row| self.installed_on(row)).collect()
     }
 
+    /// Every installed mod with a row, top to bottom.
+    pub fn shown_installed(&self) -> Vec<ModId> {
+        (0..self.rows.len())
+            .filter_map(|row| self.installed_on(row))
+            .collect()
+    }
+
     pub fn beside(&self, row: usize) -> Option<ModId> {
         let near = [
             row.checked_add(1),

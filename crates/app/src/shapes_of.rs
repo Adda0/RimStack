@@ -328,6 +328,7 @@ fn mods(app: &App, shapes: &mut Shapes) {
     shapes.add("mods.sortMoves", &order.sort_moves());
     let list = order.list(Side::Active);
     shapes.add("mods.othersThrough", &list.others_through(a, b).map(ids));
+    shapes.add("mods.shownIds", &ids(list.shown_installed()));
     let ordered = list.in_load_order(a, b);
     shapes.add(
         "mods.inLoadOrder",

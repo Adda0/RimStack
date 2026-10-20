@@ -722,6 +722,8 @@ mods.overview: object
   worksOn: number
 mods.packageMods: list
   []: number
+mods.shownIds: list
+  []: number
 mods.sortMoves: list
   []: never seen
 mods.subsBeside: list

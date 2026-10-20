@@ -50,12 +50,12 @@ Item {
         return Hub.mods.detailsOf(modId) || ({})
     }
 
+    // The mod reached, from the cursor; -1 in a list without mods.
     function step(model, by) {
-        const row = Hub.mods.stepFrom(model.active, selectedId, by)
-        if (row < 0)
-            return
-        select(model.modIdAt(row), model.active)
-        reveal(model, row, false)
+        const row = Hub.mods.stepFrom(model.active, cursor, by)
+        if (row >= 0)
+            reveal(model, row, false)
+        return model.modIdAt(row)
     }
 
     // A mod list's keys; false for those it leaves to others.
@@ -65,7 +65,19 @@ Item {
         const how = modifiers & ~Qt.KeypadModifier
         switch (by === undefined ? key | how : how) {
         case Qt.NoModifier:
-            step(model, by)
+            select(step(model, by), model.active)
+            break
+        case Qt.ShiftModifier:
+            selectThrough(step(model, by), model.active)
+            break
+        case Qt.ControlModifier:
+            cursor = step(model, by)
+            break
+        case Qt.Key_Space | Qt.ControlModifier:
+            selectAlso(cursor, model.active)
+            break
+        case Qt.Key_A | Qt.ControlModifier:
+            selectAll(model)
             break
         case Qt.AltModifier:
             nudge(model, by)
@@ -337,6 +349,7 @@ Item {
     function select(modId, inActive) {
         selectedId = modId
         selectedActive = inActive
+        cursor = modId
         also = ({})
         if (leftOffRestored)
             prefs.lastMod = modId >= 0 ? String(info.packageId || "").toLowerCase() : ""
@@ -348,12 +361,15 @@ Item {
     // Library id -> true.
     property var also: ({})
     readonly property int selectedCount: selectedId < 0 ? 0 : 1 + Object.keys(also).length
+    // The mod the arrow keys go on from: the one last added to the selection or reached with Ctrl.
+    property int cursor: -1
 
     function selectAlso(modId, inActive) {
         if (selectedId < 0 || inActive !== selectedActive)
             return select(modId, inActive)
-        if (modId === selectedId)
+        if (modId === selectedId || modId < 0)
             return
+        cursor = modId
         const next = Object.assign({}, also)
         if (next[modId])
             delete next[modId]
@@ -368,9 +384,23 @@ Item {
         const others = Hub.mods.othersThrough(inActive, selectedId, modId)
         if (!others)
             return
+        cursor = modId
+        alsoOf(others)
+    }
+
+    // Keeps the first one selected when it is shown.
+    function selectAll(model) {
+        const shown = Hub.mods.shownIds(model.active)
+        if (selectedActive !== model.active || shown.indexOf(selectedId) < 0)
+            select(shown.length > 0 ? shown[0] : -1, model.active)
+        alsoOf(shown)
+    }
+
+    function alsoOf(ids) {
         const next = {}
-        for (const id of others)
+        for (const id of ids)
             next[id] = true
+        delete next[selectedId]
         also = next
     }
 
