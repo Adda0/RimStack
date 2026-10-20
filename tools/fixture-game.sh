@@ -46,6 +46,14 @@ for n in $(seq -w 1 100); do
         mkdir -p "$folder/Assemblies"
         printf 'not an assembly' > "$folder/Assemblies/0Harmony.dll"
     fi
+    if [ "$n" = 015 ]; then
+        # Common on disk, common in LoadFolders.xml: on Linux the game skips it.
+        mkdir -p "$folder/Common"
+        printf '<loadFolders>\n  <v1.6>\n    <li>/</li>\n    <li>common</li>\n  </v1.6>\n</loadFolders>\n' > "$folder/LoadFolders.xml"
+    fi
+    if [ "$n" = 016 ]; then
+        sed -i 's|  <supportedVersions>.*</supportedVersions>||' "$folder/About/About.xml"
+    fi
 done
 # A translation: nothing but a Languages folder, loading after the mod it translates.
 folder="$game/Mods/fixture-translation"

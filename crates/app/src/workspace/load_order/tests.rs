@@ -471,6 +471,7 @@ fn nothing_found() -> crate::workspace::Conflicts {
         scanned: Default::default(),
         xml_found: Default::default(),
         assemblies: Default::default(),
+        miscased: Default::default(),
         removal: Default::default(),
     }
 }
@@ -659,6 +660,27 @@ fn an_inactive_mod_in_no_save_no_list_and_no_kept_order_is_unplayed() {
     order.sync(&app);
     order.set_filter("is:unplayed");
     assert_eq!(shown(&order, Side::Inactive), ["a.c", "ann.roads"]);
+}
+
+#[test]
+fn a_load_folder_named_in_other_letter_case_is_warned_about_where_case_counts() {
+    let (tmp, app) = installed();
+    std::fs::create_dir_all(tmp.path().join("game/Mods/roads/Common")).unwrap();
+    std::fs::write(
+        tmp.path().join("game/Mods/roads/LoadFolders.xml"),
+        "<loadFolders><v1.6><li>/</li><li>common</li></v1.6></loadFolders>",
+    )
+    .unwrap();
+    let mut order = LoadOrder::read(&app, true, Arrange::Category);
+    order.take(&app, Side::Inactive, 0, None);
+    let members = order.files_to_read(&app).unwrap();
+    app.read_active_files(members);
+    order.recheck(&app);
+    let told = order.troubles()[1]
+        .iter()
+        .any(|t| t.key == "loadfolders-case");
+    let case_counts = !tmp.path().join("game/Mods/roads/common").is_dir();
+    assert_eq!(told, case_counts, "{:?}", order.troubles()[1]);
 }
 
 #[test]

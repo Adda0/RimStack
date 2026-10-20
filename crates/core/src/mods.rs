@@ -1,6 +1,7 @@
 pub mod assemblies;
 pub mod bisect;
 pub mod blame;
+pub mod casing;
 pub mod checks;
 pub mod classify;
 pub mod columns;
