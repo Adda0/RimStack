@@ -10,6 +10,7 @@ Rectangle {
     signal useList(var ids)
     signal closed()
     color: Theme.win
+    Shortcut { sequence: "Escape"; enabled: record.visible; onActivated: record.closed() }
     Column {
         x: Theme.gapWide
         y: Theme.gapCard
