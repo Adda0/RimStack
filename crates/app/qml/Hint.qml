@@ -4,7 +4,7 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import RimStack.Ui
 
-Popup {
+PopCard {
     id: hint
     property int step
     property string text
@@ -19,7 +19,12 @@ Popup {
                 Mods.endHints()
         }
     }
+    enter: null
+    exit: null
+    modal: false
     closePolicy: Popup.NoAutoClose
+    // Next takes the keys: Enter goes on, Tab reaches Skip, Esc ends the hints.
+    onAboutToShow: next.forceActiveFocus()
     x: atRight ? parent.width - width : 0
     y: parent ? parent.height + 9 : 0
     width: Theme.sized(280)
@@ -31,6 +36,9 @@ Popup {
         Rectangle { x: hint.atRight ? parent.width - 26 : 16; y: -5; width: 10; height: 10; rotation: 45; color: Theme.accent }
     }
     contentItem: Item {
+        // Ahead of the screen's Esc, which would clear the selection.
+        Keys.onShortcutOverride: event => event.accepted = event.key === Qt.Key_Escape
+        Keys.onEscapePressed: Mods.endHints()
         Text { id: words; x: 12; y: 10; width: parent.width - 24; wrapMode: Text.WordWrap; color: Theme.accentInk; font.pixelSize: Theme.body; lineHeight: 1.25; text: hint.text }
         RowLayout {
             x: 12
@@ -39,7 +47,7 @@ Popup {
             anchors.bottomMargin: Theme.gapMedium
             Text { Layout.fillWidth: true; color: Theme.onSelectedDim; font.pixelSize: Theme.small; text: hint.step + " / 3" }
             Btn { text: Theme.say("Skip"); onClicked: Mods.endHints() }
-            Btn { text: hint.step < 3 ? Theme.say("Next") : Theme.say("Done"); onClicked: hint.step < 3 ? Mods.hintStep = hint.step + 1 : Mods.endHints() }
+            Btn { id: next; text: hint.step < 3 ? Theme.say("Next") : Theme.say("Done"); onClicked: hint.step < 3 ? Mods.hintStep = hint.step + 1 : Mods.endHints() }
         }
     }
 }

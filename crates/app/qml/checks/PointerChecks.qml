@@ -706,6 +706,19 @@ Item {
             check("a text to copy is reached with Tab, and Ctrl+C copies all of it", reached && checks.copied() === "Copied text")
             shared.visible = false
         },
+        () => {
+            const before = checks.ran
+            Notices.offer("Check notice", "Act", () => checks.ran += 10)
+            events.keyClick(Qt.Key_N, Qt.AltModifier, -1)
+            events.keyClick(Qt.Key_Return, Qt.NoModifier, -1)
+            check("Alt+N reaches the newest notice's button", checks.ran === before + 10)
+            Mods.hintStep = 1
+        },
+        () => {
+            const next = [Theme.say("Next"), Theme.say("Done")].indexOf(checks.focused().text) >= 0
+            events.keyClick(Qt.Key_Escape, Qt.NoModifier, -1)
+            check("a first-run hint has the keys on Next, and Esc ends the hints", next && Mods.hintStep === 0)
+        },
         () => events.keyClick(Qt.Key_6, Qt.ControlModifier, -1),
         () => {
             const size = checks.find(screen.Window.contentItem, item => item.title === Theme.say("Text size") && item.step !== undefined)
@@ -722,6 +735,12 @@ Item {
             events.keyClick(Qt.Key_1, Qt.ControlModifier, -1)
         },
         () => events.keyClick(Qt.Key_5, Qt.ControlModifier, -1),
+        () => {
+            const logs = checks.logsScreen()
+            logs.recorded = 0
+            events.keyClick(Qt.Key_Escape, Qt.NoModifier, -1)
+            check("Esc on a launch's record goes back to the log", logs.recorded === -1)
+        },
         // Again until the log is read.
         () => {
             const logs = checks.logsScreen()

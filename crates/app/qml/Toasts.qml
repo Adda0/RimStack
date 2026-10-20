@@ -6,12 +6,16 @@ import RimStack.Ui
 Column {
     id: toasts
     spacing: Theme.gapSmall
+    // The newest notice's button, which holds the notice up while it has the focus.
+    Shortcut { sequence: "Alt+N"; enabled: Notices.shown.length > 0; onActivated: shownToasts.itemAt(shownToasts.count - 1).reach.forceActiveFocus() }
     Repeater {
+        id: shownToasts
         model: Notices.shown
         Rectangle {
             id: toast
             required property var modelData
             readonly property bool reached: !!Window.activeFocusItem && Window.activeFocusItem.parent === content
+            readonly property Item reach: modelData.run ? action : dismiss
             readonly property color tone: modelData.tone === "err" ? Theme.err : modelData.tone === "ok" ? Theme.ok : Theme.moved
             width: Math.min(Theme.sized(420), content.implicitWidth + 24)
             height: Math.max(40, words.implicitHeight + 20)
@@ -29,8 +33,8 @@ Column {
                 anchors.rightMargin: Theme.gap
                 spacing: Theme.gap
                 Text { id: words; Layout.fillWidth: true; Layout.maximumWidth: Theme.sized(300); wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: Theme.body; text: toast.modelData.text }
-                Btn { visible: !!toast.modelData.run; text: toast.modelData.label || ""; onClicked: { toast.modelData.run(); Notices.dismiss(toast.modelData.key) } }
-                Btn { icon: "x"; tip: Theme.say("Dismiss"); onClicked: Notices.dismiss(toast.modelData.key) }
+                Btn { id: action; visible: !!toast.modelData.run; text: toast.modelData.label || ""; onClicked: { toast.modelData.run(); Notices.dismiss(toast.modelData.key) } }
+                Btn { id: dismiss; icon: "x"; tip: Theme.say("Dismiss"); onClicked: Notices.dismiss(toast.modelData.key) }
             }
             HoverHandler { id: held }
             Timer { interval: toast.modelData.run ? 8000 : 5000; running: !held.hovered && !toast.reached; onTriggered: Notices.dismiss(toast.modelData.key) }
