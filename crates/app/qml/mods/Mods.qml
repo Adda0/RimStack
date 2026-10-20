@@ -58,6 +58,31 @@ Item {
         reveal(model, row, false)
     }
 
+    // A mod list's keys; false for those it leaves to others.
+    function listKey(list, key, modifiers) {
+        const model = list.model, page = Math.max(1, Math.floor(list.height / Theme.row) - 1)
+        const by = new Map([[Qt.Key_Up, -1], [Qt.Key_Down, 1], [Qt.Key_PageUp, -page], [Qt.Key_PageDown, page], [Qt.Key_Home, -list.count], [Qt.Key_End, list.count]]).get(key)
+        const how = modifiers & ~Qt.KeypadModifier
+        switch (by === undefined ? key | how : how) {
+        case Qt.NoModifier:
+            step(model, by)
+            break
+        case Qt.AltModifier:
+            nudge(model, by)
+            break
+        case Qt.Key_Return:
+        case Qt.Key_Enter:
+            activateSelected(model)
+            break
+        case Qt.Key_T:
+        case Qt.Key_N:
+            return selectedCount === 1 && (editRequested(key === Qt.Key_N ? "note" : "tags"), true)
+        default:
+            return false
+        }
+        return true
+    }
+
     function activateSelected(model) {
         const position = selectedId >= 0 ? model.indexOf(selectedId) : -1
         if (position < 0 || Hub.mods.previewing)

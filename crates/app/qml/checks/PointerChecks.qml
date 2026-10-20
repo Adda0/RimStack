@@ -204,11 +204,29 @@ Item {
         events.keyClick(Qt.Key_Home, Qt.NoModifier, -1)
         events.keyClick(Qt.Key_Return, Qt.NoModifier, -1)
         check("a list of rows takes Up, Down, Home, End and Enter", stepped && last && rows.at === 0 && rows.presses === 1)
+        events.keyClick(Qt.Key_PageDown, Qt.NoModifier, -1)
+        const paged = rows.at === 2
+        events.keyClick(Qt.Key_PageUp, Qt.NoModifier, -1)
+        check("and Page Up and Page Down, stopping at its ends", paged && rows.at === 0)
         rows.visible = false
+        checks.listKeys()
         events.keyClick(Qt.Key_2, Qt.ControlModifier, -1)
         const away = !screen.visible
         events.keyClick(Qt.Key_1, Qt.ControlModifier, -1)
         check("Ctrl with a figure goes to that section and back", away && screen.visible)
+    }
+
+    function listKeys() {
+        const first = Mods.active.modIdAt(Hub.mods.stepFrom(true, -1, 1)), last = Mods.active.modIdAt(Hub.mods.stepFrom(true, -1, -1))
+        Mods.select(first, true)
+        Mods.focusList(Mods.active)
+        events.keyClick(Qt.Key_End, Qt.NoModifier, -1)
+        const atEnd = Mods.selectedId === last
+        events.keyClick(Qt.Key_Home, Qt.NoModifier, -1)
+        const atTop = Mods.selectedId === first
+        events.keyClick(Qt.Key_PageDown, Qt.NoModifier, -1)
+        check("a mod list takes Home, End and Page Down", atEnd && atTop && Mods.active.indexOf(Mods.selectedId) > 1)
+        Mods.select(-1, false)
     }
 
     TestEvent { id: events }

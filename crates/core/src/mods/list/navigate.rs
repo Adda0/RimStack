@@ -52,10 +52,19 @@ impl GroupedList {
         self.row_of(self.position_of(id)?)
     }
 
+    /// More than one row lands on the nearest installed mod short of an end, so a page
+    /// or a whole list's length goes as far as there is to go.
     pub fn step_from(&self, id: Option<ModId>, by: isize) -> Option<usize> {
-        let at_end = if by > 0 { -1 } else { self.rows.len() as isize };
+        let last = self.rows.len().checked_sub(1)? as isize;
+        let at_end = if by > 0 { -1 } else { last + 1 };
         let from = id.and_then(|id| self.row_of_mod(id));
-        self.step(from.map_or(at_end, |row| row as isize), by)
+        let to = from
+            .map_or(at_end, |row| row as isize)
+            .saturating_add(by)
+            .clamp(0, last);
+        let ahead = if by < 0 { -1 } else { 1 };
+        self.step(to - ahead, ahead)
+            .or_else(|| self.step(to + ahead, -ahead))
     }
 
     pub fn beside_mod(&self, id: ModId) -> Option<ModId> {
