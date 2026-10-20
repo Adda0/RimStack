@@ -1,4 +1,5 @@
 use crate::base::error::Error;
+use crate::rimworld::about::is_workshop_id;
 use crate::said;
 
 use crate::base::vdf::{Token, tokens};
@@ -104,11 +105,14 @@ pub fn parse_details(json: &str) -> Result<Vec<Details>, Error> {
 
 /// Blocks on the network. Steam is slow per item, so chunks of 100 go out in parallel.
 pub fn fetch_details(ids: &[String]) -> Result<Vec<Details>, Error> {
+    // Steam answers HTTP 400 to a whole request holding one id that is not a number above 0,
+    // as a folder in the Workshop folder that is no item: such an id is not sent.
+    let ids: Vec<&String> = ids.iter().filter(|id| is_workshop_id(id)).collect();
     let agent = crate::base::web::agent(120);
-    let ask = |batch: &[String]| -> Result<Vec<Details>, Error> {
+    let ask = |batch: &[&String]| -> Result<Vec<Details>, Error> {
         let mut form = vec![("itemcount".to_string(), batch.len().to_string())];
         for (i, id) in batch.iter().enumerate() {
-            form.push((format!("publishedfileids[{i}]"), id.clone()));
+            form.push((format!("publishedfileids[{i}]"), id.to_string()));
         }
         let pairs = form.iter().map(|(k, v)| (k.as_str(), v.as_str()));
         let mut response = agent
@@ -384,7 +388,8 @@ mod tests {
     #[test]
     #[ignore = "needs the network"]
     fn steam_answers_about_a_real_item() {
-        let found = fetch_details(&["2009463077".to_string(), "1".to_string()]).unwrap();
+        let ids = ["2009463077", "1", "0", "", "2009463077 - Copy"].map(String::from);
+        let found = fetch_details(&ids).unwrap();
         assert_eq!(found.len(), 1);
         assert_eq!(found[0].title, "Harmony");
     }
