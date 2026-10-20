@@ -102,7 +102,7 @@ enum Holds {
 
 const SWITCH: Holds = Holds::Choice(&["on", "off"]);
 
-const KNOWN: [(&str, Holds); 23] = [
+const KNOWN: [(&str, Holds); 24] = [
     // The setup in use: decided and written by a switch, never typed.
     ("instance", Holds::Text),
     ("game", Holds::Text),
@@ -110,6 +110,8 @@ const KNOWN: [(&str, Holds); 23] = [
     ("workshop", Holds::Text),
     ("launch", Holds::Choice(&["steam", "direct"])),
     ("launchArguments", Holds::Text),
+    // Megabytes of kept mod copies for rolling a Workshop update back; oldest go past it.
+    ("keptModsMegabytes", Holds::Count),
     // The user's own Steam WebAPI key, used for the Workshop search; sent only to Steam.
     ("steamKey", Holds::Text),
     ("language", Holds::Text),

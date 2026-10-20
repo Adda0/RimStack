@@ -128,6 +128,45 @@ impl App {
         rimstack_core::sources::maintenance::copy_many_to_local(&roots, &local)
     }
 
+    /// The Workshop update times of the copies kept for this mod, newest first.
+    pub fn kept_copies_of(&self, id: ModId) -> Vec<u64> {
+        let folder = self
+            .installed_mod(id, |m| {
+                (m.source == Source::Workshop).then(|| m.folder.clone())
+            })
+            .ok()
+            .flatten();
+        match folder {
+            Some(folder) => rimstack_core::sources::fallback::offered(
+                &rimstack_core::sources::fallback::store(self.data_dir()),
+                &folder,
+            ),
+            None => Vec::new(),
+        }
+    }
+
+    /// Rolling back a Workshop update: the kept copy is what goes into the game's Mods
+    /// folder, where it then wins, so restoring does nothing while a folder of that item
+    /// is already there.
+    pub fn restore_kept_copy(&self, id: ModId, updated: u64) -> Result<PathBuf, Error> {
+        let local = self
+            .paths()
+            .local_mods()
+            .ok_or_else(|| Error::refused(said!("The game's folder is not known")))?;
+        let folder = self.installed_mod(id, |m| {
+            (m.source == Source::Workshop).then(|| m.folder.clone())
+        })?;
+        let Some(folder) = folder else {
+            return Err(Error::refused(said!("Not a Workshop mod")));
+        };
+        rimstack_core::sources::fallback::restore(
+            &rimstack_core::sources::fallback::store(self.data_dir()),
+            &folder,
+            updated,
+            &local,
+        )
+    }
+
     /// The title and the note of the prompt that confirms `kind` for this mod.
     pub fn bin_prompt(&self, id: ModId, kind: i32) -> (Sentence, Sentence) {
         let made = self

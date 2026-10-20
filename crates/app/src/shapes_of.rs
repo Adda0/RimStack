@@ -217,6 +217,7 @@ fn settings(app: &App, shapes: &mut Shapes) {
         ("language", "Polski"),
         ("launchArguments", "-quicktest"),
         ("steamKey", "made-up"),
+        ("keptModsMegabytes", "5120"),
     ] {
         app.keep_setting(name, value).unwrap();
     }
@@ -303,6 +304,8 @@ fn mods(app: &App, shapes: &mut Shapes) {
     }
     let ids = |found: Vec<ModId>| found.into_iter().map(ModId::to_qml).collect::<Vec<_>>();
     shapes.add("mods.versionWarned", &ids(vec![roads]));
+    shapes.add("mods.keptCopiesOf", &vec![1_700_000_000_u64]);
+    shapes.add("mods.keptCopiesOf", &Vec::<u64>::new());
     shapes.add("mods.packageMods", &ids(vec![a, b]));
     shapes.add("mods.findMods", &order.found(app, "Ann", 5));
     order.preview_sort(app);
