@@ -10,7 +10,8 @@ use rimstack_core::base::sentence::Sentence;
 use rimstack_core::base::translate::{LOCALE, detected};
 use rimstack_core::kept::foreign;
 use rimstack_core::kept::{owntheme, settings::Switch};
-use rimstack_core::mods::community;
+use rimstack_core::mods::community::{self, OwnRule};
+use rimstack_core::mods::publish;
 use rimstack_core::rimworld::workshopdb;
 use rimstack_core::sources::replacements;
 use rimstack_core::{said, say, say_n};
@@ -186,6 +187,12 @@ impl App {
             set_workshop: owned("workshop"),
             launch_arguments: owned("launchArguments"),
             steam_key: owned("steamKey"),
+            github_user: owned("githubUser"),
+            github_token: owned("githubToken"),
+            rules_repo: owned("rulesRepo"),
+            rules_repo_default: publish::COMMUNITY.to_string(),
+            own_rules: self.user_rules().reading().len(),
+            publish_why_not: self.publish_why_not(),
             kept_mods_megabytes: owned("keptModsMegabytes"),
             launch_directly: settings.launch_directly(),
             language: owned("language"),
@@ -234,6 +241,69 @@ impl App {
             version: build_label(),
             orphan_settings: self.orphan_settings(),
         }
+    }
+
+    /// The repository `rulesRepo` names; the community's when none, why when it is unusable.
+    pub fn rules_repo(&self) -> Result<publish::Repo> {
+        let settings = self.settings();
+        let kept = settings
+            .get("rulesRepo")
+            .map(str::trim)
+            .filter(|url| !url.is_empty());
+        publish::repo_of(kept.unwrap_or(publish::COMMUNITY))
+    }
+
+    /// Why "Publish my rules" is off now; `None` when it may run.
+    fn publish_why_not(&self) -> Option<Sentence> {
+        if self.user_rules().reading().is_empty() {
+            return Some(say!("There are no rules of your own to publish."));
+        }
+        let settings = self.settings();
+        let token = settings.get("githubToken").unwrap_or_default();
+        if token.trim().is_empty() {
+            return Some(say!(
+                "Put your GitHub token in the settings: the rules are published from your account."
+            ));
+        }
+        self.rules_repo()
+            .err()
+            .map(|problem| problem.sentence().clone())
+    }
+
+    /// The user's own rules as they would be published: the library's name of the earlier mod
+    /// for the reviewer to read, its folded id when that is not known.
+    fn own_rules_for_publish(&self) -> Vec<OwnRule> {
+        let pairs = self.user_rules().reading().pairs().to_vec();
+        let name_of = |first: &str| -> String {
+            let Ok((library, _)) = &*self.library() else {
+                return first.to_string();
+            };
+            library.name_of(first).unwrap_or_else(|| first.to_string())
+        };
+        pairs
+            .into_iter()
+            .map(|(first, then)| OwnRule {
+                first_name: name_of(&first),
+                first,
+                then,
+            })
+            .collect()
+    }
+
+    /// The user's own rules as a pull request to the community rules repository, from the
+    /// user's GitHub account. Blocks on the network; the token goes only to GitHub.
+    pub fn publish_rules(&self) -> Result<publish::Published> {
+        let own = self.own_rules_for_publish();
+        if let Some(why_not) = self.publish_why_not() {
+            return Err(Error::refused(why_not));
+        }
+        let settings = self.settings();
+        let token = settings.get("githubToken").unwrap_or_default();
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs() as i64;
+        publish::publish(token, &self.rules_repo()?, &own, now)
     }
 
     pub fn summary(&self) -> Summary {

@@ -93,6 +93,13 @@ ApplicationWindow {
             if (found.version)
                 Notices.offer(Theme.fill("RimStack {} is published; this is {}", found.version, Hub.settings.report.version), Theme.say("Open its page"), () => Qt.openUrlExternally(found.page))
         }
+        function onPublishedChanged() {
+            const done = Hub.settings.published || ({})
+            if (done.url)
+                Notices.offer(Theme.plural(done.rules, "Published {} rule as a pull request", "Published {} rules as a pull request"), Theme.say("Open it"), () => Qt.openUrlExternally(done.url))
+            else if (done.problem)
+                Notices.say(done.problem, "err")
+        }
     }
     readonly property var tasks: [
         Hub.mods.rescanning ? { text: Theme.say("Reading the mod folders…") } : null,

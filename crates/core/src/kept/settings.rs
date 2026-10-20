@@ -102,7 +102,7 @@ enum Holds {
 
 const SWITCH: Holds = Holds::Choice(&["on", "off"]);
 
-const KNOWN: [(&str, Holds); 24] = [
+const KNOWN: [(&str, Holds); 27] = [
     // The setup in use: decided and written by a switch, never typed.
     ("instance", Holds::Text),
     ("game", Holds::Text),
@@ -114,6 +114,11 @@ const KNOWN: [(&str, Holds); 24] = [
     ("keptModsMegabytes", Holds::Count),
     // The user's own Steam WebAPI key, used for the Workshop search; sent only to Steam.
     ("steamKey", Holds::Text),
+    // The user's own GitHub account and token, to publish their rules as a pull request;
+    // the token is sent only to GitHub. `rulesRepo` is where; empty for the community's.
+    ("githubUser", Holds::Text),
+    ("githubToken", Holds::Text),
+    ("rulesRepo", Holds::Text),
     ("language", Holds::Text),
     ("font", Holds::Text),
     ("interfaceScale", Holds::Text),
