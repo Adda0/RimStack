@@ -41,6 +41,7 @@ Item {
     required property bool outdated
     required property string madeFor
     required property string measure
+    required property string size
     required property string whyMoved
     required property bool twin
     // The swatch the row is painted with, by name; empty for none.
@@ -347,11 +348,11 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     width: parent.width
                     elide: Text.ElideRight
-                    horizontalAlignment: cell.modelData === "load" ? Text.AlignRight : Text.AlignLeft
+                    horizontalAlignment: cell.modelData === "load" || cell.modelData === "size" ? Text.AlignRight : Text.AlignLeft
                     color: cell.modelData !== "load" ? row.quiet : row.current ? Theme.onSelected : row.loadSeconds >= 0.1 ? Theme.ink2 : Theme.ink3
                     font.pixelSize: cell.modelData === "load" ? Theme.small : Theme.body
                     font.features: { "tnum": 1 }
-                    text: ({ author: row.author, version: row.version, game: row.game, load: row.loadTime })[cell.modelData]
+                    text: ({ author: row.author, version: row.version, game: row.game, load: row.loadTime, size: row.size })[cell.modelData]
                 }
                 Rectangle {
                     visible: cell.modelData === "load" && row.loadPart > 0 && row.loadTime !== ""

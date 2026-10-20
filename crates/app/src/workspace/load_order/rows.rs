@@ -66,6 +66,8 @@ pub struct RowView {
     pub why_moved: Sentence,
     pub group_size: i32,
     pub twin: bool,
+    /// Its folder's size; empty while not known.
+    pub size: Sentence,
     /// On the inactive side, what it is ordered by when that is a time or a version.
     pub measure: Sentence,
 }
@@ -105,9 +107,17 @@ impl RowView {
             why_moved: Sentence::default(),
             group_size: 0,
             twin: false,
+            size: Sentence::default(),
             measure: Sentence::default(),
         }
     }
+}
+
+/// A folder's size; empty while not known.
+fn size_text(m: &Mod) -> Sentence {
+    m.bytes.map_or_else(Sentence::default, |bytes| {
+        sizes::together(bytes as f64 / 1_048_576.0, 0.0).0
+    })
 }
 
 /// The time or version the inactive list is ordered by; nothing for a name or category.
@@ -125,13 +135,7 @@ fn measure(by: Arrange, m: &Mod) -> Sentence {
             Sentence::Plain(parts.join("."))
         }
         Arrange::Category | Arrange::Name => Sentence::default(),
-        Arrange::Size => match m.bytes {
-            Some(bytes) => {
-                let (said, _) = sizes::together(bytes as f64 / 1_048_576.0, 0.0);
-                said
-            }
-            None => Sentence::default(),
-        },
+        Arrange::Size => size_text(m),
     }
 }
 
@@ -297,6 +301,7 @@ impl LoadOrder {
                 .get(index)
                 .copied()
                 .unwrap_or(false),
+            size: size_text(m),
             measure: match side {
                 Side::Inactive => measure(self.inactive_order.by, m),
                 Side::Active => Sentence::default(),

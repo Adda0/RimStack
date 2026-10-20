@@ -304,6 +304,7 @@ fn mods(app: &App, shapes: &mut Shapes) {
         order.recheck(app);
     }
     shapes.add("mods.summary", &app.summary());
+    shapes.add("mods.usage", &order.usage(app));
     shapes.add("mods.overview", &order.overview(app));
     shapes.add("mods.fresh", &order.fresh(app, Side::Inactive));
     for at in 0..order.list(Side::Active).mods().len() {

@@ -65,6 +65,8 @@ printf '<LanguageData><Fixture100>Fixture</Fixture100></LanguageData>\n' > "$fol
 # check has something installed to look at.
 about "$dir/workshop/2941000101" fixture.workshop "Fixture Workshop"
 printf '%s\n' "2941000101" > "$dir/workshop/2941000101/About/PublishedFileId.txt"
+# The sizes and times of installed items, as Steam keeps them two folders up.
+printf '"AppWorkshop"\n{\n\t"WorkshopItemsInstalled"\n\t{\n\t\t"2941000101"\n\t\t{\n\t\t\t"size"\t\t"1024000"\n\t\t\t"timeupdated"\t\t"1730000000"\n\t\t}\n\t}\n}\n' > "$dir/../appworkshop_294100.acf"
 
 {
     printf '<?xml version="1.0" encoding="utf-8"?>\n<ModsConfigData>\n  <version>1.6.4871 rev598</version>\n  <activeMods>\n'
