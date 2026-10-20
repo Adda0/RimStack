@@ -45,6 +45,9 @@ Item {
     readonly property var checkoutsBehind: report.checkoutsBehind || []
     property bool checkoutsOpen: false
     readonly property int ignoredReplacements: (Hub.settings.report.replacementsIgnored || []).length
+    readonly property var replacementRows: downloads.replacements || []
+    readonly property int swappable: replacementRows.filter(row => row.active && row.haveNew).length
+    readonly property var lackingReplacements: replacementRows.filter(row => !row.haveNew).map(row => row.newId)
 
     component UpdateRow: RowLayout {
         id: row
@@ -606,6 +609,24 @@ Item {
                 note: Theme.fill("{}, from the Use This Instead list", replaced.count)
                 key: "downloads-replaced"
                 actions: [
+                    Btn {
+                        visible: screen.swappable > 0
+                        icon: "corner-down-right"
+                        text: Theme.plural(screen.swappable, "Use {} replacement", "Use {} replacements")
+                        tip: Theme.say("Each active mod whose replacement is installed gives its place in the load order to it. Nothing reaches the game before Save, and Undo takes it back.")
+                        onClicked: Hub.mods.useReplacements()
+                    },
+                    Btn {
+                        visible: screen.lackingReplacements.length > 0
+                        enabled: !screen.downloads.queueBusy
+                        icon: "search"
+                        text: Theme.plural(screen.lackingReplacements.length, "Look up {} replacement", "Look up {} replacements")
+                        tip: Theme.say("Puts the replacements that are not installed in Look up, to subscribe to them in Steam or download them.")
+                        onClicked: {
+                            screen.downloads.lookUp(screen.lackingReplacements.join(" "))
+                            scroller.contentY = 0
+                        }
+                    },
                     Chip {
                         visible: screen.ignoredReplacements > 0
                         pressable: true
@@ -617,7 +638,7 @@ Item {
                 ]
                 Repeater {
                     id: replaced
-                    model: screen.downloads.replacements || []
+                    model: screen.replacementRows
                     RowLayout {
                         id: old
                         required property var modelData

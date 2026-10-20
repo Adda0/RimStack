@@ -179,6 +179,28 @@ impl qobject::ModsData {
         }
     }
 
+    pub(super) fn use_replacements(mut self: Pin<&mut Self>) {
+        let app = self.app();
+        let Some((ids, count)) = app.with_replacements() else {
+            return;
+        };
+        let keep = self.records;
+        let before = keep
+            .then(|| app.snapshot("@list", app.session().current()))
+            .flatten();
+        self.as_mut().order_mut().use_list(&app, ids);
+        self.as_mut().changed();
+        let said = say_n!(
+            count,
+            "{} mod swapped for its replacement",
+            "{} mods swapped for their replacements"
+        );
+        if keep {
+            app.note_change(said.clone(), before.as_deref());
+        }
+        self.done_said(said);
+    }
+
     pub(super) fn export_csv(mut self: Pin<&mut Self>, chosen: &QUrl) {
         let Some(given) = chosen.to_local_file() else {
             let said = crate::words::said(&say!("That is not a file here."));
