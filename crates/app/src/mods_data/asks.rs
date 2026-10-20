@@ -150,7 +150,7 @@ impl qobject::ModsData {
 
     pub(super) fn step_from(&self, active: bool, mod_id: i32, by: i32) -> i32 {
         let list = self.order.list(Side::of(active));
-        held(list.step_from(id(mod_id), by.signum() as isize))
+        held(list.step_from(id(mod_id), by as isize))
     }
 
     pub(super) fn beside_mod(&self, active: bool, mod_id: i32) -> i32 {

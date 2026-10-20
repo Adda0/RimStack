@@ -26,9 +26,11 @@ Item {
     Keys.onUpPressed: go(current - 1)
     Keys.onDownPressed: go(current + 1)
     Keys.onPressed: event => {
-        if (event.key !== Qt.Key_Home && event.key !== Qt.Key_End)
+        const page = view ? Math.max(1, Math.floor(view.height / Theme.row) - 1) : 10
+        const to = new Map([[Qt.Key_Home, 0], [Qt.Key_End, count - 1], [Qt.Key_PageUp, current - page], [Qt.Key_PageDown, current + page]]).get(event.key)
+        if (to === undefined)
             return
-        go(event.key === Qt.Key_Home ? 0 : count - 1)
+        go(to)
         event.accepted = true
     }
     Keys.onReturnPressed: entered()

@@ -54,16 +54,7 @@ ListView {
     }
     activeFocusOnTab: true
     Accessible.role: Accessible.List
-    Keys.onUpPressed: event => event.modifiers & Qt.AltModifier ? Mods.nudge(list.model, -1) : Mods.step(list.model, -1)
-    Keys.onDownPressed: event => event.modifiers & Qt.AltModifier ? Mods.nudge(list.model, 1) : Mods.step(list.model, 1)
-    Keys.onPressed: event => {
-        if (Mods.selectedCount !== 1 || event.modifiers !== Qt.NoModifier || (event.key !== Qt.Key_T && event.key !== Qt.Key_N))
-            return
-        Mods.editRequested(event.key === Qt.Key_N ? "note" : "tags")
-        event.accepted = true
-    }
-    Keys.onReturnPressed: Mods.activateSelected(list.model)
-    Keys.onEnterPressed: Mods.activateSelected(list.model)
+    Keys.onPressed: event => event.accepted = Mods.listKey(list, event.key, event.modifiers)
     Rectangle { id: ring; parent: list; anchors.fill: parent; anchors.margins: Theme.gapLine; z: 4; radius: Theme.corner; color: "transparent"; border.width: 2; border.color: Theme.focus; visible: list.activeFocus }
 
     property int tick: 0
