@@ -735,4 +735,65 @@ mod tests {
         };
         assert_eq!(detect(home.path(), &overrides).config, Some(settings));
     }
+
+    /// The game's folders moved to another drive, a link left where they were (#3).
+    #[cfg(unix)]
+    #[test]
+    fn folders_reached_through_links_are_used_as_they_are() {
+        use crate::rimworld::{modsconfig, saves};
+        use std::os::unix::fs::symlink;
+        let home = tempfile::tempdir().unwrap();
+        let moved = home.path().join("drive-d");
+        let root = steam_root(home.path(), &[(&moved, true)]);
+        library_with_game(&moved);
+        let game = moved.join("steamapps/common/RimWorld");
+        let workshop = moved.join("steamapps/workshop/content/294100");
+        fs::create_dir_all(game.join("Data/Core")).unwrap();
+        let studio = moved.join("Ludeon Studios");
+        let settings = studio.join("RimWorld by Ludeon Studios");
+        fs::create_dir_all(settings.join("Config")).unwrap();
+        fs::write(
+            settings.join("Config/ModsConfig.xml"),
+            "<ModsConfigData><activeMods><li>ludeon.rimworld</li></activeMods></ModsConfigData>",
+        )
+        .unwrap();
+        fs::create_dir_all(settings.join("Saves")).unwrap();
+        fs::write(settings.join("Saves/Colony.rws"), "").unwrap();
+        let unity = home.path().join(".config/unity3d");
+        fs::create_dir_all(&unity).unwrap();
+        symlink(&studio, unity.join("Ludeon Studios")).unwrap();
+        fs::rename(root.join("steamapps"), moved.join("steam-lists")).unwrap();
+        symlink(moved.join("steam-lists"), root.join("steamapps")).unwrap();
+
+        let paths = detect_on(Os::Linux, home.path(), &|_| None, &Overrides::default());
+        let config = home.path().join(NATIVE_CONFIG);
+        assert_eq!(paths.config.as_ref(), Some(&config));
+        let judged = judge(Os::Linux, Folder::Config, &config).map_err(|e| e.to_string());
+        assert!(judged.is_ok(), "{judged:?}");
+        let sources: Vec<Source> = paths.roots().iter().map(|r| r.source).collect();
+        assert_eq!(sources, [Source::Official, Source::Local, Source::Workshop]);
+        assert_eq!(saves::list(&config.join("Saves")).len(), 1);
+
+        let file = paths.mods_config().unwrap();
+        let before = modsconfig::read(&file).unwrap().active;
+        modsconfig::write(&file, &["ludeon.rimworld".into(), "a.b".into()], &before).unwrap();
+        let linked = fs::symlink_metadata(unity.join("Ludeon Studios")).unwrap();
+        assert!(linked.file_type().is_symlink());
+        let written = modsconfig::read(&settings.join("Config/ModsConfig.xml")).unwrap();
+        assert_eq!(written.active, ["ludeon.rimworld", "a.b"]);
+
+        let typed = home.path().join("typed");
+        symlink(&game, &typed).unwrap();
+        let judged = judge(Os::Linux, Folder::Game, &typed).map_err(|e| e.to_string());
+        assert!(judged.is_ok(), "{judged:?}");
+        let overrides = Overrides {
+            game: Some(typed.clone()),
+            config: Some(config.clone()),
+            workshop: Some(home.path().join("workshop")),
+        };
+        symlink(&workshop, home.path().join("workshop")).unwrap();
+        let paths = detect_on(Os::Linux, home.path(), &|_| None, &overrides);
+        let sources: Vec<Source> = paths.roots().iter().map(|r| r.source).collect();
+        assert_eq!(sources, [Source::Official, Source::Local, Source::Workshop]);
+    }
 }
