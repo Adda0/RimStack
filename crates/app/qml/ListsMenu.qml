@@ -177,14 +177,14 @@ Popup {
                     }
                 }
             }
+        }
 
-            Text { topPadding: Theme.gapSmall; color: Theme.ink; font.pixelSize: Theme.title; font.weight: Font.DemiBold; text: Theme.say("Files") }
-            Flow {
-                width: parent.width
-                spacing: Theme.gapSmall
-                Btn { icon: "download"; text: Theme.say("Export as CSV"); tip: Theme.say("Writes the active mods as a CSV file, the columns of RimSort's export"); onClicked: { listsMenu.close(); exportList.open() } }
-                Btn { text: Theme.say("Use a list from a file"); tip: Theme.say("A RimSort or RimPy mod list, a save's list, or a text list becomes the load order. Save writes it."); onClicked: { listsMenu.close(); importList.open() } }
-            }
+        Text { topPadding: Theme.gapSmall; color: Theme.ink; font.pixelSize: Theme.title; font.weight: Font.DemiBold; text: Theme.say("Files") }
+        Flow {
+            width: parent.width
+            spacing: Theme.gapSmall
+            Btn { icon: "download"; text: Theme.say("Export as CSV"); tip: Theme.say("Writes the active mods as a CSV file, the columns of RimSort's export"); onClicked: { listsMenu.close(); exportList.open() } }
+            Btn { text: Theme.say("Use a list from a file"); tip: Theme.say("A RimSort or RimPy mod list, a save's list, or a text list becomes the load order. Save writes it."); onClicked: { listsMenu.close(); importList.open() } }
         }
 
         FileDialog {
