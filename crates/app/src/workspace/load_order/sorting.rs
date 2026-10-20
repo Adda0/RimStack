@@ -206,7 +206,7 @@ fn note(mods: &[Mod], sorted: &rimstack_core::mods::sort::Sorted, moves: usize) 
     let each: Vec<Sentence> = sorted
         .dropped
         .iter()
-        .filter(|r| !matches!(r.kind, Kind::CommunityBottom | Kind::Inferred))
+        .filter(|r| !matches!(r.kind, Kind::CommunityBottom | Kind::Inferred | Kind::Hint))
         .map(|r| describe::rule(r, mods))
         .collect();
     if !each.is_empty() {
