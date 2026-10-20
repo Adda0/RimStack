@@ -128,6 +128,8 @@ pub enum SortKey {
     /// By the numbers of `Mod::game`, so 1.10 comes after 1.9.
     Game,
     Load,
+    /// Biggest folder first when reversed, like Arrange::Size.
+    Size,
 }
 
 /// How the inactive list is ordered; all but `Category` drop the headings.
@@ -347,6 +349,45 @@ pub mod flag {
     pub const UNPLAYED: u16 = 4096;
     /// Ships a dll an active mod also ships differently, or bundles 0Harmony.
     pub const ASSEMBLIES: u16 = 8192;
+}
+
+/// On-disk space as the lists' own byte numbers hold it.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Usage {
+    pub active: u64,
+    pub inactive: u64,
+    pub workshop: u64,
+    pub local: u64,
+    pub git: u64,
+    /// Inactive mods named by no save, no saved list and no kept order, as `is:unplayed` flags them.
+    pub unplayed_inactive: u64,
+}
+
+/// Sums per side and per source; a mod whose size is not known takes none.
+pub fn usage(active: &[Mod], inactive: &[Mod], inactive_flags: &[u16]) -> Usage {
+    let bytes = |m: &Mod| m.bytes.unwrap_or(0);
+    let mut usage = Usage {
+        active: active.iter().map(&bytes).sum(),
+        inactive: inactive.iter().map(&bytes).sum(),
+        ..Usage::default()
+    };
+    for m in active.iter().chain(inactive) {
+        if m.workshop {
+            usage.workshop += bytes(m);
+        }
+        if m.local {
+            usage.local += bytes(m);
+        }
+        if m.git {
+            usage.git += bytes(m);
+        }
+    }
+    for (at, m) in inactive.iter().enumerate() {
+        if inactive_flags.get(at).copied().unwrap_or(0) & flag::UNPLAYED != 0 {
+            usage.unplayed_inactive += bytes(m);
+        }
+    }
+    usage
 }
 
 impl Filter {
@@ -765,6 +806,9 @@ impl GroupedList {
                 }
                 SortKey::Load => {
                     shown.sort_by_key(|&i| self.mods[i].load_micros);
+                }
+                SortKey::Size => {
+                    shown.sort_by_key(|&i| self.mods[i].bytes);
                 }
                 _ => shown.sort_by_cached_key(|&i| text(i)),
             }

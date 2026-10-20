@@ -53,6 +53,39 @@ fn header(category: Category, count: usize, collapsed: bool) -> Row {
 }
 
 #[test]
+fn disk_space_sums_sides_sources_and_unplayed() {
+    let mut active = vec![
+        m("Core", "Ludeon", Category::Game),
+        m("Harmony", "pardeike", Category::Loaders),
+    ];
+    active[0].bytes = Some(1_000);
+    active[1].bytes = Some(2_000);
+    active[1].workshop = true;
+    let mut inactive = vec![
+        m("Home", "ann", Category::Content),
+        m("Fork", "bob", Category::Patches),
+        m("Loose", "cyd", Category::Textures),
+    ];
+    inactive[0].bytes = Some(4_000);
+    inactive[0].local = true;
+    inactive[1].bytes = Some(8_000);
+    inactive[1].git = true;
+    // No size known: it takes none.
+    let said = usage(&active, &inactive, &[0, flag::UNPLAYED, flag::UNPLAYED]);
+    assert_eq!(
+        said,
+        Usage {
+            active: 3_000,
+            inactive: 12_000,
+            workshop: 2_000,
+            local: 4_000,
+            git: 8_000,
+            unplayed_inactive: 8_000,
+        }
+    );
+}
+
+#[test]
 fn groups_mods_under_headers_in_load_order() {
     let list = sample();
     assert_eq!(
