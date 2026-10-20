@@ -262,6 +262,41 @@ Item {
         // Every tab of the details is laid out on selection; a value of the wrong shape shows in the log.
         check("a translation mod says the mod it translates", Mods.info.translates === "Fixture Mod 100")
         Mods.select(-1, false)
+
+        Mods.filtered = "is:duplicate"
+        check("is:duplicate finds the extra copies, left and right of the list", Mods.active.matching === 1 && Mods.inactive.matching === 2)
+        Mods.filtered = ""
+        let localCopy = null
+        for (let r = 0; r < Mods.active.rows(); r++) {
+            const dupId = Mods.active.modIdAt(r)
+            if (dupId >= 0 && Mods.about(dupId).packageId === "fixture.mod006")
+                localCopy = { id: dupId, view: Mods.active.at(r) }
+        }
+        let twinsCalm = 0
+        for (let r = 0; r < Mods.inactive.rows(); r++) {
+            const twinId = Mods.inactive.modIdAt(r)
+            if (twinId >= 0 && Mods.about(twinId).packageId === "fixture.mod006" && Mods.inactive.at(r).trouble === 0)
+                twinsCalm += 1
+        }
+        check("the copies not in the order stay findable, without a warning", twinsCalm === 2)
+        check("an active mod installed more than once is warned on its row", !!localCopy && localCopy.view.troubleText === "another copy is installed")
+        check("and the tooltip names the other copies and why the game reads this one", !!localCopy && localCopy.view.troubleTip.indexOf("installed more than once") >= 0 && localCopy.view.troubleTip.indexOf("2941000006") >= 0 && localCopy.view.troubleTip.indexOf("fixture-006-again") >= 0)
+        Mods.select(localCopy ? localCopy.id : -1, true)
+        const copies = Mods.info.copies || []
+        const shop = copies.filter(c => c.source === "Workshop")[0]
+        const again = copies.filter(c => c.folder === "fixture-006-again")[0]
+        check("the About card lists every copy and marks the one in use", copies.length === 3 && copies.filter(c => c.used).length === 1)
+        check("a swappable copy offers to be the one the order names", !!shop && shop.useAs === "fixture.mod006_steam" && !shop.used)
+        check("a copy no entry can name offers the bin, not the order", !!again && !again.useAs && !again.used)
+        if (shop) {
+            Hub.mods.useCopy(shop.modId, shop.useAs)
+            const swapped = (Mods.info.copies || []).filter(c => c.used)
+            check("using another copy is done in one step", swapped.length === 1 && swapped[0].source === "Workshop" && Hub.mods.dirty)
+            Hub.mods.undo()
+            const back = (Mods.info.copies || []).filter(c => c.used)
+            check("undo names the first copy again", back.length === 1 && back[0].source === "Local" && !Hub.mods.dirty)
+        }
+        Mods.select(-1, false)
         const bar = checks.view.bar
         const overflows = checks.view.contentHeight > checks.view.height
         check("a list longer than its pane shows its scrollbar unscrolled, wide, and beside the rows", overflows && bar.policy === 2 && bar.contentItem.state === "shown" && bar.width >= Theme.sized(10) && bar.room === bar.width && checks.view.itemAtIndex(0).width === checks.view.width - bar.width)

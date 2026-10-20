@@ -68,21 +68,18 @@ impl App {
     }
 
     /// The game's own mods and those in the load order being edited are refused, but for a
-    /// local copy whose Workshop subscription then takes its place.
+    /// copy whose place for the same order entry another copy of its id then takes.
     pub(crate) fn bin_target(&self, id: ModId) -> Result<PathBuf, Error> {
         let active = self.session().current().to_vec();
         let loaded = self.library();
         let (library, _) = loaded.as_ref().as_ref().map_err(Clone::clone)?;
-        let replaced = library.copies(id).is_some_and(|c| c.local == id);
-        self.installed_mod(id, |m| {
-            let in_use = m
-                .key()
-                .is_some_and(|key| active.iter().any(|a| a.eq_ignore_ascii_case(&key)));
-            match (m.source, in_use && !replaced) {
-                (Source::Official, _) => Err(Error::refused(said!("The game's own mods stay"))),
-                (_, true) => Err(Error::refused(said!("Deactivate it first"))),
-                _ => Ok(m.path.clone()),
-            }
+        let loaded_as = library.loaded_as(id, &active);
+        let replaced = loaded_as.is_some_and(|entry| library.another_loads(id, entry));
+        let in_use = loaded_as.is_some();
+        self.installed_mod(id, |m| match (m.source, in_use && !replaced) {
+            (Source::Official, _) => Err(Error::refused(said!("The game's own mods stay"))),
+            (_, true) => Err(Error::refused(said!("Deactivate it first"))),
+            _ => Ok(m.path.clone()),
         })?
     }
 
@@ -333,10 +330,37 @@ mod tests {
             app.bin_target(roads).unwrap(),
             tmp.path().join("game/Mods/roads")
         );
+        // An order entry names only the local copy, so the Workshop one may go without
+        // deactivating anything first.
+        let subscribed = by_folder(&app, "123");
+        assert_eq!(
+            app.bin_target(subscribed).unwrap(),
+            tmp.path().join("workshop/123")
+        );
+    }
+
+    #[test]
+    fn a_workshop_copy_named_by_its_steam_entry_is_refused() {
+        let (tmp, app) = installed();
+        std::fs::create_dir_all(tmp.path().join("workshop/123/About")).unwrap();
+        std::fs::write(
+            tmp.path().join("workshop/123/About/About.xml"),
+            "<ModMetaData><packageId>Ann.Roads</packageId></ModMetaData>",
+        )
+        .unwrap();
+        app.rescan();
+        app.session()
+            .record(vec!["ludeon.rimworld".into(), "ann.roads_steam".into()]);
         let subscribed = by_folder(&app, "123");
         assert_eq!(
             app.bin_target(subscribed).unwrap_err().kind(),
             Kind::Refused
+        );
+        // The local copy it stands in for, by the plain entry, may go.
+        let roads = by_folder(&app, "roads");
+        assert_eq!(
+            app.bin_target(roads).unwrap(),
+            tmp.path().join("game/Mods/roads")
         );
     }
 
