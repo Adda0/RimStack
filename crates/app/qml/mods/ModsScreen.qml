@@ -284,9 +284,9 @@ Rectangle {
     Shortcut { sequences: [StandardKey.Undo]; onActivated: Hub.mods.undo() }
     Shortcut { sequences: [StandardKey.Redo]; onActivated: Hub.mods.redo() }
     Shortcut { sequences: [StandardKey.Save]; onActivated: if (Hub.mods.dirty) Mods.save() }
-    // Off while a text field has the focus, so that Esc reaches the field. Window attached
-    // to the Shortcut itself is null: it is read off the screen.
-    Shortcut { sequence: "Escape"; enabled: Mods.comparing === null && !subPrompt.opened && !(screen.Window.activeFocusItem && screen.Window.activeFocusItem.cursorPosition !== undefined); onActivated: screen.drawerOpen ? screen.drawerOpen = false : Mods.picking !== "" ? Mods.picking = "" : Mods.select(-1, false) }
+    // Off while a text field has the focus, so that Esc reaches the field, and on the other
+    // sections. Window attached to the Shortcut itself is null: it is read off the screen.
+    Shortcut { sequence: "Escape"; enabled: screen.visible && Mods.comparing === null && !subPrompt.opened && !(screen.Window.activeFocusItem && screen.Window.activeFocusItem.cursorPosition !== undefined); onActivated: screen.drawerOpen ? screen.drawerOpen = false : Mods.picking !== "" ? Mods.picking = "" : Mods.select(-1, false) }
 
     // F6 goes round the inactive mods, the load order and the details, as a browser goes round its panes.
     function panes() {
