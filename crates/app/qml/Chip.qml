@@ -25,6 +25,7 @@ Rectangle {
     Accessible.name: text !== "" ? text : tip
     Accessible.onPressAction: if (pressable) chip.clicked()
     Keys.onReturnPressed: chip.clicked()
+    Keys.onEnterPressed: chip.clicked()
     Keys.onSpacePressed: chip.clicked()
     Row {
         id: content

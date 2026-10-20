@@ -5,7 +5,9 @@ import RimStack.Ui
 TextEdit {
     readOnly: true
     selectByMouse: true
-    activeFocusOnTab: false
+    // Shift with the arrows selects; Ctrl+C with nothing selected copies it all.
+    selectByKeyboard: true
+    activeFocusOnTab: true
     Accessible.role: Accessible.StaticText
     Accessible.name: text
     textFormat: TextEdit.PlainText
@@ -18,9 +20,10 @@ TextEdit {
     // A text shown with invisible places to break at is copied without them.
     Keys.onPressed: event => {
         if (event.matches(StandardKey.Copy)) {
-            Theme.copy(selectedText.replace(/\u200b/g, ""))
+            Theme.copy((selectedText || text).replace(/\u200b/g, ""))
             event.accepted = true
         }
     }
+    FocusRing {}
     HoverHandler { cursorShape: Qt.IBeamCursor }
 }

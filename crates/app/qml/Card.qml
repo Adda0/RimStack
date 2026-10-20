@@ -32,6 +32,7 @@ Rectangle {
         Accessible.name: card.title
         Accessible.description: name.meaning
         Keys.onReturnPressed: Theme.fold(card.key)
+        Keys.onEnterPressed: Theme.fold(card.key)
         Keys.onSpacePressed: Theme.fold(card.key)
         Text {
             id: name
