@@ -46,6 +46,8 @@ pub struct RowView {
     /// 0 nothing, 1 a warning, 2 an error.
     pub trouble: i32,
     pub trouble_text: Sentence,
+    /// What the trouble chip's tooltip says: every trouble of the row in full.
+    pub trouble_tip: Sentence,
     pub tags: String,
     /// The swatch the row is painted with; empty for none.
     pub colour: String,
@@ -92,6 +94,7 @@ impl RowView {
             moved_from: 0,
             trouble: 0,
             trouble_text: Sentence::default(),
+            trouble_tip: Sentence::default(),
             tags: String::new(),
             colour: String::new(),
             local: false,
@@ -279,6 +282,7 @@ impl LoadOrder {
                 .max()
                 .unwrap_or(0),
             trouble_text: first.map_or_else(Sentence::default, |t| t.short.clone()),
+            trouble_tip: Sentence::joined("\n", shown().map(|t| t.words.clone()).collect()),
             tags: m.tags.join(", "),
             colour: m.colour.clone(),
             local: m.local,

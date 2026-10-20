@@ -5,6 +5,34 @@ use rimstack_core::mods::library::ModId;
 use rimstack_core::mods::list::{Category, Mod, Row, edge_of_run};
 
 impl LoadOrder {
+    /// The entry naming a copy of this id is made to name `id` — `id` ↔ `id_steam` — so the
+    /// game reads that folder instead; one Undo step, false when it is not in use.
+    pub fn use_copy(&mut self, app: &App, id: ModId, written: String) -> bool {
+        let active = app.session().current().to_vec();
+        let loaded = app.library();
+        let Ok((library, _)) = &*loaded else {
+            return false;
+        };
+        let Some(key) = library.get(id).and_then(|m| m.key()) else {
+            return false;
+        };
+        // The entry the game actually reads for this id: the first one naming it; a HashMap
+        // walk could hand back a duplicate's entry and make the switch a no-op.
+        let Some(entry) = active.iter().find(|entry| {
+            key == rimstack_core::rimworld::id::fold(entry)
+                || key == rimstack_core::rimworld::id::split_steam(entry).0
+        }) else {
+            return false;
+        };
+        let Some(at) = self.active.mods().iter().position(|m| m.id == *entry) else {
+            return false;
+        };
+        self.end_preview();
+        self.active.mods_mut()[at].id = written;
+        self.settle(app);
+        true
+    }
+
     pub fn move_mod(&mut self, app: &App, side: Side, from: usize, to: usize) {
         let list = self.list(side);
         if from >= list.mods().len() || from == to {

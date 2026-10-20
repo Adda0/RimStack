@@ -28,6 +28,8 @@ Item {
     required property int trouble
     required property string tags
     required property string troubleText
+    // Every trouble of the row, one a line, for the chip's tooltip; empty for none.
+    required property string troubleTip
     required property int groupSize
     required property bool local
     required property string picture
@@ -386,7 +388,7 @@ Item {
                 text: bare && kind !== 1 ? "" : kind === 1 ? Theme.count(row.movedBy) : kind !== 2 ? row.troubleText : cells.mark.loses ? Theme.say("loses textures") : Theme.say("wins textures")
                 tip: kind === 1 ? Theme.fill(row.whyMoved.length > 0 ? "Sort moves it from {} to {}: {}" : "Sort moves it from {} to {}", row.movedFrom, row.number, row.whyMoved)
                     : kind === 2 ? (cells.mark.loses ? Theme.say("The selected mod loads later and its textures are used") : Theme.say("This mod loads later than the selected one and its textures are used"))
-                    : row.troubleText
+                    : row.troubleTip || row.troubleText
             }
         }
     }

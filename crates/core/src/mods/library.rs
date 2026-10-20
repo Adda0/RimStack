@@ -678,7 +678,7 @@ pub fn load(paths: &Paths) -> Result<Library, Error> {
 
 mod copies;
 mod mod_id;
-pub use copies::Copies;
+pub use copies::{Copies, Loaded};
 #[cfg(test)]
 mod real;
 #[cfg(test)]

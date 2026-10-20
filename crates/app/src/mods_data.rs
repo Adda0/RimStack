@@ -202,6 +202,10 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "winOver"]
         fn win_over(self: Pin<&mut ModsData>, mod_id: i32, other: i32);
+        /// The order's entry is made to name this copy of the mod's id instead.
+        #[qinvokable]
+        #[cxx_name = "useCopy"]
+        fn use_copy(self: Pin<&mut ModsData>, mod_id: i32, written: &QString);
         #[qinvokable]
         fn fix(self: Pin<&mut ModsData>, mod_id: i32, action: &QString, target: &QString) -> bool;
         #[qinvokable]

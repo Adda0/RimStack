@@ -606,6 +606,26 @@ impl qobject::ModsData {
         self.changed();
     }
 
+    pub(super) fn use_copy(mut self: Pin<&mut Self>, mod_id: i32, written: &QString) {
+        let Some(id) = id(mod_id) else {
+            return;
+        };
+        if self.order.previewing() {
+            return;
+        }
+        let app = self.app();
+        if !self
+            .as_mut()
+            .order_mut()
+            .use_copy(&app, id, written.to_string())
+        {
+            self.done_said(say!("That copy is no longer there"));
+            return;
+        }
+        self.as_mut().changed();
+        self.done_said(say!("The load order now names this copy"));
+    }
+
     pub(super) fn fix(
         mut self: Pin<&mut Self>,
         mod_id: i32,

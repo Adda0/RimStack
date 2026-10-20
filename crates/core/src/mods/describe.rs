@@ -2,7 +2,7 @@ use crate::base::sentence::Sentence;
 use crate::base::translate::named;
 use crate::mods::checks::{self, Problem};
 use crate::mods::details;
-use crate::mods::library::Library;
+use crate::mods::library::{Library, ModId};
 use crate::mods::list::Mod;
 use crate::mods::rules::{Kind, Rule};
 use crate::rimworld::code::{Aim, Facts};
@@ -386,6 +386,67 @@ pub fn without_ignored(
             t.key.is_empty() || !(ignores(me, &t.key) || other_side)
         });
     }
+}
+
+/// For each active mod: its id names another installed folder, and the game reads only one
+/// of the copies. Of the entries naming one id, only the first is read.
+pub fn duplicates(library: &Library, mods: &[Mod]) -> Vec<Vec<Trouble>> {
+    let entries: Vec<String> = mods.iter().map(|m| m.id.clone()).collect();
+    let read = library.in_use(&entries);
+    mods.iter()
+        .map(|m| duplicate(library, m, &read).into_iter().collect())
+        .collect()
+}
+
+fn duplicate(library: &Library, m: &Mod, read: &HashMap<ModId, String>) -> Option<Trouble> {
+    let i = m.installed?;
+    let copies = library.copies(i)?;
+    let key = library.get(i)?.key()?;
+    let place = |at: ModId| {
+        library
+            .get(at)
+            .map(|o| format!("{} ({})", o.folder, o.source_label()))
+    };
+    let others: Vec<String> = copies
+        .all
+        .iter()
+        .copied()
+        .filter(|&o| o != i)
+        .filter_map(place)
+        .collect();
+    let all = others.join(", ");
+    let why = |winner: ModId| library.loaded_why(winner, &m.id).map(|why| why.words());
+    let trouble = if read.contains_key(&i) {
+        Trouble {
+            error: false,
+            words: say!(
+                "Its id {} is installed more than once: {}. For \"{}\" the game loads this copy — {}.",
+                key,
+                all,
+                m.id,
+                why(i)?.inside()
+            ),
+            short: say!("another copy is installed"),
+            fix: Fix::None,
+            key: "duplicate".to_string(),
+        }
+    } else {
+        let winner = copies.all.iter().copied().find(|o| read.contains_key(o))?;
+        Trouble {
+            error: false,
+            words: say!(
+                "Its id {} is installed more than once: {}. The order reaches \"{}\" first: the game loads {}, and reads nothing of this copy.",
+                key,
+                all,
+                read[&winner],
+                place(winner)?
+            ),
+            short: say!("the game loads another copy"),
+            fix: Fix::None,
+            key: "duplicate".to_string(),
+        }
+    };
+    Some(trouble)
 }
 
 pub fn code(facts: &Facts) -> Vec<Sentence> {
@@ -1043,4 +1104,106 @@ mod tests {
             ]
         );
     }
+
+    #[test]
+    fn an_active_mod_of_an_id_installed_twice_is_warned_which_copy_the_game_loads() {
+        let tmp = tempfile::tempdir().unwrap();
+        let roots = [
+            (tmp.path().join("Mods"), Source::Local),
+            (tmp.path().join("workshop"), Source::Workshop),
+        ]
+        .map(|(path, source)| ModRoot { path, source });
+        let about = |id: &str| format!("<ModMetaData><packageId>{id}</packageId></ModMetaData>");
+        let add = |at: usize, folder: &str, id: &str| {
+            let abouts = roots[at].path.join(folder).join("About");
+            fs::create_dir_all(&abouts).unwrap();
+            fs::write(abouts.join("About.xml"), about(id)).unwrap();
+        };
+        add(0, "hats", "Ann.Hats");
+        add(1, "1", "ann.hats");
+        add(1, "2", "Ann.Roads");
+        add(1, "3", "ann.roads");
+        add(1, "4", "ann.free");
+        let active = [
+            "ann.hats".to_string(),
+            "ann.hats_steam".to_string(),
+            "ann.roads".to_string(),
+            "ann.free".to_string(),
+            "gone.mod".to_string(),
+        ];
+        let library = build(scan(&roots), &active, "1.7");
+        let found = duplicates(&library, &library.active);
+        let said =
+            |own: &[Trouble]| -> Vec<String> { own.iter().map(|t| t.words.to_string()).collect() };
+        assert_eq!(
+            said(&found[0]),
+            [
+                "Its id ann.hats is installed more than once: 1 (Workshop). For \"ann.hats\" the game loads this copy — a copy in the game's Mods folder comes before a Workshop one."
+            ]
+        );
+        assert_eq!(found[0][0].short.to_string(), "another copy is installed");
+        assert_eq!(
+            said(&found[1]),
+            [
+                "Its id ann.hats is installed more than once: hats (Local). The order reaches \"ann.hats\" first: the game loads hats (Local), and reads nothing of this copy."
+            ]
+        );
+        assert_eq!(found[1][0].short.to_string(), "the game loads another copy");
+        assert_eq!(
+            said(&found[2]),
+            [
+                "Its id ann.roads is installed more than once: 3 (Workshop). For \"ann.roads\" the game loads this copy — its folder name sorts first in its folder."
+            ]
+        );
+        assert_eq!(found[2][0].short.to_string(), "another copy is installed");
+        assert!(found[2][0].fix == Fix::None);
+        assert!(found[3].is_empty());
+        assert!(found[4].is_empty());
+    }
+
+    #[test]
+    fn the_copy_named_by_a_second_entry_of_its_id_is_warned_the_game_never_reads_it() {
+        let tmp = tempfile::tempdir().unwrap();
+        let roots = [
+            (tmp.path().join("Mods"), Source::Local),
+            (tmp.path().join("workshop"), Source::Workshop),
+        ]
+        .map(|(path, source)| ModRoot { path, source });
+        let about = |id: &str| format!("<ModMetaData><packageId>{id}</packageId></ModMetaData>");
+        let add = |at: usize, folder: &str, id: &str| {
+            let abouts = roots[at].path.join(folder).join("About");
+            fs::create_dir_all(&abouts).unwrap();
+            fs::write(abouts.join("About.xml"), about(id)).unwrap();
+        };
+        add(0, "hats", "Ann.Hats");
+        add(1, "1", "ann.hats");
+        let active = [
+            "ann.hats_steam".to_string(),
+            "ann.hats".to_string(),
+            "gone.mod".to_string(),
+        ];
+        let library = build(scan(&roots), &active, "1.7");
+        let found = duplicates(&library, &library.active);
+        let said =
+            |own: &[Trouble]| -> Vec<String> { own.iter().map(|t| t.words.to_string()).collect() };
+        assert_eq!(found.len(), 3);
+        assert_eq!(
+            said(&found[0]),
+            [
+                "Its id ann.hats is installed more than once: hats (Local). For \"ann.hats_steam\" the game loads this copy — the load order names it with \"_steam\"."
+            ]
+        );
+        assert_eq!(found[0][0].short.to_string(), "another copy is installed");
+        assert_eq!(
+            said(&found[1]),
+            [
+                "Its id ann.hats is installed more than once: 1 (Workshop). The order reaches \"ann.hats_steam\" first: the game loads 1 (Workshop), and reads nothing of this copy."
+            ]
+        );
+        assert_eq!(found[1][0].short.to_string(), "the game loads another copy");
+        assert!(found[2].is_empty());
+    }
+
+    // Inactive duplicates are found with `is:duplicate`; only the active side's rows get
+    // this trouble, which `duplicates` is called for.
 }

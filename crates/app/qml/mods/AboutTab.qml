@@ -398,16 +398,45 @@ Column {
     }
 
     Card {
-        visible: !!Mods.info.copies
-        title: Theme.say("Two copies")
-        Text { width: parent.width; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: Theme.body; lineHeight: 1.3; text: Mods.info.copies || "" }
-        Btn {
-            visible: !!Mods.info.binLocalCopy
-            danger: true
-            icon: "trash-2"
-            text: Theme.say("Move the local copy to the bin…")
-            tip: Theme.say("The Workshop copy is then the one the game uses.")
-            onClicked: Mods.binRequested(Mods.info.binLocalCopy.modId, 0, Mods.info.binLocalCopy.path)
+        visible: (Mods.info.copies || []).length > 0
+        title: Theme.say("Installed more than once")
+        Text { width: parent.width; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: Theme.body; lineHeight: 1.3; text: Theme.say("More than one folder names this mod's package id; the game reads only one of them. Keep one.") }
+        Repeater {
+            model: Mods.info.copies || []
+            Column {
+                id: copyLine
+                required property var modelData
+                width: side.width
+                spacing: Theme.gapTiny
+                RowLayout {
+                    width: parent.width
+                    spacing: Theme.gapSmall
+                    Chip { visible: copyLine.modelData.used; tone: Theme.ok; icon: "check"; text: Theme.say("in use") }
+                    Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: copyLine.modelData.folder + (copyLine.modelData.version ? " — " + copyLine.modelData.version : "") }
+                    Text { color: Theme.ink3; font.pixelSize: Theme.body; text: Theme.say(copyLine.modelData.source) }
+                    Text { color: Theme.ink3; font.pixelSize: Theme.small; text: copyLine.modelData.megabytes ? Theme.fill("{} MB", (copyLine.modelData.megabytes < 10 ? copyLine.modelData.megabytes.toFixed(1) : Math.round(copyLine.modelData.megabytes))) : "" }
+                }
+                Text { visible: !!copyLine.modelData.note; width: parent.width; wrapMode: Text.WordWrap; color: Theme.ink3; font.pixelSize: Theme.small; text: copyLine.modelData.note || "" }
+                Text { width: parent.width; elide: Text.ElideMiddle; color: Theme.ink3; font.pixelSize: Theme.small; text: copyLine.modelData.path }
+                Row {
+                    spacing: Theme.gapSmall
+                    Btn {
+                        visible: !!copyLine.modelData.useAs && !Hub.mods.previewing
+                        icon: "check"
+                        text: Theme.say("Use this copy")
+                        tip: Theme.fill("The load order is made to name it: \"{}\"", copyLine.modelData.useAs || "")
+                        onClicked: Mods.useCopy(copyLine.modelData.modId, copyLine.modelData.useAs || "")
+                    }
+                    Btn { icon: "folder-open"; text: Theme.say("Open folder"); onClicked: Qt.openUrlExternally(Theme.fileUrl(copyLine.modelData.path)) }
+                    Btn {
+                        visible: !copyLine.modelData.used
+                        danger: true
+                        icon: "trash-2"
+                        text: Theme.say("Move to the bin…")
+                        onClicked: Mods.binRequested(copyLine.modelData.modId, 0, copyLine.modelData.path)
+                    }
+                }
+            }
         }
     }
 
