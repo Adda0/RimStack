@@ -1,5 +1,6 @@
 // Entries: { text, icon, off, danger, run }, { line: true } for a divider,
 // or { title } for a caption. A menu taller than the window scrolls.
+// Entries marked { pick: true } bring a search field that narrows them as one types.
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls.Basic
@@ -14,12 +15,19 @@ Popup {
     property int at: -1
     // The entries' column, for the checks to find an entry in.
     readonly property alias column: column
+    readonly property alias search: search
+    readonly property alias scroller: scroll
+    readonly property bool searching: entries.some(entry => !!entry.pick)
+    readonly property string query: search.typing.trim().toLowerCase()
+    function hidden(entry) {
+        return !!entry.pick && query !== "" && !entry.text.toLowerCase().includes(query)
+    }
     function step(by) {
         let next = at
         for (let tries = 0; tries < entries.length; tries++) {
             next = (next + by + entries.length) % entries.length
             const entry = entries[next]
-            if (!entry.line && !entry.title && !entry.off) {
+            if (!entry.line && !entry.title && !entry.off && !hidden(entry)) {
                 at = next
                 // Scrolled just enough to show the entry the keys landed on.
                 const shown = repeater.itemAt(next)
@@ -28,7 +36,26 @@ Popup {
             }
         }
     }
-    onOpened: { at = -1; scroll.contentY = 0; contentItem.forceActiveFocus() }
+    // Enter takes the entry the keys are on, or else the first one the search left.
+    function choose() {
+        if (at < 0 || hidden(entries[at]))
+            at = entries.findIndex(entry => entry.pick && !hidden(entry))
+        if (at < 0)
+            return
+        const chosen = entries[at]
+        close()
+        chosen.run()
+    }
+    onQueryChanged: at = -1
+    onOpened: {
+        at = -1
+        scroll.contentY = 0
+        search.text = ""
+        if (searching)
+            search.focusInput()
+        else
+            contentItem.forceActiveFocus()
+    }
 
     // Clamped to the window here: the entries are not laid out yet when openAt runs.
     property point wanted
@@ -48,17 +75,32 @@ Popup {
     padding: Theme.gapTiny
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     background: Rectangle { radius: Theme.cornerLarge; color: Theme.bar; border.width: 1; border.color: Theme.line }
-    contentItem: Flickable {
-        id: scroll
-        implicitWidth: column.implicitWidth
-        implicitHeight: column.implicitHeight
-        contentHeight: column.height
-        clip: true
-        boundsBehavior: Flickable.StopAtBounds
-        ScrollBar.vertical: Scroller {}
+    contentItem: Item {
+        id: body
+        readonly property real above: search.visible ? search.height + Theme.gapTiny : 0
+        implicitWidth: Math.max(column.implicitWidth, search.visible ? Theme.sized(220) : 0)
+        implicitHeight: above + column.implicitHeight
         Keys.onDownPressed: menu.step(1)
         Keys.onUpPressed: menu.step(-1)
-        Keys.onReturnPressed: if (menu.at >= 0) { const chosen = menu.entries[menu.at]; menu.close(); chosen.run() }
+        Keys.onReturnPressed: menu.choose()
+        FilterField {
+            id: search
+            visible: menu.searching
+            width: body.width
+            icon: "search"
+            placeholder: Theme.say("Search")
+            onAccepted: menu.choose()
+            onEscaped: menu.close()
+        }
+        Flickable {
+            id: scroll
+            y: body.above
+            width: body.width
+            height: body.height - body.above
+            contentHeight: column.height
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            ScrollBar.vertical: Scroller {}
         Column {
             id: column
             width: scroll.width
@@ -70,6 +112,7 @@ Popup {
                     required property var modelData
                     required property int index
                     readonly property bool line: !!modelData.line
+                    visible: !menu.hidden(modelData)
                     readonly property bool off: !!modelData.off
                     readonly property bool caption: !!modelData.title
                     implicitWidth: line ? 1 : caption ? heading.implicitWidth + 20 : words.implicitWidth + 46
@@ -108,6 +151,7 @@ Popup {
                     }
                 }
             }
+        }
         }
     }
 }

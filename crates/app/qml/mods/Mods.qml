@@ -227,7 +227,7 @@ Item {
     function groupEntries(modId, about) {
         const entries = [{ title: Theme.say("Group under a tag") }]
         for (const tag of about.groupChoices || [])
-            entries.push({ text: Theme.fill("Group under {}", tag), run: () => putInSub(modId, tag) })
+            entries.push({ text: tag, icon: "tag", pick: true, run: () => putInSub(modId, tag) })
         entries.push({ text: Theme.say("A new group…"), icon: "plus", run: () => subNameRequested(modId) })
         if (about.sub) {
             entries.push({ text: Theme.fill("Remove the tag {}", about.sub), run: () => putInSub(modId, "") })
