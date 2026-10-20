@@ -733,15 +733,24 @@ Item {
                     Item { Layout.fillWidth: true }
                 }
 
-                GroupTitle { visible: rimsort.visible && screen.finding === ""; text: Theme.say("RimSort") }
+                GroupTitle { visible: (rimsort.visible || rimpy.visible) && screen.finding === ""; text: Theme.say("Other mod managers") }
                 Line {
                     id: rimsort
                     property string said
-                    visible: !!screen.info.rimsortRules
-                    title: Theme.say("Your rules in RimSort")
-                    tip: Theme.say("Copies the rules you made in RimSort into RimStack. RimSort's file is only read.")
-                    Btn { icon: "download"; text: Theme.say("Import"); onClicked: rimsort.said = Hub.settings.importRimSortRules() }
+                    visible: !!screen.info.rimsort
+                    title: Theme.say("RimSort")
+                    tip: Theme.say("Copies your rules, and the tags, notes and colours of your mods, from RimSort into RimStack. What RimStack holds stays; RimSort's files are only read.")
+                    Btn { icon: "download"; text: Theme.say("Import"); onClicked: rimsort.said = Hub.settings.importRimSort() }
                     Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Theme.ink2; font.pixelSize: Theme.body; text: rimsort.said }
+                }
+                Line {
+                    id: rimpy
+                    property string said
+                    visible: !!screen.info.rimpy
+                    title: Theme.say("RimPy")
+                    tip: Theme.say("Copies the colours of your mods from RimPy's config.ini into RimStack, each as the nearest of RimStack's colours. RimPy's file is only read.")
+                    Btn { icon: "download"; text: Theme.say("Import"); onClicked: rimpy.said = Hub.settings.importRimPy() }
+                    Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Theme.ink2; font.pixelSize: Theme.body; text: rimpy.said }
                 }
 
                 GroupTitle { visible: screen.finding === ""; text: Theme.say("Game version") }
