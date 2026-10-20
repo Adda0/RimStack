@@ -119,6 +119,20 @@ impl qobject::ModsData {
         self.show();
     }
 
+    pub(super) fn fold(mut self: Pin<&mut Self>, active: bool, mod_id: i32, open: bool) {
+        let Some(id) = id(mod_id) else {
+            return;
+        };
+        let app = self.app();
+        if self
+            .as_mut()
+            .order_mut()
+            .fold(&app, Side::of(active), id, open)
+        {
+            self.show();
+        }
+    }
+
     pub(super) fn toggle_sub(mut self: Pin<&mut Self>, active: bool, row: i32) {
         let Ok(row) = usize::try_from(row) else {
             return;

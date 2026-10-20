@@ -55,7 +55,7 @@ Item {
         const row = Hub.mods.stepFrom(model.active, cursor, by)
         if (row >= 0)
             reveal(model, row, false)
-        return model.modIdAt(row)
+        return Hub.mods.stopOn(model.active, row)
     }
 
     // A mod list's keys; false for those it leaves to others.
@@ -88,7 +88,11 @@ Item {
             break
         case Qt.Key_Menu:
         case Qt.Key_F10 | Qt.ShiftModifier:
-            rowWanted(row => rowMenu(row, Theme.sized(60), row.height))
+            rowWanted(row => row.isHeader ? categoryMenu(row, Theme.sized(60), row.height, row.category) : rowMenu(row, Theme.sized(60), row.height))
+            break
+        case Qt.Key_Left:
+        case Qt.Key_Right:
+            Hub.mods.fold(model.active, selectedId, key === Qt.Key_Right)
             break
         case Qt.Key_T:
         case Qt.Key_N:

@@ -153,6 +153,16 @@ impl qobject::ModsData {
         held(list.step_from(id(mod_id), by as isize))
     }
 
+    pub(super) fn stop_on(&self, active: bool, row: i32) -> i32 {
+        let list = self.order.list(Side::of(active));
+        held_id(usize::try_from(row).ok().and_then(|row| list.stop_on(row)))
+    }
+
+    pub(super) fn place_of(&self, active: bool, mod_id: i32) -> i32 {
+        let list = self.order.list(Side::of(active));
+        held(id(mod_id).and_then(|id| list.place_of(id)))
+    }
+
     pub(super) fn beside_mod(&self, active: bool, mod_id: i32) -> i32 {
         let list = self.order.list(Side::of(active));
         held_id(id(mod_id).and_then(|id| list.beside_mod(id)))

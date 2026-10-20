@@ -248,6 +248,19 @@ Item {
         events.keyClick(Qt.Key_Return, Qt.NoModifier, -1)
         check("Enter moves every selected mod to the other list", Mods.active.count === count - 2 && Mods.inactive.indexOf(second) >= 0)
         Hub.mods.undo()
+        Mods.prefs.headings = 1
+        const mod = Mods.active.modIdAt(Hub.mods.stepFrom(true, -1, 1)), shown = Mods.active.rows()
+        Mods.select(mod, true)
+        Mods.focusList(Mods.active)
+        events.keyClick(Qt.Key_Left, Qt.NoModifier, -1)
+        const heading = checks.activeList.place, folded = Mods.active.rows() < shown && heading >= 0 && Mods.active.at(heading).isHeader
+        events.keyClick(Qt.Key_Down, Qt.NoModifier, -1)
+        const past = Mods.selectedId !== mod
+        events.keyClick(Qt.Key_Up, Qt.NoModifier, -1)
+        const back = Mods.selectedId === mod && checks.activeList.place === heading
+        events.keyClick(Qt.Key_Right, Qt.NoModifier, -1)
+        check("Left folds the selected mod's heading, the arrows stop on it and Right shows its mods again", folded && past && back && Mods.active.rows() === shown)
+        Mods.prefs.headings = 0
         Mods.select(-1, false)
     }
 
