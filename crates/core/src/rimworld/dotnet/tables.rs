@@ -41,6 +41,7 @@ pub(super) const INTERFACE_IMPL: usize = 0x09;
 pub(super) const CUSTOM_ATTRIBUTE: usize = 0x0c;
 pub(super) const METHOD_IMPL: usize = 0x19;
 pub(super) const TYPE_SPEC: usize = 0x1b;
+pub(super) const ASSEMBLY: usize = 0x20;
 pub(super) const ASSEMBLY_REF: usize = 0x23;
 pub(super) const NESTED_CLASS: usize = 0x29;
 pub(super) const METHOD_SPEC: usize = 0x2b;
