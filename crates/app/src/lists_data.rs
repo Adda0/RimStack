@@ -59,6 +59,17 @@ pub mod qobject {
 
         #[qinvokable]
         fn original(self: &ListsData) -> QVariant;
+        /// The orders ModsConfig.xml held over the saves and writes by the
+        /// game or another tool, newest first; read fresh on opening the
+        /// history: `{ time, said, mods, added, removed, moved }`.
+        #[qinvokable]
+        #[cxx_name = "pastOrders"]
+        fn past_orders(self: &ListsData) -> QVariant;
+        /// The ids of the order `at` in `pastOrders` (newest first, 0 up);
+        /// empty for no such place.
+        #[qinvokable]
+        #[cxx_name = "pastOrder"]
+        fn past_order(self: &ListsData, at: usize) -> QVariant;
         /// `{ onlySaved, onlyCurrent, moved: [{ id, name }], addable: [modId] }`;
         /// all empty for no such list.
         #[qinvokable]
@@ -190,6 +201,12 @@ impl qobject::ListsData {
 
     fn original(&self) -> QVariant {
         to_qml(&self.app().original_list())
+    }
+    fn past_orders(&self) -> QVariant {
+        to_qml(&self.app().past_orders())
+    }
+    fn past_order(&self, at: usize) -> QVariant {
+        to_qml(&self.app().past_order(at))
     }
     fn compare_list(&self, name: &QString) -> QVariant {
         to_qml(&self.app().compare_saved(&name.to_string()))

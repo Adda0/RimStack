@@ -2,7 +2,7 @@ use super::App;
 use crate::changes::Changes;
 use rimstack_core::base::error::Error;
 use rimstack_core::base::sentence::Sentence;
-use rimstack_core::kept::{journal, lists};
+use rimstack_core::kept::{journal, lists, orders};
 use rimstack_core::mods::library::ModId;
 use rimstack_core::rimworld::modsconfig;
 use rimstack_core::say;
@@ -115,6 +115,19 @@ pub struct HistoryLine {
     pub said: Sentence,
     pub restore: String,
     pub bring_back: String,
+}
+
+/// A load order ModsConfig.xml once held, from the kept history.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PastOrder {
+    pub time: u64,
+    pub said: Sentence,
+    pub mods: usize,
+    /// Only in that order; only in the current one; in both, elsewhere.
+    pub added: usize,
+    pub removed: usize,
+    pub moved: usize,
 }
 
 /// A mod in a comparison group.
@@ -274,6 +287,40 @@ impl App {
 
     pub fn snapshot_named(&self, name: &str) -> Option<Vec<String>> {
         lists::load(&self.snapshots_dir(), name).ok()
+    }
+
+    /// Newest first, each order against the load order as it is now.
+    pub fn past_orders(&self) -> Vec<PastOrder> {
+        let current = self.session().current().to_vec();
+        orders::read(&self.orders_file())
+            .into_iter()
+            .rev()
+            .map(|entry| {
+                let diff = lists::compare(&entry.ids, &current);
+                let said = if entry.how == orders::How::Saved {
+                    say!("Saved from RimStack")
+                } else {
+                    say!("Changed outside RimStack")
+                };
+                PastOrder {
+                    time: entry.time,
+                    said,
+                    mods: entry.ids.len(),
+                    added: diff.only_saved.len(),
+                    removed: diff.only_current.len(),
+                    moved: diff.moved.len(),
+                }
+            })
+            .collect()
+    }
+
+    /// `at` is the place in `past_orders` (newest first, 0 up).
+    pub fn past_order(&self, at: usize) -> Option<Vec<String>> {
+        orders::read(&self.orders_file())
+            .into_iter()
+            .rev()
+            .nth(at)
+            .map(|entry| entry.ids)
     }
 
     pub fn original_list(&self) -> Option<Vec<String>> {

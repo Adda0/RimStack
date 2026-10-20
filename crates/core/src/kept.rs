@@ -5,6 +5,7 @@ pub mod launches;
 pub mod lists;
 pub mod new_mods;
 pub mod notes;
+pub mod orders;
 pub mod owntheme;
 pub mod settings;
 pub mod steamcmd;
