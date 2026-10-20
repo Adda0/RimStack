@@ -103,6 +103,8 @@ pub struct Replaceable {
     pub new_id: String,
     pub new_versions: String,
     pub have_new: bool,
+    /// The installed replacement, when `have_new`.
+    pub new_mod_id: Option<ModId>,
 }
 
 pub fn replaceable(
@@ -124,11 +126,27 @@ pub fn replaceable(
                 new_id: new.workshop_id.clone(),
                 new_versions: new.versions.join(", "),
                 have_new: items.contains_key(new.workshop_id.as_str()),
+                new_mod_id: items.get(new.workshop_id.as_str()).map(|i| i.mod_id),
             })
         })
         .collect();
     rows.sort_by_cached_key(|row| (!row.active, row.name.to_lowercase(), row.id.clone()));
     rows
+}
+
+/// `list` with each replaced package id's place taken by its replacement, given as
+/// `(replaced, replacement)`; a replacement already on the list keeps its own place.
+pub fn swapped(list: &[String], swaps: &[(String, String)]) -> Vec<String> {
+    let mut kept: Vec<String> = Vec::with_capacity(list.len());
+    for id in list {
+        let instead = swaps.iter().find(|(old, _)| old == id).map(|(_, new)| new);
+        let taken = instead.unwrap_or(id);
+        let elsewhere = instead.is_some() && list.contains(taken);
+        if !elsewhere && !kept.contains(taken) {
+            kept.push(taken.clone());
+        }
+    }
+    kept
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -363,9 +381,29 @@ mod tests {
         let ids: Vec<&str> = rows.iter().map(|row| row.id.as_str()).collect();
         assert_eq!(ids, ["200", "100"]);
         assert!(rows[1].have_new && !rows[0].have_new);
+        assert_eq!(
+            (rows[1].new_mod_id, rows[0].new_mod_id),
+            (Some(ModId::new(0, 3)), None)
+        );
         assert_eq!(rows[0].new_versions, "1.5, 1.6");
         let said = serde_json::to_value(&rows[1]).unwrap();
         assert_eq!(said["modId"], 0);
         assert_eq!(said["newId"], "400");
+    }
+
+    #[test]
+    fn a_replacement_takes_the_replaced_mod_s_place_unless_it_has_one_already() {
+        let ids = |text: &str| -> Vec<String> { text.split(' ').map(String::from).collect() };
+        let swaps = [
+            ("old.roads".to_string(), "new.roads".to_string()),
+            ("old.hats".to_string(), "new.hats".to_string()),
+        ];
+        let list = ids("core old.roads lib old.hats new.hats tail");
+        assert_eq!(
+            swapped(&list, &swaps),
+            ids("core new.roads lib new.hats tail")
+        );
+        // Nothing to replace: the list stays as it is.
+        assert_eq!(swapped(&ids("core lib"), &swaps), ids("core lib"));
     }
 }

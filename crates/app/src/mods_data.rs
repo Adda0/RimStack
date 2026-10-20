@@ -121,6 +121,10 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "useList"]
         fn use_list(self: Pin<&mut ModsData>, ids: &QVariant, quiet: bool);
+        /// Every active mod with an installed replacement gives its place to it.
+        #[qinvokable]
+        #[cxx_name = "useReplacements"]
+        fn use_replacements(self: Pin<&mut ModsData>);
         #[qinvokable]
         #[cxx_name = "keepFile"]
         fn keep_file(self: Pin<&mut ModsData>, take: bool);
