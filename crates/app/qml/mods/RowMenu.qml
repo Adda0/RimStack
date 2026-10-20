@@ -30,13 +30,14 @@ QtObject {
         for (const id of about.resubscribe || [])
             fetch.push({ text: Theme.say("Subscribe again"), icon: "download", run: () => Hub.downloads.subscribe(id) })
         groups.push(fetch)
+        // A local copy has the page of the Workshop item it was copied from, when it is known.
+        const steam = page ? [
+            { title: Theme.say("Steam Workshop") },
+            { text: Theme.say("Page in Steam"), icon: "external-link", run: () => Qt.openUrlExternally(about.steamPage) },
+            { text: Theme.say("Page in the browser"), icon: "external-link", run: () => Qt.openUrlExternally(page) },
+            { text: Theme.say("Copy link"), icon: "copy", run: () => Theme.copy(page) },
+        ] : []
         if (workshop) {
-            const steam = [
-                { title: Theme.say("Steam Workshop") },
-                { text: Theme.say("Page in Steam"), icon: "external-link", run: () => Qt.openUrlExternally(about.steamPage) },
-                { text: Theme.say("Page in the browser"), icon: "external-link", run: () => Qt.openUrlExternally(page) },
-                { text: Theme.say("Copy link"), icon: "copy", run: () => Theme.copy(page) },
-            ]
             if (many)
                 steam.push({ text: Theme.plural(Mods.selectedCount, "Copy {} mod to the game's Mods folder…", "Copy {} mods to the game's Mods folder…"), icon: "copy", run: () => Notices.ask({
                     title: Theme.plural(Mods.selectedCount, "Copy {} mod to the game's Mods folder", "Copy {} mods to the game's Mods folder"),
@@ -63,8 +64,8 @@ QtObject {
             }
             if (!inActive)
                 steam.push({ text: Theme.say("Unsubscribe…"), icon: "minus", danger: true, run: () => Mods.unsubscribe(row.modId) })
-            groups.push(steam)
         }
+        groups.push(steam)
         if (about.repository)
             groups.push([
                 { title: Theme.say("Git") },
