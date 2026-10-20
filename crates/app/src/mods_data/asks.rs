@@ -183,15 +183,6 @@ impl qobject::ModsData {
         to_qml(&ordered.map(|(earlier, later)| [earlier.to_qml(), later.to_qml()]))
     }
 
-    pub(super) fn nudge_to(&self, active: bool, mod_id: i32, by: i32) -> i32 {
-        let list = self.order.list(Side::of(active));
-        held(
-            id(mod_id)
-                .and_then(|id| list.nudged(id, by as isize))
-                .map(|(_, to)| to),
-        )
-    }
-
     pub(super) fn subs_beside(&self, mod_id: i32) -> QVariant {
         let shown = [Side::Active, Side::Inactive].map(|side| self.order.list(side));
         let listed = shown

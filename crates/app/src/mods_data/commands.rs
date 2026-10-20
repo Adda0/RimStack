@@ -90,6 +90,22 @@ impl qobject::ModsData {
         self.done_said(say_n!(ids.len(), "Moved {} mod", "Moved {} mods"));
     }
 
+    pub(super) fn nudge(mut self: Pin<&mut Self>, active: bool, given: &QVariant, by: i32) -> bool {
+        let Some(ids) = ids(given) else {
+            self.refuse_list();
+            return false;
+        };
+        let app = self.app();
+        let moved = self
+            .as_mut()
+            .order_mut()
+            .nudge(&app, Side::of(active), &ids, by as isize);
+        if moved {
+            self.changed();
+        }
+        moved
+    }
+
     pub(super) fn toggle_category(mut self: Pin<&mut Self>, active: bool, category: i32) {
         let found = usize::try_from(category).ok();
         let Some(&category) = found.and_then(|at| rimstack_core::mods::list::Category::ALL.get(at))
