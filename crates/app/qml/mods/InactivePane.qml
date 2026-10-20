@@ -1,6 +1,5 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import RimStack.Ui
@@ -54,41 +53,7 @@ Rectangle {
                 text: Hub.mods.inactiveOrders.chosen
                 spoken: Theme.say("Order the inactive mods by")
                 tip: Theme.say("Last updated: when the Workshop last published it. Downloaded: when its folder was made. Game version: the newest it supports. Newest first; mods without one go last.")
-                onClicked: orderMenu.open()
-                Popup {
-                    id: orderMenu
-                    modal: true
-                    dim: false
-                    y: orderButton.height + 2
-                    padding: Theme.gapTiny
-                    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-                    background: Rectangle { radius: Theme.cornerLarge; color: Theme.bar; border.width: 1; border.color: Theme.line }
-                    contentItem: Column {
-                        Repeater {
-                            model: Hub.mods.inactiveOrders.all
-                            Item {
-                                id: choice
-                                required property var modelData
-                                implicitWidth: choiceText.implicitWidth + 46
-                                width: Math.max(implicitWidth, parent.width)
-                                height: 26
-                                Accessible.role: Accessible.MenuItem
-                                Accessible.name: choice.modelData.text
-                                Rectangle { anchors.fill: parent; radius: Theme.corner; color: Theme.chip; visible: choiceHover.hovered }
-                                Icon { x: 8; anchors.verticalCenter: parent.verticalCenter; visible: choice.modelData.chosen; name: "check"; size: 14; color: Theme.ink }
-                                Text { id: choiceText; x: 30; anchors.verticalCenter: parent.verticalCenter; color: Theme.ink; font.pixelSize: Theme.body; text: choice.modelData.text }
-                                HoverHandler { id: choiceHover }
-                                TapHandler {
-                                    gesturePolicy: TapHandler.ReleaseWithinBounds
-                                    onTapped: {
-                                        orderMenu.close()
-                                        Mods.prefs.inactiveOrder = choice.modelData.key
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                onClicked: Mods.menuRequested(orderButton, 0, orderButton.height + 2, Hub.mods.inactiveOrders.all.map(order => ({ text: order.text, icon: order.chosen ? "check" : "", run: () => Mods.prefs.inactiveOrder = order.key })))
             }
             Btn {
                 compact: true

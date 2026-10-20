@@ -42,41 +42,15 @@ Item {
                 spacing: Theme.gap
                 Text { color: Theme.ink; font.pixelSize: Theme.title; font.weight: Font.DemiBold; text: Theme.say("Saves") }
                 Text { color: Theme.ink3; font.pixelSize: Theme.body; text: screen.reader.heading }
-                Rectangle {
-                    visible: (screen.reader.folders || []).length > 1
+                Choice {
+                    id: folderChoice
+                    readonly property var folders: [""].concat(screen.reader.folders || [])
+                    visible: folders.length > 2
                     Layout.leftMargin: Theme.gap
-                    implicitWidth: folderRow.width + 4
-                    implicitHeight: folderRow.height + 4
-                    radius: Theme.cornerLarge
-                    color: Theme.seg
-                    Row {
-                        id: folderRow
-                        anchors.centerIn: parent
-                        spacing: Theme.gapLine
-                        Repeater {
-                            model: [""].concat(screen.reader.folders || [])
-                            Rectangle {
-                                id: folderTab
-                                required property string modelData
-                                readonly property bool on: modelData === screen.folder
-                                width: folderText.implicitWidth + 22
-                                height: Theme.sized(24)
-                                radius: Theme.corner
-                                color: on ? Theme.ctlHi : "transparent"
-                                Accessible.role: Accessible.PageTab
-                                Accessible.name: modelData || Theme.say("All folders")
-                                Text {
-                                    id: folderText
-                                    anchors.centerIn: parent
-                                    color: folderTab.on ? Theme.ink : Theme.ink2
-                                    font.pixelSize: Theme.small
-                                    font.weight: Font.Medium
-                                    text: (folderTab.modelData || Theme.say("All")) + (folderTab.modelData !== "" && folderTab.modelData === screen.reader.currentFolder ? " ●" : "")
-                                }
-                                TapHandler { onTapped: { Hub.saves.folder = folderTab.modelData; screen.selected = 0 } }
-                            }
-                        }
-                    }
+                    title: Theme.say("Folder")
+                    options: ["All"].concat((screen.reader.folders || []).map(folder => folder === screen.reader.currentFolder ? folder + " ●" : folder))
+                    current: Math.max(0, folders.indexOf(screen.folder))
+                    onPicked: index => { Hub.saves.folder = folderChoice.folders[index]; screen.selected = 0 }
                 }
                 Item { Layout.fillWidth: true }
             }

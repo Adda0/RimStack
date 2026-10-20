@@ -1,4 +1,4 @@
-// Entries: { text, icon, off, danger, run }, { line: true } for a divider,
+// Entries: { text, icon, off, danger, run, font }, { line: true } for a divider,
 // or { title } for a caption. A menu taller than the window scrolls.
 // Entries marked { pick: true } bring a search field that narrows them as one types.
 pragma ComponentBehavior: Bound
@@ -170,6 +170,7 @@ PopCard {
                             anchors.verticalCenter: parent.verticalCenter
                             color: (over.hovered || menu.at === entry.index) && !entry.off ? Theme.accentInk : entry.modelData.danger ? Theme.err : Theme.ink
                             font.pixelSize: Theme.body
+                            font.family: entry.modelData.font || Qt.application.font.family
                             text: Theme.say(entry.modelData.text || "")
                         }
                         HoverHandler { id: over }
