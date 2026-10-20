@@ -6,6 +6,7 @@ use crate::mods::library::Library;
 use crate::mods::list::Mod;
 use crate::mods::rules::{Kind, Rule};
 use crate::rimworld::code::{Aim, Facts};
+use crate::rimworld::dotnet::Does;
 use crate::rimworld::game::When;
 use crate::rimworld::workshopdb::Names;
 use crate::say;
@@ -401,22 +402,48 @@ pub fn code(facts: &Facts) -> Vec<Sentence> {
     parts
 }
 
-pub fn also_patching(mine: &[Aim], others: &[(&str, &[Aim])]) -> Vec<Vec<String>> {
+pub fn also_patching<'a>(
+    mine: &[Aim],
+    others: &'a [(&'a str, &[Aim])],
+) -> Vec<Vec<(&'a str, Does)>> {
     let same =
         |a: &Aim, b: &Aim| !a.target.is_empty() && a.target == b.target && a.method == b.method;
     let patching = |aim: &Aim| {
-        let has_it = |(_, theirs): &&(&str, &[Aim])| theirs.iter().any(|t| same(t, aim));
         others
             .iter()
-            .filter(has_it)
-            .map(|(name, _)| name.to_string())
+            .flat_map(|(name, theirs)| {
+                theirs
+                    .iter()
+                    .filter(|t| same(t, aim))
+                    .map(|t| (*name, t.does))
+            })
             .collect()
     };
     mine.iter().map(patching).collect()
 }
 
-pub fn aims(aims: &[Aim], also: &[Vec<String>], most: usize) -> Vec<(Sentence, Sentence)> {
-    let note = |aim: &Aim, others: &[String]| {
+/// The reason a colliding patch is named with: two transpilers on one method, or a prefix
+/// that can skip the original, likely clash; postfixes alone are likely safe neighbours.
+fn clash(aside: Does, others: &[(&str, Does)]) -> Sentence {
+    let names = Sentence::listed(others.iter().map(|(n, _)| (*n).into()).collect());
+    if aside.transpiler && others.iter().any(|(_, d)| d.transpiler) {
+        return say!("{} (likely to clash: both rewrite it)", names.inside());
+    }
+    if aside.skips || others.iter().any(|(_, d)| d.skips) {
+        return say!(
+            "{} (likely to clash: a prefix may skip the original)",
+            names.inside()
+        );
+    }
+    let postfixes = |d: &Does| d.postfix && !d.prefix && !d.transpiler && !d.finalizer;
+    if postfixes(&aside) && others.iter().all(|(_, d)| postfixes(d)) {
+        return say!("{} (unlikely to clash: only adds after)", names.inside());
+    }
+    say!("{} (may clash)", names.inside())
+}
+
+pub fn aims(aims: &[Aim], also: &[Vec<(&str, Does)>], most: usize) -> Vec<(Sentence, Sentence)> {
+    let note = |aim: &Aim, others: &[(&str, Does)]| {
         let when = match aim.when {
             Some(When::Playing) => Some(say!("while playing")),
             Some(When::Interface) => Some(say!("interface")),
@@ -435,8 +462,8 @@ pub fn aims(aims: &[Aim], also: &[Vec<String>], most: usize) -> Vec<(Sentence, S
         match others.is_empty() {
             true => said,
             false => {
-                let others = Sentence::listed(others.iter().map(|o| o.as_str().into()).collect());
-                say!("{}; also {}", said.inside(), others.inside())
+                let ranked = clash(aim.does, others);
+                say!("{}; also {}", said.inside(), ranked.inside())
             }
         }
     };
@@ -793,12 +820,13 @@ mod tests {
         let code = |facts: &Facts| -> Vec<String> {
             code(facts).iter().map(Sentence::to_string).collect()
         };
-        let aims = |aims_of: &[Aim], also: &[Vec<String>], most: usize| -> Vec<(String, String)> {
-            aims(aims_of, also, most)
-                .iter()
-                .map(|(name, note)| (name.to_string(), note.to_string()))
-                .collect()
-        };
+        let aims =
+            |aims_of: &[Aim], also: &[Vec<(&str, Does)>], most: usize| -> Vec<(String, String)> {
+                aims(aims_of, also, most)
+                    .iter()
+                    .map(|(name, note)| (name.to_string(), note.to_string()))
+                    .collect()
+            };
         assert!(code(&Facts::default()).is_empty());
         let facts = Facts {
             types: 1,
@@ -846,9 +874,10 @@ mod tests {
             aim("Other", None, true),
             unknown.clone(),
         ];
-        assert_eq!(
-            also_patching(std::slice::from_ref(&unknown), &[("Second", &theirs)]),
-            [Vec::<String>::new()]
+        assert!(
+            also_patching(std::slice::from_ref(&unknown), &[("Second", &theirs)])
+                .iter()
+                .all(Vec::is_empty)
         );
         assert_eq!(
             aims(&[unknown], &[], 9),
@@ -859,24 +888,22 @@ mod tests {
         );
         let others: [(&str, &[Aim]); 2] = [("Second", &theirs), ("Third", &patched[1..2])];
         let also = also_patching(&patched, &others);
-        assert_eq!(
-            also,
-            [
-                vec![],
-                vec!["Third".to_string()],
-                vec!["Second".to_string()]
-            ]
-        );
+        let named = |also: &[Vec<(&str, Does)>]| {
+            also.iter()
+                .map(|one| one.iter().map(|(n, _)| n.to_string()).collect::<Vec<_>>())
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(named(&also), [vec![], vec!["Third"], vec!["Second"]]);
         assert_eq!(
             aims(&patched, &also, 2),
             [
                 (
                     "Verse.Pawn.Draw".to_string(),
-                    "postfix; also Third".to_string()
+                    "postfix; also Third (unlikely to clash: only adds after)".to_string()
                 ),
                 (
                     "Verse.Pawn.Kill".to_string(),
-                    "while playing, postfix; also Second".to_string()
+                    "while playing, postfix; also Second (may clash)".to_string()
                 ),
                 ("1 more".to_string(), "".to_string())
             ]
