@@ -348,7 +348,13 @@ fn mods(app: &App, shapes: &mut Shapes) {
 
 fn lists(app: &App, shapes: &mut Shapes) {
     let ids = vec!["ludeon.rimworld".to_string(), "ann.a".to_string()];
-    app.keep_list("mine", Some(ids.clone())).unwrap();
+    // Kept with the active Core mod's settings, so the row says it holds some.
+    let config = app.paths().config.clone().unwrap();
+    write(
+        &config.join("Config/Mod_Core_Settings.xml"),
+        "<ghostbuster>all</ghostbuster>",
+    );
+    app.keep_list("mine", Some(ids.clone()), true).unwrap();
     app.snapshot("@saving", &ids).unwrap();
     shapes.add("lists.saved", &app.saved_lists());
     shapes.add("lists.snapshots", &app.recent_snapshots());
@@ -396,15 +402,15 @@ fn lists(app: &App, shapes: &mut Shapes) {
     shapes.add("lists.compareList", &app.compare_saved("mine"));
     // The same mods in another order fill "moved".
     let reordered = vec!["ann.a".to_string(), "ludeon.rimworld".to_string()];
-    app.keep_list("reordered", Some(reordered)).unwrap();
+    app.keep_list("reordered", Some(reordered), false).unwrap();
     shapes.add("lists.compareList", &app.compare_saved("reordered"));
     // A list with an installed but switched-off mod fills "onlySaved" and
     // "addable"; one with a mod the install never had fills the written name.
     let with_hats = vec!["ludeon.rimworld".to_string(), "ann.hats".to_string()];
-    app.keep_list("with hats", Some(with_hats)).unwrap();
+    app.keep_list("with hats", Some(with_hats), false).unwrap();
     shapes.add("lists.compareList", &app.compare_saved("with hats"));
     let with_gone = vec!["ludeon.rimworld".to_string(), "gone.mod".to_string()];
-    app.keep_list("with gone", Some(with_gone)).unwrap();
+    app.keep_list("with gone", Some(with_gone), false).unwrap();
     shapes.add("lists.compareList", &app.compare_saved("with gone"));
     // The lockfile, on this install and against one differing from it.
     let data = app.data_dir();

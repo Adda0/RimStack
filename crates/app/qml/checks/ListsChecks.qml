@@ -22,7 +22,7 @@ Item {
         check("several mods are active", count >= 2)
 
         const name = "check-list"
-        check("list kept", Hub.lists.keep(name) === "")
+        check("list kept", Hub.lists.keep(name, false) === "")
 
         let comp = Hub.lists.compareList(name)
         check("a list next to itself differs nowhere", comp !== null && comp.onlySaved.length === 0 && comp.onlyCurrent.length === 0 && comp.moved.length === 0 && comp.addable.length === 0)

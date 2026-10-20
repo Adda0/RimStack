@@ -19,4 +19,6 @@ Settings {
     // numbered list), -1 when the order is close to category order.
     property int headings: -1
     property string columnSizes: ""
+    // Saving a list also keeps the active mods' Mod_*.xml settings with it.
+    property bool listWithSettings: false
 }

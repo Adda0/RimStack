@@ -2,7 +2,7 @@ use crate::base::error::Error;
 use crate::said;
 
 use serde_json::{Value, json};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
 
@@ -12,13 +12,14 @@ pub struct Saved {
     pub mods: usize,
     /// Seconds since 1970.
     pub modified: u64,
+    /// A `<file name>.settings` folder keeps the mods' `Mod_*.xml` with the list.
+    pub settings: bool,
 }
 
 /// Characters a file name cannot hold become `_`: names differing only so share a file,
 /// and `save` refuses the second.
-fn file_for(dir: &Path, name: &str) -> PathBuf {
-    let safe: String = name
-        .trim()
+fn safe_name(name: &str) -> String {
+    name.trim()
         .chars()
         .map(|c| {
             if c.is_alphanumeric() || " -_.()".contains(c) {
@@ -27,8 +28,16 @@ fn file_for(dir: &Path, name: &str) -> PathBuf {
                 '_'
             }
         })
-        .collect();
-    dir.join(format!("{safe}.json"))
+        .collect()
+}
+
+fn file_for(dir: &Path, name: &str) -> PathBuf {
+    dir.join(format!("{}.json", safe_name(name)))
+}
+
+/// Beside the list's file, moved and removed with it.
+fn settings_for(dir: &Path, name: &str) -> PathBuf {
+    dir.join(format!("{}.settings", safe_name(name)))
 }
 
 pub fn save(dir: &Path, name: &str, ids: &[String]) -> Result<(), Error> {
@@ -64,10 +73,12 @@ pub fn all(dir: &Path) -> Vec<Saved> {
         .filter_map(|entry| {
             let (name, ids) = read(&entry.path())?;
             let modified = entry.metadata().ok()?.modified().ok()?;
+            let settings = settings_for(dir, &name).is_dir();
             Some(Saved {
                 name,
                 mods: ids.len(),
                 modified: modified.duration_since(UNIX_EPOCH).ok()?.as_secs(),
+                settings,
             })
         })
         .collect();
@@ -102,9 +113,144 @@ pub fn load(dir: &Path, name: &str) -> Result<Vec<String>, Error> {
         .ok_or_else(|| Error::format(said!("{} is not a saved list", path.display())))
 }
 
+/// Removes the list and the settings folder kept beside it, if any.
 pub fn delete(dir: &Path, name: &str) -> Result<(), Error> {
     let path = file_for(dir, name);
-    std::fs::remove_file(&path).map_err(|e| Error::file(&path, e))
+    std::fs::remove_file(&path).map_err(|e| Error::file(&path, e))?;
+    // Best effort: a folder that cannot be removed only clutters.
+    let _ = std::fs::remove_dir_all(settings_for(dir, name));
+    Ok(())
+}
+
+/// Which mod a kept `Mod_*.xml` of the game's `Config` belongs to, for the files' own list.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct SettingsFile {
+    /// The file's name within `Config`.
+    pub file: String,
+    /// The installed folder the file is named after, per the game's naming.
+    pub folder: String,
+    /// The mod's package id, or its folder when it has no readable id.
+    #[serde(rename = "mod")]
+    pub mod_id: String,
+}
+
+const MANIFEST: &str = "settings.json";
+
+pub fn has_settings(dir: &Path, name: &str) -> bool {
+    settings_for(dir, name).is_dir()
+}
+
+/// Copies the given `Config` files beside the list's file, so they travel with it.
+/// The folder is written empty-named then renamed over any earlier one, which a reader
+/// sees whole or not at all. No matched file drops an earlier folder.
+pub fn keep_settings(
+    dir: &Path,
+    name: &str,
+    config: &Path,
+    files: &[SettingsFile],
+) -> Result<usize, Error> {
+    let to = settings_for(dir, name);
+    if files.is_empty() {
+        let _ = std::fs::remove_dir_all(&to);
+        return Ok(0);
+    }
+    let staged = crate::base::aside::beside(&to, crate::base::aside::NEW);
+    let _ = std::fs::remove_dir_all(&staged);
+    std::fs::create_dir_all(&staged).map_err(|e| Error::file(&staged, e))?;
+    let kept = files.iter().try_for_each(|file| {
+        let from = config.join("Config").join(&file.file);
+        let to_file = staged.join(&file.file);
+        std::fs::copy(&from, &to_file)
+            .map(drop)
+            .map_err(|e| Error::file(&from, e))
+    });
+    let written = kept.and_then(|_| {
+        let manifest = serde_json::json!({ "settings": files }).to_string();
+        crate::base::atomic_file::write(&staged.join(MANIFEST), manifest)?;
+        Ok(files.len())
+    });
+    if let Err(problem) = written {
+        let _ = std::fs::remove_dir_all(&staged);
+        return Err(problem);
+    }
+    // Away, over, gone: a crash between the two renames only leaves the old folder gone.
+    let old = crate::base::aside::beside(&to, crate::base::aside::OLD);
+    let _ = std::fs::remove_dir_all(&old);
+    if to.exists() {
+        std::fs::rename(&to, &old).map_err(|e| Error::file(&old, e))?;
+    }
+    std::fs::rename(&staged, &to).map_err(|e| Error::file(&to, e))?;
+    let _ = std::fs::remove_dir_all(&old);
+    Ok(files.len())
+}
+
+/// What the list keeps, from the files' own manifest.
+pub fn kept_settings(dir: &Path, name: &str) -> Result<Vec<SettingsFile>, Error> {
+    let manifest = settings_for(dir, name).join(MANIFEST);
+    let read = || -> Option<Vec<SettingsFile>> {
+        let root: Value = serde_json::from_str(&std::fs::read_to_string(&manifest).ok()?).ok()?;
+        serde_json::from_value(root.get("settings")?.clone()).ok()
+    };
+    let files = read()
+        .ok_or_else(|| Error::format(said!("{} keeps no mod settings", manifest.display())))?;
+    for file in &files {
+        if file.folder.is_empty() || !names_settings(&file.file) {
+            return Err(Error::format(said!(
+                "{} names no settings file of the game",
+                manifest.display()
+            )));
+        }
+    }
+    Ok(files)
+}
+
+fn names_settings(file: &str) -> bool {
+    Path::new(file).file_name().and_then(|name| name.to_str()) == Some(file)
+        && file.starts_with("Mod_")
+        && file.ends_with(".xml")
+}
+
+/// What `use_settings` did: the files set aside, then the kept ones that took their place.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct Applied {
+    pub set_aside: usize,
+    pub used: usize,
+}
+
+/// The kept files go into `Config`. The ones they replace — every `Mod_*.xml` of the
+/// same mods now there — are set aside into `aside` first, as a reset would.
+pub fn use_settings(
+    dir: &Path,
+    name: &str,
+    config: &Path,
+    aside: &Path,
+    installed: impl Fn(&str) -> bool,
+) -> Result<Applied, Error> {
+    let kept = kept_settings(dir, name)?;
+    let from = settings_for(dir, name);
+    let mut folders: HashSet<&str> = HashSet::new();
+    let mut replaced: Vec<PathBuf> = Vec::new();
+    for file in &kept {
+        if folders.insert(file.folder.as_str()) {
+            replaced.extend(crate::rimworld::mod_settings::of(
+                config,
+                &file.folder,
+                &installed,
+            ));
+        }
+    }
+    let mut done = Applied {
+        set_aside: crate::base::aside::set_aside(config, aside, &replaced)?,
+        used: 0,
+    };
+    let into = config.join("Config");
+    std::fs::create_dir_all(&into).map_err(|e| Error::file(&into, e))?;
+    for file in &kept {
+        let to = into.join(&file.file);
+        std::fs::copy(from.join(&file.file), &to).map_err(|e| Error::file(&to, e))?;
+        done.used += 1;
+    }
+    Ok(done)
 }
 
 /// How a saved list differs from the current load order.
@@ -337,5 +483,122 @@ mod tests {
         assert_eq!(diff.only_current, vec![3]);
         assert_eq!(diff.only_saved, Vec::<usize>::new());
         assert_eq!(diff.moved, vec![2]);
+    }
+
+    fn a_mod_file(config: &Path, file: &str, contents: &str) {
+        let config = config.join("Config");
+        std::fs::create_dir_all(&config).unwrap();
+        std::fs::write(config.join(file), contents).unwrap();
+    }
+
+    fn foo_settings(file: &str) -> SettingsFile {
+        SettingsFile {
+            file: file.to_string(),
+            folder: "Foo".to_string(),
+            mod_id: "ann.foo".to_string(),
+        }
+    }
+
+    #[test]
+    fn saved_settings_go_back_into_config_over_the_ones_set_aside() {
+        let tmp = tempfile::tempdir().unwrap();
+        let dir = tmp.path().join("lists");
+        let config = tmp.path().join("config");
+        a_mod_file(&config, "Mod_Foo_Settings.xml", "first");
+        a_mod_file(&config, "Mod_Foo_Other.xml", "other");
+        a_mod_file(&config, "Mod_Bar_Settings.xml", "bar");
+        save(&dir, "run", &ids(&["ann.foo"])).unwrap();
+        assert_eq!(
+            keep_settings(
+                &dir,
+                "run",
+                &config,
+                &[foo_settings("Mod_Foo_Settings.xml")]
+            )
+            .unwrap(),
+            1
+        );
+        assert!(has_settings(&dir, "run"));
+        assert!(all(&dir).iter().any(|l| l.settings));
+        // The kept file is untouched, still with the mod's other file in Config.
+        std::fs::write(config.join("Config/Mod_Foo_Settings.xml"), "changed").unwrap();
+        let aside = tmp.path().join("aside");
+        let installed = |folder: &str| matches!(folder, "Foo" | "Bar");
+        let done = use_settings(&dir, "run", &config, &aside, installed).unwrap();
+        // Both of Foo's files are set aside, only the kept one comes back.
+        assert_eq!(
+            done,
+            Applied {
+                set_aside: 2,
+                used: 1
+            }
+        );
+        assert_eq!(
+            std::fs::read_to_string(config.join("Config/Mod_Foo_Settings.xml")).unwrap(),
+            "first"
+        );
+        assert!(!config.join("Config/Mod_Foo_Other.xml").exists());
+        assert_eq!(
+            std::fs::read_to_string(aside.join("Mod_Foo_Other.xml")).unwrap(),
+            "other"
+        );
+        // Bar's are no part of the list's settings: untouched in Config.
+        assert_eq!(
+            std::fs::read_to_string(config.join("Config/Mod_Bar_Settings.xml")).unwrap(),
+            "bar"
+        );
+        // Keeping again over what was kept, then deleting, leaves nothing.
+        a_mod_file(&config, "Mod_Foo_Settings.xml", "second");
+        keep_settings(
+            &dir,
+            "run",
+            &config,
+            &[foo_settings("Mod_Foo_Settings.xml")],
+        )
+        .unwrap();
+        delete(&dir, "run").unwrap();
+        assert!(!has_settings(&dir, "run"));
+        assert!(!settings_for(&dir, "run").exists());
+    }
+
+    #[test]
+    fn keeping_no_files_and_applying_none_are_no_folders() {
+        let tmp = tempfile::tempdir().unwrap();
+        let dir = tmp.path().join("lists");
+        save(&dir, "run", &ids(&["ann.foo"])).unwrap();
+        assert_eq!(keep_settings(&dir, "run", tmp.path(), &[]).unwrap(), 0);
+        assert!(!has_settings(&dir, "run"));
+        assert!(kept_settings(&dir, "run").is_err());
+    }
+
+    #[test]
+    fn a_kept_mod_without_files_now_sets_only_what_is_there_aside() {
+        let tmp = tempfile::tempdir().unwrap();
+        let dir = tmp.path().join("lists");
+        let config = tmp.path().join("config");
+        a_mod_file(&config, "Mod_Foo_Settings.xml", "first");
+        save(&dir, "run", &ids(&["ann.foo"])).unwrap();
+        keep_settings(
+            &dir,
+            "run",
+            &config,
+            &[foo_settings("Mod_Foo_Settings.xml")],
+        )
+        .unwrap();
+        std::fs::remove_file(config.join("Config/Mod_Foo_Settings.xml")).unwrap();
+        let aside = tmp.path().join("aside");
+        let done = use_settings(&dir, "run", &config, &aside, |_| true).unwrap();
+        assert_eq!(
+            done,
+            Applied {
+                set_aside: 0,
+                used: 1
+            }
+        );
+        assert!(!aside.exists());
+        assert_eq!(
+            std::fs::read_to_string(config.join("Config/Mod_Foo_Settings.xml")).unwrap(),
+            "first"
+        );
     }
 }
