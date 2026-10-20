@@ -103,13 +103,48 @@ pub fn parse_details(json: &str) -> Result<Vec<Details>, Error> {
     Ok(files.iter().filter_map(details).collect())
 }
 
+/// The ids Steam answered are gone (`result` 9: removed or private). An id
+/// missing from the answer is not one of them: Steam was not asked of it.
+pub fn gone_in(json: &str) -> Result<Vec<String>, Error> {
+    let root: Value = serde_json::from_str(json)
+        .map_err(|e| Error::format(said!("Steam's answer is not JSON: {}", e)))?;
+    let files = root
+        .pointer("/response/publishedfiledetails")
+        .and_then(Value::as_array)
+        .ok_or_else(|| Error::format(said!("Steam's answer has no file list")))?;
+    let gone = |file: &&Value| {
+        file.get("result").and_then(Value::as_u64) != Some(1)
+            && file
+                .get("publishedfileid")
+                .and_then(Value::as_str)
+                .is_some()
+    };
+    Ok(files
+        .iter()
+        .filter(gone)
+        .filter_map(|file| {
+            file.get("publishedfileid")
+                .and_then(Value::as_str)
+                .map(String::from)
+        })
+        .collect())
+}
+
+/// What Steam said of the asked items, and which are gone for good.
+#[derive(Debug, Default)]
+pub struct Answered {
+    pub items: Vec<Details>,
+    /// Ids of items Steam reports removed or private.
+    pub gone: Vec<String>,
+}
+
 /// Blocks on the network. Steam is slow per item, so chunks of 100 go out in parallel.
-pub fn fetch_details(ids: &[String]) -> Result<Vec<Details>, Error> {
+pub fn fetch_details(ids: &[String]) -> Result<Answered, Error> {
     // Steam answers HTTP 400 to a whole request holding one id that is not a number above 0,
     // as a folder in the Workshop folder that is no item: such an id is not sent.
     let ids: Vec<&String> = ids.iter().filter(|id| is_workshop_id(id)).collect();
     let agent = crate::base::web::agent(120);
-    let ask = |batch: &[&String]| -> Result<Vec<Details>, Error> {
+    let ask = |batch: &[&String]| -> Result<Answered, Error> {
         let mut form = vec![("itemcount".to_string(), batch.len().to_string())];
         for (i, id) in batch.iter().enumerate() {
             form.push((format!("publishedfileids[{i}]"), id.to_string()));
@@ -128,12 +163,17 @@ pub fn fetch_details(ids: &[String]) -> Result<Vec<Details>, Error> {
         let mut text = String::new();
         std::io::Read::read_to_string(&mut body, &mut text)
             .map_err(crate::base::web::steam_failed)?;
-        parse_details(&text)
+        Ok(Answered {
+            items: parse_details(&text)?,
+            gone: gone_in(&text)?,
+        })
     };
-    let answers: Vec<Result<Vec<Details>, Error>> = ids.par_chunks(100).map(ask).collect();
-    let mut all = Vec::new();
+    let answers: Vec<Result<Answered, Error>> = ids.par_chunks(100).map(ask).collect();
+    let mut all = Answered::default();
     for answer in answers {
-        all.extend(answer?);
+        let answer = answer?;
+        all.items.extend(answer.items);
+        all.gone.extend(answer.gone);
     }
     Ok(all)
 }
@@ -328,6 +368,16 @@ mod tests {
     }
 
     #[test]
+    fn gone_items_are_known_by_their_id() {
+        // The shape Steam answers for a removed or private item.
+        let json = r#"{"response":{"result":1,"resultcount":2,"publishedfiledetails":[
+            {"publishedfileid":"2009463077","result":1,"title":"Harmony","time_updated":1756914561,"file_size":"5729526"},
+            {"publishedfileid":"1","result":9}]}}"#;
+        assert_eq!(gone_in(json).unwrap(), ["1".to_string()]);
+        assert!(gone_in("{}").is_err());
+    }
+
+    #[test]
     fn search_results_skip_items_steam_does_not_know() {
         let json = r#"{"response":{"total":4123,"publishedfiledetails":[
             {"publishedfileid":"2009463077","result":1,"title":"Harmony","time_updated":1756914561,"lifetime_subscriptions":3181967},
@@ -373,16 +423,17 @@ mod tests {
         println!(
             "asked {} answered {} in {:?}",
             ids.len(),
-            now.len(),
+            now.items.len(),
             started.elapsed()
         );
+        println!("{} gone", now.gone.len());
         let newer = |d: &&Details| on_disk.get(&d.id).is_some_and(|&have| d.updated > have);
-        let behind: Vec<&Details> = now.iter().filter(newer).collect();
+        let behind: Vec<&Details> = now.items.iter().filter(newer).collect();
         println!("{} on record, {} behind", on_disk.len(), behind.len());
         for d in behind.iter().take(8) {
             println!("  {} have {} now {}", d.title, on_disk[&d.id], d.updated);
         }
-        assert!(now.len() > ids.len() / 2);
+        assert!(now.items.len() > ids.len() / 2);
     }
 
     #[test]
@@ -390,8 +441,8 @@ mod tests {
     fn steam_answers_about_a_real_item() {
         let ids = ["2009463077", "1", "0", "", "2009463077 - Copy"].map(String::from);
         let found = fetch_details(&ids).unwrap();
-        assert_eq!(found.len(), 1);
-        assert_eq!(found[0].title, "Harmony");
+        assert_eq!(found.items.len(), 1);
+        assert_eq!(found.items[0].title, "Harmony");
     }
 
     #[test]

@@ -100,6 +100,8 @@ pub struct App {
     /// Changes only while `conflicts` is held for writing.
     conflicts_generation: AtomicU64,
     behind: RwLock<Option<HashSet<String>>>,
+    /// Workshop ids Steam answered as gone; `None` until Downloads has asked Steam.
+    removed: RwLock<Option<HashSet<String>>>,
     /// Mods a save, a saved list or the order history names; `None` for not read yet.
     played: RwLock<Option<Arc<HashSet<String>>>>,
     list_on_disk: Mutex<(u64, bool)>,
@@ -157,6 +159,7 @@ impl App {
             conflicts: RwLock::new(None),
             conflicts_generation: AtomicU64::new(0),
             behind: RwLock::new(None),
+            removed: RwLock::new(None),
             played: RwLock::new(None),
             list_on_disk: Mutex::new((0, false)),
             git: OnceLock::new(),
@@ -279,6 +282,11 @@ impl App {
         &self.behind
     }
 
+    /// Workshop folders Steam answered as gone; `None` until Downloads has asked Steam.
+    pub fn removed(&self) -> &RwLock<Option<HashSet<String>>> {
+        &self.removed
+    }
+
     pub fn notes(&self) -> &RwLock<Notes> {
         self.notes
             .get_or_init(|| RwLock::new(Notes::read(&self.notes_file())))
@@ -341,6 +349,7 @@ impl App {
         self.install.put(fresh);
         *self.session() = Session::new(on_disk);
         *self.behind.writing() = None;
+        *self.removed.writing() = None;
         self.forget_list_on_disk();
         *self.log_read.held() = None;
         self.textures_changed();

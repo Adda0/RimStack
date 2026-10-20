@@ -84,6 +84,10 @@ fn terms(counts: Counts) -> Vec<(&'static str, Sentence)> {
             "is:unplayed",
             say!("inactive, in no save, saved list or remembered order"),
         ),
+        (
+            "is:removed",
+            say!("gone from the Workshop, or made private"),
+        ),
         ("size:>", say!("bigger than this many megabytes")),
         ("size:<", say!("smaller than this many megabytes")),
     ]
