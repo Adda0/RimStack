@@ -432,62 +432,7 @@ Item {
                         id: fontButton
                         menu: true
                         text: screen.info.font || Theme.say("System font")
-                        onClicked: fontPicker.visible = !fontPicker.visible
-                    }
-                    Popup {
-                        enter: PopIn {}
-                        exit: PopOut {}
-                        id: fontPicker
-                        modal: true
-                        dim: false
-                        readonly property var shown: [""].concat(Qt.fontFamilies()).filter(name => (name || Theme.say("System font")).toLowerCase().indexOf(fontFilter.text.toLowerCase()) !== -1)
-                        parent: fontButton
-                        y: fontButton.height + 4
-                        width: Theme.sized(320)
-                        height: Theme.sized(380)
-                        padding: Theme.gap
-                        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
-                        background: Rectangle { radius: Theme.cornerLarge; color: Theme.bar; border.width: 1; border.color: Theme.line }
-                        onOpened: { fontFilter.text = ""; fontFilter.focusInput() }
-                        contentItem: ColumnLayout {
-                            spacing: Theme.gapSmall
-                            FilterField { id: fontFilter; Layout.fillWidth: true; placeholder: Theme.say("Find a font") }
-                            ListView {
-                                Layout.fillWidth: true
-                                Layout.fillHeight: true
-                                clip: true
-                                model: fontPicker.shown
-                                Wheel {}
-                                ScrollBar.vertical: ListBar {}
-                                delegate: Rectangle {
-                                    id: family
-                                    required property string modelData
-                                    readonly property bool system: !modelData
-                                    width: ListView.view.width
-                                    height: Theme.sized(30)
-                                    radius: Theme.corner
-                                    color: familyHover.hovered ? Theme.accent : "transparent"
-                                    Text {
-                                        x: Theme.gap
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        width: parent.width - 2 * Theme.gap
-                                        elide: Text.ElideRight
-                                        color: familyHover.hovered ? Theme.accentInk : Theme.ink
-                                        font.pixelSize: Theme.title
-                                        font.family: family.system ? Qt.application.font.family : family.modelData
-                                        text: family.system ? Theme.say("System font") : family.modelData
-                                    }
-                                    HoverHandler { id: familyHover }
-                                    TapHandler {
-                                        gesturePolicy: TapHandler.ReleaseWithinBounds
-                                        onTapped: {
-                                            screen.font(family.modelData)
-                                            fontPicker.close()
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        onClicked: Mods.menuRequested(fontButton, 0, fontButton.height + 4, [""].concat(Qt.fontFamilies()).map(name => ({ text: name || Theme.say("System font"), font: name, pick: true, icon: name === (screen.info.font || "") ? "check" : "", run: () => screen.font(name) })))
                     }
                     Item { Layout.fillWidth: true }
                 }
