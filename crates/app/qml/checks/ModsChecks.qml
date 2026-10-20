@@ -119,6 +119,9 @@ Item {
                 checks.liveStep = 4
             } else if (checks.liveStep === 4 && (late || !Hub.mods.saving)) {
                 checks.textureCheck("and used when asked for", Mods.active.count === 1 && !Hub.mods.dirty)
+                const past = Hub.lists.pastOrders()
+                const newest = past[0] || {}
+                checks.textureCheck("an order written outside is kept in the history", past.length > 0 && newest.said === Theme.say("Changed outside RimStack") && newest.mods === 1)
                 Qt.exit(checks.textureFailures > 0 ? 1 : 0)
             }
         }
@@ -551,7 +554,14 @@ Item {
         Mods.select(-1, false)
         Mods.prefs.inactiveOrder = "name"
         Mods.prefs.headings = 0
-        check("a save is written off the window's thread", Mods.save(() => { check("the changed list is saved", !Hub.mods.dirty && Mods.saveProblem === ""); checks.watchPreviews() }) && Hub.mods.saving)
+        check("a save is written off the window's thread", Mods.save(() => {
+            check("the changed list is saved", !Hub.mods.dirty && Mods.saveProblem === "")
+            const past = Hub.lists.pastOrders()
+            const newest = past[0] || {}
+            check("a saved load order is kept in the history, without difference", past.length > 0 && newest.said === Theme.say("Saved from RimStack") && newest.mods === Mods.active.count && newest.added === 0 && newest.removed === 0 && newest.moved === 0)
+            check("and is given back by its place", Hub.lists.pastOrder(0).length === Mods.active.count)
+            checks.watchPreviews()
+        }) && Hub.mods.saving)
     }
 
     property int frames: 0
