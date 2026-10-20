@@ -345,17 +345,12 @@ Item {
                     text: Theme.say("View")
                     spoken: Theme.say("View options")
                     onClicked: viewMenu.open()
-                    Popup {
-                        enter: PopIn {}
-                        exit: PopOut {}
+                    PopCard {
                         id: viewMenu
-                        modal: true
-                        dim: false
                         x: parent.width - width
                         y: parent.height + 6
                         width: Theme.sized(250)
                         padding: Theme.gapMedium
-                        background: Rectangle { radius: Theme.cornerLarge; color: Theme.bar; border.width: 1; border.color: Theme.line }
                         contentItem: Column {
                             spacing: Theme.gapSmall
                             Text { topPadding: Theme.gapTiny; color: Theme.ink2; font.pixelSize: Theme.small; font.weight: Font.DemiBold; text: Theme.say("Load order") }

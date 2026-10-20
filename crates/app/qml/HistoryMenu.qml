@@ -1,15 +1,10 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import RimStack.Ui
 
-Popup {
-    enter: PopIn {}
-    exit: PopOut {}
+PopCard {
     id: historyMenu
-    modal: true
-    dim: false
     signal useList(var ids)
     readonly property var entries: Hub.lists.history || []
     function revert(entry) {
@@ -27,7 +22,6 @@ Popup {
     width: Theme.sized(440)
     height: Math.min(Theme.sized(520), implicitHeight)
     padding: Theme.gapLarge
-    background: Rectangle { radius: Theme.cornerLarge; color: Theme.bar; border.width: 1; border.color: Theme.line }
     contentItem: Flickable {
         implicitHeight: lines.implicitHeight
         contentHeight: lines.implicitHeight

@@ -66,6 +66,7 @@ fn main() {
                 "qml/Wheel.qml",
                 "qml/ListBar.qml",
                 "qml/PopMenu.qml",
+                "qml/PopCard.qml",
                 "qml/FilterField.qml",
                 "qml/GroupTitle.qml",
                 "qml/NameList.qml",

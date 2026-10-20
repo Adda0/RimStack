@@ -4,15 +4,10 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import RimStack.Ui
 
-Popup {
+PopCard {
     id: ordersPopup
     parent: Overlay.overlay
     anchors.centerIn: Overlay.overlay
-    enter: PopIn {}
-    exit: PopOut {}
-    modal: true
-    dim: false
-    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
     signal useList(var ids)
 
@@ -35,7 +30,6 @@ Popup {
     width: Theme.sized(480)
     height: Math.min(implicitHeight, parent.height - Theme.gapLarge)
     padding: Theme.gapLarge
-    background: Rectangle { radius: Theme.cornerLarge; color: Theme.bar; border.width: 1; border.color: Theme.line }
 
     contentItem: ColumnLayout {
         spacing: Theme.gapLarge
