@@ -549,6 +549,21 @@ Item {
                     }
                     Item { Layout.fillWidth: true }
                 }
+                Line {
+                    title: Theme.say("Steam WebAPI key")
+                    changed: (screen.info.steamKey || "") !== ""
+                    onReset: screen.keep("steamKey", "")
+                    tip: Theme.say("Your own, optional. With a key, the Downloads screen gains a search of the whole Workshop. The key is kept in RimStack's settings and sent only to api.steampowered.com.")
+                    FilterField {
+                        id: steamKey
+                        Layout.fillWidth: true
+                        placeholder: Theme.say("None")
+                        echoMode: TextInput.Password
+                        text: screen.info.steamKey || ""
+                        onTextChanged: Hub.settings.keepLater("steamKey", steamKey.text)
+                    }
+                    Item { Layout.fillWidth: true }
+                }
             }
 
             Column {

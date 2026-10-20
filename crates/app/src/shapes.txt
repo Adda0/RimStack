@@ -40,6 +40,14 @@ downloads.replacements: list
     newId: text
     newName: text
     newVersions: text
+downloads.searched: object
+  found: absent or list
+    []: object
+      id: text
+      subscriptions: nothing or number
+      title: text
+      updated: number
+  problem: absent or text
 downloads.since: object
   active: number
   count: number
@@ -838,6 +846,7 @@ settings.report: object
       name: text
       removable: bool
       shown: text
+  steamKey: text
   steamcmd: bool
   steamcmdFolder: text
   version: text
