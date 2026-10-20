@@ -660,6 +660,20 @@ impl qobject::ModsData {
                 self.preview_sort();
                 true
             }
+            "move" => {
+                let Some((at, side)) = target.split_once(':') else {
+                    return true;
+                };
+                let (Ok(other), Some(id)) = (at.parse::<usize>(), id(mod_id)) else {
+                    return true;
+                };
+                let app = self.app();
+                self.as_mut()
+                    .order_mut()
+                    .move_next_to(&app, id, other, side == "after");
+                self.as_mut().changed();
+                true
+            }
             _ => false,
         }
     }
