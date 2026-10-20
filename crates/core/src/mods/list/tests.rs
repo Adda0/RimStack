@@ -958,6 +958,15 @@ fn a_long_step_stops_at_the_last_mod_short_of_an_end() {
 }
 
 #[test]
+fn the_shown_mods_are_the_installed_ones_with_a_row() {
+    let mut list = installed_sample();
+    let all = [id(100), id(101), id(103), id(104), id(105)];
+    assert_eq!(list.shown_installed(), all);
+    list.set_filter("dubwise");
+    assert_eq!(list.shown_installed(), [id(104), id(105)]);
+}
+
+#[test]
 fn the_mods_through_a_stretch_leave_out_the_one_it_starts_from() {
     let mut list = installed_sample();
     assert_eq!(

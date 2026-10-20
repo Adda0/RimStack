@@ -307,6 +307,11 @@ mods.carried: object
   also: map
     {}: bool
   first: number
+mods.cleanup: object
+  bin: number
+  binBytes: number
+  unsubscribe: number
+  unsubscribeBytes: number
 mods.columnChoices: list
   []: object
     column: text
@@ -721,6 +726,8 @@ mods.overview: object
   versionOnly: number
   worksOn: number
 mods.packageMods: list
+  []: number
+mods.shownIds: list
   []: number
 mods.sortMoves: list
   []: never seen
