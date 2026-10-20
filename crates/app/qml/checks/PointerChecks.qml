@@ -122,8 +122,8 @@ Item {
         return Mods.active.at(row).name
     }
     function entry(menu, text) {
-        menu.contentItem.forceLayout()
-        for (const child of menu.contentItem.children)
+        menu.column.forceLayout()
+        for (const child of menu.column.children)
             if (child.modelData && child.modelData.text === text)
                 return child
         return null
@@ -249,11 +249,43 @@ Item {
         id: menuShown
         interval: 400
         onTriggered: {
-            const copy = checks.entry(checks.screen.rowMenu, Theme.say("Copy name"))
+            const menu = checks.screen.rowMenu
+            checks.check("the row menu holds the groups in one entry", checks.entry(menu, Theme.say("Group under a tag")) !== null && checks.entry(menu, Theme.say("A new group…")) === null)
+            const copy = checks.entry(menu, Theme.say("Copy name"))
             const selected = Mods.selectedId
             events.mouseClick(copy, copy.width / 2, copy.height / 2, Qt.LeftButton, Qt.NoModifier, -1)
             checks.check("a click on a menu entry closes the menu", !checks.screen.menuOpen)
             checks.check("and reaches no row under it", Mods.selectedId === selected)
+            events.mouseClick(checks.activeList, 120, 4 + 13 + 26 * 3, Qt.RightButton, Qt.NoModifier, -1)
+            groupAsked.start()
+        }
+    }
+    Timer {
+        id: groupAsked
+        interval: 400
+        onTriggered: {
+            const menu = checks.screen.rowMenu
+            const group = checks.entry(menu, Theme.say("Group under a tag"))
+            events.mouseClick(group, group.width / 2, group.height / 2, Qt.LeftButton, Qt.NoModifier, -1)
+            checks.check("and that entry opens the groups in a menu of their own", checks.screen.menuOpen && checks.entry(menu, Theme.say("A new group…")) !== null)
+            events.keyClick(Qt.Key_Escape, Qt.NoModifier, -1)
+            const many = []
+            for (let i = 0; i < 80; i++)
+                many.push({ text: "check entry " + i, run: () => {} })
+            Mods.menuRequested(checks.activeList, 0, 0, many)
+            longShown.start()
+        }
+    }
+    Timer {
+        id: longShown
+        interval: 400
+        onTriggered: {
+            const menu = checks.screen.rowMenu, scroll = menu.contentItem
+            checks.check("a menu longer than the window stays inside it", menu.y >= 0 && menu.y + menu.height <= menu.parent.height && scroll.contentHeight > scroll.height)
+            events.keyClick(Qt.Key_Up, Qt.NoModifier, -1)
+            const chosen = checks.entry(menu, "check entry " + menu.at), spot = chosen.mapToItem(scroll, 0, 0)
+            checks.check("and scrolls to the entry the arrow keys are on", menu.at > 40 && spot.y >= 0 && spot.y + chosen.height <= scroll.height)
+            events.keyClick(Qt.Key_Escape, Qt.NoModifier, -1)
             checks.screen.viewMenu.open()
             viewShown.start()
         }

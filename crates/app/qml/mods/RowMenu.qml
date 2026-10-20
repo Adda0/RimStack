@@ -71,8 +71,9 @@ QtObject {
                 { text: Theme.say("Repository"), icon: "link", run: () => Qt.openUrlExternally(about.repository) },
                 { text: Theme.say("Update"), icon: "download", run: () => Hub.downloads.updateFromGit(row.modId) },
             ])
+        // One entry, as the tags in use may be many: the groups open in a menu of their own.
         if (about.groupChoices)
-            groups.push(Mods.groupEntries(row.modId, about))
+            groups.push([{ text: Theme.say("Group under a tag"), icon: "tag", run: () => Mods.menuRequested(row, x, y, Mods.groupEntries(row.modId, about)) }])
         // Paints the selected mods' rows, as RimSort and RimPy users do to spot mods at a glance.
         if (row.modId >= 0)
             groups.push([{ title: Theme.say("Colour") }].concat(Mods.swatchEntries(row.colour, name => Hub.mods.paint(Mods.selectedIds, name)),
