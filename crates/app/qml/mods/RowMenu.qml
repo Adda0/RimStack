@@ -52,6 +52,15 @@ QtObject {
                     title: Theme.fill("Download {} again", (about.name || "")),
                     lines: [Theme.say("SteamCMD downloads the mod anew, and the fresh copy replaces this folder:"), { path: about.path }],
                     label: Theme.say("Download"), run: () => Hub.downloads.redownload(row.modId) }) })
+            const kept = Hub.mods.keptCopiesOf(row.modId) || []
+            if (kept.length > 0) {
+                steam.push({ title: Theme.say("Kept copies") })
+                for (const copy of kept)
+                    steam.push({ text: Theme.fill("Restore the copy of {}", Theme.day(copy)), icon: "history", run: () => Notices.ask({
+                        title: Theme.fill("Restore the copy of {}", Theme.day(copy)),
+                        lines: [Theme.say("Kept before a launch the Workshop's update reached. It is copied into the game's Mods folder, where a copy wins over Steam's newer one:"), { path: Hub.settings.report.localMods || "" }],
+                        label: Theme.say("Restore"), run: () => Hub.mods.restoreKeptCopy(row.modId, copy) }) })
+            }
             if (!inActive)
                 steam.push({ text: Theme.say("Unsubscribe…"), icon: "minus", danger: true, run: () => Mods.unsubscribe(row.modId) })
             groups.push(steam)

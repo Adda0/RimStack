@@ -605,6 +605,8 @@ mods.inactiveOrders: object
   next: text
   nextText: text
   reversed: bool
+mods.keptCopiesOf: list
+  []: number
 mods.notInstalled: object
   fixes: list
     []: object
@@ -808,6 +810,7 @@ settings.report: object
   git: text
   gitForWorkshop: bool
   interfaceScale: text
+  keptModsMegabytes: text
   language: text
   languageInUse: text
   launchArguments: text

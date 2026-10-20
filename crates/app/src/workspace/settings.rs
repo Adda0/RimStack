@@ -186,6 +186,7 @@ impl App {
             set_workshop: owned("workshop"),
             launch_arguments: owned("launchArguments"),
             steam_key: owned("steamKey"),
+            kept_mods_megabytes: owned("keptModsMegabytes"),
             launch_directly: settings.launch_directly(),
             language: owned("language"),
             english: self.language_in_use() == "English",

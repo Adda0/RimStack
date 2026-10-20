@@ -63,6 +63,8 @@ pub struct SettingsReport {
     pub launch_arguments: Option<String>,
     /// The user's own Steam WebAPI key; `None` without one.
     pub steam_key: Option<String>,
+    /// Megabytes of kept mod copies allowed, as the user set it; `None` for the default.
+    pub kept_mods_megabytes: Option<String>,
     pub launch_directly: bool,
     pub language: Option<String>,
     pub language_in_use: String,

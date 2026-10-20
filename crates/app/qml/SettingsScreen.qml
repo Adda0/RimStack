@@ -562,6 +562,20 @@ Item {
                     }
                     Item { Layout.fillWidth: true }
                 }
+                Line {
+                    title: Theme.say("Kept mod copies, MB")
+                    changed: (screen.info.keptModsMegabytes || "") !== ""
+                    onReset: screen.keep("keptModsMegabytes", "")
+                    tip: Theme.say("A launch copies each active Workshop mod the Workshop updated since its last kept copy, so a broken update can be rolled back from the row menu. Older ones go once past this size; empty keeps 5120.")
+                    FilterField {
+                        id: keptMegabytes
+                        Layout.fillWidth: true
+                        placeholder: "5120"
+                        text: screen.info.keptModsMegabytes || ""
+                        onTextChanged: Hub.settings.keepLater("keptModsMegabytes", keptMegabytes.text)
+                    }
+                    Item { Layout.fillWidth: true }
+                }
             }
 
             Column {

@@ -1,5 +1,6 @@
 pub mod changes;
 pub mod downloads;
+pub mod fallback;
 pub mod git;
 pub mod maintenance;
 pub mod redownload;
