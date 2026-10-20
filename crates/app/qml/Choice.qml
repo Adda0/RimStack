@@ -30,6 +30,11 @@ Rectangle {
     Keys.onRightPressed: move(1)
     Keys.onUpPressed: event => { if (stacked) move(-1); else event.accepted = false }
     Keys.onDownPressed: event => { if (stacked) move(1); else event.accepted = false }
+    Keys.onPressed: event => {
+        event.accepted = event.key === Qt.Key_Home || event.key === Qt.Key_End
+        if (event.accepted)
+            picked(event.key === Qt.Key_Home ? 0 : options.length - 1)
+    }
     FocusRing {}
     Rectangle {
         readonly property Item at: segments.count > 0 ? segments.itemAt(choice.current) : null

@@ -6,9 +6,9 @@ import QtQuick
 import QtQuick.Controls.Basic
 import RimStack.Ui
 
-Popup {
+PopCard {
     // It leaves at once: while a menu fades out the window's shortcuts do not answer.
-    enter: PopIn {}
+    exit: null
     id: menu
     property var entries: []
     // The entry the arrow keys are on; -1 for none.
@@ -29,12 +29,37 @@ Popup {
             const entry = entries[next]
             if (!entry.line && !entry.title && !entry.off && !hidden(entry)) {
                 at = next
-                // Scrolled just enough to show the entry the keys landed on.
-                const shown = repeater.itemAt(next)
-                scroll.contentY = Math.max(Math.min(scroll.contentY, shown.y), shown.y + shown.height - scroll.height)
+                show()
                 return
             }
         }
+    }
+    // Scrolled just enough to show the entry the keys landed on.
+    function show() {
+        const shown = repeater.itemAt(at)
+        scroll.contentY = Math.max(Math.min(scroll.contentY, shown.y), shown.y + shown.height - scroll.height)
+    }
+    // Up to `by` entries on, stopping at either end: Home, End and the page keys.
+    function move(by) {
+        for (let left = Math.abs(by); left > 0; left--) {
+            const was = at
+            step(Math.sign(by))
+            if (was >= 0 && (at - was) * by <= 0) {
+                at = was
+                break
+            }
+        }
+        show()
+    }
+    // The next entry that starts with the letter typed.
+    function jump(letter) {
+        const was = at
+        for (let tries = 0; tries < entries.length; tries++) {
+            step(1)
+            if (at >= 0 && Theme.say(entries[at].text).toLowerCase().startsWith(letter))
+                return
+        }
+        at = was
     }
     // Enter takes the entry the keys are on, or else the first one the search left.
     function choose() {
@@ -47,7 +72,7 @@ Popup {
         chosen.run()
     }
     onQueryChanged: at = -1
-    // On show, not once faded in: keys typed straight after opening reach the menu.
+    // Not the base's first control: the search field, or else the entries.
     onAboutToShow: {
         at = -1
         scroll.contentY = 0
@@ -70,12 +95,7 @@ Popup {
     }
 
     parent: Overlay.overlay
-    // Modal without the dimming: a click on an entry or beside the menu reaches nothing under it.
-    modal: true
-    dim: false
     padding: Theme.gapTiny
-    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-    background: Rectangle { radius: Theme.cornerLarge; color: Theme.bar; border.width: 1; border.color: Theme.line }
     contentItem: Item {
         id: body
         readonly property real above: search.visible ? search.height + Theme.gapTiny : 0
@@ -84,6 +104,19 @@ Popup {
         Keys.onDownPressed: menu.step(1)
         Keys.onUpPressed: menu.step(-1)
         Keys.onReturnPressed: menu.choose()
+        Keys.onEnterPressed: menu.choose()
+        Keys.onSpacePressed: menu.choose()
+        // A letter jumps only without a search field, which takes the letters.
+        Keys.onPressed: event => {
+            const page = Math.max(1, Math.floor(scroll.height / 26))
+            const by = ({ [Qt.Key_Home]: -menu.entries.length, [Qt.Key_End]: menu.entries.length, [Qt.Key_PageUp]: -page, [Qt.Key_PageDown]: page })[event.key] || 0
+            const letter = !menu.searching && event.text.length === 1 && event.text > " " ? event.text.toLowerCase() : ""
+            event.accepted = by !== 0 || letter !== ""
+            if (by !== 0)
+                menu.move(by)
+            else if (letter !== "")
+                menu.jump(letter)
+        }
         FilterField {
             id: search
             visible: menu.searching
