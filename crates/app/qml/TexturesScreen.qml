@@ -211,7 +211,7 @@ Item {
                 reuseItems: true
                 boundsBehavior: Flickable.StopAtBounds
                 Wheel {}
-                ScrollBar.vertical: Scroller {}
+                ScrollBar.vertical: ListBar {}
                 model: screen.shown
                 RowKeys {
                     parent: list
