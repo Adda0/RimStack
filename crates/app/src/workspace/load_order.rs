@@ -536,6 +536,7 @@ impl LoadOrder {
             Side::Inactive => &[],
         };
         let ignored = rules::ignored(app);
+        let played = (side == Side::Inactive).then(|| app.played());
         let mods = self.list(side).mods().iter().enumerate();
         mods.map(|(at, m)| {
             let own = troubles.get(at).map(Vec::as_slice).unwrap_or_default();
@@ -580,6 +581,11 @@ impl LoadOrder {
                         && !required_ids.contains(&key),
                     flag::UNUSED,
                 ),
+                (
+                    // A mod not in use anywhere is one to uninstall.
+                    played.as_deref().is_some_and(|p| !p.contains(&key)),
+                    flag::UNPLAYED,
+                ),
             ];
             marks
                 .iter()
@@ -610,6 +616,46 @@ impl LoadOrder {
             .into_iter()
             .map(|at| known.members[at])
             .collect()
+    }
+
+    /// What a multi-selection offers for cleanup: Workshop mods Steam can
+    /// unsubscribe, and the other installed mods that may go to the bin,
+    /// each with the bytes their folders take.
+    pub fn cleanup(&self, app: &App, wanted: &[ModId]) -> super::upkeep::Cleanup {
+        let wanted: HashSet<ModId> = wanted.iter().copied().collect();
+        let mut cleanup = super::upkeep::Cleanup::default();
+        let loaded = app.library();
+        let Ok((library, _)) = &*loaded else {
+            return cleanup;
+        };
+        let folder_bytes = |id: ModId| -> u64 {
+            let Some(installed) = library.get(id) else {
+                return 0;
+            };
+            rimstack_core::base::walk::whole_tree(&installed.path).map_or(0, |tree| {
+                tree.into_iter()
+                    .filter_map(|entry| std::fs::metadata(&entry.path).ok().map(|m| m.len()))
+                    .sum()
+            })
+        };
+        let rows = self.active.mods().iter().chain(self.inactive.mods());
+        for m in rows {
+            let Some(installed) = m.installed else {
+                continue;
+            };
+            if !wanted.contains(&installed) {
+                continue;
+            }
+            let bytes = m.bytes.unwrap_or_else(|| folder_bytes(installed));
+            if m.workshop {
+                cleanup.unsubscribe += 1;
+                cleanup.unsubscribe_bytes += bytes;
+            } else if app.bin_target(installed).is_ok() {
+                cleanup.bin += 1;
+                cleanup.bin_bytes += bytes;
+            }
+        }
+        cleanup
     }
 
     pub fn fresh(&self, app: &App, side: Side) -> Vec<ModId> {

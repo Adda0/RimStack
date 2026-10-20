@@ -133,6 +133,17 @@ impl qobject::DownloadsData {
         self.ask_steam(SteamAsk::Unsubscribe, workshop.into_iter().collect());
     }
 
+    /// The Workshop mods of a selection, all in one Steam ask.
+    pub(super) fn unsubscribe_many(self: Pin<&mut Self>, given: &QVariant) {
+        let app = self.app();
+        let workshop: Vec<String> = crate::qml::values::mod_ids(given)
+            .unwrap_or_default()
+            .into_iter()
+            .filter_map(|id| app.workshop_id(id))
+            .collect();
+        self.ask_steam(SteamAsk::Unsubscribe, workshop);
+    }
+
     pub(super) fn download_wanted(self: Pin<&mut Self>) {
         let wanted = self
             .looked_up

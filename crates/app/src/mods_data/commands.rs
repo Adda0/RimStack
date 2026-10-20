@@ -667,6 +667,29 @@ impl qobject::ModsData {
         crate::words::said(&crate::workspace::upkeep::bin_label(kind))
     }
 
+    /// What the selected installed mods offer for cleanup:
+    /// `{ unsubscribe, unsubscribeBytes, bin, binBytes }`.
+    pub(super) fn cleanup(&self, given: &QVariant) -> QVariant {
+        let app = self.app();
+        let wanted = ids(given).unwrap_or_default();
+        crate::qml::values::to_qml(&self.rust().order.cleanup(&app, &wanted))
+    }
+
+    /// Every selected mod allowed to go goes to the bin, Steam's folders first
+    /// aside only for a local copy replacing one.
+    pub(super) fn bin_many(mut self: Pin<&mut Self>, given: &QVariant) {
+        let Some(ids) = ids(given) else {
+            return self.refuse_list();
+        };
+        let app = self.app();
+        let done = app.bin_mods(&ids).map(drop);
+        self.as_mut()
+            .set_upkeep_problem(crate::words::why_not(&done));
+        if done.is_ok() {
+            self.rescan();
+        }
+    }
+
     pub(super) fn copy_to_local(mut self: Pin<&mut Self>, mod_id: i32) {
         let Some(id) = id(mod_id) else {
             return;
