@@ -106,6 +106,14 @@ Item {
     // Runs `run(row)` with the selected mod's row, scrolled to; not when its list does not show it.
     signal rowWanted(var run)
 
+    // From a text field back to a list: the one given, else the selected mod's.
+    function toList(model) {
+        const list = model || (selectedActive ? active : inactive)
+        focusList(list)
+        if (selectedId < 0)
+            select(step(list, 1), list.active)
+    }
+
     function activateSelected(model) {
         const position = selectedId >= 0 ? model.indexOf(selectedId) : -1
         if (position < 0 || Hub.mods.previewing)

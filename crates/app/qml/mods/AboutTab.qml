@@ -111,7 +111,7 @@ Column {
                     tagOffers.chosen = -1
                 }
                 onEditingChanged: tagOffers.shut = false
-                onEscaped: tagOffers.shut = true
+                onEscaped: empty => empty ? Mods.toList() : tagOffers.shut = true
                 // Enter takes the offer chosen with the arrows, else adds what is typed.
                 onAccepted: {
                     const chosen = tagBox.suggesting && tagOffers.chosen >= 0 && tagOffers.offered[tagOffers.chosen].text
@@ -193,6 +193,7 @@ Column {
                 x: Theme.gapMedium
                 y: Theme.gapSmall
                 width: parent.width - 2 * Theme.gapMedium
+                Keys.onEscapePressed: Mods.toList()
                 wrapMode: TextEdit.Wrap
                 color: Theme.ink
                 selectionColor: Theme.accent

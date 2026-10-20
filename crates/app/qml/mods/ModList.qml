@@ -128,7 +128,7 @@ ListView {
                 list.contentY = Math.max(-list.topMargin, shown.y - Theme.control)
         }
         function onFocusList(model) {
-            if (model === list.model)
+            if (model === list.model && list.visible)
                 list.forceActiveFocus()
         }
         function onRowWanted(run) {

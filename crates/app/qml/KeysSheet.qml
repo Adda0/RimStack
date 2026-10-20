@@ -9,7 +9,13 @@ Prompt {
     title: Theme.say("Keyboard")
     readonly property var groups: [
         [Theme.say("Everywhere"), [[Theme.say("Ctrl + K"), Theme.say("Search mods, commands and settings")], [Theme.say("Ctrl + 1 to 6"), Theme.say("Mods, Downloads, Textures, Saves, Logs, Settings")], ["?", Theme.say("This page")], [Theme.say("Left, Right"), Theme.say("Move a choice or the section")], [Theme.say("Tab"), Theme.say("Next control")], [Theme.say("Home, End, Page Up, Page Down"), Theme.say("To either end of a list, or a page further")], [Theme.say("Esc"), Theme.say("Close, cancel, clear the selection")]]],
-        [Theme.say("Load order"), [[Theme.say("Ctrl + S"), Theme.say("Save")], [Theme.say("Ctrl + Z"), Theme.say("Undo")], [Theme.say("Ctrl + Shift + Z"), Theme.say("Redo")], [Theme.say("Ctrl + F"), Theme.say("Filter the load order")]]],
+        [Theme.say("Load order"), [
+            [Theme.say("Ctrl + S"), Theme.say("Save")],
+            [Theme.say("Ctrl + Z"), Theme.say("Undo")],
+            [Theme.say("Ctrl + Shift + Z"), Theme.say("Redo")],
+            [Theme.say("Ctrl + F"), Theme.say("Filter the load order")],
+            [Theme.say("Down, Enter"), Theme.say("From the filter to the list")],
+            [Theme.say("Esc"), Theme.say("From an empty filter, tag box or note back to the list")]]],
         [Theme.say("A list of mods"), [
             [Theme.say("Up, Down"), Theme.say("Select the mod above or below")],
             [Theme.say("Enter"), Theme.say("Activate or deactivate the selected mods")],
