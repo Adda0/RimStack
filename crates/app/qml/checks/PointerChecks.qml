@@ -303,6 +303,7 @@ Item {
             events.mouseClick(copy, copy.width / 2, copy.height / 2, Qt.LeftButton, Qt.NoModifier, -1)
             checks.check("a click on a menu entry closes the menu", !checks.screen.menuOpen)
             checks.check("and reaches no row under it", Mods.selectedId === selected)
+            Hub.mods.addTags(Mods.selectedId, "pick-one, pick-two")
             events.mouseClick(checks.activeList, 120, 4 + 13 + 26 * 3, Qt.RightButton, Qt.NoModifier, -1)
             groupAsked.start()
         }
@@ -315,7 +316,14 @@ Item {
             const group = checks.entry(menu, Theme.say("Group under a tag"))
             events.mouseClick(group, group.width / 2, group.height / 2, Qt.LeftButton, Qt.NoModifier, -1)
             checks.check("and that entry opens the groups in a menu of their own", checks.screen.menuOpen && checks.entry(menu, Theme.say("A new group…")) !== null)
-            events.keyClick(Qt.Key_Escape, Qt.NoModifier, -1)
+            const picks = () => Array.from(menu.column.children).filter(child => child.modelData && child.modelData.pick)
+            checks.check("the groups are listed by their tag names alone, after a search field", menu.search.visible && picks().map(child => child.modelData.text).indexOf("pick-two") >= 0)
+            menu.search.focusInput()
+            for (const key of [Qt.Key_Z, Qt.Key_Q, Qt.Key_X])
+                events.keyClick(key, Qt.NoModifier, -1)
+            checks.check("and typing in it leaves only the tags that hold the text", picks().every(child => !child.visible) && checks.entry(menu, Theme.say("A new group…")).visible)
+            menu.close()
+            Hub.mods.clearTags(Mods.selectedId)
             const many = []
             for (let i = 0; i < 80; i++)
                 many.push({ text: "check entry " + i, run: () => {} })
@@ -327,7 +335,7 @@ Item {
         id: longShown
         interval: 400
         onTriggered: {
-            const menu = checks.screen.rowMenu, scroll = menu.contentItem
+            const menu = checks.screen.rowMenu, scroll = menu.scroller
             checks.check("a menu longer than the window stays inside it", menu.y >= 0 && menu.y + menu.height <= menu.parent.height && scroll.contentHeight > scroll.height)
             events.keyClick(Qt.Key_Up, Qt.NoModifier, -1)
             const chosen = checks.entry(menu, "check entry " + menu.at), spot = chosen.mapToItem(scroll, 0, 0)
