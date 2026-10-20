@@ -15,6 +15,7 @@ Item {
     required property string name
     required property string author
     required property string version
+    required property string game
     required property int number
     required property int count
     required property bool collapsed
