@@ -190,6 +190,12 @@ pub fn troubles(
                 .map(rimstack_core::mods::xmlcheck::troubles)
                 .unwrap_or_default();
             own.extend(said);
+            let said = m
+                .installed
+                .and_then(|i| read.assemblies.get(&i))
+                .map(rimstack_core::mods::assemblies::troubles)
+                .unwrap_or_default();
+            own.extend(said);
         }
     }
     describe::without_ignored(&mut found, mods, &ignored);

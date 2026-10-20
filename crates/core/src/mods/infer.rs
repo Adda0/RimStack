@@ -15,11 +15,34 @@ pub struct Scanned {
     pub patched: Vec<(String, PathBuf)>,
     pub asks_for: Vec<(String, PathBuf)>,
     pub assemblies: HashSet<String>,
+    /// What the load folders' Assemblies directories ship, for clash checks.
+    pub dlls: Vec<Dll>,
     pub uses: Vec<(String, PathBuf)>,
     pub types: HashSet<String>,
     pub patches: Vec<(String, PathBuf)>,
     /// What `scan_checking` looks at the XML for; empty from `scan`.
     pub xml: xmlcheck::Read,
+}
+
+/// A file an Assemblies folder ships: its name as written, its size and the
+/// version the file names itself with, when it is a .NET assembly.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Dll {
+    pub file: String,
+    pub size: u64,
+    pub version: Option<[u16; 4]>,
+}
+
+impl Dll {
+    /// The same file shipped twice: the game loads one copy, and identical
+    /// copies behave the same wherever loaded from.
+    pub fn same_file(&self, other: &Dll) -> bool {
+        self.size == other.size && self.version == other.version
+    }
+
+    pub fn folded_file(&self) -> String {
+        self.file.to_lowercase()
+    }
 }
 
 fn dlls_of(load_folders: &[PathBuf]) -> Vec<PathBuf> {
@@ -256,7 +279,18 @@ fn scan_looking(load_folders: &[PathBuf], check: bool) -> Scanned {
         let Ok(bytes) = std::fs::read(&dll) else {
             continue;
         };
-        let Some(assembly) = crate::rimworld::dotnet::Assembly::read(&bytes) else {
+        let file = dll
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
+        let assembly = crate::rimworld::dotnet::Assembly::read(&bytes);
+        found.dlls.push(Dll {
+            file,
+            size: bytes.len() as u64,
+            version: assembly.as_ref().and_then(|a| a.version()),
+        });
+        let Some(assembly) = assembly else {
             continue;
         };
         for name in assembly.references() {

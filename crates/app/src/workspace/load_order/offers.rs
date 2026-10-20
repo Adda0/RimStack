@@ -45,6 +45,10 @@ fn terms(counts: Counts) -> Vec<(&'static str, Sentence)> {
                 "{} mods defining a def an active one also defines"
             ),
         ),
+        (
+            "is:assemblies",
+            say!("ships a dll another active mod also ships, differently"),
+        ),
         ("is:changed", say!("moved or activated since the last save")),
         ("is:new", say!("installed since the game was last started")),
         (

@@ -9,7 +9,7 @@ pub struct Builder {
     blobs: Vec<u8>,
     user_strings: Vec<u8>,
     pub code: Vec<u8>,
-    rows: Vec<Vec<Vec<u32>>>,
+    rows: Vec<Vec<Vec<u64>>>,
 }
 
 impl Builder {
@@ -54,7 +54,7 @@ impl Builder {
     /// Adds a row and returns its number, from 1.
     pub fn row(&mut self, table: usize, cells: &[u32]) -> u32 {
         assert_eq!(cells.len(), TABLES[table].len());
-        self.rows[table].push(cells.to_vec());
+        self.rows[table].push(cells.iter().map(|c| u64::from(*c)).collect());
         self.rows[table].len() as u32
     }
 
@@ -135,6 +135,21 @@ impl Builder {
         self.row(ASSEMBLY_REF, &[0, 0, 0, name, 0, 0]);
     }
 
+    /// The assembly's own row, so it can name a version. The `Fixed(8)`
+    /// version cell needs `u64`, wider than `row`'s `u32` cells take.
+    pub fn assembly(&mut self, name: &str, version: [u16; 4]) {
+        let name = self.string(name);
+        let version = std::array::from_fn::<u64, 4, _>(|i| u64::from(version[i]) << (16 * i));
+        self.rows[super::ASSEMBLY].push(vec![
+            0,
+            version.into_iter().sum(),
+            0,
+            0,
+            u64::from(name),
+            0,
+        ]);
+    }
+
     pub fn finish(self) -> Vec<u8> {
         let mut tables = vec![0u8; 24];
         let present: u64 = (0..TABLES.len())
@@ -149,7 +164,7 @@ impl Builder {
                 for (cell, col) in row.iter().zip(TABLES[table]) {
                     match col {
                         Col::Fixed(bytes) => {
-                            tables.extend(&(*cell as u64).to_le_bytes()[..(*bytes).min(8)]);
+                            tables.extend(&cell.to_le_bytes()[..(*bytes).min(8)]);
                             tables.extend(std::iter::repeat_n(0, bytes.saturating_sub(8)));
                         }
                         _ => tables.extend((*cell as u16).to_le_bytes()),
