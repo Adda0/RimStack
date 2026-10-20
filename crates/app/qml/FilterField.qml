@@ -6,6 +6,7 @@ Rectangle {
     id: field
     property string text
     property string placeholder
+    property alias echoMode: fieldInput.echoMode
     property bool chips: false
     property string found
     property string icon

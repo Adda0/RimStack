@@ -305,6 +305,19 @@ impl App {
         })
     }
 
+    /// The user's own Steam WebAPI key, kept in RimStack's settings.
+    pub fn steam_key(&self) -> Option<String> {
+        self.settings().get("steamKey").map(String::from)
+    }
+
+    /// Blocks on the network; the key goes only to api.steampowered.com.
+    pub fn search_workshop(&self, text: &str) -> Result<Vec<workshop::Found>, Error> {
+        let Some(key) = self.steam_key() else {
+            return Err(Error::refused(say!("no Steam WebAPI key kept")));
+        };
+        workshop::query_files(&key, text.trim(), 1)
+    }
+
     pub fn replaceable(&self) -> Vec<Replaceable> {
         let loaded = self.library();
         let Ok((library, _)) = &*loaded else {

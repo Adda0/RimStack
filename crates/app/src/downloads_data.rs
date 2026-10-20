@@ -28,6 +28,10 @@ pub mod qobject {
         /// `{ done, asked, resume, refused }`.
         #[qproperty(QVariant, notes_state, cxx_name = "notesState")]
         #[qproperty(QVariant, replacements)]
+        /// `[{ id, title, updated, subscriptions }]`; with a problem: `{ problem }`.
+        #[qproperty(QVariant, searched)]
+        #[qproperty(bool, can_search, cxx_name = "canSearch")]
+        #[qproperty(bool, search_busy, cxx_name = "searchBusy")]
         #[qproperty(bool, steamcmd)]
         #[qproperty(QString, task_note, cxx_name = "taskNote")]
         #[qproperty(bool, task_running, cxx_name = "taskRunning")]
@@ -48,6 +52,10 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "lookUp"]
         fn look_up(self: Pin<&mut DownloadsData>, pasted: &QString);
+
+        /// Asks Steam with the user's own WebAPI key, off the window's thread.
+        #[qinvokable]
+        fn search(self: Pin<&mut DownloadsData>, text: &QString);
 
         /// Steam must be running.
         #[qinvokable]
@@ -140,6 +148,9 @@ pub struct DownloadsDataRust {
     notes_busy: bool,
     notes_state: QVariant,
     replacements: QVariant,
+    searched: QVariant,
+    can_search: bool,
+    search_busy: bool,
     steamcmd: bool,
     task_note: QString,
     task_running: bool,
@@ -171,6 +182,9 @@ impl Default for DownloadsDataRust {
             notes_busy: false,
             notes_state: QVariant::default(),
             replacements: QVariant::default(),
+            searched: QVariant::default(),
+            can_search: false,
+            search_busy: false,
             steamcmd: false,
             task_note: QString::default(),
             task_running: false,
@@ -212,6 +226,7 @@ impl qobject::DownloadsData {
         if changes.contains(Changes::LIBRARY | Changes::SETTINGS | Changes::COMMUNITY) {
             self.as_mut().set_replacements(to_qml(&app.replaceable()));
             self.as_mut().set_steamcmd(app.steamcmd().is_some());
+            self.as_mut().set_can_search(app.steam_key().is_some());
         }
         if changes.contains(Changes::LIBRARY | Changes::UPDATES) {
             self.as_mut().restore_updates();
@@ -296,6 +311,27 @@ impl qobject::DownloadsData {
                 me.as_mut().rust_mut().get_mut().looked_up = looked_up;
                 me.as_mut().set_queue(answer);
                 me.set_queue_busy(false);
+            },
+        );
+    }
+
+    fn search(mut self: Pin<&mut Self>, text: &QString) {
+        if self.search_busy || self.demo {
+            return;
+        }
+        self.as_mut().set_search_busy(true);
+        let (app, text) = (self.app(), text.to_string());
+        crate::jobs::run(
+            "workshop search",
+            self.qt_thread(),
+            move || app.search_workshop(&text),
+            |mut me, found| {
+                let answer = match &found {
+                    Ok(found) => to_qml(&serde_json::json!({ "found": found })),
+                    Err(problem) => to_qml(&Answer::<()>::from(Err(problem.clone()))),
+                };
+                me.as_mut().set_searched(answer);
+                me.as_mut().set_search_busy(false);
             },
         );
     }

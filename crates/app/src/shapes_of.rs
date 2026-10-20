@@ -216,6 +216,7 @@ fn settings(app: &App, shapes: &mut Shapes) {
         ("font", "Noto Sans"),
         ("language", "Polski"),
         ("launchArguments", "-quicktest"),
+        ("steamKey", "made-up"),
     ] {
         app.keep_setting(name, value).unwrap();
     }
@@ -580,7 +581,22 @@ fn downloads(app: &App, shapes: &mut Shapes) {
     let refused: Result<(), _> = Err(rimstack_core::base::error::Error::refused(
         rimstack_core::said!("refused"),
     ));
-    shapes.add("downloads.queue", &Answer::from(refused));
+    shapes.add("downloads.queue", &Answer::from(refused.clone()));
+    let searched = rimstack_core::rimworld::workshop::Found {
+        id: "1".into(),
+        title: "Ann.B".into(),
+        updated: 1,
+        subscriptions: Some(2),
+    };
+    let asked = vec![
+        searched.clone(),
+        rimstack_core::rimworld::workshop::Found {
+            subscriptions: None,
+            ..searched
+        },
+    ];
+    shapes.add("downloads.searched", &serde_json::json!({ "found": asked }));
+    shapes.add("downloads.searched", &Answer::<()>::from(refused));
     let mut since = app.since_launch();
     since.items.push(Changed {
         git: false,

@@ -185,6 +185,7 @@ impl App {
             set_config: owned("config"),
             set_workshop: owned("workshop"),
             launch_arguments: owned("launchArguments"),
+            steam_key: owned("steamKey"),
             launch_directly: settings.launch_directly(),
             language: owned("language"),
             english: self.language_in_use() == "English",

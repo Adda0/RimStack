@@ -137,6 +137,73 @@ pub fn fetch_details(ids: &[String]) -> Result<Vec<Details>, Error> {
 const COLLECTIONS_URL: &str =
     "https://api.steampowered.com/ISteamRemoteStorage/GetCollectionDetails/v1/";
 
+const QUERY_URL: &str = "https://api.steampowered.com/IPublishedFileService/QueryFiles/v1/";
+
+/// The game's app id on Steam.
+pub const RIMWORLD: &str = "294100";
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Found {
+    pub id: String,
+    pub title: String,
+    /// Seconds since 1970; 0 when Steam does not say.
+    pub updated: u64,
+    /// `None` when Steam does not say.
+    pub subscriptions: Option<u64>,
+}
+
+/// A page of `IPublishedFileService/QueryFiles` search results.
+pub fn parse_search(json: &str) -> Result<Vec<Found>, Error> {
+    let root: Value = serde_json::from_str(json)
+        .map_err(|e| Error::format(said!("Steam's answer is not JSON: {}", e)))?;
+    let files = root
+        .pointer("/response/publishedfiledetails")
+        .and_then(Value::as_array)
+        .ok_or_else(|| Error::format(said!("Steam's answer has no file list")))?;
+    let found = |file: &Value| -> Option<Found> {
+        if file.get("result").and_then(Value::as_u64) != Some(1) {
+            return None;
+        }
+        Some(Found {
+            id: file.get("publishedfileid")?.as_str()?.to_string(),
+            title: file.get("title")?.as_str()?.to_string(),
+            updated: file
+                .get("time_updated")
+                .and_then(Value::as_u64)
+                .unwrap_or(0),
+            subscriptions: file.get("lifetime_subscriptions").and_then(Value::as_u64),
+        })
+    };
+    Ok(files.iter().filter_map(found).collect())
+}
+
+/// Blocks on the network. The key goes only to api.steampowered.com and is never logged.
+/// `page` starts at 1.
+pub fn query_files(key: &str, text: &str, page: usize) -> Result<Vec<Found>, Error> {
+    let agent = crate::base::web::agent(60);
+    let mut response = agent
+        .get(QUERY_URL)
+        .query_pairs([
+            ("query_type", "12"),
+            ("page", &page.to_string()),
+            ("numperpage", "30"),
+            ("creator_appid", RIMWORLD),
+            ("appid", RIMWORLD),
+            ("search_text", text),
+            ("filetype", "0"),
+            ("return_metadata", "1"),
+        ])
+        .header("x-webapi-key", key)
+        .call()
+        .map_err(crate::base::web::steam_failed)?;
+    let text = response
+        .body_mut()
+        .read_to_string()
+        .map_err(crate::base::web::steam_failed)?;
+    parse_search(&text)
+}
+
 pub fn parse_collections(json: &str) -> Result<Vec<(String, Vec<String>)>, Error> {
     let root: Value = serde_json::from_str(json)
         .map_err(|e| Error::format(said!("Steam's answer is not JSON: {}", e)))?;
@@ -254,6 +321,32 @@ mod tests {
         );
         assert!(parse_details("<html>").is_err());
         assert!(parse_details("{}").is_err());
+    }
+
+    #[test]
+    fn search_results_skip_items_steam_does_not_know() {
+        let json = r#"{"response":{"total":4123,"publishedfiledetails":[
+            {"publishedfileid":"2009463077","result":1,"title":"Harmony","time_updated":1756914561,"lifetime_subscriptions":3181967},
+            {"publishedfileid":"3298098166","result":1,"title":"No counts"},
+            {"publishedfileid":"1","result":9}]}}"#;
+        assert_eq!(
+            parse_search(json).unwrap(),
+            [
+                Found {
+                    id: "2009463077".into(),
+                    title: "Harmony".into(),
+                    updated: 1756914561,
+                    subscriptions: Some(3181967),
+                },
+                Found {
+                    id: "3298098166".into(),
+                    title: "No counts".into(),
+                    updated: 0,
+                    subscriptions: None,
+                },
+            ]
+        );
+        assert!(parse_search("{}").is_err());
     }
 
     #[test]
