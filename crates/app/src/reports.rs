@@ -61,6 +61,8 @@ pub struct SettingsReport {
     pub set_config: Option<String>,
     pub set_workshop: Option<String>,
     pub launch_arguments: Option<String>,
+    /// The user's own Steam WebAPI key; `None` without one.
+    pub steam_key: Option<String>,
     pub launch_directly: bool,
     pub language: Option<String>,
     pub language_in_use: String,

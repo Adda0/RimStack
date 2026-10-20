@@ -14,6 +14,7 @@ Item {
     readonly property var report: downloads.updates || ({})
     readonly property var behind: report.steamcmd || []
     readonly property var found: downloads.queue || ({})
+    readonly property var searchBox: downloads.searched || ({ found: [], problem: "" })
     readonly property var queue: found.items || []
     readonly property var repositories: found.repositories || []
     readonly property var wanted: found.wanted || []
@@ -100,6 +101,66 @@ Item {
                         text: screen.downloads.queueBusy ? Theme.say("Asking Steam…") : Theme.say("Look up")
                         tip: Theme.say("Looks up what is pasted beside it: paste a link or an id first.")
                         onClicked: screen.downloads.lookUp(pasted.text)
+                    }
+                }
+                RowLayout {
+                    width: parent.width
+                    spacing: Theme.gap
+                    visible: screen.downloads.canSearch
+                    FilterField {
+                        id: seeked
+                        Layout.fillWidth: true
+                        implicitHeight: Theme.sized(30)
+                        placeholder: Theme.say("Search the Workshop by name")
+                        onAccepted: find.clicked()
+                    }
+                    Btn {
+                        id: find
+                        enabled: !screen.downloads.searchBusy && seeked.text.trim() !== ""
+                        icon: "search"
+                        text: screen.downloads.searchBusy ? Theme.say("Asking Steam…") : Theme.say("Search")
+                        tip: Theme.say("Searches the whole Workshop with your Steam WebAPI key, sent only to api.steampowered.com.")
+                        onClicked: screen.downloads.search(seeked.text)
+                    }
+                }
+                Text {
+                    visible: !screen.downloads.canSearch
+                    width: parent.width
+                    wrapMode: Text.WordWrap
+                    color: Theme.ink2
+                    font.pixelSize: Theme.body
+                    text: Theme.say("Searching the Workshop by name needs a Steam WebAPI key, kept on the Settings screen.")
+                }
+                Btn {
+                    visible: !screen.downloads.canSearch
+                    icon: "external-link"
+                    text: Theme.say("Get a key")
+                    tip: Theme.say("Opens steamcommunity.com/dev/apikey in the browser; the key is sent only to api.steampowered.com.")
+                    onClicked: Qt.openUrlExternally("https://steamcommunity.com/dev/apikey")
+                }
+                Column {
+                    width: parent.width
+                    spacing: Theme.gap
+                    visible: !!searchBox.problem || searchBox.found.length > 0
+                    Text {
+                        visible: !!searchBox.problem
+                        width: parent.width
+                        wrapMode: Text.WordWrap
+                        color: Theme.err
+                        font.pixelSize: Theme.body
+                        text: searchBox.problem || ""
+                    }
+                    Repeater {
+                        model: searchBox.found || []
+                        RowLayout {
+                            id: hit
+                            required property var modelData
+                            width: page.width
+                            Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: hit.modelData.title }
+                            Chip { tone: Theme.moved; icon: "history"; text: screen.day(hit.modelData.updated); tip: Theme.fill("Updated {}", Theme.day(hit.modelData.updated)) }
+                            Chip { visible: hit.modelData.subscriptions > 0; tone: Theme.ok; icon: "download"; text: Theme.fill("{} subscribed", Theme.count(hit.modelData.subscriptions)) }
+                            Btn { text: Theme.say("Look up"); onClicked: screen.downloads.lookUp(hit.modelData.id) }
+                        }
                     }
                 }
             }
