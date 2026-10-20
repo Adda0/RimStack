@@ -7,7 +7,7 @@ import RimStack.Ui
 ListView {
     id: list
     property bool columns: false
-    readonly property real barRoom: bar.width
+    readonly property real barRoom: bar.room
     readonly property bool wide: columns && width >= Theme.sized(620)
     readonly property bool roomy: columns && width >= Theme.sized(440)
     function roomBeside(shown, author) {
@@ -34,7 +34,8 @@ ListView {
     acceptedButtons: Qt.NoButton
     boundsBehavior: Flickable.StopAtBounds
     Wheel {}
-    ScrollBar.vertical: Scroller { id: bar; rightPadding: Theme.gapLine + ring.border.width + Theme.gapHair }
+    ScrollBar.vertical: ListBar { id: bar; rightPadding: Theme.gapLine + ring.border.width + Theme.gapHair }
+    readonly property alias bar: bar
     delegate: ModRow {}
     footer: Item {
         id: end

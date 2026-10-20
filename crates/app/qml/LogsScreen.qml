@@ -321,7 +321,7 @@ Item {
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
                 Wheel {}
-                ScrollBar.vertical: Scroller {}
+                ScrollBar.vertical: ListBar {}
                 model: screen.view === 1 ? screen.culprits : []
                 property int at: 0
                 function open(culprit) {
@@ -371,7 +371,7 @@ Item {
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
                 Wheel {}
-                ScrollBar.vertical: Scroller {}
+                ScrollBar.vertical: ListBar {}
                 model: screen.view === 2 ? screen.lines : []
                 RowKeys {
                     parent: logView
@@ -443,7 +443,7 @@ Item {
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
                 Wheel {}
-                ScrollBar.vertical: Scroller {}
+                ScrollBar.vertical: ListBar {}
                 model: screen.errors
                 spacing: Theme.gapHair
                 RowKeys {
@@ -561,7 +561,7 @@ Item {
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
                 Wheel {}
-                ScrollBar.vertical: Scroller {}
+                ScrollBar.vertical: ListBar {}
 
                 Column {
                     id: modSide

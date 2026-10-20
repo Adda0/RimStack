@@ -180,7 +180,7 @@ Item {
         contentHeight: page.implicitHeight + 48
         clip: true
         boundsBehavior: Flickable.StopAtBounds
-        ScrollBar.vertical: Scroller {}
+        ScrollBar.vertical: ListBar {}
         Wheel {}
 
         Column {
@@ -195,7 +195,7 @@ Item {
                 Text { Layout.fillWidth: true; color: Theme.ink; font.pixelSize: Theme.heading; font.weight: Font.DemiBold; text: screen.finding !== "" ? Theme.fill("Settings matching “{}”", screen.finding.trim()) : Theme.say(screen.parts[screen.part]) }
                 Btn {
                     // Not named `changed`: changedIn reads that property on every child, this button included.
-                    readonly property int marked: (screen.info, Theme.stored.theme, Theme.stored.comfortable, Theme.stored.largeRows, Theme.stored.workshopInSteam, Theme.stored.textScale, Theme.stored.reduceMotion, Theme.stored.highContrast, Theme.stored.ownColours, screen.part, screen.finding, screen.changedIn(page))
+                    readonly property int marked: (screen.info, Theme.stored.theme, Theme.stored.comfortable, Theme.stored.largeRows, Theme.stored.workshopInSteam, Theme.stored.textScale, Theme.stored.reduceMotion, Theme.stored.highContrast, Theme.stored.idleScrollbars, Theme.stored.ownColours, screen.part, screen.finding, screen.changedIn(page))
                     opacity: marked > 0 ? 1 : 0
                     enabled: marked > 0
                     icon: "undo-2"
@@ -456,7 +456,7 @@ Item {
                                 clip: true
                                 model: fontPicker.shown
                                 Wheel {}
-                                ScrollBar.vertical: Scroller {}
+                                ScrollBar.vertical: ListBar {}
                                 delegate: Rectangle {
                                     id: family
                                     required property string modelData
@@ -526,6 +526,14 @@ Item {
                     changed: Theme.stored.highContrast
                     onReset: Theme.stored.highContrast = false
                     Choice { title: Theme.say("Contrast"); options: ["Normal", "High"]; current: Theme.stored.highContrast ? 1 : 0; onPicked: (index) => Theme.stored.highContrast = index === 1 }
+                    Item { Layout.fillWidth: true }
+                }
+                Line {
+                    title: Theme.say("Scrollbars")
+                    tip: Theme.say("Shown: a list's scrollbar stays in view while the list is longer than its pane. When scrolling: it shows only while scrolling or pointed at.")
+                    changed: Theme.stored.idleScrollbars
+                    onReset: Theme.stored.idleScrollbars = false
+                    Choice { title: Theme.say("Scrollbars"); options: ["Shown", "When scrolling"]; current: Number(Theme.stored.idleScrollbars); onPicked: (index) => Theme.stored.idleScrollbars = index === 1 }
                     Item { Layout.fillWidth: true }
                 }
                 Line {

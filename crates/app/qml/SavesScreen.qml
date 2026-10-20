@@ -103,7 +103,7 @@ Item {
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
                 Wheel {}
-                ScrollBar.vertical: Scroller {}
+                ScrollBar.vertical: ListBar {}
                 model: screen.saves
                 RowKeys {
                     parent: list
@@ -212,7 +212,7 @@ Item {
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
                 Wheel {}
-                ScrollBar.vertical: Scroller {}
+                ScrollBar.vertical: ListBar {}
 
                 Column {
                     id: side
