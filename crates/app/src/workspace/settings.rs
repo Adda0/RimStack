@@ -681,7 +681,7 @@ impl App {
     }
 
     /// A dated, unused folder named mod-settings in the setup's own data folder.
-    fn settings_aside_dir(&self) -> PathBuf {
+    pub(crate) fn settings_aside_dir(&self) -> PathBuf {
         rimstack_core::sources::maintenance::free_folder(
             &self
                 .own_dir()
@@ -691,7 +691,7 @@ impl App {
 
     /// The game rewrites a mod's settings whenever they change; moving them under a
     /// running game would undo itself.
-    fn running_check(&self) -> Result<()> {
+    pub(crate) fn running_check(&self) -> Result<()> {
         if self.game_running() {
             return Err(Error::refused(say!(
                 "RimWorld is running. Close the game before moving mod settings aside."
@@ -726,7 +726,7 @@ impl App {
         )
     }
 
-    fn config_dir(&self) -> Result<PathBuf> {
+    pub(crate) fn config_dir(&self) -> Result<PathBuf> {
         self.paths()
             .config
             .clone()
@@ -755,7 +755,7 @@ impl App {
         }
         let aside = self.settings_aside_dir();
         self.finish_aside(
-            rimstack_core::sources::maintenance::set_aside(&config, &aside, &files),
+            rimstack_core::base::aside::set_aside(&config, &aside, &files),
             &aside,
         )
     }
@@ -792,14 +792,14 @@ impl App {
         }
         let aside = self.settings_aside_dir();
         self.finish_aside(
-            rimstack_core::sources::maintenance::set_aside(&config, &aside, &files),
+            rimstack_core::base::aside::set_aside(&config, &aside, &files),
             &aside,
         )
     }
 }
 
 /// A mod's settings are named after its folder, so those say whether one is still there.
-fn installed_folders(
+pub(super) fn installed_folders(
     library: &rimstack_core::mods::library::Library,
 ) -> impl Fn(&str) -> bool + '_ {
     let folders: std::collections::HashSet<&str> = library

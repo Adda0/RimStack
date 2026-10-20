@@ -45,6 +45,7 @@ Popup {
                 height: Theme.sized(28)
                 spacing: Theme.gapSmall
                 Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: saved.modelData.name }
+                Text { visible: !!saved.modelData.settings; color: Theme.ink3; font.pixelSize: Theme.small; text: Theme.say("settings kept"); Tip { text: Theme.say("The mods' settings are kept with this list; using it offers them") } }
                 Text { color: Theme.ink3; font.pixelSize: Theme.small; text: Theme.plural(saved.modelData.mods, "{} mod", "{} mods") }
                 Btn {
                     compact: Mods.prefs.listName !== saved.modelData.name
@@ -52,7 +53,7 @@ Popup {
                     text: Theme.say("Update")
                     tip: Theme.fill("Keeps the load order as it is now under {}, in place of what it held", saved.modelData.name)
                     onClicked: {
-                        listsMenu.problem = Hub.lists.keep(saved.modelData.name)
+                        listsMenu.problem = Hub.lists.keep(saved.modelData.name, Mods.prefs.listWithSettings)
                         if (listsMenu.problem === "")
                             listsMenu.named(saved.modelData.name)
                     }
@@ -60,12 +61,11 @@ Popup {
                 Btn {
                     text: Theme.say("Use")
                     onClicked: {
-                        const ids = Hub.lists.named(saved.modelData.name)
-                        if (ids) {
-                            listsMenu.useList(ids)
-                            listsMenu.named(saved.modelData.name)
+                        if (saved.modelData.settings) {
+                            useSettingsBox.take(saved.modelData.name)
+                        } else {
+                            listsMenu.useSaved(saved.modelData.name)
                         }
-                        listsMenu.close()
                     }
                 }
                 Btn {
@@ -100,13 +100,19 @@ Popup {
                 icon: "save"
                 text: Theme.say("Keep")
                 onClicked: {
-                    listsMenu.problem = Hub.lists.keep(name.text)
+                    listsMenu.problem = Hub.lists.keep(name.text, keepSettings.on)
                     if (listsMenu.problem === "") {
                         listsMenu.named(name.text.trim())
                         name.text = ""
                     }
                 }
             }
+        }
+        Row {
+            width: parent.width
+            spacing: Theme.gapSmall
+            Toggle { silent: true; id: keepSettings; anchors.verticalCenter: parent.verticalCenter; on: Mods.prefs.listWithSettings; onFlipped: Mods.prefs.listWithSettings = !keepSettings.on }
+            Text { anchors.verticalCenter: parent.verticalCenter; color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.say("Keep the mods' settings too") }
         }
         Text { visible: listsMenu.problem !== ""; width: parent.width; wrapMode: Text.WordWrap; color: Theme.err; font.pixelSize: Theme.body; text: listsMenu.problem }
 
@@ -204,6 +210,41 @@ Popup {
                 text: Theme.say("Check a lockfile…")
                 tip: Theme.say("Tells which of a friend's mods are missing, extra, in another order or another version here")
                 onClicked: listsMenu.checkLockfile()
+            }
+        }
+    }
+
+    function useSaved(listName) {
+        const ids = Hub.lists.named(listName)
+        if (ids) {
+            listsMenu.useList(ids)
+            listsMenu.named(listName)
+        }
+        listsMenu.close()
+    }
+
+    Prompt {
+        id: useSettingsBox
+        property string list: ""
+        function take(list) {
+            useSettingsBox.list = list
+            open()
+        }
+        title: Theme.fill("Use the mod settings kept with {} too?", useSettingsBox.list)
+        Text { width: useSettingsBox.width - useSettingsBox.padding * 2; wrapMode: Text.WordWrap; color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.say("The current settings of those mods are set aside, then the kept ones take their place") }
+        Row {
+            spacing: Theme.gap
+            anchors.right: parent.right
+            Btn { text: Theme.say("Only the list"); onClicked: { useSettingsBox.close(); listsMenu.useSaved(useSettingsBox.list) } }
+            Btn {
+                text: Theme.say("Use them too")
+                onClicked: {
+                    listsMenu.problem = Hub.lists.useListSettings(useSettingsBox.list)
+                    if (listsMenu.problem === "") {
+                        useSettingsBox.close()
+                        listsMenu.useSaved(useSettingsBox.list)
+                    }
+                }
             }
         }
     }
