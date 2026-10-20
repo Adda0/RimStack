@@ -602,6 +602,14 @@ Item {
         }
         return null
     }
+    function every(item, test, into) {
+        for (const child of item.children) {
+            if (test(child))
+                into.push(child)
+            checks.every(child, test, into)
+        }
+        return into
+    }
     property string chose
     function pick(texts) {
         return texts.map(text => text === "" ? { line: true } : { text: text, off: text === "Gamma", run: () => checks.chose = text })
@@ -714,6 +722,21 @@ Item {
             events.keyClick(Qt.Key_Home, Qt.NoModifier, -1)
             check("a choice takes Home and End", last && probe.at === 0)
             probe.visible = false
+        },
+        () => events.keyClick(Qt.Key_6, Qt.ControlModifier, -1),
+        () => {
+            const size = checks.find(screen.Window.contentItem, item => item.title === Theme.say("Text size") && item.step !== undefined)
+            let flick = size.parent
+            while (flick.contentY === undefined)
+                flick = flick.parent
+            const shown = checks.every(flick.contentItem, item => item.activeFocusOnTab && item.visible, [])
+            const last = shown[shown.length - 1]
+            flick.contentY = 0
+            const hidden = last.mapToItem(flick, 0, 0).y > flick.height
+            last.forceActiveFocus()
+            const y = last.mapToItem(flick, 0, 0).y
+            check("a control focused below a page's fold scrolls into view", hidden && y >= 0 && y + last.height <= flick.height)
+            events.keyClick(Qt.Key_1, Qt.ControlModifier, -1)
         },
     ]
     Timer {
