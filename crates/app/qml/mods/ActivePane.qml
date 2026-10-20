@@ -362,15 +362,17 @@ Item {
                             Btn { width: parent.width; icon: Mods.prefs.headings === 0 ? "check" : ""; text: Theme.say("One numbered list"); onClicked: Mods.prefs.headings = 0 }
                             Text { topPadding: Theme.gapTiny; color: Theme.ink2; font.pixelSize: Theme.small; font.weight: Font.DemiBold; text: Theme.say("Columns") }
                             Repeater {
-                                model: Object.keys(Mods.columns.labels)
+                                model: Mods.columns.choices
                                 Btn {
-                                    required property string modelData
+                                    required property var modelData
                                     width: parent.width
-                                    icon: Mods.columns.shown.indexOf(modelData) >= 0 ? "check" : ""
-                                    text: Theme.say(Mods.columns.labels[modelData])
-                                    onClicked: Mods.columns.toggle(modelData)
+                                    enabled: !modelData.off
+                                    icon: modelData.shown ? "check" : ""
+                                    text: modelData.text
+                                    onClicked: Mods.columns.toggle(modelData.column)
                                 }
                             }
+                            Text { visible: text !== ""; width: parent.width; wrapMode: Text.WordWrap; color: Theme.ink3; font.pixelSize: Theme.caption; text: Mods.columns.note }
                             Text { width: parent.width; wrapMode: Text.WordWrap; color: Theme.ink3; font.pixelSize: Theme.caption; text: Theme.say("A heading orders the list when clicked and moves when dragged.") }
                         }
                     }
