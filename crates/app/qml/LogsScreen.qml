@@ -374,12 +374,14 @@ Item {
                 ScrollBar.vertical: ListBar {}
                 model: screen.view === 2 ? screen.lines : []
                 RowKeys {
+                    id: logKeys
                     parent: logView
                     view: logView
                     title: Theme.say("Log")
                     count: logView.count
                     current: Math.max(0, screen.lines.findIndex(l => l.number === logView.marked))
                     onChosen: index => logView.marked = screen.lines[index].number
+                    Shortcut { sequences: [StandardKey.Copy]; enabled: logKeys.activeFocus && logView.count > 0; onActivated: Theme.copy(screen.lines[logKeys.current].text) }
                 }
                 delegate: Item {
                     id: logLine

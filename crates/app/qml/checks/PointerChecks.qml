@@ -567,6 +567,15 @@ Item {
     function pick(texts) {
         return texts.map(text => text === "" ? { line: true } : { text: text, off: text === "Gamma", run: () => checks.chose = text })
     }
+    function copied() {
+        pasted.text = ""
+        pasted.paste()
+        return pasted.text
+    }
+    function logsScreen() {
+        return checks.find(screen.Window.contentItem, item => item.recorded !== undefined && item.launches !== undefined)
+    }
+    property int waited: 0
     property Item order
     property string wasOrder
     Column {
@@ -574,6 +583,10 @@ Item {
         visible: false
         width: 300
         Slide { id: slider; from: 0; to: 1; step: 0.1; onMoved: value => slider.value = value }
+        Chip { id: chipProbe; property int presses: 0; pressable: true; text: "Probe"; onClicked: presses += 1 }
+        Card { id: cardProbe; key: "keys-check"; title: "Probe" }
+        CopyText { id: copyProbe; text: "Copied\u200b text" }
+        TextEdit { id: pasted; activeFocusOnTab: false }
     }
     readonly property var popupSteps: [
         () => {
@@ -676,6 +689,23 @@ Item {
             check("a choice takes Home and End", last && probe.at === 0)
             probe.visible = false
         },
+        () => {
+            shared.visible = true
+            chipProbe.forceActiveFocus()
+            events.keyClick(Qt.Key_Enter, Qt.KeypadModifier, -1)
+            check("a chip takes the keypad's Enter", chipProbe.presses === 1)
+            events.keyClick(Qt.Key_Tab, Qt.NoModifier, -1)
+            const folded = cardProbe.folded
+            events.keyClick(Qt.Key_Enter, Qt.KeypadModifier, -1)
+            const flipped = cardProbe.folded !== folded
+            events.keyClick(Qt.Key_Enter, Qt.KeypadModifier, -1)
+            check("a card's heading folds with the keypad's Enter", flipped && cardProbe.folded === folded)
+            events.keyClick(Qt.Key_Tab, Qt.NoModifier, -1)
+            const reached = copyProbe.activeFocus
+            events.keyClick(Qt.Key_C, Qt.ControlModifier, -1)
+            check("a text to copy is reached with Tab, and Ctrl+C copies all of it", reached && checks.copied() === "Copied text")
+            shared.visible = false
+        },
         () => events.keyClick(Qt.Key_6, Qt.ControlModifier, -1),
         () => {
             const size = checks.find(screen.Window.contentItem, item => item.title === Theme.say("Text size") && item.step !== undefined)
@@ -689,6 +719,19 @@ Item {
             last.forceActiveFocus()
             const y = last.mapToItem(flick, 0, 0).y
             check("a control focused below a page's fold scrolls into view", hidden && y >= 0 && y + last.height <= flick.height)
+            events.keyClick(Qt.Key_1, Qt.ControlModifier, -1)
+        },
+        () => events.keyClick(Qt.Key_5, Qt.ControlModifier, -1),
+        // Again until the log is read.
+        () => {
+            const logs = checks.logsScreen()
+            logs.view = 2
+            if (logs.lines.length === 0 && checks.waited++ < 25)
+                return false
+            const keys = checks.find(logs, item => item.title === Theme.say("Log") && item.count !== undefined)
+            keys.forceActiveFocus()
+            events.keyClick(Qt.Key_C, Qt.ControlModifier, -1)
+            check("Ctrl+C on the log copies the marked line", logs.lines.length > 0 && checks.copied() === logs.lines[keys.current].text)
             events.keyClick(Qt.Key_1, Qt.ControlModifier, -1)
         },
     ]

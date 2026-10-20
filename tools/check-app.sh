@@ -73,10 +73,13 @@ run --check=restore
 cmp -s "$saved" "$tmp/original.xml" || fail "moving the mod back did not give the original file"
 echo "check ok    saving the original order gives the original file, byte for byte"
 
-# What only the mouse shows: dragging, the right button, the wheel. Sent
-# by Qt's test module (QtTest), which only this step needs. Nothing is
-# saved, so the file must still be the original afterwards.
+# What only the mouse or the keys show: dragging, the right button, the wheel,
+# the keys in dialogs and menus. Sent by Qt's test module (QtTest), which only
+# this step needs. Nothing is saved, so the file must still be the original
+# afterwards. The game's log is there for the keys on the Logs screen.
+cp "$real/Player.log" "$tmp/config/" 2>/dev/null || true
 run --check=pointer || fail "the pointer checks did not pass"
+rm -f "$tmp/config/Player.log"
 cmp -s "$saved" "$tmp/original.xml" || fail "the pointer checks changed the file"
 
 # A saved list against the load order: which mods only one holds, which sit
