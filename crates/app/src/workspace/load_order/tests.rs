@@ -108,6 +108,57 @@ fn a_mod_taken_across_is_one_step_that_undo_takes_back() {
 }
 
 #[test]
+fn a_rule_the_order_breaks_is_a_warning_its_fix_moves_the_mod_for() {
+    use rimstack_core::mods::describe::Fix;
+    let (tmp, app) = installed();
+    let jeep = tmp.path().join("game/Mods/jeep/About");
+    std::fs::create_dir_all(&jeep).unwrap();
+    let about = "<ModMetaData><packageId>ann.jeep</packageId><name>Jeep</name><loadAfter><li>Ann.Roads</li></loadAfter></ModMetaData>";
+    std::fs::write(jeep.join("About.xml"), about).unwrap();
+    app.rescan();
+    app.session().record(vec![
+        "ludeon.rimworld".into(),
+        "ann.jeep".into(),
+        "ann.roads".into(),
+    ]);
+    let mut order = LoadOrder::read(&app, true, Arrange::Category);
+    // [Core, Jeep, Roads]: Jeep's own rule wants it after Roads, so it warns.
+    let trouble_at = |order: &LoadOrder, at: usize| {
+        order.troubles()[at]
+            .iter()
+            .find(|t| t.key == "order:ann.roads")
+            .cloned()
+    };
+    let Some(t) = trouble_at(&order, 1) else {
+        panic!("{:?}", order.troubles()[1])
+    };
+    assert!(!t.error);
+    assert_eq!(
+        t.words.to_string(),
+        "Should load after Ann.Roads, by its own rule."
+    );
+    // The fix names the other mod's place and the side; one move settles it.
+    let jeep_id = order.list(Side::Active).mods()[1].installed.unwrap();
+    assert_eq!(t.fix, Fix::Move(2, true));
+    order.move_next_to(&app, jeep_id, 2, true);
+    assert_eq!(
+        order.list(Side::Active).mods()[2].id,
+        "ann.jeep",
+        "{:?}",
+        order.list(Side::Active).mods()
+    );
+    assert!(trouble_at(&order, 2).is_none());
+    // And it is one undo step, not a move for each rule.
+    assert!(order.undo(&app));
+    assert_eq!(order.list(Side::Active).mods()[1].id, "ann.jeep");
+    assert!(trouble_at(&order, 1).is_some());
+    // A rule no longer broken stops warning even before the next move.
+    app.ignore_problem("Ann.Jeep", "order:ann.roads", true);
+    order.recheck(&app);
+    assert!(trouble_at(&order, 1).is_none());
+}
+
+#[test]
 fn an_error_ignored_is_gone_until_warned_again() {
     let (tmp, app) = installed();
     let about = "<ModMetaData><packageId>Ann.Roads</packageId><name>Ann.Roads</name><modDependencies><li><packageId>gone.lib</packageId></li></modDependencies></ModMetaData>";
