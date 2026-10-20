@@ -545,6 +545,16 @@ Item {
     function focused() {
         return screen.Window.activeFocusItem
     }
+    property string chose
+    function pick(texts) {
+        return texts.map(text => text === "" ? { line: true } : { text: text, off: text === "Gamma", run: () => checks.chose = text })
+    }
+    Column {
+        id: shared
+        visible: false
+        width: 300
+        Slide { id: slider; from: 0; to: 1; step: 0.1; onMoved: value => slider.value = value }
+    }
     readonly property var popupSteps: [
         () => {
             Mods.select(Mods.nthMod(Mods.active, 0), true)
@@ -592,6 +602,43 @@ Item {
             events.keyClick(Qt.Key_Escape, Qt.NoModifier, -1)
             check("and Esc closes it", !card.opened)
             Mods.prefs.headings = headings
+        },
+        () => {
+            checks.activeList.forceActiveFocus()
+            Mods.menuRequested(checks.activeList, 0, 0, checks.pick(["Alpha", "Beta", "", "Bravo", "Gamma", "Delta"]))
+        },
+        () => {
+            const menu = checks.screen.rowMenu, at = []
+            for (const key of [Qt.Key_End, Qt.Key_Home, Qt.Key_B, Qt.Key_B, Qt.Key_B, Qt.Key_PageDown, Qt.Key_PageUp]) {
+                events.keyClick(key, Qt.NoModifier, -1)
+                at.push(menu.at)
+            }
+            check("a menu takes End, Home, Page Down and Page Up, and a letter goes to the next entry starting with it", at.join() === "5,0,1,3,1,5,0")
+            events.keyClick(Qt.Key_Enter, Qt.KeypadModifier, -1)
+            check("the keypad's Enter takes the entry, and the keys go back to the list", checks.chose === "Alpha" && checks.activeList.activeFocus)
+            Mods.menuRequested(checks.activeList, 0, 0, checks.pick(["Alpha", "Beta"]))
+            events.keyClick(Qt.Key_Down, Qt.NoModifier, -1)
+            events.keyClick(Qt.Key_Down, Qt.NoModifier, -1)
+            events.keyClick(Qt.Key_Space, Qt.NoModifier, -1)
+            check("and so does Space", checks.chose === "Beta" && !checks.screen.menuOpen)
+        },
+        () => {
+            shared.visible = true
+            slider.forceActiveFocus()
+            const moved = []
+            for (const key of [Qt.Key_End, Qt.Key_Home, Qt.Key_PageUp, Qt.Key_PageDown]) {
+                events.keyClick(key, Qt.NoModifier, -1)
+                moved.push(Math.round(slider.value * 100))
+            }
+            check("a slider takes End, Home, Page Up and Page Down", moved.join() === "100,0,30,10")
+            shared.visible = false
+            probe.visible = true
+            probe.forceActiveFocus()
+            events.keyClick(Qt.Key_End, Qt.NoModifier, -1)
+            const last = probe.at === 2
+            events.keyClick(Qt.Key_Home, Qt.NoModifier, -1)
+            check("a choice takes Home and End", last && probe.at === 0)
+            probe.visible = false
         },
     ]
     Timer {
