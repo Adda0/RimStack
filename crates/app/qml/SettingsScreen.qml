@@ -803,6 +803,36 @@ Item {
                     Text { Layout.fillWidth: true; elide: Text.ElideMiddle; color: Theme.ink2; font.pixelSize: Theme.body; text: modSettings.said }
                 }
 
+                Line {
+                    title: Theme.say("Settings of mods that are gone")
+                    tip: Theme.say("Every Mod_*.xml of the game's Config folder that no installed mod's folder names. A mod's settings come back if the mod itself does.")
+                    Btn {
+                        enabled: (screen.info.orphanSettings || []).length > 0
+                        danger: true
+                        text: Theme.say("Set aside…")
+                        onClicked: Notices.ask({
+                            title: Theme.say("Set the settings of gone mods aside"),
+                            lines: [Theme.say("Every orphaned Mod_*.xml is moved out of"), { path: screen.info.configFolder || "" }, Theme.say("into a new folder, named mod-settings and the time, in"), { path: screen.info.dataFolder || "" }, Theme.say("Moving the files back restores them.")],
+                            label: Theme.say("Set aside"), run: Hub.mods.setOrphanSettingsAside })
+                    }
+                    Text { visible: (screen.info.orphanSettings || []).length === 0; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.say("All settings files belong to installed mods.") }
+                    Text { visible: (screen.info.orphanSettings || []).length > 0; Layout.fillWidth: true; elide: Text.ElideMiddle; color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.plural((screen.info.orphanSettings || []).length, "Settings of {} mod that is gone, left behind:", "Settings of {} mods that are gone, left behind:") }
+                }
+                Column {
+                    width: parent.width
+                    spacing: Theme.gapSmall
+                    Repeater {
+                        model: screen.info.orphanSettings || []
+                        Text {
+                            required property string modelData
+                            width: parent.width
+                            elide: Text.ElideMiddle
+                            color: Theme.ink3
+                            font.pixelSize: Theme.small
+                            text: modelData
+                        }
+                    }
+                }
                 GroupTitle { visible: screen.finding === ""; text: Theme.say("Load order") }
                 Line {
                     title: Theme.say("List from before RimStack")
