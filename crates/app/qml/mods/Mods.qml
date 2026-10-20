@@ -86,6 +86,10 @@ Item {
         case Qt.Key_Enter:
             activateSelected(model)
             break
+        case Qt.Key_Menu:
+        case Qt.Key_F10 | Qt.ShiftModifier:
+            rowWanted(row => rowMenu(row, Theme.sized(60), row.height))
+            break
         case Qt.Key_T:
         case Qt.Key_N:
             return selectedCount === 1 && (editRequested(key === Qt.Key_N ? "note" : "tags"), true)
@@ -94,6 +98,9 @@ Item {
         }
         return true
     }
+
+    // Runs `run(row)` with the selected mod's row, scrolled to; not when its list does not show it.
+    signal rowWanted(var run)
 
     function activateSelected(model) {
         const position = selectedId >= 0 ? model.indexOf(selectedId) : -1

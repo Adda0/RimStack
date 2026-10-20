@@ -22,7 +22,7 @@ Prompt {
             [Theme.say("Ctrl + A"), Theme.say("Select every mod shown")],
             ["T", Theme.say("Type its tags")],
             ["N", Theme.say("Type its note")],
-            [Theme.say("Menu"), Theme.say("The mod's menu")]]],
+            [Theme.say("Menu, Shift + F10"), Theme.say("The mod's menu")]]],
         [Theme.say("Texture comparison"), [[Theme.say("Up, Down"), Theme.say("Previous or next texture")], ["1, 2", Theme.say("Keep the first or the second mod's")], [Theme.say("Esc"), Theme.say("Back to the lists")]]],
     ]
     GridLayout {
