@@ -22,6 +22,7 @@ pub mod lists;
 pub mod load_order;
 pub mod logs;
 mod notes;
+mod played;
 pub mod preview_pack;
 mod records;
 pub mod saves;
@@ -95,6 +96,8 @@ pub struct App {
     /// Changes only while `conflicts` is held for writing.
     conflicts_generation: AtomicU64,
     behind: RwLock<Option<HashSet<String>>>,
+    /// Mods a save, a saved list or the order history names; `None` for not read yet.
+    played: RwLock<Option<Arc<HashSet<String>>>>,
     list_on_disk: Mutex<(u64, bool)>,
     /// Read once: git installed later is not seen.
     git: OnceLock<Option<String>>,
@@ -150,6 +153,7 @@ impl App {
             conflicts: RwLock::new(None),
             conflicts_generation: AtomicU64::new(0),
             behind: RwLock::new(None),
+            played: RwLock::new(None),
             list_on_disk: Mutex::new((0, false)),
             git: OnceLock::new(),
             log_read: Mutex::new(None),
@@ -158,6 +162,10 @@ impl App {
     }
 
     pub fn publish(&self, changes: crate::changes::Changes) {
+        use crate::changes::Changes;
+        if changes.contains(Changes::SAVES | Changes::LISTS) {
+            self.forget_played();
+        }
         self.bus.publish(changes);
     }
 

@@ -40,6 +40,15 @@ Item {
         comp = Hub.lists.compareList(name)
         check("the lists hold the same again", comp.onlySaved.length === 0 && comp.onlyCurrent.length === 0)
 
+        const one = Mods.nthMod(Mods.inactive, 1)
+        const another = Mods.nthMod(Mods.inactive, 3)
+        check("an's local mod can be selected", one >= 0 && another >= 0 && one !== another)
+        Mods.select(one, false)
+        Mods.selectAlso(another, false)
+        const cleanup = Hub.mods.cleanup(Mods.selectedIds)
+        check("a multi-selection of inactive local mods offers both for the bin, none for Steam", cleanup.bin === 2 && cleanup.unsubscribe === 0 && cleanup.binBytes > 0)
+        Mods.select(-1, false)
+
         Hub.lists.remove(name)
         comp = Hub.lists.compareList(name)
         check("a deleted list does not compare", comp !== null && comp.onlySaved.length === 0 && comp.onlyCurrent.length === 0 && comp.moved.length === 0)

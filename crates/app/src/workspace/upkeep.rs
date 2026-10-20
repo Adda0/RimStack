@@ -69,7 +69,7 @@ impl App {
 
     /// The game's own mods and those in the load order being edited are refused, but for a
     /// local copy whose Workshop subscription then takes its place.
-    fn bin_target(&self, id: ModId) -> Result<PathBuf, Error> {
+    pub(crate) fn bin_target(&self, id: ModId) -> Result<PathBuf, Error> {
         let active = self.session().current().to_vec();
         let loaded = self.library();
         let (library, _) = loaded.as_ref().as_ref().map_err(Clone::clone)?;
@@ -167,6 +167,22 @@ impl App {
         )
     }
 
+    /// Every one allowed to go; the count says how many folders were moved.
+    /// Stops at the first folder the bin refuses.
+    pub fn bin_mods(&self, ids: &[ModId]) -> Result<usize, Error> {
+        let mut folders = Vec::new();
+        for &id in ids {
+            if let Ok(folder) = self.bin_target(id) {
+                folders.push(folder);
+            }
+        }
+        let binned = folders.len();
+        for folder in folders {
+            trash::delete(&folder).map_err(|problem| Error::file(&folder, problem))?;
+        }
+        Ok(binned)
+    }
+
     /// The title and the note of the prompt that confirms `kind` for this mod.
     pub fn bin_prompt(&self, id: ModId, kind: i32) -> (Sentence, Sentence) {
         let made = self
@@ -177,6 +193,16 @@ impl App {
             .unwrap_or_default();
         (bin_title(kind, &name), bin_note(kind, made))
     }
+}
+
+/// What a multi-selection offers for cleanup, each with the folders' bytes.
+#[derive(Serialize, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct Cleanup {
+    pub(crate) unsubscribe: usize,
+    pub(crate) unsubscribe_bytes: u64,
+    pub(crate) bin: usize,
+    pub(crate) bin_bytes: u64,
 }
 
 pub const BIN_WHOLE: i32 = 0;

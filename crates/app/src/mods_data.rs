@@ -204,6 +204,14 @@ pub mod qobject {
         fn activate_fresh(self: Pin<&mut ModsData>);
         /// Takes the way to delete it: the whole mod, its files but the DDS textures,
         /// the DDS textures alone, or the whole mod and a subscription again.
+        /// What the selection offers for cleanup:
+        /// `{ unsubscribe, unsubscribeBytes, bin, binBytes }`.
+        #[qinvokable]
+        fn cleanup(self: &ModsData, ids: &QVariant) -> QVariant;
+        /// Every selected mod that may go goes to the bin.
+        #[qinvokable]
+        #[cxx_name = "binMany"]
+        fn bin_many(self: Pin<&mut ModsData>, ids: &QVariant);
         #[qinvokable]
         #[cxx_name = "binKind"]
         fn bin_kind(self: Pin<&mut ModsData>, mod_id: i32, kind: i32);
