@@ -375,12 +375,23 @@ impl LoadOrder {
         let whole = m.source != Source::Official && self.active.position_of(id).is_none();
         let made = app.texture_manifest().made_in(&m.path);
         said.bin_choices = crate::workspace::upkeep::bin_choices(made, workshop, whole);
-        if workshop {
+        // A local copy has the page of the item it names, of its subscribed twin, or of its
+        // package id in the Workshop database.
+        let item = match m.source {
+            Source::Workshop => Some(m.folder.clone()),
+            Source::Official => None,
+            _ => rimstack_core::rimworld::about::published_file_id(&m.path)
+                .or_else(|| {
+                    let twin = library.copies(id).filter(|c| c.workshop != id)?.workshop;
+                    Some(library.get(twin)?.folder.clone())
+                })
+                .or_else(|| Some(app.workshop_names().get(&m.key()?)?.workshop_id.clone())),
+        };
+        if let Some(item) = item {
             said.workshop_page = Some(format!(
-                "https://steamcommunity.com/sharedfiles/filedetails/?id={}",
-                m.folder
+                "https://steamcommunity.com/sharedfiles/filedetails/?id={item}"
             ));
-            said.steam_page = Some(format!("steam://url/CommunityFilePage/{}", m.folder));
+            said.steam_page = Some(format!("steam://url/CommunityFilePage/{item}"));
         }
         if let Some(config) = &app.paths().config {
             let folders: std::collections::HashSet<&str> = library

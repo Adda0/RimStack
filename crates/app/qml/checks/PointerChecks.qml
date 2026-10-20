@@ -251,6 +251,7 @@ Item {
         onTriggered: {
             const menu = checks.screen.rowMenu
             checks.check("the row menu holds the groups in one entry", checks.entry(menu, Theme.say("Group under a tag")) !== null && checks.entry(menu, Theme.say("A new group…")) === null)
+            checks.check("a local copy's menu opens the page of the Workshop item it names, and offers no unsubscribing", !Mods.info.workshop && checks.entry(menu, Theme.say("Page in the browser")) !== null && checks.entry(menu, Theme.say("Unsubscribe…")) === null)
             const copy = checks.entry(menu, Theme.say("Copy name"))
             const selected = Mods.selectedId
             events.mouseClick(copy, copy.width / 2, copy.height / 2, Qt.LeftButton, Qt.NoModifier, -1)
