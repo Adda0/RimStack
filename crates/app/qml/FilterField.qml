@@ -33,7 +33,8 @@ Rectangle {
     }
     property bool syncing: false
     signal accepted()
-    signal escaped()
+    // `empty`: there was nothing to clear.
+    signal escaped(bool empty)
     signal tapped()
     function focusInput() { fieldInput.forceActiveFocus() }
     readonly property bool editing: fieldInput.activeFocus
@@ -135,8 +136,9 @@ Rectangle {
             field.compose()
         }
         Keys.onEscapePressed: {
+            const empty = field.text === ""
             field.text = ""
-            field.escaped()
+            field.escaped(empty)
         }
         Keys.onReturnPressed: field.accepted()
         Keys.onEnterPressed: field.accepted()

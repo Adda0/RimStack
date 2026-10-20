@@ -103,7 +103,7 @@ Column {
                     tagOffers.chosen = -1
                 }
                 onEditingChanged: tagOffers.shut = false
-                onEscaped: tagOffers.shut = true
+                onEscaped: empty => empty ? Mods.toList() : tagOffers.shut = true
                 // Enter takes the offer chosen with the arrows, else adds what is typed.
                 onAccepted: {
                     const chosen = tagBox.suggesting && tagOffers.chosen >= 0 && tagOffers.offered[tagOffers.chosen].text
@@ -182,6 +182,7 @@ Column {
             TextEdit {
                 id: noteBox
                 Accessible.name: Theme.say("Note")
+                Keys.onEscapePressed: Mods.toList()
                 x: 10
                 y: 7
                 width: parent.width - 20

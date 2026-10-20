@@ -258,6 +258,42 @@ Item {
         check("Left folds the selected mod's heading, the arrows stop on it and Right shows its mods again", folded && past && back && Mods.active.rows() === shown)
         Mods.prefs.headings = 0
         Mods.select(-1, false)
+        checks.fieldKeys()
+    }
+
+    function fieldKeys() {
+        Mods.filterFocusRequested()
+        for (const c of "Fixture")
+            events.keyClickChar(c, Qt.NoModifier, -1)
+        const filter = screen.Window.activeFocusItem.parent, offered = filter.suggesting
+        events.keyClick(Qt.Key_Down, Qt.NoModifier, -1)
+        check("Down in the filter without offers goes to the list and its first mod", !offered && checks.activeList.activeFocus && Mods.selectedId === Hub.mods.stopOn(true, Hub.mods.stepFrom(true, -1, 1)))
+        Mods.filterBy("")
+        Mods.filterFocusRequested()
+        events.keyClick(Qt.Key_Escape, Qt.NoModifier, -1)
+        check("Esc in the empty filter goes back to the list", checks.activeList.activeFocus)
+        Mods.tab = 0
+        if (Theme.folded.indexOf("about-notes") >= 0)
+            Theme.fold("about-notes")
+        checks.field(details, "Add tags, separated by commas").focusInput()
+        events.keyClick(Qt.Key_Escape, Qt.NoModifier, -1)
+        const fromTags = checks.activeList.activeFocus
+        checks.editable(details).forceActiveFocus()
+        events.keyClick(Qt.Key_Escape, Qt.NoModifier, -1)
+        check("Esc in the empty tag box, and in the note box, goes back to the list", fromTags && checks.activeList.activeFocus && Mods.selectedId >= 0)
+        Mods.select(-1, false)
+    }
+
+    // The note box: the one text a person can edit that is not a field.
+    function editable(item) {
+        for (const child of item.data) {
+            if (child.textDocument !== undefined && !child.readOnly && child.visible)
+                return child
+            const found = child.data ? checks.editable(child) : null
+            if (found)
+                return found
+        }
+        return null
     }
 
     TestEvent { id: events }

@@ -110,6 +110,7 @@ Rectangle {
         ModsFilter {
             id: mirror
             visible: pane.drawer
+            rows: Mods.inactive
             Layout.fillWidth: true
             Layout.leftMargin: Theme.gapLarge
             Layout.rightMargin: Theme.gapLarge

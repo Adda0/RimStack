@@ -12,19 +12,20 @@ FilterField {
     placeholder: Theme.say("Filter active and inactive mods")
     found: Mods.filtered === "" ? "" : Theme.fill("{} active, {} inactive", Theme.count(Mods.active.matching), Theme.count(Mods.inactive.matching))
     readonly property alias suggesting: suggestions.visible
+    // The list Down, Enter and Esc on an empty field go to.
+    property ModRows rows: Mods.active
     onTypingChanged: {
         suggestions.shut = false
         suggestions.chosen = 0
     }
     onEditingChanged: suggestions.shut = false
-    onEscaped: suggestions.shut = true
+    onEscaped: empty => empty ? Mods.toList(filter.rows) : suggestions.shut = true
     // A click into the field offers again what a click away put away; focus alone does not change.
     onTapped: suggestions.shut = false
-    // Enter takes the offer chosen with the arrows; without offers it is the field's own.
-    onAccepted: suggesting && filter.take(offers.itemAt(suggestions.chosen).modelData.term)
-    Keys.enabled: suggesting
+    // Enter takes the offer chosen with the arrows; without offers it goes to the list, as Down does.
+    onAccepted: suggesting ? filter.take(offers.itemAt(suggestions.chosen).modelData.term) : Mods.toList(filter.rows)
     Keys.onUpPressed: suggestions.chosen = Math.max(suggestions.chosen - 1, 0)
-    Keys.onDownPressed: suggestions.chosen = Math.min(suggestions.chosen + 1, offers.count - 1)
+    Keys.onDownPressed: suggesting ? suggestions.chosen = Math.min(suggestions.chosen + 1, offers.count - 1) : Mods.toList(filter.rows)
     Popup {
         id: suggestions
         property bool shut: false
