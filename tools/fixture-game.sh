@@ -42,6 +42,11 @@ for n in $(seq -w 1 100); do
         Textures) base64 -d <<< "$png" > "$folder/Textures/Fixture$n.png" ;;
     esac
 done
+# A translation: nothing but a Languages folder, loading after the mod it translates.
+folder="$game/Mods/fixture-translation"
+about "$folder" fixture.translation "Fixture Mod 100 English" "$(printf '  <loadAfter><li>fixture.mod100</li></loadAfter>\n')"
+mkdir -p "$folder/Languages/English/Keyed"
+printf '<LanguageData><Fixture100>Fixture</Fixture100></LanguageData>\n' > "$folder/Languages/English/Keyed/Fixture.xml"
 
 {
     printf '<?xml version="1.0" encoding="utf-8"?>\n<ModsConfigData>\n  <version>1.6.4871 rev598</version>\n  <activeMods>\n'

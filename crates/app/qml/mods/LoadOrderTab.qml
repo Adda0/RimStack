@@ -17,7 +17,6 @@ Column {
     }
     Toggle { visible: Mods.selectedActive; title: Theme.say("Pinned: Sort leaves it here"); on: !!Mods.info.pinned; onFlipped: Hub.mods.pin(Mods.selectedIds, !Mods.info.pinned) }
     NameList { width: parent.width; title: Theme.say("Requires"); lines: Mods.info.requires || [] }
-    NameList { width: parent.width; title: Theme.say("Translates"); lines: Mods.info.translates || [] }
     NameList { width: parent.width; title: Theme.say("Needed by"); lines: Mods.info.neededBy || [] }
     Btn {
         visible: (Mods.info.offWith || []).length > 0

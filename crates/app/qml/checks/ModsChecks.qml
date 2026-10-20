@@ -254,6 +254,14 @@ Item {
         Mods.prefs.inactiveOrder = "name"
         check("the inactive mods are in name order", byName() && Mods.inactive.rows() === Mods.inactive.count)
         check("lists are filled and clean", Mods.active.count > 4 && Mods.inactive.count > 0 && !Hub.mods.dirty && !Hub.mods.canUndo)
+        let translation = -1
+        for (let r = 0; r < Mods.inactive.rows(); r++)
+            if (Mods.inactive.modIdAt(r) >= 0 && Mods.inactive.at(r).name === "Fixture Mod 100 English")
+                translation = Mods.inactive.modIdAt(r)
+        Mods.select(translation, false)
+        // Every tab of the details is laid out on selection; a value of the wrong shape shows in the log.
+        check("a translation mod says the mod it translates", Mods.info.translates === "Fixture Mod 100")
+        Mods.select(-1, false)
         const bar = checks.view.bar
         const overflows = checks.view.contentHeight > checks.view.height
         check("a list longer than its pane shows its scrollbar unscrolled, wide, and beside the rows", overflows && bar.policy === 2 && bar.contentItem.state === "shown" && bar.width >= Theme.sized(10) && bar.room === bar.width && checks.view.itemAtIndex(0).width === checks.view.width - bar.width)
