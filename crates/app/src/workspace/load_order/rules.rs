@@ -8,6 +8,7 @@ use rimstack_core::mods::list::Mod;
 use rimstack_core::mods::ordering::{self, Sources};
 use rimstack_core::mods::rules::Rule;
 use rimstack_core::mods::sort;
+use rimstack_core::mods::sort_reasons;
 use rimstack_core::rimworld::{loadfolders, paths::Source};
 use rimstack_core::say;
 use std::collections::{HashMap, HashSet};
@@ -175,6 +176,7 @@ pub fn ignored(app: &App) -> HashMap<String, HashSet<String>> {
 
 pub fn troubles(
     app: &App,
+    detected: &mut Detected,
     library: &Library,
     mods: &[Mod],
     trust: &Trust,
@@ -202,6 +204,12 @@ pub fn troubles(
     for (own, duplicate) in found.iter_mut().zip(describe::duplicates(library, mods)) {
         own.extend(duplicate);
     }
+    for (own, order) in found
+        .iter_mut()
+        .zip(order_troubles(app, detected, library, mods))
+    {
+        own.extend(order);
+    }
     let known = app.conflicts().reading();
     if let Some(read) = known.as_ref() {
         for (m, own) in mods.iter().zip(&mut found) {
@@ -228,4 +236,39 @@ pub fn troubles(
     describe::without_ignored(&mut found, mods, &ignored);
     let by_you = trust.versions(&trust.excused);
     (found, describe::version_ignored(library, mods, by_you))
+}
+
+/// Each active mod whose place breaks a load order rule, as RimWorld's Mods screen warns it:
+/// "Should load after X, by its own rule." The strongest rule wins; hints only ever sort.
+/// The fix puts the mod right next to the one its rule names, in a single undo step.
+pub fn order_troubles(
+    app: &App,
+    detected: &mut Detected,
+    library: &Library,
+    mods: &[Mod],
+) -> Vec<Vec<Trouble>> {
+    let rules = all_rules(app, detected, library, mods);
+    let names: Vec<&str> = mods.iter().map(|m| m.name.as_str()).collect();
+    (0..mods.len())
+        .map(|at| {
+            let Some((words, other, after)) = sort_reasons::broken_against(at, &rules, &names)
+            else {
+                return Vec::new();
+            };
+            let key = mods
+                .get(other)
+                .map(|m| {
+                    let (base, _) = rimstack_core::rimworld::id::split_steam(&m.id);
+                    format!("order:{}", rimstack_core::rimworld::id::fold(&base))
+                })
+                .unwrap_or_else(|| "order".to_string());
+            vec![Trouble {
+                error: false,
+                words: say!("Should load {}.", words.inside()),
+                short: say!("Should load {}.", words.inside()),
+                fix: describe::Fix::Move(other, after),
+                key,
+            }]
+        })
+        .collect()
 }

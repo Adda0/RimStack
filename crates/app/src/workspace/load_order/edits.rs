@@ -33,6 +33,23 @@ impl LoadOrder {
         true
     }
 
+    /// One undo step: right after (or right before) the one at `other`, from the row's fix.
+    pub fn move_next_to(&mut self, app: &App, id: ModId, other: usize, after: bool) {
+        let Some(from) = self.active.position_of(id) else {
+            return;
+        };
+        if from == other || other >= self.active.mods().len() {
+            return;
+        }
+        let to = match (after, from < other) {
+            (true, true) => other,
+            (true, false) => other + 1,
+            (false, true) => other - 1,
+            (false, false) => other,
+        };
+        self.move_mod(app, Side::Active, from, to);
+    }
+
     pub fn move_mod(&mut self, app: &App, side: Side, from: usize, to: usize) {
         let list = self.list(side);
         if from >= list.mods().len() || from == to {

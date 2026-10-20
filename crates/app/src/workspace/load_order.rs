@@ -379,7 +379,8 @@ impl LoadOrder {
             let trust = rules::Trust::read(app, library);
             if changed[0] {
                 let mods = self.active.mods();
-                (self.troubles, self.version_ignored) = rules::troubles(app, library, mods, &trust);
+                (self.troubles, self.version_ignored) =
+                    rules::troubles(app, &mut self.detected, library, mods, &trust);
                 self.outdated[0] = rules::outdated(library, mods, &trust);
                 self.checked_order = active;
             }

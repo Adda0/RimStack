@@ -30,6 +30,8 @@ pub enum Fix {
     Subscribe(String),
     Search(String),
     Deactivate(usize),
+    /// Put the mod right after (true) or right before (false) the one at the index.
+    Move(usize, bool),
     Trust,
 }
 
@@ -49,6 +51,7 @@ impl Fix {
             Fix::Subscribe(_) => "subscribe",
             Fix::Search(_) => "search",
             Fix::Deactivate(_) => "deactivate",
+            Fix::Move(..) => "move",
             Fix::Trust => "trust",
         }
     }
@@ -58,6 +61,7 @@ impl Fix {
             Fix::None | Fix::Trust => String::new(),
             Fix::Activate(id) | Fix::Subscribe(id) | Fix::Search(id) => id.clone(),
             Fix::Deactivate(at) => at.to_string(),
+            Fix::Move(at, after) => format!("{at}:{}", if *after { "after" } else { "before" }),
         }
     }
 
@@ -87,6 +91,7 @@ impl Fix {
             Fix::Subscribe(_) => named("Workshop page"),
             Fix::Search(_) => named("Search the Workshop"),
             Fix::Deactivate(_) => named("Deactivate the other"),
+            Fix::Move(..) => named("Move it there"),
             Fix::Trust => named("Ignore"),
         }
     }
@@ -97,6 +102,7 @@ impl Fix {
             Fix::Activate(_) => named("Needed and switched off"),
             Fix::Subscribe(_) | Fix::Search(_) => named("Needed and not installed"),
             Fix::Deactivate(_) => named("Cannot be used together"),
+            Fix::Move(..) => named("Out of order"),
             Fix::Trust => named("Made for another game version"),
         }
     }

@@ -297,6 +297,22 @@ Item {
             check("undo names the first copy again", back.length === 1 && back[0].source === "Local" && !Hub.mods.dirty)
         }
         Mods.select(-1, false)
+
+        // A load order the mods' own rules disagree with warns on the row; its fix is one move.
+        const activeMods = () => { const list = []; for (let r = 0; r < Mods.active.rows(); r++) { const id = Mods.active.modIdAt(r); if (id >= 0) list.push({ id, view: Mods.active.at(r) }) } return list }
+        const late = activeMods().filter(x => x.view.name === "Fixture Mod 004")[0]
+        check("a rule the order breaks warns on the mod's row", !!late && late.view.trouble === 1 && late.view.troubleText.indexOf("Fixture Mod 002") >= 0 && late.view.troubleTip.indexOf("Fixture Mod 002") >= 0)
+        check("and says whose rule it is", !!late && late.view.troubleTip.indexOf(Theme.say("by its own rule")) >= 0)
+        if (late) {
+            const mods = activeMods()
+            const at002 = mods.findIndex(x => x.view.name === "Fixture Mod 002")
+            check("the fix puts it right after the rule's mod in one step", at002 >= 0 && Hub.mods.fix(late.id, "move", at002 + ":after") && Hub.mods.dirty)
+            const moved = activeMods()
+            check("and the broken rule stops warning", moved.findIndex(x => x.view.name === "Fixture Mod 004") === moved.findIndex(x => x.view.name === "Fixture Mod 002") + 1 && moved.filter(x => x.view.name === "Fixture Mod 004")[0].view.trouble === 0)
+            Hub.mods.undo()
+            check("one undo takes the move back", order() === start && !Hub.mods.dirty)
+        }
+
         const bar = checks.view.bar
         const overflows = checks.view.contentHeight > checks.view.height
         check("a list longer than its pane shows its scrollbar unscrolled, wide, and beside the rows", overflows && bar.policy === 2 && bar.contentItem.state === "shown" && bar.width >= Theme.sized(10) && bar.room === bar.width && checks.view.itemAtIndex(0).width === checks.view.width - bar.width)
