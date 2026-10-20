@@ -12,6 +12,8 @@ pub struct LastCheck {
     pub asked: Option<u64>,
     /// Seconds since 1970 when each Workshop item was last updated, by Workshop id.
     pub now: BTreeMap<String, u64>,
+    /// Ids Steam answered as gone (removed or private) at the last check.
+    pub gone: Vec<String>,
     pub checkouts: BTreeMap<String, Remote>,
 }
 
@@ -61,6 +63,7 @@ mod tests {
             checked: Some(10),
             asked: Some(2),
             now: BTreeMap::from([("100".to_string(), 7)]),
+            gone: vec!["200".to_string()],
             checkouts: BTreeMap::from([
                 (
                     "/mods/a".to_string(),
@@ -90,6 +93,7 @@ mod tests {
             (older.checked, older.now["9"], older.checkouts["/m"].behind),
             (Some(5), 4, Some(0))
         );
+        assert!(older.gone.is_empty());
     }
 
     #[test]

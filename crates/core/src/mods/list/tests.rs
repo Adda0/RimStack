@@ -53,6 +53,16 @@ fn header(category: Category, count: usize, collapsed: bool) -> Row {
 }
 
 #[test]
+fn a_removed_mod_is_filtered_by_its_flag() {
+    let m = m("Harmony", "pardeike", Category::Loaders);
+    let filter = Filter::parse("is:removed");
+    let own = |flags| filter.admits(&m, "", flags);
+    assert!(own(flag::REMOVED));
+    assert!(!own(0) && !own(flag::UNPLAYED));
+    assert!(Filter::parse("is:unplayed").admits(&m, "", flag::UNPLAYED));
+}
+
+#[test]
 fn disk_space_sums_sides_sources_and_unplayed() {
     let mut active = vec![
         m("Core", "Ludeon", Category::Game),

@@ -555,6 +555,7 @@ impl LoadOrder {
             HashSet::new()
         };
         let behind = app.behind().reading();
+        let removed = app.removed().reading();
         let mut copies: HashMap<String, usize> = HashMap::new();
         for key in library.installed.iter().filter_map(|m| m.key()) {
             *copies.entry(key).or_default() += 1;
@@ -637,6 +638,10 @@ impl LoadOrder {
                 (
                     folder.is_some_and(|f| behind.as_ref().is_some_and(|b| b.contains(f))),
                     flag::UPDATED,
+                ),
+                (
+                    folder.is_some_and(|f| removed.as_ref().is_some_and(|r| r.contains(f))),
+                    flag::REMOVED,
                 ),
                 (
                     in_save.is_some_and(|ids| !ids.contains(&key)),
