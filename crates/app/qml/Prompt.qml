@@ -4,7 +4,7 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import RimStack.Ui
 
-Popup {
+PopCard {
     id: prompt
     property string title
     default property alias body: content.body
@@ -15,11 +15,9 @@ Popup {
     width: Math.min(parent.width - 2 * Theme.gapPage, prompt.wanted)
     height: Math.min(parent.height - 2 * Theme.gapPage, implicitHeight)
     padding: Theme.gapWide
-    modal: true
-    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-    background: Rectangle { radius: Theme.cornerLarge; color: Theme.bar; border.width: 1; border.color: Theme.line }
-    enter: PopIn {}
-    exit: PopOut {}
+    dim: true
+    // The main action, last in the row, takes Enter. A field focused once opened takes the keys over.
+    onAboutToShow: actions.children[actions.children.length - 1].forceActiveFocus()
     contentItem: ColumnLayout {
         spacing: Theme.gapLarge
         Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: Theme.title; font.weight: Font.DemiBold; text: prompt.title }

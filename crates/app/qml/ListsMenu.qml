@@ -1,16 +1,11 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import QtQuick.Controls.Basic
 import QtQuick.Dialogs
 import QtQuick.Layouts
 import RimStack.Ui
 
-Popup {
-    enter: PopIn {}
-    exit: PopOut {}
+PopCard {
     id: listsMenu
-    modal: true
-    dim: false
 
     signal useList(var ids)
     // The load order now goes by this name; "" when it has none.
@@ -22,9 +17,7 @@ Popup {
 
     width: Theme.sized(380)
     padding: Theme.gapLarge
-    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
     onAboutToShow: problem = ""
-    background: Rectangle { radius: Theme.cornerLarge; color: Theme.bar; border.width: 1; border.color: Theme.line }
 
     contentItem: Column {
         spacing: Theme.gapSmall

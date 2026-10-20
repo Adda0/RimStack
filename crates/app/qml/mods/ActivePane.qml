@@ -359,19 +359,15 @@ Item {
                     text: Theme.say("View")
                     spoken: Theme.say("View options")
                     onClicked: viewMenu.visible = !viewMenu.visible
-                    Popup {
-                        enter: PopIn {}
-                        exit: PopOut {}
+                    PopCard {
                         id: viewMenu
-                        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
-                        modal: true
-                        dim: false
+                        // On release: a press that closed it would let its release tap View or a row.
+                        closePolicy: Popup.CloseOnEscape | Popup.CloseOnReleaseOutside
                         x: parent.width - width
                         y: parent.height + Theme.gapSmall
                         width: viewWords.averageCharacterWidth * 40 + 2 * padding
                         padding: Theme.gapMedium
                         FontMetrics { id: viewWords; font.pixelSize: Theme.caption }
-                        background: Rectangle { radius: Theme.cornerLarge; color: Theme.bar; border.width: 1; border.color: Theme.line }
                         contentItem: Column {
                             spacing: Theme.gapSmall
                             Text { topPadding: Theme.gapTiny; color: Theme.ink2; font.pixelSize: Theme.small; font.weight: Font.DemiBold; text: Theme.say("Load order") }
