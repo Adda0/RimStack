@@ -4,10 +4,10 @@ use std::path::{Path, PathBuf};
 const MOST: [(&str, usize); 7] = [
     ("functions", 197),
     ("timers", 11),
-    ("arrow functions", 307),
+    ("arrow functions", 312),
     ("ifs", 260),
-    ("ternaries", 770),
-    ("array callbacks", 71),
+    ("ternaries", 766),
+    ("array callbacks", 73),
     ("comparisons with a text", 32),
 ];
 

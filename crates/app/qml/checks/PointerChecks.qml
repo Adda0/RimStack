@@ -592,10 +592,22 @@ Item {
     function focused() {
         return screen.Window.activeFocusItem
     }
+    function find(item, test) {
+        for (const child of item.children) {
+            if (test(child))
+                return child
+            const found = checks.find(child, test)
+            if (found)
+                return found
+        }
+        return null
+    }
     property string chose
     function pick(texts) {
         return texts.map(text => text === "" ? { line: true } : { text: text, off: text === "Gamma", run: () => checks.chose = text })
     }
+    property Item order
+    property string wasOrder
     Column {
         id: shared
         visible: false
@@ -649,6 +661,22 @@ Item {
             events.keyClick(Qt.Key_Escape, Qt.NoModifier, -1)
             check("and Esc closes it", !card.opened)
             Mods.prefs.headings = headings
+        },
+        () => {
+            checks.wasOrder = Mods.prefs.inactiveOrder
+            Mods.prefs.inactiveOrder = Hub.mods.inactiveOrders.all[0].key
+            checks.order = checks.find(screen, item => item.spoken === Theme.say("Order the inactive mods by"))
+            checks.order.forceActiveFocus()
+            events.keyClick(Qt.Key_Space, Qt.NoModifier, -1)
+        },
+        () => {
+            const all = Hub.mods.inactiveOrders.all
+            const listed = checks.screen.menuOpen && checks.screen.rowMenu.entries.length === all.length
+            events.keyClick(Qt.Key_Down, Qt.NoModifier, -1)
+            events.keyClick(Qt.Key_Up, Qt.NoModifier, -1)
+            events.keyClick(Qt.Key_Return, Qt.NoModifier, -1)
+            check("the inactive mods' order is a menu the keys pick from", listed && Mods.prefs.inactiveOrder === all[all.length - 1].key)
+            Mods.prefs.inactiveOrder = checks.wasOrder
         },
         () => {
             checks.activeList.forceActiveFocus()
