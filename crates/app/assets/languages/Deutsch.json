@@ -66,6 +66,7 @@
  "Add or remove one from the selection": "Einen Mod zur Auswahl hinzufügen oder daraus entfernen",
  "Add tags, separated by commas": "Tags hinzufügen, durch Kommas getrennt",
  "Added": "Hinzugefügt",
+ "Added since the last launch without errors, these are tried first: {}": "Seit dem letzten Start ohne Fehler hinzugefügt, werden diese zuerst ausprobiert: {}",
  "Adds a tag to every selected mod": "Fügt jedem ausgewählten Mod einen Tag hinzu",
  "Adds an own rule: this mod loads after the other.": "Fügt eine eigene Regel hinzu: Dieser Mod wird nach dem anderen geladen.",
  "After Start": "Nach Start",

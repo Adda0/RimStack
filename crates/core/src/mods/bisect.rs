@@ -5,23 +5,48 @@ use crate::mods::library::Library;
 use crate::mods::list::Mod;
 use crate::rimworld::paths::Source;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::path::Path;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Bisect {
     pub original: Vec<String>,
     pub suspects: Vec<usize>,
+    /// `original` places of the mods added since the launch without errors, tried first.
+    #[serde(default)]
+    seeded: Vec<usize>,
     requires: Vec<Vec<usize>>,
 }
 
 impl Bisect {
-    pub fn new(original: Vec<String>, fixed: &[bool], requires: Vec<Vec<usize>>) -> Self {
+    /// `first` marks the mods to be tried first: they end the suspects, and `off` takes the
+    /// last half of them, so they are switched off in the first round.
+    pub fn new(
+        original: Vec<String>,
+        fixed: &[bool],
+        first: &[bool],
+        requires: Vec<Vec<usize>>,
+    ) -> Self {
         let suspect = |at: &usize| !fixed.get(*at).copied().unwrap_or(false);
+        let seeded = |at: &usize| first.get(*at).copied().unwrap_or(false);
+        let (rest, seed): (Vec<usize>, Vec<usize>) = (0..original.len())
+            .filter(suspect)
+            .partition(|at| !seeded(at));
         Self {
-            suspects: (0..original.len()).filter(suspect).collect(),
+            suspects: [rest, seed].concat(),
+            seeded: (0..original.len()).filter(suspect).filter(seeded).collect(),
             original,
             requires,
         }
+    }
+
+    /// The mods added since the launch without errors still suspected.
+    pub fn seeded(&self) -> Vec<&str> {
+        self.seeded
+            .iter()
+            .filter(|at| self.suspects.contains(at))
+            .map(|&at| self.original[at].as_str())
+            .collect()
     }
 
     fn with_dependents(&self, off: Vec<bool>) -> Vec<bool> {
@@ -99,15 +124,20 @@ impl Bisect {
     }
 }
 
-pub fn start(library: &Library, mods: &[Mod]) -> Bisect {
+pub fn start(library: &Library, mods: &[Mod], recent: &HashSet<String>) -> Bisect {
     let installed = |m: &Mod| library.get(m.installed?);
     let fixed: Vec<bool> = mods
         .iter()
         .map(|m| installed(m).is_some_and(|i| i.source == Source::Official))
         .collect();
+    let first: Vec<bool> = mods
+        .iter()
+        .map(|m| recent.contains(&crate::rimworld::id::split_steam(&m.id).0))
+        .collect();
     Bisect::new(
         mods.iter().map(|m| m.id.clone()).collect(),
         &fixed,
+        &first,
         library.requires_within(mods),
     )
 }
@@ -142,7 +172,7 @@ mod tests {
         }];
         let active = ["a.user".to_string(), "a.lib".to_string()];
         let library = build(scan(&roots), &active, "1.6");
-        let search = start(&library, &library.active);
+        let search = start(&library, &library.active, &HashSet::new());
         assert_eq!(search.original, active);
         assert_eq!(search.suspects, [0, 1]);
         assert_eq!(search.requires, [vec![1], vec![]]);
@@ -168,7 +198,7 @@ mod tests {
     fn every_mod_is_found_in_as_many_rounds_as_promised() {
         for n in [1, 2, 3, 8, 13, 100] {
             for culprit in 0..n {
-                let search = Bisect::new(ids(n), &[], vec![Vec::new(); n]);
+                let search = Bisect::new(ids(n), &[], &[], vec![Vec::new(); n]);
                 let promised = search.rounds_left();
                 let (found, rounds) = hunt(search, &format!("mod.{culprit}"));
                 assert_eq!(found, format!("mod.{culprit}"));
@@ -183,7 +213,7 @@ mod tests {
     #[test]
     fn the_game_and_its_expansions_are_never_suspected_or_switched_off() {
         let fixed = [true, true, false, false, false];
-        let search = Bisect::new(ids(5), &fixed, vec![Vec::new(); 5]);
+        let search = Bisect::new(ids(5), &fixed, &[], vec![Vec::new(); 5]);
         assert_eq!(search.suspects, [2, 3, 4]);
         assert_eq!(search.list(), ["mod.0", "mod.1", "mod.2", "mod.3"]);
         let (found, _) = hunt(search, "mod.4");
@@ -193,12 +223,12 @@ mod tests {
     #[test]
     fn a_mod_goes_off_with_the_mod_it_needs() {
         let requires = vec![vec![1], vec![3], vec![], vec![]];
-        let search = Bisect::new(ids(4), &[], requires.clone());
+        let search = Bisect::new(ids(4), &[], &[], requires.clone());
         assert_eq!(search.off(), [true, false, true, false]);
         assert_eq!(search.list(), ["mod.1", "mod.3"]);
         for culprit in 0..4 {
             let (found, _) = hunt(
-                Bisect::new(ids(4), &[], requires.clone()),
+                Bisect::new(ids(4), &[], &[], requires.clone()),
                 &format!("mod.{culprit}"),
             );
             assert_eq!(found, format!("mod.{culprit}"));
@@ -210,7 +240,7 @@ mod tests {
         let requires = vec![vec![], vec![0], vec![0], vec![0]];
         for culprit in 0..4 {
             let (found, _) = hunt(
-                Bisect::new(ids(4), &[], requires.clone()),
+                Bisect::new(ids(4), &[], &[], requires.clone()),
                 &format!("mod.{culprit}"),
             );
             assert_eq!(found, format!("mod.{culprit}"));
@@ -218,12 +248,26 @@ mod tests {
     }
 
     #[test]
+    fn the_mods_added_since_the_last_launch_without_errors_go_off_first() {
+        let first = [true, false, false, true];
+        let search = Bisect::new(ids(4), &[], &first, vec![vec![]; 4]);
+        // The first round takes off the two seeded mods, the seasoned ones stay.
+        assert_eq!(search.off(), [true, false, false, true]);
+        assert_eq!(search.list(), ["mod.1", "mod.2"], "{:?}", search.suspects);
+        assert_eq!(search.seeded(), ["mod.0", "mod.3"]);
+        let six = [true, false, false, false, false, true];
+        let (found, rounds) = hunt(Bisect::new(ids(6), &[], &six, vec![vec![]; 6]), "mod.1");
+        assert_eq!(found, "mod.1");
+        assert!(rounds <= 3, "{rounds} rounds");
+    }
+
+    #[test]
     fn mods_that_need_each_other_cannot_be_told_apart() {
-        let search = Bisect::new(ids(2), &[], vec![vec![1], vec![0]]);
+        let search = Bisect::new(ids(2), &[], &[], vec![vec![1], vec![0]]);
         assert!(search.is_stuck());
         assert_eq!(search.found(), None);
         assert_eq!(search.list(), ids(2));
-        assert!(!Bisect::new(ids(2), &[], vec![vec![], vec![]]).is_stuck());
+        assert!(!Bisect::new(ids(2), &[], &[], vec![vec![], vec![]]).is_stuck());
     }
 
     #[test]
@@ -231,7 +275,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let file = dir.path().join("kept/bisect.json");
         assert_eq!(Bisect::read(&file), None);
-        let mut search = Bisect::new(ids(6), &[true], vec![vec![]; 6]);
+        let mut search = Bisect::new(ids(6), &[true], &[true], vec![vec![]; 6]);
         search.answer(false);
         search.write(&file).unwrap();
         assert_eq!(Bisect::read(&file), Some(search));
