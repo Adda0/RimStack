@@ -81,7 +81,13 @@ impl Sentence {
         }
     }
 
+    /// `n` fills the first `{}` of `many`; `parts` fill the rest, so they never repeat it.
     pub fn counted(n: usize, one: &'static str, many: &'static str, parts: Vec<Part>) -> Self {
+        debug_assert_eq!(
+            many.matches("{}").count(),
+            parts.len() + 1,
+            "the parts of {many:?}"
+        );
         Sentence::Counted {
             n,
             one: Cow::Borrowed(one),
