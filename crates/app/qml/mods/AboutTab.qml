@@ -200,9 +200,15 @@ Column {
     }
 
     Card {
+        id: facts
         title: Theme.say("Facts")
         key: "about-facts"
         actions: SavedMark {}
+        // As wide as the longest term in the language shown, so no term runs into its value;
+        // past 40% of the card a term wraps instead.
+        readonly property var terms: ["Contains", "Translates", "Mid-save removal", "Code", "Load time", "Package id", "Folder", "Filed under", "Group"]
+        readonly property real termWidth: Math.min(side.width * 0.4, Math.max(Theme.sized(92), ...terms.map(term => Math.ceil(termMetrics.advanceWidth(Theme.say(term))) + (Theme.meaning(Theme.say(term)) !== "" ? Theme.sized(12) + Theme.gapSmall : 0))))
+        FontMetrics { id: termMetrics; font.pixelSize: Theme.body }
         Repeater {
             model: [
                 [Theme.say("Contains"), [Mods.info.contains, Mods.textures.count ? Theme.plural(Mods.textures.count, "{} texture", "{} textures") : ""].filter(s => s).join("; ")],
@@ -215,8 +221,8 @@ Column {
                 id: fact
                 required property var modelData
                 width: side.width
-                implicitHeight: factValue.implicitHeight
-                Text { id: factName; width: Theme.sized(92); color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.say(fact.modelData[0]) }
+                implicitHeight: Math.max(factName.implicitHeight, factValue.implicitHeight)
+                Text { id: factName; objectName: "term"; width: facts.termWidth; wrapMode: Text.Wrap; color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.say(fact.modelData[0]) }
                 CopyText { id: factValue; anchors.left: factName.right; anchors.leftMargin: 4; anchors.right: parent.right; text: fact.modelData[1] }
             }
         }
@@ -224,7 +230,7 @@ Column {
             visible: !!Mods.info.packageId
             width: parent.width
             spacing: Theme.gap
-            Text { Layout.preferredWidth: Theme.sized(92) - Theme.gap; color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.say("Package id") }
+            Text { objectName: "term"; Layout.preferredWidth: facts.termWidth - Theme.gap; wrapMode: Text.Wrap; color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.say("Package id") }
             CopyText { Layout.fillWidth: true; text: Mods.info.packageId || "" }
             Btn { compact: true; icon: "copy"; tip: Theme.say("Copy package id"); onClicked: Theme.copy(Mods.info.packageId) }
         }
@@ -232,13 +238,13 @@ Column {
             visible: !!Mods.info.path
             width: parent.width
             spacing: Theme.gap
-            Text { Layout.preferredWidth: Theme.sized(92) - Theme.gap; color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.say("Folder") }
+            Text { objectName: "term"; Layout.preferredWidth: facts.termWidth - Theme.gap; wrapMode: Text.Wrap; color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.say("Folder") }
             PathText { path: Mods.info.path || ""; copyable: true; openTip: Theme.say("Open folder") }
         }
         RowLayout {
             width: parent.width
             spacing: Theme.gap
-            Defined { Layout.preferredWidth: Theme.sized(92); text: Theme.say("Filed under") }
+            Defined { objectName: "term"; Layout.preferredWidth: Math.max(facts.termWidth, implicitWidth); text: Theme.say("Filed under") }
             Icon { name: Theme.categoryIcons[Theme.categoryNames.indexOf(Mods.info.category || "")] || "package"; size: 14; color: Theme.categoryColours[Theme.categoryNames.indexOf(Mods.info.category || "")] || Theme.ink2 }
             Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: Mods.info.categoryChosen ? Theme.fill("{} (chosen)", Theme.say(Mods.info.category || "")) : Theme.say(Mods.info.category || "") }
             Btn {
@@ -251,7 +257,7 @@ Column {
         RowLayout {
             width: parent.width
             spacing: Theme.gap
-            Defined { Layout.preferredWidth: Theme.sized(92); text: Theme.say("Group") }
+            Defined { objectName: "term"; Layout.preferredWidth: Math.max(facts.termWidth, implicitWidth); text: Theme.say("Group") }
             Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: Mods.info.sub || Theme.say("None") }
             Btn {
                 id: groupButton

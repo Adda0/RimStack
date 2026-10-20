@@ -134,6 +134,14 @@ Item {
                 return child
         return null
     }
+    function terms(item, into) {
+        for (const child of item.children) {
+            if (child.objectName === "term")
+                into.push(child)
+            checks.terms(child, into)
+        }
+        return into
+    }
 
     function drag(from, fromY, to, toY) {
         from.parent.ensurePolished()
@@ -250,6 +258,9 @@ Item {
         interval: 400
         onTriggered: {
             const menu = checks.screen.rowMenu
+            const terms = checks.terms(details, [])
+            // A Text's contentWidth runs past its width when it does not fit; a term with a meaning is no Text.
+            checks.check("every term of the Facts fits before its value", terms.length >= 4 && terms.every(term => (term.contentWidth !== undefined ? term.contentWidth : term.implicitWidth) <= term.width + 0.5))
             checks.check("the row menu holds the groups in one entry", checks.entry(menu, Theme.say("Group under a tag")) !== null && checks.entry(menu, Theme.say("A new group…")) === null)
             checks.check("a local copy's menu opens the page of the Workshop item it names, and offers no unsubscribing", !Mods.info.workshop && checks.entry(menu, Theme.say("Page in the browser")) !== null && checks.entry(menu, Theme.say("Unsubscribe…")) === null)
             const copy = checks.entry(menu, Theme.say("Copy name"))
