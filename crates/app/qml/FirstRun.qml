@@ -223,9 +223,9 @@ Rectangle {
                 Found { visible: !page.info.steamcmd; note: true; sentence: true; last: true; what: Theme.say("SteamCMD is not installed: Downloads can install it, to fetch a mod without subscribing") }
             }
             Block {
-                visible: page.step === 1 && !!page.info.rimsortRules
+                visible: page.step === 1 && !!page.info.rimsort
                 title: Theme.say("Import from RimSort")
-                Tick { last: true; text: Theme.say("Own load order rules"); detail: Theme.say("(RimSort's file is only read)"); on: page.withRimSort; onToggled: page.withRimSort = !page.withRimSort }
+                Tick { last: true; text: Theme.say("Own load order rules, and the tags, notes and colours of your mods"); detail: Theme.say("(RimSort's files are only read)"); on: page.withRimSort; onToggled: page.withRimSort = !page.withRimSort }
             }
             Block {
                 visible: page.step === 1
@@ -358,9 +358,9 @@ Rectangle {
                 anchors.bottom: parent.bottom
                 spacing: Theme.gap
                 Btn { visible: page.step > 0; large: true; text: Theme.say("Back"); onClicked: page.step -= 1 }
-                Btn { visible: page.step < page.last; large: true; text: Theme.say("Skip to Start"); onClicked: page.start(page.withData, page.withRimSort && !!page.info.rimsortRules) }
+                Btn { visible: page.step < page.last; large: true; text: Theme.say("Skip to Start"); onClicked: page.start(page.withData, page.withRimSort && !!page.info.rimsort) }
                 Btn { id: next; visible: page.step < page.last; primary: true; large: true; text: Theme.say("Next"); onClicked: page.step += 1 }
-                Btn { id: begin; visible: page.step === page.last; primary: true; large: true; icon: "check"; text: Theme.say("Start"); onClicked: page.start(page.withData, page.withRimSort && !!page.info.rimsortRules) }
+                Btn { id: begin; visible: page.step === page.last; primary: true; large: true; icon: "check"; text: Theme.say("Start"); onClicked: page.start(page.withData, page.withRimSort && !!page.info.rimsort) }
             }
         }
     }
