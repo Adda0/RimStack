@@ -328,6 +328,25 @@ impl App {
         downloads::replaceable(&items, &self.replacements(), &self.replacements_ignored())
     }
 
+    /// The load order with each active mod that has an installed replacement swapped for it,
+    /// and how many were; `None` when there is none to swap.
+    pub fn with_replacements(&self) -> Option<(Vec<String>, usize)> {
+        let loaded = self.library();
+        let (library, _) = loaded.as_ref().as_ref().ok()?;
+        let key = |id: ModId| library.get(id)?.key();
+        let swaps: Vec<(String, String)> = self
+            .replaceable()
+            .into_iter()
+            .filter(|row| row.active)
+            .filter_map(|row| Some((key(row.mod_id)?, key(row.new_mod_id?)?)))
+            .collect();
+        if swaps.is_empty() {
+            return None;
+        }
+        let list = downloads::swapped(self.session().current(), &swaps);
+        Some((list, swaps.len()))
+    }
+
     /// With `None`, every one set aside is suggested again.
     pub fn ignore_replacement(&self, id: Option<ModId>) -> Result<(), Error> {
         let mut ignored: Vec<String> = match id {

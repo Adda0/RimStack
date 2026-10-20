@@ -546,8 +546,14 @@ fn downloads(app: &App, shapes: &mut Shapes) {
         new_id: "2".into(),
         new_versions: "1.6".into(),
         have_new: false,
+        new_mod_id: None,
     };
-    shapes.add("downloads.replacements", &[replaced]);
+    let installed = Replaceable {
+        have_new: true,
+        new_mod_id: Some(roads),
+        ..replaced.clone()
+    };
+    shapes.add("downloads.replacements", &[replaced, installed]);
     let behind = |active| Behind {
         id: "1".into(),
         mod_id: b,

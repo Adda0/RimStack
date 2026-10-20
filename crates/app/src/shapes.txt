@@ -38,6 +38,7 @@ downloads.replacements: list
     modId: number
     name: text
     newId: text
+    newModId: nothing or number
     newName: text
     newVersions: text
 downloads.searched: object
