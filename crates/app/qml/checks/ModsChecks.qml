@@ -422,7 +422,13 @@ Item {
         const shown = () => { let n = 0; for (let r = 0; r < Mods.active.rows(); r++) if (Mods.active.modIdAt(r) >= 0) n += 1; return n }
         check("tag: narrows the list to the tagged mod", shown() === 1)
         Mods.filtered = "is:inactive"
-        check("is:inactive leaves the load order out and every inactive mod in", Mods.active.matching === 0 && Mods.inactive.matching === Mods.inactive.count)
+        check("is:inactive leaves the load order whole, marked as not filtered", Mods.active.beyondFilter && Mods.active.matching === Mods.active.count && Mods.inactive.matching === Mods.inactive.count)
+        Mods.filtered = "is:active zzzz-nobody"
+        check("the side it names is still filtered", Mods.inactive.beyondFilter && Mods.active.matching === 0 && Mods.inactive.matching === Mods.inactive.count)
+        Mods.filtered = "is:active is:inactive"
+        check("asking for both sides empties both as before", Mods.active.matching === 0 && Mods.inactive.matching === 0 && !Mods.active.beyondFilter && !Mods.inactive.beyondFilter)
+        Mods.filtered = "!is:active"
+        check("a banged side term still shuts the named side out", Mods.active.matching === 0 && !Mods.active.beyondFilter && !Mods.inactive.beyondFilter && Mods.inactive.matching === Mods.inactive.count)
         Mods.filtered = "author:zzzz-nobody"
         check("author: with no match shows nothing", Mods.active.rows() === 0)
         Mods.filtered = ""

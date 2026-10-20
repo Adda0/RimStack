@@ -444,26 +444,40 @@ fn an_is_translation_term_keeps_only_translation_mods() {
 }
 
 #[test]
-fn a_side_term_empties_the_other_list_and_both_empty_both() {
+fn a_side_term_filters_its_own_list_and_leaves_the_other_whole() {
+    let mut active = sample();
+    let mut inactive = sample();
+    let state = |list: &GroupedList| (list.matching(), list.beyond_filter());
+
+    active.set_filter_on(Side::Active, "is:active");
+    inactive.set_filter_on(Side::Inactive, "is:active");
+    assert_eq!((state(&active), state(&inactive)), ((6, false), (6, true)));
+
+    active.set_filter_on(Side::Active, "is:inactive royalty");
+    inactive.set_filter_on(Side::Inactive, "is:inactive royalty");
+    assert_eq!((state(&active), state(&inactive)), ((6, true), (1, false)));
+
+    active.set_filter_on(Side::Active, "is:active is:inactive");
+    inactive.set_filter_on(Side::Inactive, "is:inactive is:active");
+    assert_eq!((state(&active), state(&inactive)), ((0, false), (0, false)));
+
+    active.set_filter("is:inactive");
+    assert_eq!(state(&active), (6, false));
+}
+
+#[test]
+fn a_banged_side_term_still_shuts_the_other_list_and_negation_keeps_everything_shut() {
     let mut active = sample();
     let mut inactive = sample();
     let count = |list: &GroupedList| list.matching();
 
-    active.set_filter_on(Side::Active, "is:active");
-    inactive.set_filter_on(Side::Inactive, "is:active");
+    active.set_filter_on(Side::Active, "!is:active");
+    inactive.set_filter_on(Side::Inactive, "!is:active");
+    assert_eq!((count(&active), count(&inactive)), (0, 6));
+
+    active.set_filter_on(Side::Active, "is:active !is:inactive");
+    inactive.set_filter_on(Side::Inactive, "is:active !is:inactive");
     assert_eq!((count(&active), count(&inactive)), (6, 0));
-    assert!(inactive.rows().is_empty());
-
-    active.set_filter_on(Side::Active, "is:inactive royalty");
-    inactive.set_filter_on(Side::Inactive, "is:inactive royalty");
-    assert_eq!((count(&active), count(&inactive)), (0, 1));
-
-    active.set_filter_on(Side::Active, "is:active is:inactive");
-    inactive.set_filter_on(Side::Inactive, "is:inactive is:active");
-    assert_eq!((count(&active), count(&inactive)), (0, 0));
-
-    active.set_filter("is:inactive");
-    assert_eq!(count(&active), 6);
 }
 
 #[test]

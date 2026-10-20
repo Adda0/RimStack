@@ -32,6 +32,7 @@ Rectangle {
             spacing: Theme.gap
             Text { color: Theme.ink; font.pixelSize: Theme.title; font.weight: Font.DemiBold; text: Theme.say("Inactive") }
             Text { color: Theme.ink3; font.pixelSize: Theme.body; text: Theme.count(Mods.inactive.count) }
+            Text { color: Theme.ink3; font.pixelSize: Theme.small; visible: Mods.inactive.beyondFilter; text: Theme.say("Not filtered") }
             Chip {
                 visible: Mods.fresh.length > 0
                 pressable: true
