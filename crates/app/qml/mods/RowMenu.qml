@@ -75,10 +75,10 @@ QtObject {
         // One entry, as the tags in use may be many: the groups open in a menu of their own.
         if (about.groupChoices)
             groups.push([{ text: Theme.say("Group under a tag"), icon: "tag", run: () => Mods.menuRequested(row, x, y, Mods.groupEntries(row.modId, about)) }])
-        // Paints the selected mods' rows, as RimSort and RimPy users do to spot mods at a glance.
+        // Paints the selected mods' rows, as RimSort and RimPy users do to spot mods at a glance:
+        // one entry, showing the colour in use, whose menu narrows the swatches as one types.
         if (row.modId >= 0)
-            groups.push([{ title: Theme.say("Colour") }].concat(Mods.swatchEntries(row.colour, name => Hub.mods.paint(Mods.selectedIds, name)),
-                [{ text: Theme.say("No colour"), icon: "x", off: !row.colour, run: () => Hub.mods.paint(Mods.selectedIds, "") }]))
+            groups.push([Object.assign({ text: Theme.say("Colour"), run: () => Mods.menuRequested(row, x, y, Mods.colourEntries(row.colour)) }, row.colour ? { colour: Theme.swatch(row.colour) } : { icon: "palette" })])
         const last = []
         if (many && Mods.versionWarned.length > 0)
             last.push({ text: Theme.plural(Mods.versionWarned.length, "Ignore the game version mismatch of {} mod", "Ignore the game version mismatch of {} mods"), icon: "check", run: () => Mods.trustSelected(true) })
