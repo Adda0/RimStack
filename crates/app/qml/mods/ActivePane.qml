@@ -72,6 +72,7 @@ Item {
                 font.pixelSize: Theme.body
                 text: Theme.count(Mods.active.count)
             }
+            Text { color: Theme.ink3; font.pixelSize: Theme.small; visible: Mods.active.beyondFilter; text: Theme.say("Not filtered") }
             component Count: Chip {
                 property string term
                 pressable: true

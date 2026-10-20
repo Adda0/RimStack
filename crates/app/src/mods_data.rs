@@ -709,9 +709,10 @@ impl qobject::ModsData {
             let list = self.order.list(side);
             let (count, matching) = (list.mods().len(), list.matching());
             let end = list.end_place();
+            let beyond = list.beyond_filter();
             let rows = self.order.rows(&app, side);
             if let Some(model) = self.as_mut().rows(side) {
-                model.show(rows, count, matching, end);
+                model.show(rows, count, matching, end, beyond);
             }
         }
         let (dirty, unsaved, undo, redo) = {

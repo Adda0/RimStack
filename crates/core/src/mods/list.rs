@@ -305,6 +305,8 @@ struct Filter {
     /// Each with whether it must pass: `!` before a term asks that it fail.
     tests: Vec<(Test, bool)>,
     only: Option<Side>,
+    /// A `!` before an `is:active`/`is:inactive` term; then the other side stays shut.
+    negated: bool,
     both: bool,
 }
 
@@ -362,6 +364,7 @@ impl Filter {
                 Some(("is", "pinned")) => Test::Pinned,
                 Some(("is", side @ ("active" | "inactive"))) => {
                     let side = Side::of(side == "active");
+                    filter.negated |= !wanted;
                     filter.ask(if wanted { side } else { side.other() });
                     continue;
                 }
@@ -401,6 +404,12 @@ impl Filter {
 
     fn shuts(&self, side: Option<Side>) -> bool {
         self.both || side.zip(self.only).is_some_and(|(side, only)| side != only)
+    }
+
+    /// The filter names one side positively: the other side ignores the whole filter,
+    /// so a mod found there can be dragged to a seen place here.
+    fn shows_all_for(&self, side: Option<Side>) -> bool {
+        !self.both && !self.negated && side.zip(self.only).is_some_and(|(side, only)| side != only)
     }
 
     fn is_empty(&self) -> bool {
@@ -687,8 +696,16 @@ impl GroupedList {
         Some(m)
     }
 
+    /// The filter only applies to the other side; everything here shows, unfiltered.
+    pub fn beyond_filter(&self) -> bool {
+        !self.filter.is_empty() && self.filter.shows_all_for(self.side)
+    }
+
     fn matches(&self, index: usize) -> bool {
         let flags = self.flags.get(index).copied().unwrap_or(0);
+        if self.filter.shows_all_for(self.side) {
+            return true;
+        }
         if self.filter.shuts(self.side) {
             return false;
         }
