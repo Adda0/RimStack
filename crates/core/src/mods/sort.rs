@@ -47,8 +47,54 @@ pub fn sort(count: usize, rules: &[Rule]) -> Sorted {
     }
 }
 
-/// Sorting the result again changes nothing.
+/// Sorting the result again, with every rule, changes nothing.
 pub fn sort_grouped(groups: &[usize], bottom_group: usize, rules: &[Rule]) -> Sorted {
+    // Breaking a loop keeps the rules the list already follows, so the list that comes out can
+    // follow other rules of the loop than the one that went in, and sorted again it would move
+    // more. The result is sorted again until it holds, an order comes back, or PASSES ran.
+    const PASSES: usize = 8;
+    let count = groups.len();
+    let mut sorted = grouped_once(groups, bottom_group, rules);
+    let mut seen = vec![sorted.order.clone()];
+    for _ in 1..PASSES {
+        let mut now_at = vec![0; count];
+        for (position, &old) in sorted.order.iter().enumerate() {
+            now_at[old] = position;
+        }
+        let renumber = |r: &Rule, at: &dyn Fn(usize) -> usize| Rule {
+            first: at(r.first),
+            then: at(r.then),
+            kind: r.kind,
+        };
+        let renumbered: Vec<Rule> = (rules.iter())
+            .filter(|r| r.first < count && r.then < count)
+            .map(|r| renumber(r, &|m| now_at[m]))
+            .collect();
+        let in_order: Vec<usize> = sorted.order.iter().map(|&m| sorted.groups[m]).collect();
+        let again = grouped_once(&in_order, bottom_group, &renumbered);
+        let held = again.order.iter().enumerate().all(|(at, &m)| at == m);
+        let order: Vec<usize> = again.order.iter().map(|&at| sorted.order[at]).collect();
+        let mut groups = vec![0; count];
+        for (at, &group) in again.groups.iter().enumerate() {
+            groups[sorted.order[at]] = group;
+        }
+        let dropped = (again.dropped.iter())
+            .map(|r| renumber(r, &|at| sorted.order[at]))
+            .collect();
+        sorted = Sorted {
+            order,
+            dropped,
+            groups,
+        };
+        if held || seen.contains(&sorted.order) {
+            break;
+        }
+        seen.push(sorted.order.clone());
+    }
+    sorted
+}
+
+fn grouped_once(groups: &[usize], bottom_group: usize, rules: &[Rule]) -> Sorted {
     let count = groups.len();
     let (kept, mut dropped) = without_loops(count, rules);
     let own_place: Vec<usize> = (0..count).collect();
@@ -436,13 +482,13 @@ mod tests {
             let in_order: Vec<usize> = first.order.iter().map(|&m| first.groups[m]).collect();
             assert!(in_order.is_sorted(), "round {round}: {in_order:?}");
 
+            // Asked again, Sort gets every rule, the dropped ones too.
             let mut now_at = vec![0; count];
             for (position, &old) in first.order.iter().enumerate() {
                 now_at[old] = position;
             }
             let renumbered: Vec<Rule> = rules
                 .iter()
-                .filter(|r| !first.dropped.contains(r))
                 .map(|r| Rule {
                     first: now_at[r.first],
                     then: now_at[r.then],
