@@ -272,10 +272,19 @@ pub mod qobject {
         fn find_mods(self: &ModsData, text: &QString, most: i32) -> QVariant;
         #[qinvokable]
         fn listing(self: &ModsData) -> QString;
-        /// Writes the active list as RimSort's CSV; tells how it went.
+        /// Writes the active list as RimSort's CSV, a game's ModsConfig.xml
+        /// or a RimSort .rml, by the name's ending; tells how it went.
         #[qinvokable]
-        #[cxx_name = "exportCsv"]
-        fn export_csv(self: Pin<&mut ModsData>, chosen: &QUrl);
+        #[cxx_name = "exportList"]
+        fn export_list(self: Pin<&mut ModsData>, chosen: &QUrl);
+        /// The load order as a share code, empty without a read library.
+        #[qinvokable]
+        #[cxx_name = "shareCode"]
+        fn share_code(self: &ModsData) -> QString;
+        /// A page line per active Workshop mod, empty without a read library.
+        #[qinvokable]
+        #[cxx_name = "workshopLinks"]
+        fn workshop_links(self: &ModsData) -> QString;
         /// `[{ name, moves: [{ name, from, to, modId, why }] }]`.
         #[qinvokable]
         #[cxx_name = "sortMoves"]

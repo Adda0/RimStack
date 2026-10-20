@@ -61,10 +61,16 @@ about "$folder" fixture.translation "Fixture Mod 100 English" "$(printf '  <load
 mkdir -p "$folder/Languages/English/Keyed"
 printf '<LanguageData><Fixture100>Fixture</Fixture100></LanguageData>\n' > "$folder/Languages/English/Keyed/Fixture.xml"
 
+# One active Workshop mod, so sharing gives a Workshop link and a removed
+# check has something installed to look at.
+about "$dir/workshop/2941000101" fixture.workshop "Fixture Workshop"
+printf '%s\n' "2941000101" > "$dir/workshop/2941000101/About/PublishedFileId.txt"
+
 {
     printf '<?xml version="1.0" encoding="utf-8"?>\n<ModsConfigData>\n  <version>1.6.4871 rev598</version>\n  <activeMods>\n'
     printf '    <li>ludeon.rimworld</li>\n    <li>ludeon.rimworld.royalty</li>\n    <li>ludeon.rimworld.ideology</li>\n'
     for n in $(seq 40 -1 1); do printf '    <li>fixture.mod%03d</li>\n' "$n"; done
+    printf '    <li>fixture.workshop</li>\n'
     printf '  </activeMods>\n  <knownExpansions>\n    <li>ludeon.rimworld.royalty</li>\n    <li>ludeon.rimworld.ideology</li>\n  </knownExpansions>\n</ModsConfigData>\n'
 } > "$dir/config/Config/ModsConfig.xml"
 
