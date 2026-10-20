@@ -989,10 +989,36 @@ fn two_mods_come_in_load_order_and_a_nudge_stays_inside_the_list() {
         Some((id(100), id(104)))
     );
     assert_eq!(list.in_load_order(id(100), id(999)), None);
-    assert_eq!(list.nudged(id(100), 1), Some((0, 1)));
-    assert_eq!(list.nudged(id(100), -1), None);
-    assert_eq!(list.nudged(id(105), 1), None);
-    assert_eq!(list.nudged(id(105), -2), Some((5, 3)));
+    assert_eq!(list.nudged(&[id(100)], 1), Some(vec![(0, 1)]));
+    assert_eq!(list.nudged(&[id(100)], -1), None);
+    assert_eq!(list.nudged(&[id(105)], 1), None);
+    assert_eq!(list.nudged(&[id(105)], -2), Some(vec![(5, 3)]));
+    assert_eq!(list.nudged(&[id(999)], 1), None);
+}
+
+#[test]
+fn a_nudged_block_keeps_its_order_and_moves_whole_or_not_at_all() {
+    let mut list = installed_sample();
+    assert_eq!(list.nudged(&[id(100), id(101)], -1), None);
+    assert_eq!(
+        list.nudged(&[id(104), id(103)], 1),
+        Some(vec![(4, 5), (3, 4)])
+    );
+    let moves = list.nudged(&[id(103), id(101)], -1).unwrap();
+    assert_eq!(moves, [(1, 0), (3, 2)]);
+    for (from, to) in moves {
+        list.move_mod(from, to);
+    }
+    let names: Vec<&str> = list.mods().iter().map(|m| m.name.as_str()).collect();
+    let moved = [
+        "Core",
+        "Harmony",
+        "HugsLib",
+        "Royalty",
+        "Dubs Bad Hygiene",
+        "Rimefeller",
+    ];
+    assert_eq!(names, moved);
 }
 
 #[test]

@@ -12,8 +12,9 @@ Prompt {
         [Theme.say("Load order"), [[Theme.say("Ctrl + S"), Theme.say("Save")], [Theme.say("Ctrl + Z"), Theme.say("Undo")], [Theme.say("Ctrl + Shift + Z"), Theme.say("Redo")], [Theme.say("Ctrl + F"), Theme.say("Filter the load order")]]],
         [Theme.say("A list of mods"), [
             [Theme.say("Up, Down"), Theme.say("Select the mod above or below")],
-            [Theme.say("Enter"), Theme.say("Activate or deactivate")],
-            [Theme.say("Alt + Up, Alt + Down"), Theme.say("Move the mod one place")],
+            [Theme.say("Enter"), Theme.say("Activate or deactivate the selected mods")],
+            [Theme.say("Alt + Up, Alt + Down"), Theme.say("Move the selected mods one place")],
+            [Theme.say("Alt + Home, Alt + End"), Theme.say("To the top or the bottom of their category")],
             [Theme.say("Shift + click, Shift + Up, Shift + Down"), Theme.say("Select through")],
             [Theme.say("Ctrl + Up, Ctrl + Down"), Theme.say("Go on without selecting")],
             [Theme.say("Ctrl + click, Ctrl + Space"), Theme.say("Add or remove one from the selection")],

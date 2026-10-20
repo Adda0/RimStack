@@ -238,6 +238,16 @@ Item {
         check("Ctrl with the arrows goes on without selecting and Ctrl+Space adds the mod", kept && Mods.selectedCount === 3 && Mods.also[Mods.cursor] === true)
         events.keyClick(Qt.Key_A, Qt.ControlModifier, -1)
         check("Ctrl+A selects every mod shown", Mods.selectedCount === Hub.mods.shownIds(true).length && Mods.selectedId === first)
+        Mods.select(first, true)
+        events.keyClick(Qt.Key_Down, Qt.ShiftModifier, -1)
+        const second = Mods.cursor, at = Mods.active.indexOf(first), count = Mods.active.count
+        events.keyClick(Qt.Key_Down, Qt.AltModifier, -1)
+        check("Alt+Down moves every selected mod one place", Mods.active.indexOf(first) === at + 1 && Mods.active.indexOf(second) === at + 2)
+        events.keyClick(Qt.Key_Home, Qt.AltModifier, -1)
+        check("and Alt+Home to the top of their category", Mods.active.indexOf(first) === at && Mods.active.indexOf(second) === at + 1)
+        events.keyClick(Qt.Key_Return, Qt.NoModifier, -1)
+        check("Enter moves every selected mod to the other list", Mods.active.count === count - 2 && Mods.inactive.indexOf(second) >= 0)
+        Hub.mods.undo()
         Mods.select(-1, false)
     }
 

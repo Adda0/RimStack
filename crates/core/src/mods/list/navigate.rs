@@ -112,12 +112,22 @@ impl GroupedList {
         (theirs > at).then_some((at, theirs))
     }
 
-    /// Nothing when that would leave the list.
-    pub fn nudged(&self, id: ModId, by: isize) -> Option<(usize, usize)> {
-        let at = self.position_of(id)?;
-        let to = at
-            .checked_add_signed(by)
-            .filter(|to| *to < self.mods.len())?;
-        Some((at, to))
+    /// The moves, `(from, to)` in the order to make them, that take each mod `by` places
+    /// and keep their order; nothing when one would leave the list or is not in it.
+    pub fn nudged(&self, ids: &[ModId], by: isize) -> Option<Vec<(usize, usize)>> {
+        let mut at: Vec<usize> = ids
+            .iter()
+            .map(|id| self.position_of(*id))
+            .collect::<Option<_>>()?;
+        at.sort_unstable();
+        at.dedup();
+        if by > 0 {
+            at.reverse();
+        }
+        let to = |from: usize| {
+            from.checked_add_signed(by)
+                .filter(|to| *to < self.mods.len())
+        };
+        at.into_iter().map(|from| Some((from, to(from)?))).collect()
     }
 }
