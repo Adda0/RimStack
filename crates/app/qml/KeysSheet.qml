@@ -33,7 +33,7 @@ Prompt {
             [Theme.say("Left, Right"), Theme.say("Fold the heading the mod is under, or show its mods again")],
             [Theme.say("Menu, Shift + F10"), Theme.say("The mod's menu")]]],
         [Theme.say("Texture comparison"), [[Theme.say("Up, Down"), Theme.say("Previous or next texture")], ["1, 2", Theme.say("Keep the first or the second mod's")], [Theme.say("Esc"), Theme.say("Back to the lists")]]],
-        [Theme.say("Dialogs and menus"), [[Theme.say("Enter"), Theme.say("Press the focused button or menu entry; a dialog opens on its main one")]]],
+        [Theme.say("Dialogs and menus"), [[Theme.say("Enter, Space"), Theme.say("Press the focused button or menu entry; a dialog opens on its main one")], [Theme.say("Up, Down"), Theme.say("Move through a menu")], [Theme.say("Home, End, Page Up, Page Down"), Theme.say("The ends or a page on, in a menu, a choice or a slider")], [Theme.say("A letter"), Theme.say("The next menu entry starting with it")]]],
     ]
     FontMetrics { id: words; font.pixelSize: Theme.small }
     GridLayout {

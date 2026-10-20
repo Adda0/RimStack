@@ -30,6 +30,13 @@ Item {
     Accessible.description: reading
     Keys.onLeftPressed: slide.moved(Math.max(from, value - step))
     Keys.onRightPressed: slide.moved(Math.min(to, value + step))
+    // Home and End go to the ends, the page keys a quarter of the way.
+    Keys.onPressed: event => {
+        const by = ({ [Qt.Key_Home]: from - to, [Qt.Key_End]: to - from, [Qt.Key_PageUp]: (to - from) / 4, [Qt.Key_PageDown]: (from - to) / 4 })[event.key] || 0
+        event.accepted = by !== 0
+        if (by !== 0)
+            slide.moved(Math.max(from, Math.min(to, Math.round((value + by) / step) * step)))
+    }
     Rectangle {
         id: track
         x: knob.width / 2
