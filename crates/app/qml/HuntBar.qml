@@ -49,6 +49,14 @@ Rectangle {
                 : "<b>" + Theme.say("Finding the broken mod.") + "</b> " + Theme.plural(bar.search.rounds, "About {} round left, {} suspects.", "About {} rounds left, {} suspects.", bar.search.suspects)
                     + " " + Theme.say("Save, play, then say how it went.")
         }
+        Text {
+            visible: bar.asking && bar.search.first !== ""
+            Layout.fillWidth: true
+            wrapMode: Text.WordWrap
+            color: Theme.ink2
+            font.pixelSize: Theme.small
+            text: Theme.fill("Added since the last launch without errors, these are tried first: {}", Theme.plain(bar.search.first))
+        }
         Icon {
             visible: bar.asking
             name: "info"
