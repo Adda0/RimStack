@@ -51,6 +51,8 @@ pub struct RowView {
     pub colour: String,
     pub local: bool,
     pub picture: String,
+    /// The `image://preview/` URL of the pack's copy; empty while there is none.
+    pub preview: String,
     pub load_time: String,
     /// Against the slowest mod, from 0 to 1.
     pub load_part: f64,
@@ -92,6 +94,7 @@ impl RowView {
             colour: String::new(),
             local: false,
             picture: String::new(),
+            preview: String::new(),
             load_time: String::new(),
             load_part: 0.0,
             version_ignored: false,
@@ -139,7 +142,7 @@ fn key_of(installed: Option<&Installed>, m: &Mod, nth: &mut impl FnMut(RowKey) -
     }
 }
 
-fn source_of(installed: Option<&Installed>) -> (i32, String) {
+fn source_of(installed: Option<&Installed>) -> (i32, String, String) {
     let source = installed.map_or(0, |i| match i.source {
         Source::Official => 3,
         Source::Local if i.git => 2,
@@ -148,7 +151,8 @@ fn source_of(installed: Option<&Installed>) -> (i32, String) {
     });
     let picture = installed.and_then(|i| i.preview.as_ref());
     let picture = picture.map_or(String::new(), |p| p.to_string_lossy().into_owned());
-    (source, picture)
+    let preview = crate::previews::url_of(&picture);
+    (source, picture, preview)
 }
 
 impl LoadOrder {
@@ -226,7 +230,7 @@ impl LoadOrder {
             Side::Inactive => &[],
         };
         let installed = library.zip(m.installed).and_then(|(l, i)| l.get(i));
-        let (source, picture) = source_of(installed);
+        let (source, picture, showed) = source_of(installed);
         let took = m.load_micros.filter(|micros| *micros >= 1000);
         let load_time = took
             .map(|micros| rimstack_core::rimworld::startup::seconds(f64::from(micros) / 1000.0));
@@ -275,6 +279,7 @@ impl LoadOrder {
             colour: m.colour.clone(),
             local: m.local,
             picture,
+            preview: showed,
             load_time: load_time.unwrap_or_default(),
             load_part,
             version_ignored: preview && self.version_ignored.get(index).copied().unwrap_or(false),

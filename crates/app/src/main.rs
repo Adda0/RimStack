@@ -12,6 +12,7 @@ mod lists_data;
 mod logs_data;
 mod mod_rows;
 mod mods_data;
+mod previews;
 mod qml;
 mod reports;
 mod saves_data;
@@ -23,6 +24,7 @@ mod workspace;
 
 pub use workspace::*;
 
+use cxx_qt::casting::Upcast;
 use cxx_qt_lib::{QGuiApplication, QQmlApplicationEngine, QString, QUrl};
 use std::sync::Arc;
 use std::time::Instant;
@@ -145,6 +147,8 @@ fn main() -> std::process::ExitCode {
     let mut engine = QQmlApplicationEngine::new();
 
     if let Some(mut engine) = engine.as_mut() {
+        // Which asks for `image://preview/` pictures; before the first load.
+        previews::qobject::add_preview_provider(engine.as_mut().upcast_pin());
         // Without its window the app would run on unseen: stop instead.
         engine
             .as_mut()

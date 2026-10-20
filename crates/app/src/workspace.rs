@@ -22,6 +22,7 @@ pub mod lists;
 pub mod load_order;
 pub mod logs;
 mod notes;
+pub mod preview_pack;
 mod records;
 pub mod saves;
 pub mod search;

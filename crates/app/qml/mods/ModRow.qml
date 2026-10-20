@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Window
 import RimStack.Ui
 
 Item {
@@ -29,6 +30,8 @@ Item {
     required property int groupSize
     required property bool local
     required property string picture
+    // The small copy the pack holds, `image://preview/...`; empty while there is none.
+    required property string preview
     // 0 Workshop, 1 local, 2 a Git checkout, 3 the game's own.
     required property int source
     // Its start-up time as a part of the slowest mod's, 0 to 1.
@@ -236,15 +239,18 @@ Item {
                 radius: Theme.corner
                 color: Theme.ctl
                 // Read at the size shown and off the window's thread, so
-                // scrolling does not wait for it.
+                // scrolling does not wait for it. Once the pack holds the small copy
+                // pre-cut to this box's pixels, it comes in the same frame instead.
                 Image {
+                    objectName: "preview"
                     anchors.fill: parent
                     anchors.margins: Theme.gapLine
                     visible: status === Image.Ready
-                    asynchronous: true
+                    asynchronous: row.preview === ""
                     fillMode: Image.PreserveAspectCrop
-                    sourceSize.width: Theme.sized(192)
-                    source: row.comfortable && row.picture !== "" ? Theme.fileUrl(row.picture) : ""
+                    sourceSize.width: row.preview === "" ? Theme.sized(192) : -1
+                    source: row.comfortable && row.picture !== "" ? row.preview !== "" ? row.preview : Theme.fileUrl(row.picture) : ""
+                    onWidthChanged: if (row.comfortable) Hub.mods.pictureSized(width * Screen.devicePixelRatio, height * Screen.devicePixelRatio)
                 }
             }
             Icon {
