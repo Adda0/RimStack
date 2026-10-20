@@ -343,6 +343,8 @@ pub mod flag {
     /// Missing a property RimSort looks for: no readable About.xml, or no named Workshop item.
     pub const INCOMPLETE: u16 = 1024;
     pub const DEFCLASH: u16 = 2048;
+    /// Off, and named by no save, no saved list and no kept order: a cleanup candidate.
+    pub const UNPLAYED: u16 = 4096;
 }
 
 impl Filter {
@@ -386,6 +388,7 @@ impl Filter {
                 Some(("is", "new")) => Test::Flag(flag::NEW),
                 Some(("is", "changed")) => Test::Flag(flag::CHANGED),
                 Some(("is", "unused")) => Test::Flag(flag::UNUSED),
+                Some(("is", "unplayed")) => Test::Flag(flag::UNPLAYED),
                 Some(("size", bound)) => {
                     size_test(bound).unwrap_or_else(|| Test::Word(term.to_string()))
                 }

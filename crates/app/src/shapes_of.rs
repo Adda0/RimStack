@@ -323,6 +323,7 @@ fn mods(app: &App, shapes: &mut Shapes) {
     shapes.add("mods.keptCopiesOf", &Vec::<u64>::new());
     shapes.add("mods.packageMods", &ids(vec![a, b]));
     shapes.add("mods.findMods", &order.found(app, "Ann", 5));
+    shapes.add("mods.cleanup", &order.cleanup(app, &[roads, shop, hats]));
     order.preview_sort(app);
     shapes.add("mods.sortMoves", &order.sort_moves());
     let list = order.list(Side::Active);

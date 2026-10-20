@@ -73,6 +73,10 @@ pub mod qobject {
         fn update_with_steamcmd(self: Pin<&mut DownloadsData>);
         #[qinvokable]
         fn unsubscribe(self: Pin<&mut DownloadsData>, mod_id: i32);
+        /// Every Workshop mod of the selection, in one Steam ask.
+        #[qinvokable]
+        #[cxx_name = "unsubscribeMany"]
+        fn unsubscribe_many(self: Pin<&mut DownloadsData>, ids: &QVariant);
         /// Steam must be running.
         #[qinvokable]
         fn subscribe(self: Pin<&mut DownloadsData>, workshop_id: &QString);

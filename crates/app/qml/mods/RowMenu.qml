@@ -62,7 +62,7 @@ QtObject {
                         lines: [Theme.say("Kept before a launch the Workshop's update reached. It is copied into the game's Mods folder, where a copy wins over Steam's newer one:"), { path: Hub.settings.report.localMods || "" }],
                         label: Theme.say("Restore"), run: () => Hub.mods.restoreKeptCopy(row.modId, copy) }) })
             }
-            if (!inActive)
+            if (!inActive && !many)
                 steam.push({ text: Theme.say("Unsubscribe…"), icon: "minus", danger: true, run: () => Mods.unsubscribe(row.modId) })
         }
         groups.push(steam)
@@ -90,6 +90,21 @@ QtObject {
             last.push({ text: Theme.say("Ignore the game version mismatch"), icon: "check", run: () => Mods.trust(row.modId, true) })
         for (const choice of about.binChoices || [])
             last.push({ text: Theme.say(choice.text), icon: choice.icon, danger: true, run: () => Mods.binRequested(row.modId, choice.kind, about.path || "") })
+        if (many) {
+            const cleanup = Hub.mods.cleanup(Mods.selectedIds) || ({})
+            if (!inActive && cleanup.unsubscribe > 0)
+                last.push({ text: Theme.plural(cleanup.unsubscribe, "Unsubscribe {} Workshop mod…", "Unsubscribe {} Workshop mods…"), icon: "minus", danger: true,
+                  run: () => Notices.ask({
+                    title: Theme.plural(cleanup.unsubscribe, "Unsubscribe {} Workshop mod", "Unsubscribe {} Workshop mods"),
+                    lines: [Theme.say("Steam, which must be running, unsubscribes every one and deletes its folder"), Theme.fill("Together {} MB on disk", (cleanup.unsubscribeBytes / 1048576).toFixed(1))],
+                    label: Theme.say("Unsubscribe"), danger: true, run: () => Hub.downloads.unsubscribeMany(Mods.selectedIds) }) })
+            if (cleanup.bin > 0)
+                last.push({ text: Theme.plural(cleanup.bin, "Delete {} mod…", "Delete {} mods…"), icon: "trash-2", danger: true,
+                  run: () => Notices.ask({
+                    title: Theme.plural(cleanup.bin, "Move {} mod to the bin", "Move {} mods to the bin"),
+                    lines: [Theme.fill("Together {} MB on disk", (cleanup.binBytes / 1048576).toFixed(1)), Theme.say("The game's own mods and mods in use stay")],
+                    label: Theme.say("Move to the bin"), danger: true, run: () => Hub.mods.binMany(Mods.selectedIds) }) })
+        }
         groups.push(last)
         const entries = []
         for (const group of groups.filter(group => group.length > 0)) {

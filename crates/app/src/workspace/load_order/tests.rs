@@ -552,6 +552,101 @@ fn a_mod_not_installed_taken_off_the_list_is_gone_from_both() {
 }
 
 #[test]
+fn an_inactive_mod_in_no_save_no_list_and_no_kept_order_is_unplayed() {
+    let (tmp, app) = installed();
+    let add = |folder: &str, id: &str| {
+        let about = tmp.path().join("game/Mods").join(folder).join("About");
+        std::fs::create_dir_all(&about).unwrap();
+        std::fs::write(
+            about.join("About.xml"),
+            format!("<ModMetaData><packageId>{id}</packageId><name>{id}</name></ModMetaData>"),
+        )
+        .unwrap();
+    };
+    add("b", "a.b");
+    add("c", "a.c");
+    add("d", "a.d");
+    std::fs::write(
+        tmp.path().join("config/Config/ModsConfig.xml"),
+        "<ModsConfigData><activeMods><li>ludeon.rimworld</li></activeMods></ModsConfigData>",
+    )
+    .unwrap();
+    // One save names a.b (the game folds the `_steam` away), a kept list a.c,
+    // the order history a.d.
+    std::fs::create_dir_all(tmp.path().join("config/Saves")).unwrap();
+    std::fs::write(
+        tmp.path().join("config/Saves/old.rws"),
+        "<savegame><meta><modIds><li>ludeon.rimworld</li><li>a.b_steam</li></modIds></meta></savegame>",
+    )
+    .unwrap();
+    app.rescan();
+    app.record_order(
+        rimstack_core::kept::orders::How::Outside,
+        &["ludeon.rimworld".to_string(), "a.d".to_string()],
+    );
+    app.keep_list("mine", Some(vec!["a.c".to_string()]), false)
+        .unwrap();
+    let mut order = LoadOrder::read(&app, true, Arrange::Category);
+    let shown = |order: &LoadOrder, side| -> Vec<String> {
+        let list = order.list(side);
+        let id = |r: &Row| match r {
+            Row::Mod { index } => Some(list.mods()[*index].id.clone()),
+            _ => None,
+        };
+        list.rows().iter().filter_map(id).collect()
+    };
+    order.set_filter("is:unplayed");
+    assert_eq!(shown(&order, Side::Inactive), ["ann.roads"]);
+    assert!(!shown(&order, Side::Inactive).contains(&"a.b".to_string()));
+    // A mod whose list is gone is offered too, from then on.
+    app.delete_list("mine");
+    order.sync(&app);
+    order.set_filter("is:unplayed");
+    assert_eq!(shown(&order, Side::Inactive), ["a.c", "ann.roads"]);
+}
+
+#[test]
+fn cleanup_names_the_workshop_mods_for_steam_and_the_rest_for_the_bin() {
+    let (tmp, app) = installed();
+    // A Workshop copy of an inactive mod, and one local one.
+    std::fs::create_dir_all(tmp.path().join("workshop/42/About")).unwrap();
+    std::fs::write(
+        tmp.path().join("workshop/42/About/About.xml"),
+        "<ModMetaData><packageId>Ann.Hats</packageId></ModMetaData>",
+    )
+    .unwrap();
+    std::fs::write(tmp.path().join("workshop/42/file.pdb"), "x").unwrap();
+    app.rescan();
+    let order = LoadOrder::read(&app, true, Arrange::Category);
+    let about = |folder: &str, active: bool| {
+        order
+            .list(match active {
+                true => Side::Active,
+                false => Side::Inactive,
+            })
+            .mods()
+            .iter()
+            .find(|m| m.id == folder)
+            .and_then(|m| m.installed)
+    };
+    let wanted: Vec<ModId> = [
+        about("ann.hats", false),
+        about("ann.roads", false),
+        about("ludeon.rimworld", true),
+    ]
+    .into_iter()
+    .flatten()
+    .collect();
+    assert_eq!(wanted.len(), 3);
+    let cleanup = order.cleanup(&app, &wanted);
+    // The workshop mod counts for Steam, the active core is not binnable, the
+    // inactive local mod is.
+    assert_eq!(cleanup.unsubscribe, 1);
+    assert_eq!(cleanup.bin, 1, "{cleanup:?}");
+    assert!(cleanup.unsubscribe_bytes > 0 && cleanup.bin_bytes > 0);
+}
+
+#[test]
 fn a_library_no_active_mod_needs_is_unused_until_one_does() {
     let (tmp, app) = installed();
     let add = |folder: &str, id: &str, needs: &str| {

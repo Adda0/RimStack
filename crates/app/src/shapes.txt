@@ -302,6 +302,11 @@ mod_rows.at: object
   version: text
   versionIgnored: bool
   whyMoved: text
+mods.cleanup: object
+  bin: number
+  binBytes: number
+  unsubscribe: number
+  unsubscribeBytes: number
 mods.columnChoices: list
   []: object
     column: text
