@@ -47,7 +47,8 @@ Popup {
         chosen.run()
     }
     onQueryChanged: at = -1
-    onOpened: {
+    // On show, not once faded in: keys typed straight after opening reach the menu.
+    onAboutToShow: {
         at = -1
         scroll.contentY = 0
         search.text = ""
