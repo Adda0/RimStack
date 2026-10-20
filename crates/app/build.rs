@@ -115,6 +115,7 @@ fn main() {
     .files([
         "src/hub.rs",
         "src/settings_data.rs",
+        "src/previews.rs",
         "src/mod_rows.rs",
         "src/mods_data.rs",
         "src/saves_data.rs",

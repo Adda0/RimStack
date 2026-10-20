@@ -8,6 +8,18 @@ Item {
     id: checks
     required property ListView view
 
+    property int failed: 0
+    property int previewLeft: 0
+
+    // The fixture's official mods each have a small Preview.png: once the background
+    // pack holds their copies, a row gets the pre-cut picture in the same frame.
+    Timer {
+        id: previewWatch
+        interval: 100
+        repeat: true
+        onTriggered: checks.checkPreview()
+    }
+
     Connections {
         target: Hub.mods
         function onSaved(ok) {
@@ -176,20 +188,59 @@ Item {
         checks.stepBegan = 0
     }
 
+    function watchPreviews() {
+        checks.previewLeft = 100
+        previewWatch.start()
+    }
+
+    function checkPreview() {
+        if (checks.previewLeft === 1) {
+            previewWatch.stop()
+            console.log("check FAIL no row got the pack's preview copy")
+            Qt.exit(1)
+        }
+        checks.previewLeft -= 1
+        let at = -1
+        for (let r = 0; r < Mods.active.rows(); r++)
+            if (Mods.active.at(r).picture !== "" && Mods.active.at(r).preview !== "")
+                at = r
+        if (at < 0)
+            return
+        previewWatch.stop()
+        view.positionViewAtIndex(at, ListView.Visible)
+        const image = checks.inside(view.itemAtIndex(at))
+        const ok = image !== null && String(image.source).startsWith("image://preview/") && image.status === Image.Ready
+        console.log("check " + (ok ? "ok   " : "FAIL ") + "a row with a preview shows the pack's small copy")
+        Qt.exit(ok ? checks.failed : 1)
+    }
+
+    function inside(item) {
+        if (item === null)
+            return null
+        if (item.objectName === "preview")
+            return item
+        for (let i = 0; i < item.children.length; i++) {
+            const found = checks.inside(item.children[i])
+            if (found !== null)
+                return found
+        }
+        return null
+    }
+
     function runChecks() {
-        let failed = 0
+        checks.failed = 0
         checks.stepBegan = Date.now()
         const check = (what, ok) => {
             checks.timed(what)
             console.log("check " + (ok ? "ok   " : "FAIL ") + what)
             if (!ok)
-                failed += 1
+                checks.failed += 1
         }
         const order = () => { const ids = []; for (let i = 0; i < Mods.active.count; i++) ids.push(Mods.nthMod(Mods.active, i)); return ids.join(",") }
         if (Mods.checkMode === "restore") {
             check("the order chosen before the restart is shown", Mods.inactive.rows() === Mods.inactive.count && Mods.active.rows() === Mods.active.count)
             Hub.mods.moveMod(true, 3, 0)
-            Mods.save(() => { check("moved back and saved", !Hub.mods.dirty); Qt.exit(failed > 0 ? 1 : 0) })
+            Mods.save(() => { check("moved back and saved", !Hub.mods.dirty); Qt.exit(checks.failed > 0 ? 1 : 0) })
             return
         }
         const start = order()
@@ -500,7 +551,7 @@ Item {
         Mods.select(-1, false)
         Mods.prefs.inactiveOrder = "name"
         Mods.prefs.headings = 0
-        check("a save is written off the window's thread", Mods.save(() => { check("the changed list is saved", !Hub.mods.dirty && Mods.saveProblem === ""); Qt.exit(failed > 0 ? 1 : 0) }) && Hub.mods.saving)
+        check("a save is written off the window's thread", Mods.save(() => { check("the changed list is saved", !Hub.mods.dirty && Mods.saveProblem === ""); checks.watchPreviews() }) && Hub.mods.saving)
     }
 
     property int frames: 0
