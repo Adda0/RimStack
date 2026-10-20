@@ -66,6 +66,7 @@
  "Add or remove one from the selection": "Добавить или убрать один из выделения",
  "Add tags, separated by commas": "Add tags, separated by commas",
  "Added": "Добавлено",
+ "Added since the last launch without errors, these are tried first: {}": "Added since the last launch without errors, these are tried first: {}",
  "Adds a tag to every selected mod": "Добавляет тег каждому выбранному моду",
  "Adds an own rule: this mod loads after the other.": "Добавляет собственное правило: этот мод загружается после другого.",
  "After Start": "После запуска",

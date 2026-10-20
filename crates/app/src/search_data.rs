@@ -20,6 +20,8 @@ pub mod qobject {
         #[qproperty(i32, suspects)]
         #[qproperty(QVariant, list)]
         #[qproperty(i32, everything)]
+        /// Names of the mods added since the last launch without errors, tried first.
+        #[qproperty(QString, first)]
         type SearchData = super::SearchDataRust;
     }
 
@@ -62,6 +64,7 @@ pub struct SearchDataRust {
     suspects: i32,
     list: QVariant,
     everything: i32,
+    first: QString,
     app: crate::hub::Given,
     records: bool,
 }
@@ -95,6 +98,8 @@ impl qobject::SearchData {
         self.as_mut().set_suspects(int(hunt.suspects));
         self.as_mut().set_list(to_qml(&hunt.list));
         self.as_mut().set_everything(int(hunt.everything));
+        self.as_mut()
+            .set_first(QString::from(&hunt.first.join(", ")));
         self.as_mut().set_asking(hunt.asking);
         self.set_active(hunt.active);
     }

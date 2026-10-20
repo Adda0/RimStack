@@ -66,6 +66,7 @@
  "Add or remove one from the selection": "Add or remove one from the selection",
  "Add tags, separated by commas": "Add tags, separated by commas",
  "Added": "Added",
+ "Added since the last launch without errors, these are tried first: {}": "Added since the last launch without errors, these are tried first: {}",
  "Adds a tag to every selected mod": "Adds a tag to every selected mod",
  "Adds an own rule: this mod loads after the other.": "Adds an own rule: this mod loads after the other.",
  "After Start": "After Start",

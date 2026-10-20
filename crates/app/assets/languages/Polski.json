@@ -66,6 +66,7 @@
  "Add or remove one from the selection": "Dodaj lub usuń z zaznaczenia",
  "Add tags, separated by commas": "Dodaj etykiety, oddzielone przecinkami",
  "Added": "Dodano",
+ "Added since the last launch without errors, these are tried first: {}": "Dodane od ostatniego uruchomienia bez błędów, te są wypróbowywane najpierw: {}",
  "Adds a tag to every selected mod": "Dodaje etykietę do każdego zaznaczonego moda",
  "Adds an own rule: this mod loads after the other.": "Dodaje własną regułę: ten mod ładuje się po drugim.",
  "After Start": "Po uruchomieniu",
