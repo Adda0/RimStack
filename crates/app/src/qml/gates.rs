@@ -6,9 +6,9 @@ const MOST: [(&str, usize); 7] = [
     ("timers", 11),
     ("arrow functions", 283),
     ("ifs", 239),
-    ("ternaries", 747),
+    ("ternaries", 745),
     ("array callbacks", 64),
-    ("comparisons with a text", 32),
+    ("comparisons with a text", 30),
 ];
 
 fn qml_files(dir: &Path, into: &mut Vec<PathBuf>) {
