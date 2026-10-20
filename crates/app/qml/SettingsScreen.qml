@@ -673,6 +673,68 @@ Item {
                     text: Theme.fill("Not updated: {}", Hub.settings.communityProblem)
                 }
 
+                GroupTitle { visible: screen.finding === ""; text: Theme.say("Your rules") }
+                Line {
+                    title: Theme.say("GitHub username")
+                    changed: (screen.info.githubUser || "") !== ""
+                    onReset: screen.keep("githubUser", "")
+                    tip: Theme.say("Your own; kept in RimStack's settings and sent only to github.com, with the token.")
+                    FilterField {
+                        id: githubUser
+                        Layout.fillWidth: true
+                        placeholder: Theme.say("None")
+                        text: screen.info.githubUser || ""
+                        onTextChanged: Hub.settings.keepLater("githubUser", githubUser.text)
+                    }
+                    Item { Layout.fillWidth: true }
+                }
+                Line {
+                    title: Theme.say("GitHub token")
+                    changed: (screen.info.githubToken || "") !== ""
+                    onReset: screen.keep("githubToken", "")
+                    tip: Theme.say("Your own, a token that may fork, commit and open pull requests; kept in RimStack's settings and sent only to github.com.")
+                    FilterField {
+                        id: githubToken
+                        Layout.fillWidth: true
+                        placeholder: Theme.say("None")
+                        echoMode: TextInput.Password
+                        text: screen.info.githubToken || ""
+                        onTextChanged: Hub.settings.keepLater("githubToken", githubToken.text)
+                    }
+                    Item { Layout.fillWidth: true }
+                }
+                Line {
+                    title: Theme.say("Publish to")
+                    changed: (screen.info.rulesRepo || "") !== ""
+                    onReset: screen.keep("rulesRepo", "")
+                    tip: Theme.say("The community rules repository, as a github.com address; empty for the community's own.")
+                    FilterField {
+                        id: rulesRepo
+                        Layout.fillWidth: true
+                        placeholder: screen.info.rulesRepoDefault
+                        text: screen.info.rulesRepo || ""
+                        onTextChanged: Hub.settings.keepLater("rulesRepo", rulesRepo.text)
+                    }
+                    Item { Layout.fillWidth: true }
+                }
+                Line {
+                    id: publish
+                    readonly property string explain: screen.info.publishWhyNot || ""
+                    title: Theme.say("Publish my rules…")
+                    tip: explain !== "" ? explain : Theme.say("Forks the repository from your account, writes your rules into its communityRules.json in a branch and opens a pull request with them.")
+                    Btn {
+                        icon: "send"
+                        enabled: publish.explain === "" && !Hub.settings.publishBusy
+                        text: Hub.settings.publishBusy ? Theme.say("Publishing…") : Theme.plural(screen.info.ownRules, "Publish {} rule", "Publish {} rules")
+                        onClicked: Notices.ask({
+                            title: Theme.plural(screen.info.ownRules, "Publish {} rule to {}", "Publish {} rules to {}", (screen.info.rulesRepo || screen.info.rulesRepoDefault)),
+                            lines: [],
+                            label: Theme.say("Publish"),
+                            run: () => Hub.settings.publishRules() })
+                    }
+                    Item { Layout.fillWidth: true }
+                }
+
                 GroupTitle { visible: rimsort.visible && screen.finding === ""; text: Theme.say("RimSort") }
                 Line {
                     id: rimsort

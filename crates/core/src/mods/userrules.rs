@@ -68,6 +68,11 @@ impl UserRules {
         self.pairs.len()
     }
 
+    /// `(first, then)` as folded package ids, `then` loading after `first`.
+    pub fn pairs(&self) -> &[(String, String)] {
+        &self.pairs
+    }
+
     pub fn is_empty(&self) -> bool {
         self.pairs.is_empty()
     }

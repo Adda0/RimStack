@@ -6,6 +6,7 @@ use crate::workspace::downloads::{Checkout, Queue, Updates, updates_shown};
 use crate::workspace::load_order::{LoadOrder, Side, column_choices};
 use crate::workspace::tests::installed;
 use crate::workspace::{logs, saves, textures};
+use rimstack_core::base::locks::Shared;
 use rimstack_core::base::sentence::Sentence;
 use rimstack_core::kept::launches;
 use rimstack_core::mods::columns;
@@ -211,16 +212,21 @@ fn settings_once_set(app: &App, shapes: &mut Shapes) {
 }
 
 fn settings(app: &App, shapes: &mut Shapes) {
+    shapes.add("settings.report", &app.settings_report());
     for (name, value) in [
         ("replacementsIgnored", "1"),
         ("font", "Noto Sans"),
         ("language", "Polski"),
         ("launchArguments", "-quicktest"),
         ("steamKey", "made-up"),
+        ("githubUser", "adda"),
+        ("githubToken", "ghp_madeup"),
+        ("rulesRepo", "https://github.com/Me/my-rules"),
         ("keptModsMegabytes", "5120"),
     ] {
         app.keep_setting(name, value).unwrap();
     }
+    app.user_rules().writing().add("a.mod", "b.mod");
     app.version_warnings(1).unwrap();
     app.add_setup("Second").unwrap();
     shapes.add("settings.report", &app.settings_report());
@@ -264,6 +270,15 @@ fn settings(app: &App, shapes: &mut Shapes) {
             problem: rimstack_core::said!("refused"),
         },
     );
+    let opened = Answer::from(Ok(rimstack_core::mods::publish::Published {
+        url: "https://github.com/RimSort/Community-Rules-Database/pull/2".into(),
+        rules: 1,
+    }));
+    shapes.add("settings.published", &opened);
+    let refused: Answer<rimstack_core::mods::publish::Published> = Answer::from(Err(
+        rimstack_core::base::error::Error::refused(rimstack_core::said!("refused")),
+    ));
+    shapes.add("settings.published", &refused);
 }
 
 fn mods(app: &App, shapes: &mut Shapes) {

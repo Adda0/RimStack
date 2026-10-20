@@ -792,6 +792,10 @@ settings.languages: list
   []: text
 settings.ownColours: map
   {}: text
+settings.published: object
+  problem: absent or text
+  rules: absent or number
+  url: absent or text
 settings.release: object
   page: absent or text
   problem: absent or text
@@ -809,17 +813,19 @@ settings.report: object
     []: object
       name: text
       path: text
-  font: text
+  font: nothing or text
   game: text
   gameLog: text
   gameVersion: text
   git: text
   gitForWorkshop: bool
+  githubToken: nothing or text
+  githubUser: nothing or text
   interfaceScale: text
-  keptModsMegabytes: text
-  language: text
+  keptModsMegabytes: nothing or text
+  language: nothing or text
   languageInUse: text
-  launchArguments: text
+  launchArguments: nothing or text
   launchDirectly: bool
   localMods: text
   logsKept: number
@@ -834,10 +840,14 @@ settings.report: object
       picture: text
   orphanSettings: list
     []: text
+  ownRules: number
+  publishWhyNot: nothing or text
   replacementsIgnored: list
     []: text
   rimpy: bool
   rimsort: bool
+  rulesRepo: nothing or text
+  rulesRepoDefault: text
   selfCheck: bool
   setConfig: nothing or text
   setGame: nothing or text
@@ -850,11 +860,11 @@ settings.report: object
       name: text
       removable: bool
       shown: text
-  steamKey: text
+  steamKey: nothing or text
   steamcmd: bool
   steamcmdFolder: text
   version: text
-  versionAsideFor: text
+  versionAsideFor: nothing or text
   versionWarnings: bool
   workshop: text
 settings.shortContrast: list
