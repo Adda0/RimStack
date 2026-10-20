@@ -219,6 +219,14 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "copyManyToLocal"]
         fn copy_many_to_local(self: Pin<&mut ModsData>, ids: &QVariant);
+        /// The Workshop update times of the copies kept for the mod, newest first.
+        #[qinvokable]
+        #[cxx_name = "keptCopiesOf"]
+        fn kept_copies_of(self: &ModsData, mod_id: i32) -> QVariant;
+        /// The kept copy of `updated` is copied into the game's Mods folder, where it wins.
+        #[qinvokable]
+        #[cxx_name = "restoreKeptCopy"]
+        fn restore_kept_copy(self: Pin<&mut ModsData>, mod_id: i32, updated: &QVariant);
         /// A dropped or picked .zip becomes a mod in the game's Mods folder.
         #[qinvokable]
         #[cxx_name = "installZip"]

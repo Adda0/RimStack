@@ -695,6 +695,36 @@ impl qobject::ModsData {
         );
     }
 
+    pub(super) fn kept_copies_of(&self, mod_id: i32) -> QVariant {
+        let Some(id) = id(mod_id) else {
+            return QVariant::default();
+        };
+        crate::qml::values::to_qml(&self.app().kept_copies_of(id))
+    }
+
+    pub(super) fn restore_kept_copy(mut self: Pin<&mut Self>, mod_id: i32, updated: &QVariant) {
+        let (Some(id), Some(updated)) = (id(mod_id), crate::qml::values::from_qml(updated)) else {
+            return;
+        };
+        self.as_mut().set_upkeep_problem(QString::default());
+        let app = self.app();
+        crate::jobs::run(
+            "restore a kept copy",
+            self.qt_thread(),
+            move || app.restore_kept_copy(id, updated).err(),
+            |mut me, problem| match problem {
+                Some(problem) => me.set_upkeep_problem(crate::words::said_of(&problem)),
+                None => {
+                    let said = crate::words::said(&say!(
+                        "Restored; this copy now wins over the Workshop's one"
+                    ));
+                    me.as_mut().told(said, QString::from("ok"));
+                    me.as_mut().rescan();
+                }
+            },
+        );
+    }
+
     pub(super) fn install_zip(self: Pin<&mut Self>, chosen: &QUrl) {
         // A file:// URL and a bare path are taken; anything else is refused.
         let file = chosen.to_local_file().map(|local| local.to_string());
