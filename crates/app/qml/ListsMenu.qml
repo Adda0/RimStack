@@ -164,8 +164,14 @@ Popup {
             spacing: Theme.gapSmall
             Btn { icon: "copy"; text: Theme.say("Copy the load order"); tip: Theme.say("The active mods as text, one a line"); onClicked: { Theme.copy(Hub.mods.listing()); listsMenu.close() } }
             Btn {
+                icon: "copy"
+                text: Theme.say("Copy the share code")
+                tip: Theme.say("The load order as a short code; this clipboard read into a friend's RimStack gives the same list, with the Workshop pages of its mods")
+                onClicked: { Theme.copy(Hub.mods.shareCode()); listsMenu.close() }
+            }
+            Btn {
                 text: Theme.say("Use the copied list")
-                tip: Theme.say("A list of mods copied as text or as links becomes the load order. Save writes it.")
+                tip: Theme.say("A list of mods copied as text, links or a share code becomes the load order. Save writes it.")
                 onClicked: {
                     const ids = Hub.lists.idsInText(Theme.pasted())
                     if (ids.length > 0) {
@@ -183,8 +189,10 @@ Popup {
         Flow {
             width: parent.width
             spacing: Theme.gapSmall
-            Btn { icon: "download"; text: Theme.say("Export as CSV"); tip: Theme.say("Writes the active mods as a CSV file, the columns of RimSort's export"); onClicked: { listsMenu.close(); exportList.open() } }
-            Btn { text: Theme.say("Use a list from a file"); tip: Theme.say("A RimSort or RimPy mod list, a save's list, or a text list becomes the load order. Save writes it."); onClicked: { listsMenu.close(); importList.open() } }
+            Btn { icon: "download"; text: Theme.say("Export as CSV"); tip: Theme.say("Writes the active mods as a CSV file, the columns of RimSort's export"); onClicked: { exportList.currentFile = "modlist.csv"; exportList.nameFilters = ["CSV (*.csv)"]; listsMenu.close(); exportList.open() } }
+            Btn { text: Theme.say("Export as ModsConfig"); tip: Theme.say("Writes the load order as the game's ModsConfig.xml"); onClicked: { exportList.currentFile = "ModsConfig.xml"; exportList.nameFilters = ["ModsConfig (*.xml)"]; listsMenu.close(); exportList.open() } }
+            Btn { text: Theme.say("Export as a RimSort list"); tip: Theme.say("Writes the load order as a saved mod list (.rml), which RimSort and the game read"); onClicked: { exportList.currentFile = "modlist.rml"; exportList.nameFilters = ["RimSort (*.rml)"]; listsMenu.close(); exportList.open() } }
+            Btn { text: Theme.say("Use a list from a file"); tip: Theme.say("A RimSort or RimPy mod list, a save's list, a share code or a text list becomes the load order. Save writes it."); onClicked: { listsMenu.close(); importList.open() } }
         }
 
         FileDialog {
@@ -192,7 +200,7 @@ Popup {
             fileMode: FileDialog.SaveFile
             currentFile: "modlist.csv"
             nameFilters: ["CSV (*.csv)"]
-            onAccepted: Hub.mods.exportCsv(selectedFile)
+            onAccepted: Hub.mods.exportList(selectedFile)
         }
 
         FileDialog {
@@ -216,6 +224,12 @@ Popup {
         Flow {
             width: parent.width
             spacing: Theme.gapSmall
+            Btn {
+                icon: "copy"
+                text: Theme.say("Copy the Workshop links")
+                tip: Theme.say("A link a line, one for each active Workshop mod; a friend's RimStack reads them into the downloads")
+                onClicked: { Theme.copy(Hub.mods.workshopLinks()); listsMenu.close() }
+            }
             Btn {
                 icon: "send"
                 text: Theme.say("Write a lockfile…")

@@ -169,7 +169,9 @@ impl qobject::ListsData {
     }
 
     fn ids_in_text(&self, text: &QString) -> QVariant {
-        to_qml(&rimstack_core::mods::share::ids_in(&text.to_string()))
+        let found =
+            rimstack_core::mods::share_file::ids_from_text(&text.to_string()).unwrap_or_default();
+        to_qml(&found)
     }
 
     fn ids_in_file(&self, chosen: &QUrl) -> QVariant {

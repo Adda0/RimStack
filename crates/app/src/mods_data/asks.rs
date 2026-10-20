@@ -83,20 +83,37 @@ impl qobject::ModsData {
         to_qml(&self.order.found(&self.app(), &text.to_string(), most))
     }
 
+    fn share_entries(&self) -> Vec<rimstack_core::mods::share::Entry> {
+        let app = self.app();
+        let loaded = app.library();
+        let Ok((library, _)) = &*loaded else {
+            return Vec::new();
+        };
+        let mods = self.order.list(Side::Active).mods().iter();
+        mods.filter_map(|m| library.get(m.installed?))
+            .map(rimstack_core::mods::share::Entry::of)
+            .collect()
+    }
+
     pub(super) fn listing(&self) -> QString {
         let app = self.app();
         let loaded = app.library();
         let Ok((library, _)) = &*loaded else {
             return QString::default();
         };
-        let mods = self.order.list(Side::Active).mods().iter();
-        let entries: Vec<rimstack_core::mods::share::Entry> = mods
-            .filter_map(|m| library.get(m.installed?))
-            .map(rimstack_core::mods::share::Entry::of)
-            .collect();
         QString::from(&rimstack_core::mods::share::listing(
             &library.game_version,
-            &entries,
+            &self.share_entries(),
+        ))
+    }
+
+    pub(super) fn share_code(&self) -> QString {
+        QString::from(&rimstack_core::mods::share::code(&self.share_entries()))
+    }
+
+    pub(super) fn workshop_links(&self) -> QString {
+        QString::from(&rimstack_core::mods::share::workshop_links(
+            &self.share_entries(),
         ))
     }
 

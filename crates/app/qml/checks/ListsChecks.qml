@@ -2,6 +2,7 @@
 // and the mods only the list holds join the current run. Nothing is saved.
 // Exits with 1 if any check failed.
 pragma ComponentBehavior: Bound
+import QtCore
 import QtQuick
 import RimStack.Ui
 
@@ -52,6 +53,28 @@ Item {
         Hub.lists.remove(name)
         comp = Hub.lists.compareList(name)
         check("a deleted list does not compare", comp !== null && comp.onlySaved.length === 0 && comp.onlyCurrent.length === 0 && comp.moved.length === 0)
+
+        const code = Hub.mods.shareCode()
+        check("a share code is made", code.startsWith("rimstack-list:1:"))
+        let ids = Hub.lists.idsInText(code)
+        check("the share code reads back as the active mods", ids.length === Mods.active.count && ids.indexOf("fixture.workshop") >= 0 && ids.indexOf("ludeon.rimworld") >= 0)
+        ids = Hub.lists.idsInText("<ModsConfigData><activeMods><li>fixture.workshop</li></activeMods></ModsConfigData>")
+        check("a pasted ModsConfig reads back", ids.length === 1 && ids[0] === "fixture.workshop")
+        ids = Hub.lists.idsInText(code + "garbage!")
+        check("garbage after a code is no list", ids.length === 0)
+        ids = Hub.lists.idsInText("rimstack-list:1:not-a-code")
+        check("a bad code gives no mods", ids.length === 0)
+
+        const where = StandardPaths.writableLocation(StandardPaths.TempLocation)
+        Hub.mods.exportList(Qt.url(where + "/rimstack-check.rml"))
+        ids = Hub.lists.idsInFile(Qt.url(where + "/rimstack-check.rml")).ids
+        check("an exported .rml reads back with the workshop mod", ids.length === Mods.active.count && ids.indexOf("fixture.workshop") >= 0)
+        Hub.mods.exportList(Qt.url(where + "/rimstack-check.xml"))
+        ids = Hub.lists.idsInFile(Qt.url(where + "/rimstack-check.xml")).ids
+        check("an exported ModsConfig reads back the same way", ids.length === Mods.active.count && ids.indexOf("fixture.workshop") >= 0)
+
+        const links = Hub.mods.workshopLinks()
+        check("the workshop links name the one workshop mod", links === "https://steamcommunity.com/sharedfiles/filedetails/?id=2941000101\n")
 
         console.log(failed === 0 ? "check ok    a saved list compares and merges" : "check FAIL " + failed + " list checks failed")
         Qt.exit(failed)

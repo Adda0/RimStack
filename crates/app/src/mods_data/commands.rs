@@ -231,7 +231,7 @@ impl qobject::ModsData {
         self.done_said(said);
     }
 
-    pub(super) fn export_csv(mut self: Pin<&mut Self>, chosen: &QUrl) {
+    pub(super) fn export_list(mut self: Pin<&mut Self>, chosen: &QUrl) {
         let Some(given) = chosen.to_local_file() else {
             let said = crate::words::said(&say!("That is not a file here."));
             return self.as_mut().told(said, QString::from("err"));
@@ -276,16 +276,34 @@ impl qobject::ModsData {
         if path.extension().is_none() {
             path.set_extension("csv");
         }
-        let said = rimstack_core::base::atomic_file::write(
-            &path,
-            rimstack_core::mods::share_file::csv(&rows),
-        );
+        let ids: Vec<String> = rows
+            .iter()
+            .map(|row| row.package_id.clone())
+            .filter(|id| !id.is_empty())
+            .collect();
+        let kind = path
+            .extension()
+            .and_then(|end| end.to_str())
+            .map(str::to_lowercase);
+        let (text, what) = match kind.as_deref() {
+            Some("rml") => (
+                rimstack_core::mods::share_file::rml_xml(&ids),
+                say!("a RimSort mod list"),
+            ),
+            Some("xml") => (
+                rimstack_core::mods::share_file::modsconfig_xml(&ids, &library.game_version),
+                say!("a game's ModsConfig"),
+            ),
+            _ => (rimstack_core::mods::share_file::csv(&rows), say!("CSV")),
+        };
+        let said = rimstack_core::base::atomic_file::write(&path, text);
         match said {
             Ok(()) => {
-                let note = say_n!(
-                    rows.len(),
-                    "The active mod as CSV in {}",
-                    "{} active mods as CSV in {}",
+                let count = say_n!(rows.len(), "One active mod", "{} active mods");
+                let note = say!(
+                    "{} as {} in {}",
+                    count.inside(),
+                    what.inside(),
                     path.display()
                 );
                 let said = crate::words::said(&note);
