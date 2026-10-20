@@ -185,11 +185,79 @@ impl App {
             .collect()
     }
 
-    /// `None` for the load order being edited.
-    pub fn keep_list(&self, name: &str, ids: Option<Vec<String>>) -> Result<(), Error> {
+    /// `None` for the load order being edited. `with_settings` also keeps every active
+    /// mod's `Mod_*.xml` beside the list; without it, a list's earlier folder stands.
+    pub fn keep_list(
+        &self,
+        name: &str,
+        ids: Option<Vec<String>>,
+        with_settings: bool,
+    ) -> Result<(), Error> {
         let ids = ids.unwrap_or_else(|| self.session().current().to_vec());
+        if with_settings {
+            self.keep_list_settings(name, &ids)?;
+        }
         lists::save(&self.lists_dir(), name, &ids)?;
         self.publish(Changes::LISTS);
+        Ok(())
+    }
+
+    /// The active mods' own `Mod_*.xml` files, by the folder the game names them after.
+    fn keep_list_settings(&self, name: &str, ids: &[String]) -> Result<(), Error> {
+        let config = self.config_dir()?;
+        let loaded = self.library();
+        let (library, _) = loaded.as_ref().as_ref().map_err(Clone::clone)?;
+        let arranged = library.arrange(ids);
+        let active: std::collections::HashSet<&str> = arranged
+            .active
+            .iter()
+            .filter_map(|m| m.installed)
+            .filter_map(|id| library.get(id))
+            .map(|m| m.folder.as_str())
+            .collect();
+        let installed = super::settings::installed_folders(library);
+        let files: Vec<lists::SettingsFile> = rimstack_core::rimworld::mod_settings::files(&config)
+            .into_iter()
+            .filter_map(|path| {
+                let owner = rimstack_core::rimworld::mod_settings::owner(&path, &installed)?;
+                if !active.contains(owner) {
+                    return None;
+                }
+                let mod_id = library
+                    .installed
+                    .iter()
+                    .find(|m| m.folder == owner)
+                    .and_then(|m| m.key())
+                    .unwrap_or_else(|| owner.to_string());
+                Some(lists::SettingsFile {
+                    file: path.file_name()?.to_string_lossy().into_owned(),
+                    folder: owner.to_string(),
+                    mod_id,
+                })
+            })
+            .collect();
+        lists::keep_settings(&self.lists_dir(), name, &config, &files)?;
+        Ok(())
+    }
+
+    /// The settings kept with a list take the place of the current ones, which the
+    /// usual dated folder holds instead; never under a running game.
+    pub fn use_list_settings(&self, name: &str) -> Result<(), Error> {
+        self.running_check()?;
+        let config = self.config_dir()?;
+        let loaded = self.library();
+        let (library, _) = loaded.as_ref().as_ref().map_err(Clone::clone)?;
+        let aside = self.settings_aside_dir();
+        let done = lists::use_settings(
+            &self.lists_dir(),
+            name,
+            &config,
+            &aside,
+            super::settings::installed_folders(library),
+        )?;
+        if done != lists::Applied::default() {
+            self.publish(Changes::MOD_SETTINGS);
+        }
         Ok(())
     }
 
@@ -349,8 +417,9 @@ mod tests {
     #[test]
     fn a_list_is_kept_found_and_deleted_and_the_history_says_what_takes_it_back() {
         let (_tmp, app) = installed();
-        app.keep_list("Mine", Some(vec!["a.b".into()])).unwrap();
-        assert!(app.keep_list(" ", None).is_err());
+        app.keep_list("Mine", Some(vec!["a.b".into()]), false)
+            .unwrap();
+        assert!(app.keep_list(" ", None, false).is_err());
         assert_eq!(app.saved_lists()[0].mods, 1);
         assert_eq!(app.list_named("Mine").unwrap(), ["a.b"]);
         app.delete_list("Mine");
@@ -378,6 +447,48 @@ mod tests {
     }
 
     #[test]
+    fn settings_kept_with_a_list_take_the_current_ones_place() {
+        let (tmp, app) = installed();
+        let config = tmp.path().join("config");
+        let write = |file: &str, contents: &str| {
+            std::fs::write(config.join(format!("Config/{file}")), contents).unwrap();
+        };
+        write("Mod_Core_Settings.xml", "first");
+        write("Mod_roads_Settings.xml", "roads");
+        let ids = vec!["ludeon.rimworld".to_string(), "ann.roads".to_string()];
+        app.keep_list("run", Some(ids), true).unwrap();
+        assert!(
+            app.saved_lists()
+                .iter()
+                .any(|l| l.name == "run" && l.settings)
+        );
+
+        // The game touched Core's settings: using the list's ones sets them aside first.
+        write("Mod_Core_Settings.xml", "changed");
+        app.use_list_settings("run").unwrap();
+        assert_eq!(
+            std::fs::read_to_string(config.join("Config/Mod_Core_Settings.xml")).unwrap(),
+            "first"
+        );
+        let asides: Vec<_> = std::fs::read_dir(app.own_dir())
+            .unwrap()
+            .flatten()
+            .filter(|e| e.file_name().to_string_lossy().starts_with("mod-settings-"))
+            .collect();
+        assert_eq!(asides.len(), 1);
+        assert_eq!(
+            std::fs::read_to_string(asides[0].path().join("Mod_Core_Settings.xml")).unwrap(),
+            "changed"
+        );
+
+        // Without the settings asked for, no folder; using one there is not refuses.
+        app.keep_list("empty", Some(vec![]), true).unwrap();
+        assert!(app.use_list_settings("empty").is_err());
+        app.delete_list("run");
+        assert!(!app.saved_lists().iter().any(|l| l.settings));
+    }
+
+    #[test]
     fn comparing_a_saved_list_with_the_load_order_groups_each_mod() {
         let (_tmp, app) = installed();
         let saved = vec![
@@ -385,7 +496,7 @@ mod tests {
             "ann.roads".to_string(),
             "gone.mod".to_string(),
         ];
-        app.keep_list("run", Some(saved)).unwrap();
+        app.keep_list("run", Some(saved), false).unwrap();
 
         // Only rimworld active: the mods the run switched off are saved-only.
         app.session().record(vec!["ludeon.rimworld".to_string()]);

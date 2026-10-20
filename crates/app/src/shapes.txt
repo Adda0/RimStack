@@ -178,6 +178,7 @@ lists.saved: list
     modified: number
     mods: number
     name: text
+    settings: bool
 lists.snapshotNamed: list
   []: text
 lists.snapshots: list

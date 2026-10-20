@@ -13,7 +13,7 @@ pub mod qobject {
         #[qobject]
         #[qml_element]
         #[qml_uncreatable]
-        /// `{ name, mods, modified }`.
+        /// `{ name, mods, modified, settings }`.
         #[qproperty(QVariant, saved)]
         /// `{ name, title }`.
         #[qproperty(QVariant, snapshots)]
@@ -26,7 +26,12 @@ pub mod qobject {
 
     extern "RustQt" {
         #[qinvokable]
-        fn keep(self: &ListsData, name: &QString) -> QString;
+        fn keep(self: &ListsData, name: &QString, settings: bool) -> QString;
+
+        /// The list's kept mod settings take the current ones' place; empty text when done.
+        #[qinvokable]
+        #[cxx_name = "useListSettings"]
+        fn use_list_settings(self: &ListsData, name: &QString) -> QString;
 
         #[qinvokable]
         #[cxx_name = "keepIds"]
@@ -125,13 +130,17 @@ impl qobject::ListsData {
         self.set_history(to_qml(&app.history()));
     }
 
-    fn keep(&self, name: &QString) -> QString {
-        said(self.app().keep_list(&name.to_string(), None))
+    fn keep(&self, name: &QString, settings: bool) -> QString {
+        said(self.app().keep_list(&name.to_string(), None, settings))
+    }
+
+    fn use_list_settings(&self, name: &QString) -> QString {
+        crate::words::why_not(&self.app().use_list_settings(&name.to_string()))
     }
 
     fn keep_ids(&self, name: &QString, ids: &QVariant) -> QString {
         match from_qml::<Vec<String>>(ids) {
-            Some(ids) => said(self.app().keep_list(&name.to_string(), Some(ids))),
+            Some(ids) => said(self.app().keep_list(&name.to_string(), Some(ids), false)),
             None => crate::words::said(&say!("That is not a list of mods.")),
         }
     }
