@@ -967,6 +967,29 @@ fn the_shown_mods_are_the_installed_ones_with_a_row() {
 }
 
 #[test]
+fn folding_from_a_mod_takes_its_group_then_its_category_and_the_heading_stands_for_it() {
+    let mut list = installed_sample();
+    let dubs = ["dubs".to_string()];
+    list.set_tags(id(104), &dubs);
+    list.set_tags(id(105), &dubs);
+    assert!(list.fold_around(id(105), false));
+    assert_eq!(list.place_of(id(105)), Some(8));
+    assert_eq!(list.stop_on(8), Some(id(104)));
+    assert_eq!(list.step_from(Some(id(103)), 1), Some(8));
+    assert!(list.fold_around(id(105), false));
+    assert_eq!(list.place_of(id(105)), Some(7));
+    assert_eq!(list.stop_on(7), Some(id(104)));
+    assert!(!list.fold_around(id(105), false));
+    assert_eq!(list.step_from(Some(id(105)), -1), Some(6));
+    assert!(list.fold_around(id(105), true));
+    assert_eq!(list.place_of(id(105)), Some(8));
+    assert!(list.fold_around(id(104), true));
+    assert_eq!(list.place_of(id(105)), Some(10));
+    assert!(!list.fold_around(id(104), true));
+    assert!(!list.fold_around(id(999), false));
+}
+
+#[test]
 fn the_mods_through_a_stretch_leave_out_the_one_it_starts_from() {
     let mut list = installed_sample();
     assert_eq!(

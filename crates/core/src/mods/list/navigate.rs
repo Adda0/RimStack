@@ -9,11 +9,56 @@ impl GroupedList {
         }
     }
 
+    /// The mod a row stands for: its own, or the first one a folded heading hides.
+    pub fn stop_on(&self, row: usize) -> Option<ModId> {
+        self.installed_on(row).or_else(|| self.hidden_under(row))
+    }
+
+    fn hidden_under(&self, row: usize) -> Option<ModId> {
+        let (category, sub, from) = match *self.rows.get(row)? {
+            Row::Header {
+                category,
+                collapsed: true,
+                ..
+            } => {
+                let before = self.rows[..row]
+                    .iter()
+                    .rev()
+                    .find_map(|shown| match *shown {
+                        Row::Mod { index } | Row::Sub { first: index, .. } => Some(index),
+                        Row::Header { .. } => None,
+                    });
+                (category, None, before.unwrap_or(0))
+            }
+            Row::Sub {
+                first,
+                collapsed: true,
+                ..
+            } => (
+                self.mods[first].category,
+                Some(&self.mods[first].sub),
+                first,
+            ),
+            _ => return None,
+        };
+        let under = |(at, m): &(usize, &super::Mod)| {
+            self.matches(*at) && sub.is_none_or(|sub| m.sub == *sub)
+        };
+        self.mods
+            .iter()
+            .enumerate()
+            .skip(from)
+            .skip_while(|(_, m)| m.category != category)
+            .take_while(|(_, m)| m.category == category)
+            .filter(under)
+            .find_map(|(_, m)| m.installed)
+    }
+
     /// `from` may be one above the first row or one below the last.
     pub fn step(&self, from: isize, by: isize) -> Option<usize> {
         let mut row = from.checked_add(by)?;
         while let Some(at) = usize::try_from(row).ok().filter(|at| *at < self.rows.len()) {
-            if self.installed_on(at).is_some() {
+            if self.stop_on(at).is_some() {
                 return Some(at);
             }
             row = row.checked_add(by)?;
@@ -55,8 +100,33 @@ impl GroupedList {
         self.rows.iter().position(shows)
     }
 
-    fn row_of_mod(&self, id: ModId) -> Option<usize> {
-        self.row_of(self.position_of(id)?)
+    /// Its row, or that of the folded heading it is under; nothing when filtered out.
+    pub fn place_of(&self, id: ModId) -> Option<usize> {
+        let at = self.position_of(id)?;
+        if let Some(row) = self.row_of(at) {
+            return Some(row);
+        }
+        let m = &self.mods[at];
+        let mut place = None;
+        for (row, shown) in self.rows.iter().enumerate() {
+            match *shown {
+                Row::Mod { index } | Row::Sub { first: index, .. } if index > at => break,
+                Row::Header {
+                    category,
+                    collapsed: true,
+                    ..
+                } if category == m.category => place = Some(row),
+                Row::Sub {
+                    first,
+                    collapsed: true,
+                    ..
+                } if self.mods[first].category == m.category && self.mods[first].sub == m.sub => {
+                    place = Some(row)
+                }
+                _ => {}
+            }
+        }
+        place.filter(|_| self.matches(at))
     }
 
     /// More than one row lands on the nearest installed mod short of an end, so a page
@@ -64,7 +134,7 @@ impl GroupedList {
     pub fn step_from(&self, id: Option<ModId>, by: isize) -> Option<usize> {
         let last = self.rows.len().checked_sub(1)? as isize;
         let at_end = if by > 0 { -1 } else { last + 1 };
-        let from = id.and_then(|id| self.row_of_mod(id));
+        let from = id.and_then(|id| self.place_of(id));
         let to = from
             .map_or(at_end, |row| row as isize)
             .saturating_add(by)
@@ -75,11 +145,11 @@ impl GroupedList {
     }
 
     pub fn beside_mod(&self, id: ModId) -> Option<ModId> {
-        self.beside(self.row_of_mod(id)?)
+        self.beside(self.place_of(id)?)
     }
 
     pub fn others_through(&self, from: ModId, to: ModId) -> Option<Vec<ModId>> {
-        let (a, b) = (self.row_of_mod(from)?, self.row_of_mod(to)?);
+        let (a, b) = (self.place_of(from)?, self.place_of(to)?);
         let between = self.installed_between(a, b).into_iter();
         Some(between.filter(|id| *id != from).collect())
     }
