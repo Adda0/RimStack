@@ -664,16 +664,14 @@ impl App {
             said.push(say_n!(
                 changed,
                 "Names of {} installed mod refreshed.",
-                "Names of {} installed mods refreshed.",
-                changed
+                "Names of {} installed mods refreshed."
             ));
         }
         if renamed > 0 {
             said.push(say_n!(
                 renamed,
                 "Names of {} mod re-read from Steam.",
-                "Names of {} mods re-read from Steam.",
-                renamed
+                "Names of {} mods re-read from Steam."
             ));
         }
         if said.is_empty() {
@@ -719,8 +717,7 @@ impl App {
         say_n!(
             added,
             "Tags, notes or colours for {} mod, now here too.",
-            "Tags, notes or colours for {} mods, now here too.",
-            added
+            "Tags, notes or colours for {} mods, now here too."
         )
     }
 
