@@ -39,6 +39,8 @@ Item {
     required property string measure
     required property string whyMoved
     required property bool twin
+    // The swatch the row is painted with, by name; empty for none.
+    required property string colour
     readonly property bool comfortable: columns && Theme.stored.comfortable
 
     readonly property var listView: ListView.view
@@ -90,6 +92,16 @@ Item {
         radius: row.isHeader && !row.isSub && !row.again ? 1.5 : 0
         color: row.categoryColour
         opacity: row.again ? 0.3 : 0.6
+    }
+
+    // A painted row: the swatch as a wash under the row, with its edge, as RimSort shows it.
+    Item {
+        visible: !!row.colour && !row.current
+        anchors.fill: parent
+        anchors.leftMargin: Theme.gap
+        anchors.rightMargin: Theme.gapSmall
+        Rectangle { anchors.fill: parent; radius: Theme.corner; color: Theme.swatch(row.colour); opacity: 0.22 }
+        Rectangle { anchors.right: parent.right; width: 3; height: parent.height; color: Theme.swatch(row.colour) }
     }
 
     // The edge line keeps the tint from passing for the hover highlight.

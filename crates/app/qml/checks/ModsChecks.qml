@@ -391,6 +391,13 @@ Item {
         check("one tag is taken off alone", Mods.info.tags === "check-tag, third" && Mods.info.note === "a note")
         Hub.mods.clearTags(Mods.selectedId)
         check("all tags are taken off, the note stays", !Mods.info.tags && Mods.info.note === "a note")
+        const paintedRow = Mods.active.rowOf(Mods.active.indexOf(Mods.selectedId))
+        Hub.mods.paint([Mods.selectedId], "Rose")
+        Mods.filtered = "colour:rose"
+        check("a mod painted Rose shows that colour on its row and is found by colour:rose", Mods.active.at(Mods.active.rowOf(Mods.active.indexOf(Mods.selectedId))).colour === "Rose" && Mods.active.rows() >= 1 && Mods.active.matching === 1)
+        Mods.filtered = ""
+        Hub.mods.paint([Mods.selectedId], "")
+        check("and No colour takes it off, the tags and note staying", Mods.active.at(paintedRow).colour === "" && Mods.info.note === "a note")
         Mods.keepNote("check-tag, second", "a note")
         Mods.filtered = "tag:check"
         const shown = () => { let n = 0; for (let r = 0; r < Mods.active.rows(); r++) if (Mods.active.modIdAt(r) >= 0) n += 1; return n }
