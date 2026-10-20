@@ -222,6 +222,24 @@ pub fn lacking(library: &Library, m: &crate::mods::list::Mod) -> Option<Trouble>
     })
 }
 
+/// About.xml listing no game version: the game logs it and its mod list marks the mod as made for
+/// another version. Official content lists none and is not asked to.
+pub fn unversioned(library: &Library, m: &Mod) -> Option<Trouble> {
+    let about = library.get(m.installed?)?.about.as_ref().ok()?;
+    if official(library, m) || !about.supported_versions.is_empty() {
+        return None;
+    }
+    Some(Trouble {
+        error: false,
+        words: say!(
+            "Names no game version in About.xml under supportedVersions: the game logs it as an error and marks the mod as made for another version."
+        ),
+        short: say!("No supported versions"),
+        fix: Fix::None,
+        key: "no-versions".to_string(),
+    })
+}
+
 pub fn troubles(
     library: &Library,
     mods: &[Mod],
@@ -317,6 +335,7 @@ pub fn troubles(
         if let Some(lack) = lacking(library, m) {
             own.push(lack);
         }
+        own.extend(unversioned(library, m));
     }
     all
 }
@@ -614,6 +633,43 @@ mod tests {
         assert!(found[1].is_empty());
         assert_eq!(found[2][0].short.to_string(), "Not installed");
         assert_eq!(found[2][0].fix, Fix::Search("not.here".to_string()));
+    }
+
+    #[test]
+    fn a_mod_listing_no_game_version_is_warned_once_not_as_made_for_another() {
+        let tmp = tempfile::tempdir().unwrap();
+        let root = tmp.path().join("Mods");
+        let abouts = [
+            (
+                "bare",
+                "<ModMetaData><packageId>a.bare</packageId><name>Bare</name><supportedVersions/></ModMetaData>",
+            ),
+            (
+                "none",
+                "<ModMetaData><packageId>a.none</packageId><name>None</name></ModMetaData>",
+            ),
+        ];
+        for (folder, about) in abouts {
+            fs::create_dir_all(root.join(folder).join("About")).unwrap();
+            fs::write(root.join(folder).join("About/About.xml"), about).unwrap();
+            fs::write(root.join(folder).join("About/PublishedFileId.txt"), "1000").unwrap();
+        }
+        let roots = [ModRoot {
+            path: root,
+            source: Source::Local,
+        }];
+        let active = ["a.bare".to_string(), "a.none".to_string()];
+        let library = build(scan(&roots), &active, "1.6");
+        let found = troubles(
+            &library,
+            &library.active,
+            Versions::CheckedBut(&HashSet::new()),
+            &Names::new(),
+        );
+        for own in &found {
+            let keys: Vec<&str> = own.iter().map(|t| t.key.as_str()).collect();
+            assert_eq!(keys, ["no-versions"], "{own:?}");
+        }
     }
 
     #[test]
@@ -946,7 +1002,7 @@ mod tests {
         add(
             "Mods",
             "genes",
-            "<ModMetaData><packageId>a.genes</packageId><name>Genes</name><modDependencies><li><packageId>ludeon.rimworld.biotech</packageId></li><li><packageId>ludeon.rimworld.royalty</packageId></li></modDependencies></ModMetaData>",
+            "<ModMetaData><packageId>a.genes</packageId><name>Genes</name><supportedVersions><li>1.6</li></supportedVersions><modDependencies><li><packageId>ludeon.rimworld.biotech</packageId></li><li><packageId>ludeon.rimworld.royalty</packageId></li></modDependencies></ModMetaData>",
         );
         let roots =
             [("Data", Source::Official), ("Mods", Source::Local)].map(|(folder, source)| ModRoot {

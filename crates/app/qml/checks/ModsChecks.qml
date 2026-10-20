@@ -530,6 +530,8 @@ Item {
         Mods.filtered = "is:assemblies"
         check("a mod shipping its own 0Harmony.dll is a problem, and is:assemblies finds it", bundled.length === 1 && bundled[0].name === "Fixture Mod 012" && Mods.active.matching === 1)
         Mods.filtered = ""
+        const named = (key, name) => Mods.troubles.filter(t => t.ignore === key && t.name === name).length === 1
+        check("a LoadFolders.xml folder in the wrong letter case, and an About.xml naming no game version, are problems", named("loadfolders-case", "Fixture Mod 015") && named("no-versions", "Fixture Mod 016"))
         Mods.previewSort()
         const sortLines = Hub.mods.sortMoves()
         check("each move of a sort has a reason", !Hub.mods.previewing || sortLines.every(group => group.name !== "" && group.moves.every(m => m.why !== "")))

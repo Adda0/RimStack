@@ -698,6 +698,7 @@ impl App {
     pub fn read_active_files(&self, members: Vec<ModId>) {
         use rayon::prelude::*;
         use rimstack_core::mods::{conflicts, infer};
+        use rimstack_core::rimworld::loadfolders;
         let generation = self.conflicts_generation();
         let loaded = self.library();
         let Ok((library, _)) = &*loaded else {
@@ -709,21 +710,27 @@ impl App {
             .collect();
         // Lookup for un-scanned members read on this thread; `moved` hands them to `found`.
         let mut scanned_handoff: HashMap<ModId, infer::Scanned> = HashMap::new();
-        let read: Vec<(Vec<String>, infer::Scanned)> = members
+        type Read = (Vec<String>, infer::Scanned, Vec<loadfolders::Miscased>);
+        let read: Vec<Read> = members
             .par_iter()
             .map(|&i| {
                 let Some(root) = library.get(i).map(|m| &m.path) else {
                     return Default::default();
                 };
-                let loaded = rimstack_core::rimworld::loadfolders::folders(
-                    root,
-                    &library.game_version,
-                    &|m| active.contains(m),
-                );
-                (conflicts::provided(&loaded), infer::scan_checking(&loaded))
+                let (loaded, miscased) =
+                    loadfolders::checked(root, &library.game_version, &|m| active.contains(m));
+                let scanned = infer::scan_checking(&loaded);
+                (conflicts::provided(&loaded), scanned, miscased)
             })
             .collect();
-        let (provided, scanned): (Vec<_>, Vec<_>) = read.into_iter().unzip();
+        let mut provided = Vec::with_capacity(read.len());
+        let mut scanned = Vec::with_capacity(read.len());
+        let mut miscased = HashMap::new();
+        for ((files, scan, wrong_case), &id) in read.into_iter().zip(&members) {
+            provided.push(files);
+            scanned.push(scan);
+            miscased.insert(id, wrong_case);
+        }
         let defines: Vec<_> = (scanned.iter()).map(|s| &s.defines).collect();
         let names: HashSet<String> = (library.ids())
             .filter_map(|(id, _)| library.get(id).map(|m| m.display_name().to_string()))
@@ -798,6 +805,7 @@ impl App {
             scanned,
             xml_found: members.iter().copied().zip(xml).collect(),
             assemblies: members.iter().copied().zip(assemblies).collect(),
+            miscased,
             removal,
             members,
         };
