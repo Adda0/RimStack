@@ -205,6 +205,12 @@ Item {
             entries.push({ text: Theme.say(swatch[0]) + (swatch[0] === chosen ? "  ✓" : ""), colour: Theme.swatch(swatch[0]), run: () => pick(swatch[0]) })
         return entries
     }
+    // The swatches for the selected mods, searchable so a colour is picked by typing its name.
+    function colourEntries(chosen) {
+        const entries = [{ title: Theme.say("Colour") }].concat(swatchEntries(chosen, name => Hub.mods.paint(selectedIds, name)).map(entry => Object.assign(entry, { pick: true })))
+        entries.push({ text: Theme.say("No colour"), icon: "x", off: !chosen, run: () => Hub.mods.paint(selectedIds, "") })
+        return entries
+    }
     function categoryMenu(item, x, y, category) {
         const chosen = Theme.chosenSwatches[category] || Theme.swatches[category][0]
         const entries = [{ title: Theme.categoryNames[category] }].concat(swatchEntries(chosen, name => Theme.paintCategory(category, name)))

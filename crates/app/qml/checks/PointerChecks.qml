@@ -262,6 +262,7 @@ Item {
             // A Text's contentWidth runs past its width when it does not fit; a term with a meaning is no Text.
             checks.check("every term of the Facts fits before its value", terms.length >= 4 && terms.every(term => (term.contentWidth !== undefined ? term.contentWidth : term.implicitWidth) <= term.width + 0.5))
             checks.check("the row menu holds the groups in one entry", checks.entry(menu, Theme.say("Group under a tag")) !== null && checks.entry(menu, Theme.say("A new group…")) === null)
+            checks.check("and the colours in one entry", checks.entry(menu, Theme.say("Colour")) !== null && checks.entry(menu, Theme.say("No colour")) === null)
             checks.check("a local copy's menu opens the page of the Workshop item it names, and offers no unsubscribing", !Mods.info.workshop && checks.entry(menu, Theme.say("Page in the browser")) !== null && checks.entry(menu, Theme.say("Unsubscribe…")) === null)
             const copy = checks.entry(menu, Theme.say("Copy name"))
             const selected = Mods.selectedId
@@ -289,6 +290,24 @@ Item {
             checks.check("and typing in it leaves only the tags that hold the text", picks().every(child => !child.visible) && checks.entry(menu, Theme.say("A new group…")).visible)
             menu.close()
             Hub.mods.clearTags(Mods.selectedId)
+            events.mouseClick(checks.activeList, 120, 4 + 13 + 26 * 3, Qt.RightButton, Qt.NoModifier, -1)
+            colourAsked.start()
+        }
+    }
+    Timer {
+        id: colourAsked
+        interval: 400
+        onTriggered: {
+            const menu = checks.screen.rowMenu
+            const colour = checks.entry(menu, Theme.say("Colour"))
+            events.mouseClick(colour, colour.width / 2, colour.height / 2, Qt.LeftButton, Qt.NoModifier, -1)
+            checks.check("the Colour entry opens the swatches in a menu of their own, after a search field", checks.screen.menuOpen && menu.search.visible && checks.entry(menu, Theme.say("No colour")) !== null)
+            const painted = () => Mods.active.at(Mods.active.rowOf(Mods.active.indexOf(Mods.selectedId))).colour
+            for (const c of Theme.say("Rose").slice(0, 3))
+                events.keyClickChar(c, Qt.NoModifier, -1)
+            events.keyClick(Qt.Key_Return, Qt.NoModifier, -1)
+            checks.check("typing a colour's name and Enter paint the mod with it", !checks.screen.menuOpen && painted() === "Rose")
+            Hub.mods.paint([Mods.selectedId], "")
             const many = []
             for (let i = 0; i < 80; i++)
                 many.push({ text: "check entry " + i, run: () => {} })
