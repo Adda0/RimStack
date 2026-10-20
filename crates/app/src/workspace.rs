@@ -52,6 +52,8 @@ pub struct Conflicts {
     pub xml_found: HashMap<library::ModId, rimstack_core::mods::xmlcheck::Found>,
     /// Assemblies the mod ships that clash with what the game will load.
     pub assemblies: HashMap<library::ModId, rimstack_core::mods::assemblies::Found>,
+    /// Folders LoadFolders.xml names in other letter case than on disk.
+    pub miscased: HashMap<library::ModId, Vec<rimstack_core::rimworld::loadfolders::Miscased>>,
     /// What removing mid-save would do, for the installed mods in the newest save.
     pub removal: HashMap<library::ModId, rimstack_core::mods::removal::Removal>,
 }
@@ -567,8 +569,9 @@ pub(crate) mod tests {
         let add = |folder: &str, id: &str| {
             let about = root.join(folder).join("About");
             fs::create_dir_all(&about).unwrap();
-            let xml =
-                format!("<ModMetaData><packageId>{id}</packageId><name>{id}</name></ModMetaData>");
+            let xml = format!(
+                "<ModMetaData><packageId>{id}</packageId><name>{id}</name><supportedVersions><li>1.6</li></supportedVersions></ModMetaData>"
+            );
             fs::write(about.join("About.xml"), xml).unwrap();
         };
         add("game/Data/Core", "Ludeon.RimWorld");

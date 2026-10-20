@@ -78,30 +78,67 @@ pub fn declared(xml: &str, game_version: &str) -> Option<Vec<Entry>> {
     Some(entries)
 }
 
+/// A folder LoadFolders.xml names that is on disk only in other letter case: where names are
+/// told apart by case, as on Linux, the game loads nothing from it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Miscased {
+    pub named: String,
+    pub on_disk: String,
+}
+
 /// `is_active` takes folded package ids.
 pub fn folders(root: &Path, game_version: &str, is_active: &dyn Fn(&str) -> bool) -> Vec<PathBuf> {
+    checked(root, game_version, is_active).0
+}
+
+/// The folders the game loads, and the ones LoadFolders.xml names in the wrong letter case.
+pub fn checked(
+    root: &Path,
+    game_version: &str,
+    is_active: &dyn Fn(&str) -> bool,
+) -> (Vec<PathBuf>, Vec<Miscased>) {
     let listed = std::fs::read_to_string(root.join("LoadFolders.xml"))
         .ok()
         .and_then(|xml| declared(&xml, game_version));
-    let mut wanted: Vec<PathBuf> = match listed {
-        Some(entries) => entries
-            .iter()
-            .filter(|e| e.applies(is_active))
-            .map(|e| root.join(&e.folder))
-            .collect(),
-        None => Vec::new(),
-    };
-    if wanted.is_empty() {
-        wanted = vec![root.to_path_buf(), root.join("Common")];
-        wanted.extend(version_folder(root, game_version));
-    }
     let mut found: Vec<PathBuf> = Vec::new();
-    for folder in wanted {
-        if folder.is_dir() && !found.contains(&folder) {
-            found.push(folder);
+    let mut miscased = Vec::new();
+    let mut any_applies = false;
+    for entry in listed.iter().flatten().filter(|e| e.applies(is_active)) {
+        any_applies = true;
+        let folder = root.join(&entry.folder);
+        if folder.is_dir() {
+            if !found.contains(&folder) {
+                found.push(folder);
+            }
+        } else if let Some(on_disk) = in_any_case(root, &entry.folder) {
+            miscased.push(Miscased {
+                named: entry.folder.clone(),
+                on_disk,
+            });
         }
     }
-    found
+    if !any_applies {
+        let mut defaults = vec![root.to_path_buf(), root.join("Common")];
+        defaults.extend(version_folder(root, game_version));
+        found = defaults.into_iter().filter(|f| f.is_dir()).collect();
+    }
+    (found, miscased)
+}
+
+/// `folder` as it is written on disk, when it is there in some letter case.
+fn in_any_case(root: &Path, folder: &str) -> Option<String> {
+    let mut at = root.to_path_buf();
+    let mut written = Vec::new();
+    for part in folder.split('/').filter(|p| !p.is_empty() && *p != ".") {
+        let entries = std::fs::read_dir(&at).ok()?.flatten();
+        let name = entries
+            .filter(|e| e.path().is_dir())
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .find(|name| name.to_lowercase() == part.to_lowercase())?;
+        at.push(&name);
+        written.push(name);
+    }
+    Some(written.join("/"))
 }
 
 fn version_folder(root: &Path, game_version: &str) -> Option<PathBuf> {
@@ -244,5 +281,33 @@ mod tests {
         let root = fs::canonicalize(&root).unwrap();
         let inside = |folder: &PathBuf| fs::canonicalize(folder).unwrap().starts_with(&root);
         assert!(folders(&root, "1.6", NONE).iter().all(inside));
+    }
+
+    #[test]
+    fn a_folder_named_in_other_letter_case_is_told_where_case_counts() {
+        let xml = r#"<loadFolders><v1.6><li>/</li><li>common</li><li>1.6/ModCompat/ProjectRimfactory</li><li IfModActive="off.mod">compat</li><li>gone</li></v1.6></loadFolders>"#;
+        let dirs = ["Common", "1.6/ModCompat/ProjectRimFactory", "Compat"];
+        let (_t, root) = a_mod(&dirs, Some(xml));
+        let (found, miscased) = checked(&root, "1.6", NONE);
+        let tells_case = !root.join("common").is_dir();
+        if tells_case {
+            assert_eq!(names(&root, &found), [""]);
+            assert_eq!(
+                miscased,
+                [
+                    Miscased {
+                        named: "common".to_string(),
+                        on_disk: "Common".to_string(),
+                    },
+                    Miscased {
+                        named: "1.6/ModCompat/ProjectRimfactory".to_string(),
+                        on_disk: "1.6/ModCompat/ProjectRimFactory".to_string(),
+                    },
+                ]
+            );
+        } else {
+            // Where case does not count the game finds them, and so nothing is told.
+            assert!(miscased.is_empty());
+        }
     }
 }
