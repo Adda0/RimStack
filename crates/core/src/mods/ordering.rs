@@ -50,7 +50,72 @@ pub fn place(rules: &[Rule], at: usize, count: usize) -> usize {
     sort::place(at, count.saturating_sub(1), &must_follow, &must_precede)
 }
 
+/// Sorting the list it gives again moves nothing.
 pub fn sorted_by_category(
+    library: &Library,
+    mods: Vec<Mod>,
+    sources: Sources,
+) -> (Vec<Mod>, sort::Sorted) {
+    // A pass can leave groups its mods' categories and tags don't say (a mod pulled up into
+    // another's group) and pinned mods back in their places; the next Sort would read the list
+    // anew and move mods again. So the result is sorted again the way that Sort would, until a
+    // pass moves nothing, an order comes back, or PASSES ran.
+    const PASSES: usize = 8;
+    let (mut mods, mut sorted) = sorted_once(library, mods, sources);
+    let mut seen = vec![sorted.order.clone()];
+    for _ in 1..PASSES {
+        let count = mods.len();
+        let mut now_at = vec![0; count];
+        for (position, &old) in sorted.order.iter().enumerate() {
+            now_at[old] = position;
+        }
+        let from_files: Vec<Inferred> = (sources.from_files.iter())
+            .filter(|d| d.first < count && d.then < count)
+            .map(|d| Inferred {
+                first: now_at[d.first],
+                then: now_at[d.then],
+                ..d.clone()
+            })
+            .collect();
+        let in_order: Vec<Mod> = sorted.order.iter().map(|&m| mods[m].clone()).collect();
+        let sources = Sources {
+            from_files: &from_files,
+            ..sources
+        };
+        let (again_mods, again) = sorted_once(library, in_order, sources);
+        let held = again.order.iter().enumerate().all(|(at, &m)| at == m);
+        for (at, m) in again_mods.into_iter().enumerate() {
+            mods[sorted.order[at]] = m;
+        }
+        let mut groups = vec![0; count];
+        for (at, &group) in again.groups.iter().enumerate() {
+            groups[sorted.order[at]] = group;
+        }
+        let back = |found: &[Rule]| -> Vec<Rule> {
+            (found.iter())
+                .map(|r| Rule {
+                    first: sorted.order[r.first],
+                    then: sorted.order[r.then],
+                    kind: r.kind,
+                })
+                .collect()
+        };
+        let (kept, dropped) = (back(&again.kept), back(&again.dropped));
+        sorted = sort::Sorted {
+            order: again.order.iter().map(|&at| sorted.order[at]).collect(),
+            kept,
+            dropped,
+            groups,
+        };
+        if held || seen.contains(&sorted.order) {
+            break;
+        }
+        seen.push(sorted.order.clone());
+    }
+    (mods, sorted)
+}
+
+fn sorted_once(
     library: &Library,
     mut mods: Vec<Mod>,
     sources: Sources,
@@ -253,5 +318,85 @@ mod tests {
         mods[0].pinned = true;
         let (mods, sorted) = sorted_by_category(&library, mods, sources);
         assert_eq!(names(&mods, &sorted.order), ["a", "c", "b", "d"]);
+    }
+
+    fn many_mods(count: usize) -> (tempfile::TempDir, Library) {
+        let tmp = tempfile::tempdir().unwrap();
+        let root = tmp.path().join("Mods");
+        let ids: Vec<String> = (0..count).map(|n| format!("t.m{n}")).collect();
+        for id in &ids {
+            fs::create_dir_all(root.join(id).join("About")).unwrap();
+            let about =
+                format!("<ModMetaData><packageId>{id}</packageId><name>{id}</name></ModMetaData>");
+            fs::write(root.join(id).join("About/About.xml"), about).unwrap();
+        }
+        let roots = [ModRoot {
+            path: root,
+            source: Source::Local,
+        }];
+        (tmp, build(scan(&roots), &ids, "1.6"))
+    }
+
+    struct Random(u64);
+    impl Random {
+        fn below(&mut self, n: usize) -> usize {
+            self.0 = self
+                .0
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
+            ((self.0 >> 33) as usize) % n
+        }
+    }
+
+    /// Sort as the app does it twice: the list one Sort gave, with the categories it wrote into
+    /// the mods, their tags, pinned mods and the rules read again for the new places, is sorted.
+    #[test]
+    fn sorting_the_list_a_sort_gave_moves_nothing() {
+        let count = 24;
+        let (_tmp, library) = many_mods(count);
+        let none = UserRules::default();
+        let mut random = Random(29);
+        for round in 0..400 {
+            let mut mods = library.active.clone();
+            for m in &mut mods {
+                m.category = Category::ALL[random.below(Category::ALL.len())];
+                m.sub = ["", "", "x", "y", "z"][random.below(5)].into();
+                m.pinned = random.below(10) == 0;
+            }
+            let how_many = random.below(40);
+            let pairs: Vec<(usize, usize, bool)> = (0..how_many)
+                .map(|_| {
+                    (
+                        random.below(count),
+                        random.below(count),
+                        random.below(2) == 0,
+                    )
+                })
+                .collect();
+            let click = |mods: Vec<Mod>| -> (Vec<Mod>, usize) {
+                let at = |n: usize| {
+                    let id = library.active[n].installed;
+                    mods.iter().position(|m| m.installed == id).unwrap()
+                };
+                let from_files: Vec<Inferred> = (pairs.iter())
+                    .map(|&(first, then, code)| inferred(at(first), at(then), code))
+                    .collect();
+                let sources = Sources {
+                    yours: &none,
+                    community: None,
+                    from_files: &from_files,
+                    hints: true,
+                };
+                let (mods, sorted) = sorted_by_category(&library, mods, sources);
+                let moves = sorted.moved().iter().filter(|m| **m).count();
+                (
+                    sorted.order.iter().map(|&i| mods[i].clone()).collect(),
+                    moves,
+                )
+            };
+            let (once, _) = click(mods);
+            let (_, moves) = click(once);
+            assert_eq!(moves, 0, "round {round}");
+        }
     }
 }
