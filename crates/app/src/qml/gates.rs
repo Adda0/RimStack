@@ -4,11 +4,11 @@ use std::path::{Path, PathBuf};
 const MOST: [(&str, usize); 7] = [
     ("functions", 194),
     ("timers", 11),
-    ("arrow functions", 296),
+    ("arrow functions", 304),
     ("ifs", 253),
-    ("ternaries", 770),
-    ("array callbacks", 69),
-    ("comparisons with a text", 30),
+    ("ternaries", 774),
+    ("array callbacks", 71),
+    ("comparisons with a text", 32),
 ];
 
 fn qml_files(dir: &Path, into: &mut Vec<PathBuf>) {

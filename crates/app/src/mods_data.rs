@@ -45,6 +45,8 @@ pub mod qobject {
         #[qproperty(i32, library_version, cxx_name = "libraryVersion")]
         #[qproperty(QVariant, overview)]
         #[qproperty(QVariant, summary)]
+        /// The lists' space on disk, for the summary card.
+        #[qproperty(QVariant, usage)]
         /// -1 for none.
         #[qproperty(i32, selected)]
         #[qproperty(QVariant, details)]
@@ -450,6 +452,7 @@ pub struct ModsDataRust {
     library_version: i32,
     overview: QVariant,
     summary: QVariant,
+    usage: QVariant,
     selected: i32,
     details: QVariant,
     textures: QVariant,
@@ -506,6 +509,7 @@ impl Default for ModsDataRust {
             library_version: 0,
             overview: QVariant::default(),
             summary: QVariant::default(),
+            usage: QVariant::default(),
             selected: -1,
             details: QVariant::default(),
             textures: QVariant::default(),
@@ -828,6 +832,7 @@ impl qobject::ModsData {
         let problem = crate::words::said(&order.problem);
         let status = order.status.clone();
         let overview = to_qml(&order.overview(&app));
+        let usage = to_qml(&order.usage(&app));
         let fresh = to_qml(&order.fresh(&app, Side::Inactive));
         self.as_mut().set_errors(errors as i32);
         self.as_mut().set_warnings(warnings as i32);
@@ -843,6 +848,7 @@ impl qobject::ModsData {
         self.as_mut()
             .set_status_inactive(crate::words::said(&status[1]));
         self.as_mut().set_overview(overview);
+        self.as_mut().set_usage(usage);
         self.as_mut().set_fresh(fresh);
         self.describe();
     }

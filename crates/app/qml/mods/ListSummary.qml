@@ -9,6 +9,7 @@ Column {
     width: parent.width
     spacing: Theme.gapCard
     readonly property var facts: Hub.mods.summary || ({})
+    readonly property var usage: Hub.mods.usage || ({})
     readonly property int changed: (Hub.downloads.since || {}).count || 0
     readonly property var errors: Mods.troubles.filter(trouble => trouble.error)
     readonly property var slowest: Mods.overview.slowest || []
@@ -137,6 +138,39 @@ Column {
                 Text { anchors.right: parent.right; anchors.rightMargin: Theme.gapSmall; anchors.verticalCenter: parent.verticalCenter; color: Theme.ink2; font.pixelSize: Theme.small; font.features: { "tnum": 1 }; text: slow.modelData.took }
                 HoverHandler { cursorShape: Qt.PointingHandCursor }
                 TapHandler { onTapped: Mods.showMod(slow.modelData.modId) }
+            }
+        }
+    }
+
+    Card {
+        visible: !Theme.demo && usage.active !== undefined && usage.active + usage.inactive > 0
+        id: diskCard
+        title: Theme.say("On disk")
+        key: "overview-disk"
+        startsFolded: true
+        note: folded ? [usage.active || 0 ? Theme.fill("{} active", usage.activeText) : "",
+            usage.inactive || 0 ? Theme.fill("{} inactive", usage.inactiveText) : "",
+            usage.unplayed || 0 ? Theme.fill("{} not played", usage.unplayedText) : "",
+        ].filter(part => part !== "").join(", ") : ""
+        Repeater {
+            model: [
+                [Theme.say("Active"), usage.activeText || "", () => Mods.columns.showBy("size")],
+                [Theme.say("Inactive"), usage.inactiveText || "", () => { Mods.filterBy("is:inactive"); Mods.prefs.inactiveOrder = "size" }],
+                [Theme.say("Workshop"), usage.workshopText || "", () => { Mods.filterBy("is:workshop"); Mods.prefs.inactiveOrder = "size" }],
+                [Theme.say("local"), usage.localText || "", () => { Mods.filterBy("is:local"); Mods.prefs.inactiveOrder = "size" }],
+                [Theme.say("Git"), usage.gitText || "", () => { Mods.filterBy("is:git"); Mods.prefs.inactiveOrder = "size" }],
+                [Theme.say("Not played"), usage.unplayedText || "", () => { Mods.filterBy("is:inactive is:unplayed"); Mods.prefs.inactiveOrder = "size" }],
+            ].filter(pair => pair[1] !== "")
+            Item {
+                id: part
+                required property var modelData
+                width: summary.width
+                height: Theme.sized(22)
+                Text { id: what; width: Theme.sized(126); color: Theme.ink2; font.pixelSize: Theme.body; text: part.modelData[0] }
+                Text { x: what.width; width: parent.width - what.width; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; font.features: { "tnum": 1 }; text: part.modelData[1] }
+                HoverHandler { cursorShape: Qt.PointingHandCursor }
+                TapHandler { onTapped: part.modelData[2]() }
+                Tip { text: Theme.say("Show these, biggest first") }
             }
         }
     }

@@ -22,6 +22,25 @@ pub use offers::{Counts, FilterOffer};
 pub use details::{Details, Files, Overview};
 pub use rows::RowView;
 
+/// The lists' space on disk, for the summary's On disk card: bytes per side,
+/// source and unplayed set, with the same sums as text.
+#[derive(Serialize, Default, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct UsageView {
+    pub active: u64,
+    pub inactive: u64,
+    pub workshop: u64,
+    pub local: u64,
+    pub git: u64,
+    pub unplayed: u64,
+    pub active_text: Sentence,
+    pub inactive_text: Sentence,
+    pub workshop_text: Sentence,
+    pub local_text: Sentence,
+    pub git_text: Sentence,
+    pub unplayed_text: Sentence,
+}
+
 pub struct Preview {
     before: Vec<Mod>,
     grouped_before: bool,
@@ -136,6 +155,7 @@ pub fn column_choices(kept: &str, load_times: bool) -> Vec<ColumnChoice> {
         choice("author", say!("Author")),
         choice("version", say!("Version")),
         choice("game", say!("Game")),
+        choice("size", say!("Size")),
         choice("load", load),
     ]
 }
@@ -463,7 +483,48 @@ impl LoadOrder {
         self.inactive.set_filter_on(Side::Inactive, text);
     }
 
-    /// "name", "author", "version", "game" or "load"; anything else is load order.
+    /// The lists' space on disk, for the summary's On disk card.
+    pub fn usage(&self, app: &App) -> UsageView {
+        let played = app.played();
+        let key =
+            |m: &rimstack_core::mods::list::Mod| rimstack_core::rimworld::id::split_steam(&m.id).0;
+        let flags: Vec<u16> = self
+            .inactive
+            .mods()
+            .iter()
+            .map(|m| {
+                if played.contains(&key(m)) {
+                    0
+                } else {
+                    rimstack_core::mods::list::flag::UNPLAYED
+                }
+            })
+            .collect();
+        let said =
+            rimstack_core::mods::list::usage(self.active.mods(), self.inactive.mods(), &flags);
+        let text = |bytes: u64| {
+            if bytes == 0 {
+                return Sentence::default();
+            }
+            rimstack_core::base::sizes::together(bytes as f64 / 1_048_576.0, 0.0).0
+        };
+        UsageView {
+            active: said.active,
+            inactive: said.inactive,
+            workshop: said.workshop,
+            local: said.local,
+            git: said.git,
+            unplayed: said.unplayed_inactive,
+            active_text: text(said.active),
+            inactive_text: text(said.inactive),
+            workshop_text: text(said.workshop),
+            local_text: text(said.local),
+            git_text: text(said.git),
+            unplayed_text: text(said.unplayed_inactive),
+        }
+    }
+
+    /// "name", "author", "version", "game", "load" or "size"; anything else is load order.
     pub fn show_by(&mut self, column: &str, descending: bool) {
         let key = match column {
             "name" => Some(SortKey::Name),
@@ -471,6 +532,7 @@ impl LoadOrder {
             "version" => Some(SortKey::Version),
             "game" => Some(SortKey::Game),
             "load" => Some(SortKey::Load),
+            "size" => Some(SortKey::Size),
             _ => None,
         };
         self.active.show_by(key.map(|key| (key, descending)));

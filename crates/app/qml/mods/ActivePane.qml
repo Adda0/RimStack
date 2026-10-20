@@ -305,7 +305,7 @@ Item {
                         required property int index
                         column: modelData
                         Layout.preferredWidth: view.columnWidth(modelData)
-                        horizontalAlignment: modelData === "load" ? Text.AlignRight : Text.AlignLeft
+                        horizontalAlignment: modelData === "load" || modelData === "size" ? Text.AlignRight : Text.AlignLeft
                         text: Theme.say(Mods.columns.labels[modelData]) + (Mods.columns.shownBy === modelData ? (Mods.columns.descending ? " ▾" : " ▴") : "")
                         Item {
                             id: edge
