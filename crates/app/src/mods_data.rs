@@ -287,7 +287,7 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "nameOf"]
         fn name_of(self: &ModsData, mod_id: i32) -> QString;
-        /// -1 past the end.
+        /// Clamped to the ends; -1 only for a list without mods.
         #[qinvokable]
         #[cxx_name = "stepFrom"]
         fn step_from(self: &ModsData, active: bool, mod_id: i32, by: i32) -> i32;

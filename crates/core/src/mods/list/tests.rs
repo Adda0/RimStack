@@ -946,6 +946,18 @@ fn a_step_from_a_mod_skips_headings_and_from_no_mod_starts_at_an_end() {
 }
 
 #[test]
+fn a_long_step_stops_at_the_last_mod_short_of_an_end() {
+    let list = installed_sample();
+    assert_eq!(list.step_from(Some(id(100)), 5), Some(6));
+    assert_eq!(list.step_from(Some(id(101)), 100), Some(9));
+    assert_eq!(list.step_from(Some(id(105)), -100), Some(1));
+    assert_eq!(list.step_from(Some(id(105)), 1), Some(9));
+    assert_eq!(list.step_from(Some(id(100)), -1), Some(1));
+    assert_eq!(list.step_from(None, 3), Some(3));
+    assert_eq!(GroupedList::new(Vec::new()).step_from(None, 1), None);
+}
+
+#[test]
 fn the_mods_through_a_stretch_leave_out_the_one_it_starts_from() {
     let mut list = installed_sample();
     assert_eq!(
