@@ -639,7 +639,7 @@ impl App {
             .iter()
             .map(|(folded, id)| (id.as_str(), folded.as_str()))
             .collect();
-        for found in fetch_details(&workshop_ids)? {
+        for found in fetch_details(&workshop_ids)?.items {
             let Some(folded) = by_id.get(found.id.as_str()) else {
                 continue;
             };

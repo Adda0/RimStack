@@ -349,6 +349,8 @@ pub mod flag {
     pub const UNPLAYED: u16 = 4096;
     /// Ships a dll an active mod also ships differently, or bundles 0Harmony.
     pub const ASSEMBLIES: u16 = 8192;
+    /// Steam answered the item is gone: removed from the Workshop or made private.
+    pub const REMOVED: u16 = 16384;
 }
 
 /// On-disk space as the lists' own byte numbers hold it.
@@ -433,6 +435,7 @@ impl Filter {
                 Some(("is", "unused")) => Test::Flag(flag::UNUSED),
                 Some(("is", "unplayed")) => Test::Flag(flag::UNPLAYED),
                 Some(("is", "assemblies")) => Test::Flag(flag::ASSEMBLIES),
+                Some(("is", "removed")) => Test::Flag(flag::REMOVED),
                 Some(("size", bound)) => {
                     size_test(bound).unwrap_or_else(|| Test::Word(term.to_string()))
                 }

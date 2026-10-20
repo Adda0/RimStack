@@ -159,7 +159,12 @@ impl App {
             Ok(now) => {
                 kept.checked = Some(super::now_secs());
                 kept.asked = Some(ids.len() as u64);
-                kept.now = now.iter().map(|d| (d.id.clone(), d.updated)).collect();
+                kept.now = now
+                    .items
+                    .iter()
+                    .map(|d| (d.id.clone(), d.updated))
+                    .collect();
+                kept.gone = now.gone;
                 None
             }
             Err(problem) => Some(problem.sentence().clone()),
@@ -211,6 +216,7 @@ impl App {
                     .map(|row| row.id.clone())
                     .collect(),
             );
+            *self.removed().writing() = Some(kept.gone.iter().cloned().collect());
         }
         Updates {
             checked: kept.checked,
@@ -296,7 +302,7 @@ impl App {
             });
         }
         let ids = workshop::expand_collections(&ids)?;
-        let answered = workshop::fetch_details(&ids)?;
+        let answered = workshop::fetch_details(&ids)?.items;
         let loaded = self.library();
         let (library, _) = loaded.as_ref().as_ref().map_err(Clone::clone)?;
         let mods = library.workshop_mods();
