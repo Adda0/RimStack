@@ -27,21 +27,14 @@ const MOST: usize = 12;
 
 fn terms(counts: Counts) -> Vec<(&'static str, Sentence)> {
     vec![
-        (
-            "is:error",
-            say_n!(counts.errors, "{} mod", "{} mods", counts.errors),
-        ),
-        (
-            "is:warning",
-            say_n!(counts.warnings, "{} mod", "{} mods", counts.warnings),
-        ),
+        ("is:error", say_n!(counts.errors, "{} mod", "{} mods")),
+        ("is:warning", say_n!(counts.warnings, "{} mod", "{} mods")),
         (
             "is:conflict",
             say_n!(
                 counts.conflicts,
                 "{} mod sharing textures",
-                "{} mods sharing textures",
-                counts.conflicts
+                "{} mods sharing textures"
             ),
         ),
         (
@@ -49,8 +42,7 @@ fn terms(counts: Counts) -> Vec<(&'static str, Sentence)> {
             say_n!(
                 counts.defclashes,
                 "{} mod defining a def an active one also defines",
-                "{} mods defining a def an active one also defines",
-                counts.defclashes
+                "{} mods defining a def an active one also defines"
             ),
         ),
         ("is:changed", say!("moved or activated since the last save")),
@@ -165,7 +157,7 @@ impl LoadOrder {
             .take(MOST)
             .map(|(term, uses)| FilterOffer {
                 term: format!("{bang}{term}"),
-                note: say_n!(uses, "{} mod", "{} mods", uses),
+                note: say_n!(uses, "{} mod", "{} mods"),
             })
             .collect()
     }
