@@ -28,6 +28,9 @@ pub mod qobject {
         #[qproperty(bool, community_current, cxx_name = "communityCurrent")]
         #[qproperty(QString, community_problem, cxx_name = "communityProblem")]
         #[qproperty(QVariant, release)]
+        /// What GitHub opened: `{ url, rules }`, or `{ problem }`.
+        #[qproperty(QVariant, published)]
+        #[qproperty(bool, publish_busy, cxx_name = "publishBusy")]
         #[qproperty(bool, release_busy, cxx_name = "releaseBusy")]
         #[qproperty(bool, names_busy, cxx_name = "namesBusy")]
         #[qproperty(QString, names_said, cxx_name = "namesSaid")]
@@ -116,6 +119,11 @@ pub mod qobject {
         #[cxx_name = "checkRelease"]
         fn check_release(self: Pin<&mut SettingsData>);
 
+        /// Publishes the user's own rules as a pull request, off the window's thread.
+        #[qinvokable]
+        #[cxx_name = "publishRules"]
+        fn publish_rules(self: Pin<&mut SettingsData>);
+
         #[qinvokable]
         #[cxx_name = "importRimSort"]
         fn import_rimsort(self: &SettingsData) -> QString;
@@ -180,6 +188,8 @@ pub struct SettingsDataRust {
     community_current: bool,
     community_problem: QString,
     release: QVariant,
+    published: QVariant,
+    publish_busy: bool,
     release_busy: bool,
     names_busy: bool,
     names_said: QString,
@@ -223,6 +233,7 @@ impl qobject::SettingsData {
             | Changes::FOLDERS
             | Changes::LIBRARY
             | Changes::LOGS
+            | Changes::RULES
             | Changes::MOD_SETTINGS;
         if changes.contains(settings) {
             self.as_mut().set_report(to_qml(&app.settings_report()));
@@ -413,6 +424,25 @@ impl qobject::SettingsData {
             |mut me, found| {
                 me.as_mut().set_release(to_qml(&found));
                 me.as_mut().set_release_busy(false);
+            },
+        );
+    }
+
+    fn publish_rules(mut self: Pin<&mut Self>) {
+        if self.publish_busy {
+            return;
+        }
+        self.as_mut().set_publish_busy(true);
+        let app = self.app();
+        crate::jobs::run(
+            "rules publish",
+            self.qt_thread(),
+            move || app.publish_rules(),
+            |mut me, opened| {
+                me.as_mut().set_published(QVariant::default());
+                let told: Answer<rimstack_core::mods::publish::Published> = Answer::from(opened);
+                me.as_mut().set_published(to_qml(&told));
+                me.as_mut().set_publish_busy(false);
             },
         );
     }

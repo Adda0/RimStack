@@ -63,6 +63,15 @@ pub struct SettingsReport {
     pub launch_arguments: Option<String>,
     /// The user's own Steam WebAPI key; `None` without one.
     pub steam_key: Option<String>,
+    /// The user's own GitHub login and token; `None` without either.
+    pub github_user: Option<String>,
+    pub github_token: Option<String>,
+    /// The repository "Publish my rules" targets; `None` for the community's.
+    pub rules_repo: Option<String>,
+    pub rules_repo_default: String,
+    pub own_rules: usize,
+    /// Why "Publish my rules" is off now: no token, no repository address, or no rules.
+    pub publish_why_not: Option<rimstack_core::base::sentence::Sentence>,
     /// Megabytes of kept mod copies allowed, as the user set it; `None` for the default.
     pub kept_mods_megabytes: Option<String>,
     pub launch_directly: bool,
