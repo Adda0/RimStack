@@ -200,6 +200,12 @@ Item {
         Mods.prefs.inactiveOrder = "name"
         check("the inactive mods are in name order", byName() && Mods.inactive.rows() === Mods.inactive.count)
         check("lists are filled and clean", Mods.active.count > 4 && Mods.inactive.count > 0 && !Hub.mods.dirty && !Hub.mods.canUndo)
+        const bar = checks.view.bar
+        const overflows = checks.view.contentHeight > checks.view.height
+        check("a list longer than its pane shows its scrollbar unscrolled, wide, and beside the rows", overflows && bar.policy === 2 && bar.contentItem.state === "shown" && bar.width >= Theme.sized(10) && bar.room === bar.width && checks.view.itemAtIndex(0).width === checks.view.width - bar.width)
+        Theme.stored.idleScrollbars = true
+        check("chosen to hide when idle, it lies over the rows and is hidden", bar.policy === 0 && bar.room === 0 && bar.contentItem.state === "" && checks.view.itemAtIndex(0).width === checks.view.width)
+        Theme.stored.idleScrollbars = false
 
         // Sort waits for the mods' files to be read; they are not again for a moment
         // after a mod comes or goes.

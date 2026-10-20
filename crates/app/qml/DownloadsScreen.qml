@@ -72,7 +72,7 @@ Item {
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         Wheel {}
-        ScrollBar.vertical: Scroller {}
+        ScrollBar.vertical: ListBar {}
 
         Column {
             id: page
