@@ -358,6 +358,10 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "markReady"]
         fn mark_ready(self: &ModsData);
+        /// The rows say the size their picture box is, in pixels; a change makes copies again.
+        #[qinvokable]
+        #[cxx_name = "pictureSized"]
+        fn picture_sized(self: Pin<&mut ModsData>, wide: i32, high: i32);
     }
 }
 
@@ -387,6 +391,9 @@ pub struct ModsDataRust {
     loading: crate::jobs::Lane,
     counting: crate::jobs::Lane,
     texturing: crate::jobs::Lane,
+    picturing: crate::jobs::Lane,
+    /// The size the rows show the copies at; (0, 0) until the first is made.
+    picture_size: (u32, u32),
     textures_of: i32,
     dirty: bool,
     unsaved: QString,
@@ -441,6 +448,8 @@ impl Default for ModsDataRust {
             loading: crate::jobs::Lane::default(),
             counting: crate::jobs::Lane::default(),
             texturing: crate::jobs::Lane::default(),
+            picturing: crate::jobs::Lane::default(),
+            picture_size: (0, 0),
             textures_of: -1,
             dirty: false,
             unsaved: QString::default(),
@@ -622,7 +631,8 @@ impl qobject::ModsData {
                 }
                 me.as_mut().show_orders();
                 me.as_mut().show();
-                me.read_files();
+                me.as_mut().read_files();
+                me.as_mut().make_pictures();
                 if let Some(started) = crate::STARTED.get() {
                     rimstack_core::note!("mods_shown_ms={}", started.elapsed().as_millis());
                 }
@@ -701,6 +711,41 @@ impl qobject::ModsData {
             self.as_mut().read_files();
         }
         self.show();
+    }
+
+    /// Known after the first row is made; copies wait for the size, which never wavers
+    /// between rows while the box does.
+    fn picture_sized(mut self: Pin<&mut Self>, wide: i32, high: i32) {
+        let size = (wide.max(0) as u32, high.max(0) as u32);
+        if size != self.rust().picture_size && size.0 > 0 && size.1 > 0 {
+            self.as_mut().rust_mut().get_mut().picture_size = size;
+            self.as_mut().make_pictures();
+        }
+    }
+
+    /// Fills the pack with what it is missing, off the window's thread, then shows the rows
+    /// again so they take their copies: until then, each is read the way it always was.
+    fn make_pictures(self: Pin<&mut Self>) {
+        if self.demo {
+            return;
+        }
+        let (app, (wide, high)) = (self.app(), self.rust().picture_size);
+        if (wide, high) == (0, 0) {
+            return;
+        }
+        self.picturing.run(
+            "preview copies",
+            self.qt_thread(),
+            move |_| {
+                let wanted = crate::workspace::preview_pack::wanted(&app);
+                crate::workspace::preview_pack::renew(&app, &wanted, wide, high)
+            },
+            |mut me, changed| {
+                if changed.is_some() {
+                    me.as_mut().show();
+                }
+            },
+        );
     }
 
     fn show(mut self: Pin<&mut Self>) {

@@ -283,6 +283,7 @@ mod_rows.at: object
   number: number
   outdated: bool
   picture: text
+  preview: text
   source: number
   tags: text
   trouble: number

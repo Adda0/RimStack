@@ -49,6 +49,8 @@ pub struct RowView {
     pub colour: String,
     pub local: bool,
     pub picture: String,
+    /// The `image://preview/` URL of the pack's copy; empty while there is none.
+    pub preview: String,
     pub load_time: String,
     /// Against the slowest mod, from 0 to 1.
     pub load_part: f64,
@@ -90,6 +92,7 @@ impl RowView {
             colour: String::new(),
             local: false,
             picture: String::new(),
+            preview: String::new(),
             load_time: String::new(),
             load_part: 0.0,
             version_ignored: false,
@@ -130,7 +133,7 @@ fn measure(by: Arrange, m: &Mod) -> Sentence {
     }
 }
 
-fn source_of(library: Option<&Library>, m: &Mod) -> (i32, String, bool) {
+fn source_of(library: Option<&Library>, m: &Mod) -> (i32, String, String, bool) {
     let installed = library.zip(m.installed).and_then(|(l, i)| l.get(i));
     let source = installed.map_or(0, |i| match i.source {
         Source::Official => 3,
@@ -140,7 +143,8 @@ fn source_of(library: Option<&Library>, m: &Mod) -> (i32, String, bool) {
     });
     let picture = installed.and_then(|i| i.preview.as_ref());
     let picture = picture.map_or(String::new(), |p| p.to_string_lossy().into_owned());
-    (source, picture, installed.is_some())
+    let preview = crate::previews::url_of(&picture);
+    (source, picture, preview, installed.is_some())
 }
 
 impl LoadOrder {
@@ -223,7 +227,7 @@ impl LoadOrder {
                 .unwrap_or_default(),
             Side::Inactive => &[],
         };
-        let (source, picture, _) = source_of(library, m);
+        let (source, picture, showed, _) = source_of(library, m);
         let took = m.load_micros.filter(|micros| *micros >= 1000);
         let load_time = took
             .map(|micros| rimstack_core::rimworld::startup::seconds(f64::from(micros) / 1000.0));
@@ -276,6 +280,7 @@ impl LoadOrder {
             colour: m.colour.clone(),
             local: m.local,
             picture,
+            preview: showed,
             load_time: load_time.unwrap_or_default(),
             load_part,
             version_ignored: preview && self.version_ignored.get(index).copied().unwrap_or(false),
