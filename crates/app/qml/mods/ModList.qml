@@ -128,6 +128,13 @@ ListView {
             if (model === list.model)
                 list.forceActiveFocus()
         }
+        function onRowWanted(run) {
+            const row = Mods.selectedActive === list.model.active && list.visible ? list.model.rowOf(list.model.indexOf(Mods.selectedId)) : -1
+            Mods.reveal(list.model, row, false)
+            const shown = list.itemAtIndex(row)
+            if (shown)
+                run(shown)
+        }
     }
 
     Timer {

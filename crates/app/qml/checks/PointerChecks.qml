@@ -449,6 +449,14 @@ Item {
         onTriggered: {
             const moved = checks.inactiveList.contentY - before
             checks.check("one notch of the wheel scrolls the system's lines, not more", Math.abs(moved - Application.styleHints.wheelScrollLines * 40) < 2)
+            Mods.select(Mods.nthMod(Mods.active, Math.min(20, Mods.active.count - 1)), true)
+            Mods.focusList(Mods.active)
+            checks.activeList.positionViewAtBeginning()
+            events.keyClick(Qt.Key_Menu, Qt.NoModifier, -1)
+            const menu = checks.screen.rowMenu
+            checks.check("the Menu key opens the selected mod's menu", checks.screen.menuOpen && checks.entry(menu, Theme.say("Copy name")) !== null)
+            events.keyClick(Qt.Key_Escape, Qt.NoModifier, -1)
+            Mods.select(-1, false)
             comparing.start()
         }
     }
