@@ -100,6 +100,7 @@ fn main() {
                 "qml/SettingsScreen.qml",
                 "qml/ListsMenu.qml",
                 "qml/ListsCompareView.qml",
+                "qml/ListsHistory.qml",
                 "qml/checks/ListsChecks.qml",
                 "qml/FirstRun.qml",
                 "qml/Commands.qml",

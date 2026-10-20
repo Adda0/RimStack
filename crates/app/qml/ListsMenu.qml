@@ -142,6 +142,21 @@ Popup {
 
         ListsCompareView { id: compareView }
 
+        Btn {
+            icon: "history"
+            text: Theme.say("History…")
+            tip: Theme.say("Every order saved or written by the game or another tool, with a way to use one again or keep it as a saved list")
+            onClicked: ordersView.open()
+        }
+        ListsHistory {
+            id: ordersView
+            onUseList: ids => {
+                listsMenu.useList(ids)
+                listsMenu.named("")
+                listsMenu.close()
+            }
+        }
+
         Text { topPadding: Theme.gapSmall; color: Theme.ink; font.pixelSize: Theme.title; font.weight: Font.DemiBold; text: Theme.say("Clipboard") }
         Flow {
             width: parent.width

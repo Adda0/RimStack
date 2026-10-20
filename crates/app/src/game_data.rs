@@ -169,6 +169,10 @@ impl qobject::GameData {
         if noticed.mods_config
             && let Some(ids) = app.mods_config_list()
         {
+            let kept = ids.clone();
+            crate::jobs::spawn("order history", move || {
+                app.record_order(rimstack_core::kept::orders::How::Outside, &kept);
+            });
             self.written_outside(to_qml(&ids));
         }
     }

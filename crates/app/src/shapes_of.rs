@@ -368,6 +368,10 @@ fn lists(app: &App, shapes: &mut Shapes) {
     );
     app.keep_list("mine", Some(ids.clone()), true).unwrap();
     app.snapshot("@saving", &ids).unwrap();
+    app.record_order(rimstack_core::kept::orders::How::Outside, &ids);
+    shapes.add("lists.pastOrders", &app.past_orders());
+    shapes.add("lists.pastOrder", &app.past_order(0));
+    shapes.add("lists.pastOrder", &app.past_order(9));
     shapes.add("lists.saved", &app.saved_lists());
     shapes.add("lists.snapshots", &app.recent_snapshots());
     shapes.add("lists.named", &app.list_named("mine"));
