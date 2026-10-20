@@ -147,10 +147,10 @@ fn defs_of(text: &str) -> HashSet<Def> {
             continue;
         } else if template == 0 && name.eq_ignore_ascii_case("defName") {
             let named = rest[..rest.find('<').unwrap_or(rest.len())].trim();
-            if is_name(named) {
-                let kind = stack[1].clone();
+            // A `<defName>` straight inside `<Defs>` is in no def, so it names none.
+            if let Some(kind) = stack.get(1).filter(|_| is_name(named)) {
                 found.insert(Def {
-                    kind,
+                    kind: kind.clone(),
                     name: named.to_string(),
                 });
             }
@@ -451,6 +451,17 @@ mod tests {
         assert_eq!(patched, ["Big_Bed", "Make_Thing", "Plasteel", "Steel"]);
         let asked: Vec<&str> = found.asks_for.iter().map(|(p, _)| p.as_str()).collect();
         assert_eq!(asked, ["Big Furniture", "Other Mod"]);
+    }
+
+    #[test]
+    fn a_def_name_outside_any_def_names_no_def() {
+        let (_t, root) = a_mod(&[(
+            "Defs/stray.xml",
+            "<Defs><defName>Stray</defName><ThingDef><defName>Kept</defName></ThingDef></Defs>",
+        )]);
+        let found = scan(&[root]);
+        let names: Vec<&str> = found.defines.iter().map(|d| d.name.as_str()).collect();
+        assert_eq!(names, ["Kept"]);
     }
 
     fn scanned(
