@@ -104,6 +104,15 @@ impl LoadOrder {
         self.settle(app);
     }
 
+    /// False when nothing was folded or opened.
+    pub fn fold(&mut self, app: &App, side: Side, id: ModId, open: bool) -> bool {
+        let changed = self.list_mut(side).fold_around(id, open);
+        if changed {
+            self.settle(app);
+        }
+        changed
+    }
+
     fn sub_on(&self, side: Side, row: usize) -> Option<usize> {
         match self.list(side).rows().get(row)? {
             Row::Sub { first, .. } => Some(*first),

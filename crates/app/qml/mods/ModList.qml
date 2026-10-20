@@ -55,6 +55,8 @@ ListView {
     Rectangle { id: ring; parent: list; anchors.fill: parent; anchors.margins: Theme.gapLine; z: 4; radius: Theme.corner; color: "transparent"; border.width: 2; border.color: Theme.focus; visible: list.activeFocus }
 
     property int tick: 0
+    // The selected mod's row, or the folded heading over it.
+    readonly property int place: tick >= 0 && Mods.selectedActive === model.active ? Hub.mods.placeOf(model.active, Mods.selectedId) : -1
     readonly property int topCategory: {
         const drawn = tick
         if (drawn < 0 || count === 0 || !model.at(0).isHeader)
@@ -110,6 +112,7 @@ ListView {
         function onRowsRemoved() { list.tick++ }
         function onRowsMoved() { list.tick++ }
         function onDataChanged() { list.tick++ }
+        function onModelReset() { list.tick++ }
     }
     Connections {
         target: Mods
@@ -126,7 +129,7 @@ ListView {
                 list.forceActiveFocus()
         }
         function onRowWanted(run) {
-            const row = Mods.selectedActive === list.model.active && list.visible ? list.model.rowOf(list.model.indexOf(Mods.selectedId)) : -1
+            const row = list.visible ? list.place : -1
             Mods.reveal(list.model, row, false)
             const shown = list.itemAtIndex(row)
             if (shown)

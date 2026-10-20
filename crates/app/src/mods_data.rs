@@ -102,6 +102,9 @@ pub mod qobject {
         /// Moves each mod `by` places, keeping their order; false when none moved.
         #[qinvokable]
         fn nudge(self: Pin<&mut ModsData>, active: bool, ids: &QVariant, by: i32) -> bool;
+        /// Folds the innermost open heading over the mod, or opens the outermost folded one.
+        #[qinvokable]
+        fn fold(self: Pin<&mut ModsData>, active: bool, mod_id: i32, open: bool);
         #[qinvokable]
         #[cxx_name = "toggleCategory"]
         fn toggle_category(self: Pin<&mut ModsData>, active: bool, category: i32);
@@ -294,6 +297,14 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "stepFrom"]
         fn step_from(self: &ModsData, active: bool, mod_id: i32, by: i32) -> i32;
+        /// The mod a row stands for, a folded heading for the first it hides; -1 for none.
+        #[qinvokable]
+        #[cxx_name = "stopOn"]
+        fn stop_on(self: &ModsData, active: bool, row: i32) -> i32;
+        /// Its row, or that of the folded heading over it; -1 when filtered out.
+        #[qinvokable]
+        #[cxx_name = "placeOf"]
+        fn place_of(self: &ModsData, active: bool, mod_id: i32) -> i32;
         #[qinvokable]
         #[cxx_name = "besideMod"]
         fn beside_mod(self: &ModsData, active: bool, mod_id: i32) -> i32;

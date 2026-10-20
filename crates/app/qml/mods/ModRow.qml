@@ -51,13 +51,15 @@ Item {
     readonly property var ownModel: listView.model
     readonly property bool columns: listView.columns
     readonly property bool current: !isHeader && modId >= 0 && (modId === Mods.selectedId || Mods.also[modId] === true)
+    // A folded heading the selected mod is under.
+    readonly property bool holds: isHeader && collapsed && index === listView.place
     readonly property color quiet: current ? Theme.onSelectedDim : Theme.ink2
 
     Accessible.role: isHeader ? Accessible.Heading : Accessible.ListItem
     Accessible.name: isHeader ? name + ", " + count
         : [name, columns ? Theme.fill("{} of {}", number, ownModel.count) : "", troubleText, fresh ? Theme.say("new") : ""].filter(part => part !== "").join(", ")
     Accessible.selectable: !isHeader
-    Accessible.selected: current
+    Accessible.selected: current || holds
 
     width: listView.width - listView.barRoom
     height: isSub ? Theme.sized(24) : again ? Theme.sized(22) : isHeader ? Theme.sized(32) : comfortable ? Math.max(Theme.sized(52), Theme.row + 10) : Theme.row
@@ -124,8 +126,8 @@ Item {
         anchors.rightMargin: Theme.gapSmall
         radius: Theme.corner
         readonly property bool conflicts: row.columns && !row.isHeader && !!Mods.conflictMarks[row.modId]
-        color: row.current ? Theme.accent : conflicts ? Theme.warn : row.movedFrom > 0 ? Theme.moved : Theme.hover
-        opacity: row.current ? 1 : conflicts ? 0.12 : row.movedFrom > 0 ? 0.1 : hover.hovered && !row.isHeader ? 0.04 : 0
+        color: row.current || row.holds ? Theme.accent : conflicts ? Theme.warn : row.movedFrom > 0 ? Theme.moved : Theme.hover
+        opacity: row.current ? 1 : row.holds ? 0.3 : conflicts ? 0.12 : row.movedFrom > 0 ? 0.1 : hover.hovered && !row.isHeader ? 0.04 : 0
     }
     // Where Shift or Ctrl with the arrows went, once that is not the one mod selected.
     Rectangle {

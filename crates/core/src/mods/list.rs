@@ -567,6 +567,32 @@ impl GroupedList {
         self.rebuild();
     }
 
+    /// Folding takes the innermost open heading over the mod, its group's before its
+    /// category's; opening the outermost folded one. False when nothing changed.
+    pub fn fold_around(&mut self, id: ModId, open: bool) -> bool {
+        let Some(m) = self.mods.iter().find(|m| m.installed == Some(id)) else {
+            return false;
+        };
+        if !self.grouped || self.shown_by.is_some() {
+            return false;
+        }
+        let category = m.category;
+        let group = (!m.sub.is_empty()).then(|| (category, m.sub.clone()));
+        let folded = self.collapsed.contains(&category);
+        let changed = match group {
+            _ if open && folded => self.collapsed.remove(&category),
+            Some(key) if open => self.collapsed_subs.remove(&key),
+            Some(key) if !folded && !self.collapsed_subs.contains(&key) => {
+                self.collapsed_subs.insert(key)
+            }
+            _ => !open && self.collapsed.insert(category),
+        };
+        if changed {
+            self.rebuild();
+        }
+        changed
+    }
+
     pub fn in_sub_of(&self, first: usize) -> Vec<usize> {
         let Some(of) = self.mods.get(first).filter(|m| !m.sub.is_empty()) else {
             return Vec::new();
