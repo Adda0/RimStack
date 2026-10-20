@@ -20,6 +20,7 @@ Item {
     readonly property var wanted: found.wanted || []
     readonly property bool steamcmd: downloads.steamcmd
     readonly property var needed: Mods.overview.toGet || []
+    readonly property var toDownload: Mods.overview.toDownload || []
     readonly property var info: Hub.settings.report
     readonly property var since: downloads.since || ({ time: 0, count: 0, active: 0, rows: [], workshop: 0 })
 
@@ -224,6 +225,14 @@ Item {
                         Chip { visible: screen.needed.length === 0; tone: Theme.ok; icon: "check"; text: Theme.say("Nothing missing") },
                         Chip { visible: screen.needed.length > 0; tone: Theme.warn; icon: "triangle-alert"; text: Theme.plural(screen.needed.length, "{} mod missing", "{} mods missing") }
                     ]
+                    actions: Btn {
+                        visible: screen.steamcmd && screen.toDownload.length > 0
+                        enabled: !screen.downloads.taskRunning
+                        icon: "download"
+                        text: Theme.plural(screen.toDownload.length, "Download {} with SteamCMD", "Download all {} with SteamCMD")
+                        tip: Theme.say("SteamCMD downloads each missing mod that has a Workshop page into the game's Mods folder, without subscribing.")
+                        onClicked: screen.downloads.downloadAll(screen.toDownload)
+                    }
                     Repeater {
                         model: screen.needed
                         ProblemLine {
