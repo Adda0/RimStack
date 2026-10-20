@@ -140,6 +140,9 @@ Item {
         width: Math.min(Math.max(Theme.sized(260), Mods.prefs.inactive), parent.width - rail.width - 60)
         height: parent.height - bulk.height
         z: 1
+        // Its list takes the keys while it is open, the load order once it closes.
+        onLoaded: item.list.forceActiveFocus()
+        onActiveChanged: if (!active) Mods.focusList(Mods.active)
         sourceComponent: InactivePane {
             drawer: true
             // Takes the presses its items leave, so none reach the scrim or the load order.
@@ -280,6 +283,26 @@ Rectangle {
     // Off while a text field has the focus, so that Esc reaches the field. Window attached
     // to the Shortcut itself is null: it is read off the screen.
     Shortcut { sequence: "Escape"; enabled: Mods.comparing === null && !subPrompt.opened && !(screen.Window.activeFocusItem && screen.Window.activeFocusItem.cursorPosition !== undefined); onActivated: screen.drawerOpen ? screen.drawerOpen = false : Mods.picking !== "" ? Mods.picking = "" : Mods.select(-1, false) }
+
+    // F6 goes round the inactive mods, the load order and the details, as a browser goes round its panes.
+    function panes() {
+        return [drawerLoader.item ? drawerLoader.item.list : inactivePane.list, activePane.list, detailsPane]
+    }
+    function nextPane(by) {
+        let at = -1
+        for (let item = screen.Window.activeFocusItem; item && at < 0; item = item.parent)
+            at = screen.panes().indexOf(item)
+        const next = (at + by + 3) % 3
+        if (Mods.prefs.inactiveHidden)
+            screen.drawerOpen = next === 0
+        const pane = screen.panes()[next]
+        const target = next === 2 ? pane.nextItemInFocusChain(true) : pane
+        target.forceActiveFocus()
+    }
+    Shortcut { sequence: "F6"; enabled: screen.visible; onActivated: screen.nextPane(1) }
+    Shortcut { sequence: "Shift+F6"; enabled: screen.visible; onActivated: screen.nextPane(-1) }
+    Shortcut { sequence: "Ctrl+PgDown"; enabled: screen.visible; onActivated: Mods.tab = (Mods.tab + 1) % 3 }
+    Shortcut { sequence: "Ctrl+PgUp"; enabled: screen.visible; onActivated: Mods.tab = (Mods.tab + 2) % 3 }
 
 Timer {
     readonly property bool sorting: Hub.given("--sorting")

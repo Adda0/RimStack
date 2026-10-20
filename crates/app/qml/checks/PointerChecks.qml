@@ -281,6 +281,26 @@ Item {
         checks.editable(details).forceActiveFocus()
         events.keyClick(Qt.Key_Escape, Qt.NoModifier, -1)
         check("Esc in the empty tag box, and in the note box, goes back to the list", fromTags && checks.activeList.activeFocus && Mods.selectedId >= 0)
+        const inside = pane => {
+            let item = screen.Window.activeFocusItem
+            while (item && item !== pane)
+                item = item.parent
+            return !!item
+        }
+        events.keyClick(Qt.Key_F6, Qt.NoModifier, -1)
+        const toDetails = inside(details)
+        events.keyClick(Qt.Key_F6, Qt.NoModifier, -1)
+        const toInactive = checks.inactiveList.activeFocus
+        events.keyClick(Qt.Key_F6, Qt.NoModifier, -1)
+        const round = checks.activeList.activeFocus
+        events.keyClick(Qt.Key_F6, Qt.ShiftModifier, -1)
+        check("F6 goes round the details, the inactive mods and the load order, Shift+F6 back", toDetails && toInactive && round && checks.inactiveList.activeFocus)
+        events.keyClick(Qt.Key_PageDown, Qt.ControlModifier, -1)
+        const next = Mods.tab === 1
+        events.keyClick(Qt.Key_PageUp, Qt.ControlModifier, -1)
+        events.keyClick(Qt.Key_PageUp, Qt.ControlModifier, -1)
+        check("Ctrl+Page Down and Ctrl+Page Up go round the tabs of the details", next && Mods.tab === 2)
+        Mods.tab = 0
         Mods.select(-1, false)
     }
 
