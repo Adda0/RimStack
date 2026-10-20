@@ -13,6 +13,7 @@ pub mod program;
 pub mod reread;
 pub mod sentence;
 pub mod sizes;
+pub mod thumbnails;
 pub mod translate;
 pub mod vdf;
 pub mod versions;
