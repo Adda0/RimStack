@@ -359,6 +359,10 @@ Item {
         check("the column menu lists every column, the shown ones marked", listed.length === 4 && listed[0].text.startsWith("✓"))
         const times = Mods.overview.loadTimes === true
         check("the Load column is offered only with load times, and otherwise says where they come from", listed[3].off === !times && (Mods.columns.note !== "") === !times && (times || listed[3].text.indexOf("Loading Progress") >= 0))
+        Mods.columns.toggle("game")
+        check("the Game column can be shown", Mods.columns.shown.indexOf("game") >= 0)
+        Mods.columns.toggle("game")
+        check("and hidden again", Mods.columns.shown.indexOf("game") === -1)
 
         const subRows = () => { let n = 0; for (let r = 0; r < Mods.active.rows(); r++) if (Mods.active.at(r).isSub === true) n += 1; return n }
         const before = subRows()

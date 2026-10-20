@@ -331,7 +331,7 @@ Item {
                     color: cell.modelData !== "load" ? row.quiet : row.current ? Theme.onSelected : row.loadSeconds >= 0.1 ? Theme.ink2 : Theme.ink3
                     font.pixelSize: cell.modelData === "load" ? Theme.small : Theme.body
                     font.features: { "tnum": 1 }
-                    text: cell.modelData === "author" ? row.author : cell.modelData === "version" ? row.version : row.loadTime
+                    text: ({ author: row.author, version: row.version, game: row.game, load: row.loadTime })[cell.modelData]
                 }
                 Rectangle {
                     visible: cell.modelData === "load" && row.loadPart > 0 && row.loadTime !== ""
