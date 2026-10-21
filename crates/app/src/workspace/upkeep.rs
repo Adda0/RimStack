@@ -365,19 +365,39 @@ mod tests {
     }
 
     #[test]
-    fn a_mod_is_copied_into_the_game_s_folder_once() {
+    fn a_mod_is_copied_into_the_game_s_folder_once_under_its_name_as_its_workshop_twin() {
         let (tmp, app) = installed();
         std::fs::create_dir_all(tmp.path().join("workshop/123/About")).unwrap();
         std::fs::write(
             tmp.path().join("workshop/123/About/About.xml"),
-            "<ModMetaData><packageId>Ann.Hats</packageId></ModMetaData>",
+            "<ModMetaData><name>Hats: More</name><packageId>Ann.Hats</packageId></ModMetaData>",
+        )
+        .unwrap();
+        std::fs::write(
+            tmp.path().join("workshop/123/About/PublishedFileId.txt"),
+            "123",
         )
         .unwrap();
         app.rescan();
         let hats = by_folder(&app, "123");
         let copy = app.copy_to_local(hats).unwrap();
-        assert_eq!(copy, tmp.path().join("game/Mods/123"));
+        assert_eq!(copy, tmp.path().join("game/Mods/Hats More"));
         assert_eq!(app.copy_to_local(hats).unwrap_err().kind(), Kind::Refused);
+        app.rescan();
+        let local = by_folder(&app, "Hats More");
+        let loaded = app.library();
+        let (library, _) = loaded.as_ref().as_ref().unwrap();
+        let twin = by_folder(&app, "123");
+        assert!(library.copies(local).unwrap().all.contains(&twin));
+        assert_eq!(
+            library.get(local).unwrap().source,
+            rimstack_core::rimworld::paths::Source::Local
+        );
+        assert!(library.get(local).unwrap().published);
+        assert_eq!(
+            rimstack_core::rimworld::about::published_file_id(&copy).as_deref(),
+            Some("123")
+        );
     }
 
     #[test]
