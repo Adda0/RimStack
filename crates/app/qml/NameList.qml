@@ -25,9 +25,10 @@ Column {
             width: names.width
             height: Theme.sized(names.action !== "" ? 28 : 22)
             spacing: Theme.gap
-            Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: entry.modelData.name }
+            Text { Layout.fillWidth: true; Layout.maximumWidth: implicitWidth + 1; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: entry.modelData.name }
             Text { color: entry.trouble ? Theme.err : Theme.ink3; font.pixelSize: Theme.small; text: (entry.trouble ? "! " : "") + entry.modelData.note }
             Btn { visible: names.action !== ""; text: names.action; onClicked: names.acted(entry.modelData.modId) }
+            Item { Layout.fillWidth: true }
         }
     }
 }

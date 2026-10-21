@@ -32,7 +32,7 @@ Column {
             width: side.width
             height: Theme.sized(26)
             spacing: Theme.gap
-            Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: own.modelData.said }
+            Text { Layout.fillWidth: true; Layout.maximumWidth: implicitWidth + 1; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: own.modelData.said }
             Btn {
                 icon: "copy"
                 tip: Theme.say("Copies this rule in the community rules format, to send upstream.")
@@ -43,6 +43,7 @@ Column {
                 tip: Theme.say("Remove this rule")
                 onClicked: Hub.mods.removeRule(own.modelData.first, own.modelData.then)
             }
+            Item { Layout.fillWidth: true }
         }
     }
     Text {

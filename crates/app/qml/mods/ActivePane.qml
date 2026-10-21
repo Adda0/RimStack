@@ -163,11 +163,12 @@ Item {
                 anchors.rightMargin: Theme.gapTiny
                 spacing: Theme.gap
                 Rectangle { implicitWidth: 7; implicitHeight: 7; radius: Math.min(width, height) / 2; color: Theme.warn }
-                Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: Theme.fill("Not saved: {}", Hub.mods.unsaved) }
+                Text { Layout.fillWidth: true; Layout.maximumWidth: implicitWidth + 1; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: Theme.fill("Not saved: {}", Hub.mods.unsaved) }
                 Btn { text: Theme.say("Show"); tip: Theme.say("Only the mods moved or activated since the last save"); onClicked: activePane.toggleTerm("is:changed") }
                 Text { visible: !!Hub.mods.leftSave; color: Theme.warn; font.pixelSize: Theme.small; text: Hub.mods.leftSave }
                 Btn { text: Theme.say("Discard"); tip: Theme.say("Back to the saved list. Undo brings the changes back."); onClicked: Hub.mods.discardChanges() }
                 Btn { primary: true; text: Theme.say("Save"); onClicked: Mods.save() }
+                Item { Layout.fillWidth: true }
             }
         }
         Rectangle {
@@ -187,11 +188,12 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.leftMargin: Theme.gapLarge
                 anchors.rightMargin: Theme.gapTiny
-                columns: stacked ? 1 : 2
+                columns: stacked ? 1 : 3
                 columnSpacing: Theme.gap
                 rowSpacing: Theme.gapSmall
                 RowLayout {
                     Layout.fillWidth: true
+                    Layout.maximumWidth: implicitWidth + 1
                     spacing: Theme.gap
                     Icon { Layout.alignment: Qt.AlignTop; name: "triangle-alert"; color: Theme.warn }
                     Text { id: said; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: Theme.body; text: Theme.plural(activePane.versionOnly, "{} mod does not list RimWorld {}", "{} mods do not list RimWorld {}", (Mods.overview.gameVersion || "")) }
@@ -199,13 +201,13 @@ Item {
                 Flow {
                     id: does
                     readonly property real fullWidth: showWarnings.implicitWidth + spacing + ignoreVersion.implicitWidth
-                    Layout.alignment: Qt.AlignRight
                     Layout.fillWidth: banner.stacked
                     Layout.preferredWidth: fullWidth
                     spacing: Theme.gap
                     Btn { id: showWarnings; text: Theme.say("Show"); tip: Theme.say("Only the mods with a warning"); onClicked: activePane.toggleTerm("is:warning") }
                     Btn { id: ignoreVersion; text: Theme.fill("Ignore for {}", (Mods.overview.gameVersion || "")); tip: Theme.say("No warning about the game version while RimWorld stays on this version. Settings, Sorting has the switch."); onClicked: Mods.setVersionAside(Mods.overview.gameVersion || "") }
                 }
+                Item { visible: !banner.stacked; Layout.fillWidth: true }
             }
         }
         Text {
@@ -244,6 +246,7 @@ Item {
                 spacing: Theme.gap
                 Text {
                     Layout.fillWidth: true
+                    Layout.maximumWidth: implicitWidth + 1
                     wrapMode: Text.WordWrap
                     textFormat: Text.StyledText
                     color: Theme.ink
@@ -256,6 +259,7 @@ Item {
                 Btn { visible: Hub.mods.previewing; primary: true; text: Theme.say("Apply"); onClicked: Mods.endSort(true) }
                 Btn { visible: Hub.mods.previewing; text: Theme.say("Discard"); onClicked: Mods.endSort(false) }
                 Btn { visible: !Hub.mods.previewing; text: Theme.say("OK"); onClicked: Hub.mods.sortNote = "" }
+                Item { Layout.fillWidth: true }
                 Timer { interval: 8000; running: Hub.mods.sortNote !== "" && !Hub.mods.previewing; onTriggered: Hub.mods.sortNote = "" }
             }
         }
