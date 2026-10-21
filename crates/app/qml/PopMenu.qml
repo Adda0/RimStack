@@ -98,6 +98,7 @@ PopCard {
     padding: Theme.gapTiny
     contentItem: Item {
         id: body
+        Accessible.role: Accessible.PopupMenu
         readonly property real above: search.visible ? search.height + Theme.gapTiny : 0
         implicitWidth: Math.max(column.implicitWidth, search.visible ? Theme.sized(220) : 0)
         implicitHeight: above + column.implicitHeight
@@ -161,7 +162,8 @@ PopCard {
                         color: (over.hovered || menu.at === entry.index) && !entry.off ? Theme.accent : "transparent"
                         opacity: entry.off ? 0.4 : 1
                         Accessible.role: Accessible.MenuItem
-                        Accessible.name: entry.modelData.text || ""
+                        Accessible.name: words.text
+                        Accessible.selected: menu.at === entry.index
                         Rectangle { x: 10; anchors.verticalCenter: parent.verticalCenter; visible: !!entry.modelData.colour; width: 10; height: 10; radius: 5; color: entry.modelData.colour || "transparent" }
                         Icon { x: 8; anchors.verticalCenter: parent.verticalCenter; visible: !!entry.modelData.icon; name: entry.modelData.icon || ""; size: 14; color: words.color }
                         Text {

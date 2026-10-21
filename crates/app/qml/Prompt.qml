@@ -18,6 +18,9 @@ PopCard {
     onAboutToShow: actions.children[actions.children.length - 1].forceActiveFocus()
     contentItem: Column {
         id: column
+        // A popup takes no Accessible of its own: its content stands for it.
+        Accessible.role: Accessible.Dialog
+        Accessible.name: prompt.title
         spacing: Theme.gapLarge
         // A body taller than the window scrolls between the title and the buttons, by the keys too.
         Keys.onPressed: event => {

@@ -26,6 +26,7 @@ Rectangle {
     activeFocusOnTab: true
     Accessible.role: Accessible.Grouping
     Accessible.name: title
+    Accessible.description: Theme.say(options[current] || "")
     // Ahead of a screen's own arrows, as in the texture comparison.
     Keys.onShortcutOverride: event => event.accepted = [Qt.Key_Left, Qt.Key_Right, Qt.Key_Home, Qt.Key_End].indexOf(event.key) >= 0 || stacked && (event.key === Qt.Key_Up || event.key === Qt.Key_Down)
     Keys.onLeftPressed: move(-1)
@@ -71,7 +72,7 @@ Rectangle {
                 radius: Theme.corner - 1
                 color: "transparent"
                 Accessible.role: Accessible.RadioButton
-                Accessible.name: modelData
+                Accessible.name: Theme.say(modelData)
                 Accessible.checked: on
                 Accessible.onPressAction: choice.picked(option.index)
                 Text { id: label; anchors.centerIn: parent; Behavior on color { ColorAnimation { duration: Theme.quick } } width: option.width - (choice.stacked ? 20 : 6); horizontalAlignment: choice.stacked ? Text.AlignLeft : Text.AlignHCenter; elide: Text.ElideRight; color: option.on ? Theme.accentInk : Theme.ink2; font.pixelSize: Theme.small; font.weight: option.on ? Font.DemiBold : Font.Normal; text: Theme.say(option.modelData) }

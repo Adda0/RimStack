@@ -29,8 +29,9 @@ Rectangle {
         height: line + (wrapped ? Theme.sized(34) : 0)
         activeFocusOnTab: card.key !== ""
         Accessible.role: card.key !== "" ? Accessible.Button : Accessible.Heading
-        Accessible.name: card.title
+        Accessible.name: [card.title, card.note, card.key !== "" ? (card.folded ? Theme.say("folded") : Theme.say("unfolded")) : ""].filter(part => part !== "").join(", ")
         Accessible.description: name.meaning
+        Accessible.onPressAction: if (card.key !== "") Theme.fold(card.key)
         Keys.onReturnPressed: Theme.fold(card.key)
         Keys.onEnterPressed: Theme.fold(card.key)
         Keys.onSpacePressed: Theme.fold(card.key)
