@@ -206,6 +206,21 @@ pub fn troubles(
     for (own, duplicate) in found.iter_mut().zip(describe::duplicates(library, mods)) {
         own.extend(duplicate);
     }
+    let ids = rimstack_core::mods::integrity::package_ids(&library.installed);
+    for (m, own) in mods.iter().zip(&mut found) {
+        let Some(installed) = m.installed.and_then(|i| library.get(i)) else {
+            continue;
+        };
+        let files = [rimstack_core::mods::integrity::Files::kept(installed)];
+        let said = rimstack_core::mods::integrity::troubles(&files, &ids);
+        // A mod already told apart from its copies needs no second line about the shared id.
+        let copied = own.iter().any(|t| t.key == "duplicate");
+        own.extend(
+            said.into_iter()
+                .flatten()
+                .filter(|t| t.key != "duplicate-id" || !copied),
+        );
+    }
     for (own, order) in found
         .iter_mut()
         .zip(order_troubles(app, detected, library, mods))
