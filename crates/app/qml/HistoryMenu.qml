@@ -42,7 +42,7 @@ PopCard {
                     width: lines.width
                     spacing: Theme.gap
                     Text { Layout.preferredWidth: Theme.sized(112); color: Theme.ink3; font.pixelSize: Theme.small; text: Theme.moment(entry.modelData.time) }
-                    Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: Theme.body; text: entry.modelData.said }
+                    Text { Layout.fillWidth: true; Layout.maximumWidth: implicitWidth + 1; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: Theme.body; text: entry.modelData.said }
                     Btn {
                         visible: entry.modelData.restore !== "" || entry.modelData.bringBack !== ""
                         text: entry.modelData.restore !== "" ? Theme.say("Restore") : Theme.say("Bring back")
@@ -50,6 +50,7 @@ PopCard {
                         tip: entry.modelData.restore !== "" ? Theme.say("The load order as it was just before. Nothing is written before Save.") : Theme.say("Renames the files back inside the mod")
                         onClicked: historyMenu.revert(entry.modelData)
                     }
+                    Item { Layout.fillWidth: true }
                 }
             }
             Text { visible: Notices.earlier.length > 0; topPadding: Theme.gap; color: Theme.ink; font.pixelSize: Theme.title; font.weight: Font.DemiBold; text: Theme.say("Said since the start") }

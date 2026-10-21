@@ -81,6 +81,7 @@ PopCard {
 
                         Column {
                             Layout.fillWidth: true
+                            Layout.maximumWidth: implicitWidth + 1
                             Text { color: Theme.ink; font.pixelSize: Theme.body; text: order.modelData.said + ", " + Theme.plural(order.modelData.mods, "{} mod", "{} mods") }
                             Text { color: Theme.ink3; font.pixelSize: Theme.small; text: ordersPopup.saidOf(order.modelData); visible: text !== Theme.say("the same order as now") }
                         }
@@ -109,6 +110,7 @@ PopCard {
                                     Notices.say(done, "err")
                             }
                         }
+                        Item { Layout.fillWidth: true }
                     }
                 }
             }

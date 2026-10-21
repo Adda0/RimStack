@@ -199,6 +199,7 @@ Item {
                     spacing: Theme.gap
                     Text {
                         Layout.fillWidth: true
+                        Layout.maximumWidth: implicitWidth + 1
                         elide: Text.ElideRight
                         color: Theme.ink
                         font.pixelSize: Theme.body
@@ -213,6 +214,7 @@ Item {
                             screen.tools.remove(screen.made)
                         }
                     }
+                    Item { Layout.fillWidth: true }
                 }
             }
 
@@ -365,8 +367,10 @@ Item {
                             required property var modelData
                             width: side.width
                             height: Theme.sized(24)
-                            Text { Layout.fillWidth: true; color: fact.modelData[2] ? Theme.warn : Theme.ink; font.pixelSize: Theme.body; text: fact.modelData[0] }
+                            spacing: Theme.gap
+                            Text { Layout.fillWidth: true; Layout.maximumWidth: implicitWidth + 1; color: fact.modelData[2] ? Theme.warn : Theme.ink; font.pixelSize: Theme.body; text: fact.modelData[0] }
                             Text { color: Theme.ink2; font.pixelSize: Theme.body; text: fact.modelData[1] }
+                            Item { Layout.fillWidth: true }
                         }
                     }
                     Flow {

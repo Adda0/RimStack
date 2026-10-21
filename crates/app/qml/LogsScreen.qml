@@ -287,6 +287,7 @@ Item {
                     ColumnLayout {
                         id: sinceText
                         Layout.fillWidth: true
+                        Layout.maximumWidth: implicitWidth + 1
                         spacing: 2
                         Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: Theme.body; font.weight: Font.DemiBold; text: Theme.say("Since the last clean launch") }
                         Text { color: Theme.ink2; font.pixelSize: Theme.small; text: screen.when(since.info.time) }
@@ -296,6 +297,7 @@ Item {
                         Text { visible: !since.same && since.info.reordered; color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.say("Order changed") }
                     }
                     Btn { visible: !since.same; text: Theme.say("Use"); tip: Theme.say("Makes the load order of the last clean launch the list on the Mods screen. Save writes it."); onClicked: screen.useList(since.info.ids) }
+                    Item { Layout.fillWidth: true }
                 }
             }
 
@@ -639,8 +641,9 @@ Item {
                             width: side.width
                             height: Theme.sized(31)
                             spacing: Theme.gap
-                            Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: culprit.modelData.name }
+                            Text { Layout.fillWidth: true; Layout.maximumWidth: implicitWidth + 1; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: culprit.modelData.name }
                             Btn { text: Theme.say("Go to mod"); onClicked: screen.showMod(culprit.modelData.modId) }
+                            Item { Layout.fillWidth: true }
                         }
                     }
 
