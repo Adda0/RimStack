@@ -254,6 +254,19 @@ Item {
                 Hub.lists.remove(checks.longList)
                 return checks.kept && checks.fitted.length === 2 && checks.fitted.every(fits => fits)
             }
+        },
+        {
+            section: 1,
+            what: "a Workshop search hit's date, subscribers and Look up follow its name, not the far edge",
+            ready: () => checks.flipped(() => Hub.downloads.searched = ({ found: [{ id: "1", title: "Hat", updated: 1700000000, subscriptions: 5 }] })),
+            ok: () => {
+                const name = checks.shown(checks.window.contentItem, item => item.text === "Hat")
+                const row = name ? name.parent : null
+                const lookUp = row ? checks.shown(row, item => item.text === Theme.say("Look up")) : null
+                Hub.downloads.searched = ({ found: [] })
+                return !!lookUp && row.width > Theme.sized(600) && name.width <= name.implicitWidth + 2
+                    && Math.abs(row.children[1].x - (name.x + name.width + row.spacing)) <= 1 && lookUp.x + lookUp.width < row.width / 2
+            }
         }
     ]
     property bool typed: false
@@ -294,6 +307,17 @@ Item {
         for (const child of root.children || [])
             found += fonted(child, family)
         return found
+    }
+    // The first visible item, from the root down, that passes the test.
+    function shown(root, test) {
+        if (root.visible && test(root))
+            return root
+        for (const child of root.children || []) {
+            const hit = shown(child, test)
+            if (hit)
+                return hit
+        }
+        return null
     }
     function showing(root, text) {
         if (!root.visible)
