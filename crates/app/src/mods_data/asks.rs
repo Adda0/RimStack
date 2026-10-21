@@ -126,10 +126,9 @@ impl qobject::ModsData {
     }
 
     fn troubled_mods(order: &LoadOrder) -> Vec<bool> {
-        let count = order.list(Side::Active).mods().len();
-        (0..count)
-            .map(|at| order.troubles().get(at).is_some_and(|t| !t.is_empty()))
-            .collect()
+        let mut marked: Vec<bool> = order.marked().collect();
+        marked.resize(order.list(Side::Active).mods().len(), false);
+        marked
     }
 
     pub(super) fn next_problem(&self, row: i32, forward: bool) -> i32 {

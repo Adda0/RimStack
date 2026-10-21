@@ -15,7 +15,7 @@ Column {
         Column {
             Layout.fillWidth: true
             Text { color: Theme.ink; font.pixelSize: Theme.heading; font.weight: Font.DemiBold; text: Theme.say("Problems") }
-            Text { topPadding: Theme.gapHair; color: Theme.ink2; font.pixelSize: Theme.body; text: Mods.troubles.length === 0 ? Theme.say("None") : Theme.fill("{} with errors, {} with warnings", Hub.mods.errors, Hub.mods.warnings) }
+            Text { topPadding: Theme.gapHair; color: Theme.ink2; font.pixelSize: Theme.body; text: Mods.troubles.length === 0 ? Theme.say("None") : Theme.fill("{} with errors, {} with warnings", Hub.mods.errors, Mods.overview.warned || 0) }
         }
         Btn { icon: "x"; tip: Theme.say("Close (Esc)"); onClicked: Mods.problemsOpen = false }
     }
@@ -43,6 +43,22 @@ Column {
             tone: modelData.error ? Theme.err : Theme.warn
             key: "problems-" + modelData.name
             spacing: Theme.gap
+            // Errors always stay marked in the mod list: the game trips on them.
+            Row {
+                visible: !group.modelData.error
+                spacing: Theme.gap
+                Toggle {
+                    silent: true
+                    title: Theme.say("Mark in the mod list")
+                    on: group.modelData.listed
+                    onFlipped: on => {
+                        const why = Hub.mods.showInList(group.modelData.kind, on)
+                        if (why !== "")
+                            Notices.say(why, "err")
+                    }
+                }
+                Text { anchors.verticalCenter: parent.verticalCenter; color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.say("Mark in the mod list") }
+            }
             Btn {
                 visible: group.modelData.trusted > 1
                 text: Theme.fill("Ignore all {} for RimWorld {}", group.modelData.trusted, (Mods.overview.gameVersion || ""))

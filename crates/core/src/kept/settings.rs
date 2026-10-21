@@ -102,7 +102,7 @@ enum Holds {
 
 const SWITCH: Holds = Holds::Choice(&["on", "off"]);
 
-const KNOWN: [(&str, Holds); 27] = [
+const KNOWN: [(&str, Holds); 28] = [
     // The setup in use: decided and written by a switch, never typed.
     ("instance", Holds::Text),
     ("game", Holds::Text),
@@ -129,6 +129,8 @@ const KNOWN: [(&str, Holds); 27] = [
     ("databasesOff", Holds::List),
     ("replacementsIgnored", Holds::List),
     ("textureSkip", Holds::List),
+    // Kinds of warning (`TroubleKind::key`) the Problems panel lists and the mod list leaves unmarked.
+    ("panelOnly", Holds::List),
     ("communityRules", SWITCH),
     ("versionWarnings", SWITCH),
     ("fileHints", SWITCH),

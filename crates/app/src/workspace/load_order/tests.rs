@@ -266,6 +266,63 @@ fn installed_app_again(tmp: &tempfile::TempDir) -> App {
 }
 
 #[test]
+fn a_kind_of_warning_kept_to_the_problems_panel_leaves_the_rows_and_errors_stay_marked() {
+    let (tmp, app) = installed();
+    // A need nothing installed meets is an error; no PublishedFileId.txt, a warning.
+    let about = "<ModMetaData><packageId>Ann.Roads</packageId><name>Ann.Roads</name><supportedVersions><li>1.6</li></supportedVersions><modDependencies><li><packageId>gone.lib</packageId></li></modDependencies></ModMetaData>";
+    std::fs::write(tmp.path().join("game/Mods/roads/About/About.xml"), about).unwrap();
+    let mut order = LoadOrder::read(&app, true, Arrange::Category);
+    order.take(&app, Side::Inactive, 0, None);
+    let kinds: Vec<&str> = order.troubles()[1].iter().map(|t| t.kind.key()).collect();
+    assert_eq!(kinds, ["needed-missing", "no-workshop-id"]);
+    let warned = |order: &mut LoadOrder| {
+        order.set_filter("is:warning");
+        let matching = order.list(Side::Active).matching();
+        order.set_filter("");
+        matching
+    };
+    assert_eq!(order.errors_and_warnings(), (1, 1));
+    assert_eq!(warned(&mut order), 1);
+    app.show_in_list("no-workshop-id", false).unwrap();
+    // An error kind named by hand is marked all the same.
+    app.show_in_list("needed-missing", false).unwrap();
+    order.recheck(&app);
+    assert_eq!(order.errors_and_warnings(), (1, 0));
+    assert_eq!(warned(&mut order), 0);
+    let rows = order.rows(&app, Side::Active);
+    let row = rows.iter().find(|r| r.mod_index == 1).unwrap();
+    assert_eq!(row.trouble, 2);
+    assert_eq!(
+        row.trouble_tip.to_string(),
+        "Needs gone.lib, which is not installed."
+    );
+    // The panel lists both, and says which one the rows leave out.
+    let overview = serde_json::to_value(order.overview(&app)).unwrap();
+    let groups: Vec<(&str, bool, usize)> = (overview["troubleGroups"].as_array().unwrap())
+        .iter()
+        .map(|g| {
+            let lines = g["lines"].as_array().unwrap().len();
+            (g["kind"].as_str().unwrap(), g["listed"] == true, lines)
+        })
+        .collect();
+    assert_eq!(
+        groups,
+        [("needed-missing", true, 1), ("no-workshop-id", false, 1)]
+    );
+    assert_eq!(overview["warned"], 1);
+    // Kept in the settings: a new app on the same folders leaves it out too.
+    drop(order);
+    drop(app);
+    let again = installed_app_again(&tmp);
+    let mut order = LoadOrder::read(&again, true, Arrange::Category);
+    order.take(&again, Side::Inactive, 0, None);
+    assert_eq!(order.errors_and_warnings(), (1, 0));
+    again.show_in_list("no-workshop-id", true).unwrap();
+    order.recheck(&again);
+    assert_eq!(order.errors_and_warnings(), (1, 1));
+}
+
+#[test]
 fn a_mod_made_for_another_game_version_offers_to_trust_it_once_active() {
     let (tmp, app) = installed();
     roads_made_for_an_older_game(&tmp);
