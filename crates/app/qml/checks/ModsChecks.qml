@@ -98,6 +98,7 @@ Item {
         onTriggered: {
             const total = Mods.active.count + Mods.inactive.count
             const offer = Notices.shown.find(notice => !!notice.run)
+            const gameOffer = Notices.shown.find(notice => !!notice.run && notice.text.indexOf("RimWorld rewrote") >= 0)
             checks.liveWaited += 1
             const late = checks.liveWaited > 50
             if (checks.liveStep === 0 && (late || (!Hub.mods.rescanning && total === checks.liveTotal + 1))) {
@@ -122,6 +123,21 @@ Item {
                 const past = Hub.lists.pastOrders()
                 const newest = past[0] || {}
                 checks.textureCheck("an order written outside is kept in the history", past.length > 0 && newest.said === Theme.say("Changed outside RimStack") && newest.mods === 1)
+                checks.liveStep = 5
+                checks.liveWaited = 0
+                // The made-up game program rewrites ModsConfig.xml and is gone again before
+                // a look can see it: the change is the game's, not a write from outside.
+                Hub.game.play(false)
+            } else if (checks.liveStep === 5 && (late || gameOffer)) {
+                checks.textureCheck("a list the game rewrites at start is offered as the game's", !!gameOffer && gameOffer.text.indexOf("RimWorld rewrote") >= 0)
+                if (gameOffer)
+                    gameOffer.run()
+                checks.liveStep = 6
+            } else if (checks.liveStep === 6 && (late || !Hub.mods.saving)) {
+                checks.textureCheck("and used when asked, like a write from outside", Mods.active.count === 1 && !Hub.mods.dirty)
+                const past = Hub.lists.pastOrders()
+                const newest = past[0] || {}
+                checks.textureCheck("the game's list is kept in the history as its own", newest.said === Theme.say("Rewritten by RimWorld as it started") && newest.mods === 1)
                 Qt.exit(checks.textureFailures > 0 ? 1 : 0)
             }
         }

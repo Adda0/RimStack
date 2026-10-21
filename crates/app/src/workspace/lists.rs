@@ -297,10 +297,10 @@ impl App {
             .rev()
             .map(|entry| {
                 let diff = lists::compare(&entry.ids, &current);
-                let said = if entry.how == orders::How::Saved {
-                    say!("Saved from RimStack")
-                } else {
-                    say!("Changed outside RimStack")
+                let said = match entry.how {
+                    orders::How::Saved => say!("Saved from RimStack"),
+                    orders::How::Game => say!("Rewritten by RimWorld as it started"),
+                    orders::How::Outside => say!("Changed outside RimStack"),
                 };
                 PastOrder {
                     time: entry.time,

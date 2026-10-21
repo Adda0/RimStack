@@ -28,6 +28,11 @@ pub mod qobject {
         #[cxx_name = "writtenOutside"]
         fn written_outside(self: Pin<&mut GameData>, ids: QVariant);
 
+        /// The game rewrote ModsConfig.xml as it started.
+        #[qsignal]
+        #[cxx_name = "rewrittenByGame"]
+        fn rewritten_by_game(self: Pin<&mut GameData>, ids: QVariant);
+
         #[qsignal]
         #[cxx_name = "openSteam"]
         fn open_steam(self: Pin<&mut GameData>, address: QString);
@@ -54,7 +59,7 @@ use crate::qml::values::to_qml;
 use core::pin::Pin;
 use cxx_qt::{CxxQtType, Threading};
 use cxx_qt_lib::{QString, QVariant};
-use rimstack_core::base::watch::{Stamps, Watcher};
+use rimstack_core::base::watch::{Game, Stamps, Watcher};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
@@ -114,8 +119,13 @@ impl qobject::GameData {
             loop {
                 std::thread::sleep(every);
                 let running = app.game_running();
+                let launched = app.last_start().map_or(0, |start| start.time);
+                let now = crate::workspace::now_secs();
                 let stamps = looking.load(Ordering::Relaxed).then(|| app.stamps());
-                if thread.queue(move |me| me.looked(running, stamps)).is_err() {
+                if thread
+                    .queue(move |me| me.looked(running, launched, now, stamps))
+                    .is_err()
+                {
                     break;
                 }
             }
@@ -129,7 +139,13 @@ impl qobject::GameData {
         }
     }
 
-    fn looked(mut self: Pin<&mut Self>, running: bool, stamps: Option<Stamps>) {
+    fn looked(
+        mut self: Pin<&mut Self>,
+        running: bool,
+        launched: u64,
+        now: u64,
+        stamps: Option<Stamps>,
+    ) {
         let app = self.app();
         if running != self.running {
             self.as_mut().rust_mut().get_mut().running = running;
@@ -143,12 +159,15 @@ impl qobject::GameData {
             return;
         };
         let held = self.held;
-        let noticed = self
-            .as_mut()
-            .rust_mut()
-            .get_mut()
-            .watcher
-            .look(stamps, running, held);
+        let noticed = self.as_mut().rust_mut().get_mut().watcher.look(
+            stamps,
+            Game {
+                running,
+                launched,
+                now,
+            },
+            held,
+        );
         let mut changes = Changes::NONE;
         for (seen, change) in [
             (noticed.mods, Changes::MOD_FILES),
@@ -169,11 +188,18 @@ impl qobject::GameData {
         if noticed.mods_config
             && let Some(ids) = app.mods_config_list()
         {
+            let how = match noticed.mods_config_by_game {
+                true => rimstack_core::kept::orders::How::Game,
+                false => rimstack_core::kept::orders::How::Outside,
+            };
             let kept = ids.clone();
             crate::jobs::spawn("order history", move || {
-                app.record_order(rimstack_core::kept::orders::How::Outside, &kept);
+                app.record_order(how, &kept);
             });
-            self.written_outside(to_qml(&ids));
+            match noticed.mods_config_by_game {
+                true => self.rewritten_by_game(to_qml(&ids)),
+                false => self.written_outside(to_qml(&ids)),
+            }
         }
     }
 
