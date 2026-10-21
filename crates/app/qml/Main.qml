@@ -40,6 +40,9 @@ ApplicationWindow {
         function onWrittenOutside(ids) {
             Notices.offer(Theme.plural(ids.length, "ModsConfig.xml was written outside RimStack and now lists {} mod; the list here has {}.", "ModsConfig.xml was written outside RimStack and now lists {} mods; the list here has {}.", Mods.active.count), Theme.say("Use the file's"), () => Hub.mods.keepFile(true))
         }
+        function onRewrittenByGame(ids) {
+            Notices.offer(Theme.plural(ids.length, "RimWorld rewrote the load order as it started and now lists {} mod; the list here has {}.", "RimWorld rewrote the load order as it started and now lists {} mods; the list here has {}.", Mods.active.count), Theme.say("Use the file's"), () => Hub.mods.keepFile(true))
+        }
     }
     Binding { target: Hub.game; property: "watching"; value: (window.visibility !== Window.Minimized && window.visibility !== Window.Hidden) || Mods.checkMode === "live" }
     Binding { target: Hub.game; property: "held"; value: Hub.mods.rescanning || Hub.mods.previewing || Mods.drag.held !== null || Mods.comparing !== null }
