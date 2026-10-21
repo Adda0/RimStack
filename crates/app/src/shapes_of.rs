@@ -497,7 +497,7 @@ fn textures(app: &App, shapes: &mut Shapes) {
     drop(loaded);
     picture(&pebble, [0, 0, 0, 255]);
     let rows = app.texture_rows();
-    shapes.add("textures.report", &textures::shown(&rows, false));
+    shapes.add("textures.report", &textures::shown(&rows, false, "1.7"));
     shapes.add("textures.refused", &app.refused_dds());
     let compared = app.compare_textures(a, b).unwrap();
     shapes.add("textures.comparison", &compared);

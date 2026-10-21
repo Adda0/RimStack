@@ -16,6 +16,8 @@ Item {
     readonly property var stale: report.stale || []
     readonly property var made: report.made || []
     readonly property int madeFiles: report.madeFiles || 0
+    // Set from 1.7 on, where the game caches textures itself and converting is not needed.
+    readonly property string cachesSaid: report.cachesSaid || ""
     property int selectedId: -1
     readonly property var mod: shown.find(m => m.id === selectedId) || null
     property bool confirmRemove: false
@@ -74,7 +76,7 @@ Item {
                             Chip {
                                 visible: (screen.report.waiting || 0) > 0
                                 pressable: true
-                                tone: Theme.warn
+                                tone: screen.cachesSaid !== "" ? Theme.ink2 : Theme.warn
                                 text: Theme.plural(screen.report.waiting || 0, "{} mod to convert", "{} mods to convert")
                                 tip: Theme.say("Shows the first of them")
                                 onClicked: { screen.selectedId = screen.report.firstWaiting; list.positionViewAtBeginning() }
@@ -100,6 +102,31 @@ Item {
                         Accessible.description: have.text
                         Rectangle { width: summary.parent.total > 0 ? parent.width * summary.parent.have / summary.parent.total : 0; Behavior on width { NumberAnimation { duration: Theme.calm; easing.type: Easing.OutCubic } } height: parent.height; radius: Math.min(width, height) / 2; color: summary.parent.have === summary.parent.total ? Theme.ok : Theme.accent }
                     }
+                    Rectangle {
+                        objectName: "cachesNotice"
+                        visible: screen.cachesSaid !== ""
+                        Layout.fillWidth: true
+                        implicitHeight: notice.implicitHeight + 14
+                        radius: Theme.corner
+                        color: Theme.banner
+                        RowLayout {
+                            id: notice
+                            anchors.fill: parent
+                            anchors.leftMargin: Theme.gapLarge
+                            anchors.rightMargin: Theme.gap
+                            spacing: Theme.gap
+                            Icon { name: "info"; size: Theme.icon; color: Theme.ink2 }
+                            Text {
+                                Layout.fillWidth: true
+                                wrapMode: Text.WordWrap
+                                color: Theme.ink
+                                font.pixelSize: Theme.body
+                                lineHeight: 1.25
+                                text: screen.cachesSaid
+                            }
+                            Loader { visible: active; active: screen.cachesSaid !== ""; sourceComponent: removeAll }
+                        }
+                    }
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: Theme.gapWide
@@ -118,7 +145,7 @@ Item {
                             }
                             Btn { visible: screen.tools.busy; text: Theme.say("Cancel"); tip: Theme.say("Stops after the mod it is on; what is done stays done"); onClicked: screen.tools.cancel() }
                             Btn {
-                                primary: screen.remaining.length > 0
+                                primary: screen.cachesSaid === "" && screen.remaining.length > 0
                                 enabled: !screen.tools.busy && screen.remaining.length > 0
                                 text: Theme.say("Convert remaining")
                                 tip: Theme.say("Writes a .dds beside each .png that has none, inside each mod's own folder. The .png files are not changed.")
@@ -131,15 +158,19 @@ Item {
                                 onClicked: screen.tools.convert(screen.stale)
                             }
                         }
-                        Btn {
-                            Layout.alignment: Qt.AlignTop
-                            enabled: !screen.tools.busy && screen.made.length > 0
-                            danger: true
-                            text: Theme.say("Remove all converted…")
-                            tip: Theme.say("Deletes the .dds files RimStack made, inside the mods' folders. Files it did not make are not touched.")
-                            onClicked: screen.confirmRemove = true
-                        }
+                        Loader { Layout.alignment: Qt.AlignTop; visible: active; active: screen.cachesSaid === ""; sourceComponent: removeAll }
                     }
+                }
+            }
+
+            Component {
+                id: removeAll
+                Btn {
+                    enabled: !screen.tools.busy && screen.made.length > 0
+                    danger: true
+                    text: Theme.say("Remove all converted…")
+                    tip: Theme.say("Deletes the .dds files RimStack made, inside the mods' folders. Files it did not make are not touched.")
+                    onClicked: screen.confirmRemove = true
                 }
             }
 

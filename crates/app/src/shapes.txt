@@ -946,6 +946,7 @@ textures.refused: list
     why: text
 textures.report: object
   all: number
+  cachesSaid: text
   ddsMb: number
   firstWaiting: number
   have: number
