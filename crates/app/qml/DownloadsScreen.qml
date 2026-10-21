@@ -55,11 +55,12 @@ Item {
         width: page.width
         height: Theme.sized(30)
         spacing: Theme.gapLarge
-        Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: row.modelData.name }
+        Text { Layout.fillWidth: true; Layout.maximumWidth: implicitWidth + 1; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: row.modelData.name }
         Chip { visible: row.modelData.asked; tone: Theme.ok; icon: "check"; text: Theme.say("Asked of Steam") }
         Chip { tone: Theme.moved; text: screen.day(row.modelData.have) + " → " + screen.day(row.modelData.now); tip: Theme.fill("Published {}", Theme.ago(row.modelData.now)) }
         Btn { text: Theme.say("Show"); spoken: Theme.fill("Show {}", row.modelData.name); onClicked: screen.showMod(row.modelData.modId) }
         Btn { text: Theme.say("What changed"); spoken: Theme.fill("What changed in {}", row.modelData.name); tip: Theme.say("The mod's change notes on the Workshop."); onClicked: Theme.openChangeNotes(row.modelData.id) }
+        Item { Layout.fillWidth: true }
     }
 
     component Cell: Text {
@@ -160,10 +161,12 @@ Item {
                             id: hit
                             required property var modelData
                             width: page.width
-                            Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: hit.modelData.title }
+                            spacing: Theme.gap
+                            Text { Layout.fillWidth: true; Layout.maximumWidth: implicitWidth + 1; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: hit.modelData.title }
                             Chip { tone: Theme.moved; icon: "history"; text: screen.day(hit.modelData.updated); tip: Theme.fill("Updated {}", Theme.day(hit.modelData.updated)) }
                             Chip { visible: hit.modelData.subscriptions > 0; tone: Theme.ok; icon: "download"; text: Theme.fill("{} subscribed", Theme.count(hit.modelData.subscriptions)) }
                             Btn { text: Theme.say("Look up"); onClicked: screen.downloads.lookUp(hit.modelData.id) }
+                            Item { Layout.fillWidth: true }
                         }
                     }
                 }
@@ -204,7 +207,7 @@ Item {
                         height: Theme.sized(32)
                         spacing: Theme.gapLarge
                         Icon { name: "git-branch"; color: Theme.ink3 }
-                        Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: repository.modelData.name }
+                        Text { Layout.fillWidth: true; Layout.maximumWidth: implicitWidth + 1; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: repository.modelData.name }
                         Chip { visible: repository.modelData.installed; tone: Theme.ok; icon: "check"; text: Theme.say("Installed") }
                         Btn { icon: "external-link"; text: Theme.say("Repository page"); onClicked: Qt.openUrlExternally(repository.modelData.link) }
                         Btn {
@@ -219,6 +222,7 @@ Item {
                                 lines: [Theme.say("git clone, from"), { path: repository.modelData.link }, Theme.say("Into"), { path: repository.modelData.into }],
                                 label: Theme.say("Clone"), run: () => screen.downloads.cloneRepository(repository.index) })
                         }
+                        Item { Layout.fillWidth: true }
                     }
                 }
                 Repeater {
@@ -229,12 +233,13 @@ Item {
                         width: page.width
                         height: Theme.sized(32)
                         spacing: Theme.gapLarge
-                        Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: item.modelData.title || item.modelData.id }
-                        Cell { Layout.preferredWidth: Theme.sized(100); text: screen.day(item.modelData.updated) }
-                        Cell { Layout.preferredWidth: Theme.sized(70); horizontalAlignment: Text.AlignRight; text: screen.megabytes(item.modelData.megabytes) }
+                        Text { Layout.fillWidth: true; Layout.maximumWidth: implicitWidth + 1; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: item.modelData.title || item.modelData.id }
+                        Cell { text: screen.day(item.modelData.updated) }
+                        Cell { text: screen.megabytes(item.modelData.megabytes) }
                         Chip { visible: !item.modelData.title; tone: Theme.err; icon: "circle-alert"; text: Theme.say("Not on the Workshop") }
                         Chip { visible: !!item.modelData.title && item.modelData.installed; tone: Theme.ok; icon: "check"; text: Theme.say("Installed") }
                         Btn { visible: !!item.modelData.title && !item.modelData.installed; icon: "external-link"; text: Theme.say("Workshop page"); onClicked: Theme.openWorkshop(item.modelData.id) }
+                        Item { Layout.fillWidth: true }
                     }
                 }
             }
@@ -450,7 +455,7 @@ Item {
                         height: Theme.sized(30)
                         spacing: Theme.gapLarge
                         Icon { name: "git-branch"; color: Theme.ink3 }
-                        Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: checkout.modelData.name }
+                        Text { Layout.fillWidth: true; Layout.maximumWidth: implicitWidth + 1; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: checkout.modelData.name }
                         Chip {
                             maxWidth: Theme.sized(340)
                             tone: checkout.modelData.problem || !checkout.modelData.checked ? Theme.ink2 : checkout.modelData.behind > 0 ? Theme.moved : Theme.ok
@@ -468,6 +473,7 @@ Item {
                             tip: Theme.say("Moves forward to the remote; stops if the folder has changes of its own.")
                             onClicked: screen.downloads.updateFromGit(checkout.modelData.modId)
                         }
+                        Item { Layout.fillWidth: true }
                     }
                 }
                 RowLayout {
@@ -476,8 +482,9 @@ Item {
                     width: page.width
                     height: Theme.sized(30)
                     spacing: Theme.gapLarge
-                    Text { Layout.fillWidth: true; color: Theme.ink2; font.pixelSize: Theme.body; text: screen.checkoutsOpen ? "" : Theme.fill("{} not behind", parent.settled) }
+                    Text { Layout.fillWidth: true; Layout.maximumWidth: implicitWidth + 1; color: Theme.ink2; font.pixelSize: Theme.body; text: screen.checkoutsOpen ? "" : Theme.fill("{} not behind", parent.settled) }
                     Btn { text: screen.checkoutsOpen ? Theme.say("Only those behind") : Theme.say("Show all"); onClicked: screen.checkoutsOpen = !screen.checkoutsOpen }
+                    Item { Layout.fillWidth: true }
                 }
             }
 
@@ -559,7 +566,7 @@ Item {
                             width: parent.width
                             spacing: Theme.gap
                             Icon { name: changed.modelData.git ? "git-branch" : "cloud"; color: changed.reached ? Theme.focus : Theme.ink3 }
-                            Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; font.weight: Font.Medium; font.underline: changed.reached; text: changed.modelData.name; Accessible.role: Accessible.ListItem; Accessible.name: text }
+                            Text { Layout.fillWidth: true; Layout.maximumWidth: implicitWidth + 1; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; font.weight: Font.Medium; font.underline: changed.reached; text: changed.modelData.name; Accessible.role: Accessible.ListItem; Accessible.name: text }
                             Chip { visible: !changed.modelData.active; text: Theme.say("inactive") }
                             Chip { visible: changed.modelData.git; tone: Theme.moved; text: Theme.plural(changed.modelData.notes.length, "{} commit", "{} commits") }
                             Text {
@@ -571,6 +578,7 @@ Item {
                             }
                             Btn { activeFocusOnTab: false; text: Theme.say("Show"); spoken: Theme.fill("Show {}", changed.modelData.name); tip: Theme.say("Enter"); onClicked: screen.showMod(changed.modelData.modId) }
                             Btn { activeFocusOnTab: false; visible: !changed.modelData.git; icon: "external-link"; spoken: Theme.fill("Change notes of {}", changed.modelData.name); tip: Theme.say("The mod's change notes on the Workshop."); onClicked: Theme.openChangeNotes(changed.modelData.id) }
+                            Item { Layout.fillWidth: true }
                         }
                         Repeater {
                             model: changed.said
@@ -648,21 +656,24 @@ Item {
                         spacing: Theme.gapLarge
                         Column {
                             Layout.fillWidth: true
+                            Layout.maximumWidth: Math.max(oldLine.implicitWidth, newLine.implicitWidth) + 1
                             Layout.minimumWidth: 0
                             spacing: Theme.gapHair
                             RowLayout {
+                                id: oldLine
                                 width: parent.width
                                 spacing: Theme.gap
-                                Text { Layout.maximumWidth: parent.width - (wasOff.visible ? wasOff.width + Theme.gap : 0); elide: Text.ElideRight; color: Theme.ink2; font.pixelSize: Theme.body; text: old.modelData.name }
-                                Chip { id: wasOff; visible: !old.modelData.active; text: Theme.say("inactive") }
+                                Text { Layout.fillWidth: true; Layout.maximumWidth: implicitWidth + 1; elide: Text.ElideRight; color: Theme.ink2; font.pixelSize: Theme.body; text: old.modelData.name }
+                                Chip { visible: !old.modelData.active; text: Theme.say("inactive") }
                                 Item { Layout.fillWidth: true }
                             }
                             RowLayout {
+                                id: newLine
                                 width: parent.width
                                 spacing: Theme.gap
                                 Icon { name: "corner-down-right"; color: Theme.ink3 }
-                                Text { Layout.maximumWidth: parent.width - Theme.icon - Theme.gap - (hasNew.visible ? hasNew.width + Theme.gap : 0); elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; font.weight: Font.Medium; text: old.modelData.newName }
-                                Chip { id: hasNew; visible: old.modelData.haveNew; tone: Theme.ok; icon: "check"; text: Theme.say("installed") }
+                                Text { Layout.fillWidth: true; Layout.maximumWidth: implicitWidth + 1; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; font.weight: Font.Medium; text: old.modelData.newName }
+                                Chip { visible: old.modelData.haveNew; tone: Theme.ok; icon: "check"; text: Theme.say("installed") }
                                 Item { Layout.fillWidth: true }
                             }
                         }
@@ -676,6 +687,7 @@ Item {
                             tip: Theme.say("Lets the replaced mod go: Steam unsubscribes and deletes its folder")
                             onClicked: Mods.unsubscribe(old.modelData.modId)
                         }
+                        Item { Layout.fillWidth: true }
                     }
                 }
             }
