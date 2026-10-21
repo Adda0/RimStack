@@ -34,10 +34,10 @@ cp "${XDG_DATA_HOME:-$HOME/.local/share}/RimStack/communityRules.json" "$tmp/dat
 
 fail() { echo "check FAIL $1"; exit 1; }
 # A QML error or a panic off the window's thread does not stop the app,
-# so a check can pass over either.
+# so a check can pass over either. Nor does a dialog's warning.
 sound() {
     local errors
-    errors=$(grep -E 'TypeError|ReferenceError|is not a function|is not defined|Cannot read property|Unable to assign|panicked' "$1" | head -3 || true)
+    errors=$(grep -E 'TypeError|ReferenceError|is not a function|is not defined|Cannot read property|Unable to assign|panicked|QML FileDialog' "$1" | head -3 || true)
     [ -z "$errors" ] || fail "errors in $2:
 $errors"
     # The window's thread kept busy: by one check's actions (step_ms, timed
