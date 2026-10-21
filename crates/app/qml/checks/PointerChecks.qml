@@ -706,6 +706,11 @@ Item {
         pasted.paste()
         return pasted.text
     }
+    // A problem line's text by its paragraphs: the words, then each item shown.
+    function problemBlocks(line) {
+        const text = checks.find(line, item => item.selectByMouse !== undefined)
+        return text.getText(0, text.length).split(/[\u2028\u2029\n]/)
+    }
     function logsScreen() {
         return checks.find(screen.Window.contentItem, item => item.recorded !== undefined && item.launches !== undefined)
     }
@@ -736,6 +741,8 @@ Item {
     property int waited: 0
     property Item order
     property string wasOrder
+    property int problemWaits: 0
+    property Item clashCard
     Column {
         id: shared
         visible: false
@@ -745,6 +752,7 @@ Item {
         Card { id: cardProbe; key: "keys-check"; title: "Probe" }
         CopyText { id: copyProbe; text: "Copied\u200b text" }
         TextEdit { id: pasted; activeFocusOnTab: false }
+        ProblemLine { id: problemProbe; width: 300; error: false; name: "Probe"; words: "Ten things:"; items: ["Item 1", "Item 2", "Item 3", "Item 4", "Item 5", "Item 6", "Item 7", "Item 8", "Item 9", "Item 10"] }
     }
     readonly property var popupSteps: [
         () => {
@@ -912,7 +920,54 @@ Item {
             const reached = copyProbe.activeFocus
             events.keyClick(Qt.Key_C, Qt.ControlModifier, -1)
             check("a text to copy is reached with Tab, and Ctrl+C copies all of it", reached && checks.copied() === "Copied text")
+            // Ten items: eight shown, the rest behind a button.
+            const blocks = checks.problemBlocks(problemProbe)
+            const more = checks.find(problemProbe, item => item.text === Theme.fill("{} more", 2))
+            const fewShown = blocks.length === 9 && blocks[8] === "Item 8" && !!more && more.visible
+            events.mouseClick(more, more.width / 2, more.height / 2, Qt.LeftButton, Qt.NoModifier, -1)
+            const all = checks.problemBlocks(problemProbe)
+            check("a long list of a problem shows its first eight, and the button the rest", fewShown && all.length === 11 && all[10] === "Item 10")
             shared.visible = false
+            Mods.problemsOpen = true
+        },
+        // Again until the dlls are read.
+        () => {
+            const clash = (Mods.overview.troubleGroups || []).find(group => group.kind === "assembly-clash")
+            const card = clash ? checks.find(checks.details, item => item.key === "problems-" + clash.name && item.visible) : null
+            if (!card && checks.problemWaits++ < 25)
+                return false
+            checks.clashCard = card
+            let flick = card.parent
+            while (flick.contentY === undefined)
+                flick = flick.parent
+            flick.contentY = Math.max(0, card.mapToItem(flick.contentItem, 0, 0).y - 10)
+        },
+        () => {
+            const card = checks.clashCard, clash = Mods.overview.troubleGroups.find(group => group.kind === "assembly-clash")
+            const lines = checks.every(card, item => item.said !== undefined && item.stacked !== undefined, [])
+            const own = lines.find(line => line.name === "Fixture Mod 018")
+            const blocks = own ? checks.problemBlocks(own) : []
+            const text = own ? checks.find(own, item => item.selectByMouse !== undefined) : null
+            const indented = !!text && text.positionToRectangle(blocks[0].length + 1).x > text.positionToRectangle(0).x
+            const dlls = own ? own.items.map(item => item.split(",")[0]).sort().join(" ") : ""
+            check("a problem naming several dlls shows each on a line of its own, as a list under its words", lines.length === 2 && !!own && blocks.length === 3 && blocks[0].endsWith(own.words) && blocks[1] === own.items[0] && blocks[2] === own.items[1] && dlls === "FixtureShared.dll FixtureTools.dll" && indented)
+            events.mousePress(text, text.width - 2, text.height - 2, Qt.LeftButton, Qt.NoModifier, -1)
+            events.mouseMove(text, text.width / 2, 2, 10, Qt.LeftButton, Qt.NoModifier)
+            events.mouseRelease(text, text.width / 2, 2, Qt.LeftButton, Qt.NoModifier, 10)
+            const selected = text.selectedText
+            events.keyClick(Qt.Key_C, Qt.ControlModifier, -1)
+            const picked = checks.copied()
+            check("its words are selected with the mouse, and Ctrl+C copies the selection with a line for each item", text.readOnly && text.selectByMouse && selected !== "" && picked.endsWith(own.items[0] + "\n" + own.items[1]))
+            text.deselect()
+            events.keyClick(Qt.Key_C, Qt.ControlModifier, -1)
+            const whole = "Fixture Mod 018 [fixture.mod018]: " + own.words + "\n- " + own.items[0] + "\n- " + own.items[1]
+            check("with nothing selected, Ctrl+C copies the problem with its mod's package id and a '- ' line for each item", checks.copied() === whole)
+            const copy = checks.find(card, item => item.icon === "copy" && item.visible)
+            events.mouseClick(copy, copy.width / 2, copy.height / 2, Qt.LeftButton, Qt.NoModifier, -1)
+            const each = clash.lines.map(line => line.name + " [" + line.packageId + "]: " + line.words + "\n- " + line.items.join("\n- "))
+            const copied = checks.copied()
+            check("Copy on the heading copies all of that kind as text, a list ending at a blank line", copied === Theme.say(clash.name) + "\n" + each.join("\n\n") && copied.indexOf(whole) > 0 && copied.indexOf("\n\n") > 0)
+            Mods.problemsOpen = false
         },
         () => {
             const before = checks.ran

@@ -46,6 +46,7 @@ pub struct ProblemSaid {
     error: bool,
     group: &'static str,
     words: Sentence,
+    items: Vec<Sentence>,
     short: Sentence,
     fix: FixSaid,
     /// With `ignore`, what `App::ignore_problem` is given; empty when it cannot be ignored.
@@ -63,6 +64,7 @@ impl ProblemSaid {
             error: trouble.error,
             group: trouble.kind.heading(),
             words: trouble.words.clone(),
+            items: trouble.items.clone(),
             short: trouble.short.clone(),
             fix: FixSaid::of(&trouble.fix),
             package_id: m.id.clone(),

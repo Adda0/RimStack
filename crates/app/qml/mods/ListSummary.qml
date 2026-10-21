@@ -61,6 +61,7 @@ Column {
                 width: summary.width
                 name: modelData.name
                 words: modelData.words
+                items: modelData.items
                 fix: modelData.fix
                 ignore: modelData.ignore
                 packageId: modelData.packageId

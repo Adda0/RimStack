@@ -286,7 +286,7 @@ impl LoadOrder {
                 .max()
                 .unwrap_or(0),
             trouble_text: first.map_or_else(Sentence::default, |t| t.short.clone()),
-            trouble_tip: Sentence::joined("\n", shown().map(|t| t.words.clone()).collect()),
+            trouble_tip: Sentence::joined("\n", shown().map(Trouble::in_full).collect()),
             tags: m.tags.join(", "),
             colour: m.colour.clone(),
             local: m.local,

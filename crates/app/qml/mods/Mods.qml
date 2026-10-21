@@ -183,6 +183,18 @@ Item {
             Theme.openWorkshop(fix.target)
     }
 
+    // A problem as text to paste into a report: its mod with the package id, each item a "- " line.
+    function problemText(problem) {
+        const mod = problem.name ? problem.name + (problem.packageId ? " [" + problem.packageId + "]" : "") + ": " : ""
+        return [mod + problem.words].concat((problem.items || []).map(item => "- " + item)).join("\n")
+    }
+    // A heading of the Problems panel with all of its problems; a list ends at a blank line,
+    // so the next mod is not read as part of its last item.
+    function problemsText(group) {
+        const each = group.lines.map(problem => problemText(problem) + (problem.items.length > 0 ? "\n" : ""))
+        return (Theme.say(group.name) + "\n" + each.join("\n")).trim()
+    }
+
     function fixAll() { Hub.mods.fixAll() }
     // The load order's entry is made to name this copy of a doubled id instead.
     function useCopy(modId, useAs) { Hub.mods.useCopy(modId, useAs) }

@@ -2,7 +2,6 @@
 //! to the mod's folder as written, so where the file system tells case apart it loads nothing
 //! from them, silently; elsewhere the path is found and nothing is told.
 
-use crate::base::sentence::Sentence;
 use crate::mods::describe::{Fix, Trouble, TroubleKind};
 use crate::rimworld::loadfolders::Miscased;
 use crate::{say, say_n};
@@ -19,10 +18,10 @@ pub fn troubles(miscased: &[Miscased]) -> Vec<Trouble> {
         error: false,
         words: say_n!(
             miscased.len(),
-            "LoadFolders.xml names {} folder in other letter case than on disk, so on this system the game loads nothing from it: {}",
-            "LoadFolders.xml names {} folders in other letter case than on disk, so on this system the game loads nothing from them: {}",
-            Sentence::listed(folders).inside()
+            "LoadFolders.xml names {} folder in other letter case than on disk, so on this system the game loads nothing from it:",
+            "LoadFolders.xml names {} folders in other letter case than on disk, so on this system the game loads nothing from them:"
         ),
+        items: folders,
         short: say!("LoadFolders.xml letter case"),
         fix: Fix::None,
         key: "loadfolders-case".to_string(),
@@ -43,8 +42,10 @@ mod tests {
         assert_eq!(said.len(), 1);
         assert_eq!(
             said[0].words.to_string(),
-            "LoadFolders.xml names 1 folder in other letter case than on disk, so on this system the game loads nothing from it: common (on disk Common)"
+            "LoadFolders.xml names 1 folder in other letter case than on disk, so on this system the game loads nothing from it:"
         );
+        assert_eq!(said[0].items.len(), 1);
+        assert_eq!(said[0].items[0].to_string(), "common (on disk Common)");
         assert!(troubles(&[]).is_empty());
     }
 }
