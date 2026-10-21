@@ -92,7 +92,7 @@ Column {
         width: parent.width
         stretch: true
         title: Theme.say("Details")
-        options: ["About", "Load order", "Files"]
+        options: ["About", "Load order", "Files", Theme.fill("Needed by ({})", (Mods.info.neededBy || []).length)]
         current: Mods.tab
         onPicked: index => Mods.tab = index
     }

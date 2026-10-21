@@ -87,6 +87,7 @@ fn main() {
                 "qml/mods/Dragging.qml",
                 "qml/mods/LoadOrderTab.qml",
                 "qml/mods/FilesTab.qml",
+                "qml/mods/NeededByTab.qml",
                 "qml/mods/ListSummary.qml",
                 "qml/EmptyState.qml",
                 "qml/Prompt.qml",

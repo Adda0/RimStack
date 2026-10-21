@@ -305,8 +305,8 @@ Rectangle {
     }
     Shortcut { sequence: "F6"; enabled: screen.visible; onActivated: screen.nextPane(1) }
     Shortcut { sequence: "Shift+F6"; enabled: screen.visible; onActivated: screen.nextPane(-1) }
-    Shortcut { sequence: "Ctrl+PgDown"; enabled: screen.visible; onActivated: Mods.tab = (Mods.tab + 1) % 3 }
-    Shortcut { sequence: "Ctrl+PgUp"; enabled: screen.visible; onActivated: Mods.tab = (Mods.tab + 2) % 3 }
+    Shortcut { sequence: "Ctrl+PgDown"; enabled: screen.visible; onActivated: Mods.tab = (Mods.tab + 1) % 4 }
+    Shortcut { sequence: "Ctrl+PgUp"; enabled: screen.visible; onActivated: Mods.tab = (Mods.tab + 3) % 4 }
 
 Timer {
     readonly property bool sorting: Hub.given("--sorting")
