@@ -596,6 +596,12 @@ Item {
         Mods.filtered = ""
         const named = (key, name) => Mods.troubles.filter(t => t.ignore === key && t.name === name).length === 1
         check("a LoadFolders.xml folder in the wrong letter case, and an About.xml naming no game version, are problems", named("loadfolders-case", "Fixture Mod 015") && named("no-versions", "Fixture Mod 016"))
+        const groups = Mods.overview.troubleGroups
+        const headings = key => groups.filter(g => g.lines.some(t => t.ignore === key)).map(g => g.name)
+        const apart = ["assembly-harmony", "loadfolders-case", "no-versions"].map(headings)
+        const trusting = Mods.troubles.filter(t => t.fix.action === "trust").length
+        const versionGroups = groups.filter(g => g.lines.some(t => t.fix.action === "trust"))
+        check("each kind of problem has a heading of its own, and all of one kind are under it", apart.every(h => h.length === 1) && new Set(apart.map(h => h[0])).size === 3 && trusting >= 2 && versionGroups.length === 1 && versionGroups[0].lines.length === trusting && groups.every(g => g.lines.every(t => t.group === g.name)))
         Mods.previewSort()
         const sortLines = Hub.mods.sortMoves()
         check("each move of a sort has a reason", !Hub.mods.previewing || sortLines.every(group => group.name !== "" && group.moves.every(m => m.why !== "")))
