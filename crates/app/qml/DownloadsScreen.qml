@@ -15,6 +15,12 @@ Item {
     readonly property var behind: report.steamcmd || []
     readonly property var found: downloads.queue || ({})
     readonly property var searchBox: downloads.searched || ({ found: [], problem: "" })
+    readonly property var searchHits: searchBox.found || []
+    // The Workshop hit whose preview shows; -1 for none.
+    property int searchPicked: -1
+    readonly property var searchHit: searchHits[searchPicked] || null
+    readonly property string searchPreview: searchHit ? (downloads.previews || ({}))[searchHit.id] || "" : ""
+    onSearchHitChanged: if (searchHit) downloads.fetchPreview(searchHit.id, searchHit.preview || "")
     readonly property var queue: found.items || []
     readonly property var repositories: found.repositories || []
     readonly property var wanted: found.wanted || []
@@ -123,9 +129,9 @@ Item {
                         id: find
                         enabled: !screen.downloads.searchBusy && seeked.text.trim() !== ""
                         icon: "search"
-                        text: screen.downloads.searchBusy ? Theme.say("Asking Steam…") : Theme.say("Search")
+                        text: screen.downloads.searchBusy && screen.downloads.searchPage <= 1 ? Theme.say("Asking Steam…") : Theme.say("Search")
                         tip: Theme.say("Searches the whole Workshop with your Steam WebAPI key, sent only to api.steampowered.com.")
-                        onClicked: screen.downloads.search(seeked.text)
+                        onClicked: { screen.searchPicked = -1; screen.downloads.search(seeked.text, 1) }
                     }
                 }
                 Text {
@@ -146,7 +152,7 @@ Item {
                 Column {
                     width: parent.width
                     spacing: Theme.gap
-                    visible: !!searchBox.problem || searchBox.found.length > 0
+                    visible: !!searchBox.problem || screen.searchHits.length > 0
                     Text {
                         visible: !!searchBox.problem
                         width: parent.width
@@ -155,19 +161,117 @@ Item {
                         font.pixelSize: Theme.body
                         text: searchBox.problem || ""
                     }
-                    Repeater {
-                        model: searchBox.found || []
-                        RowLayout {
-                            id: hit
-                            required property var modelData
-                            width: page.width
-                            spacing: Theme.gap
-                            Text { Layout.fillWidth: true; Layout.maximumWidth: implicitWidth + 1; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: hit.modelData.title }
-                            Chip { tone: Theme.moved; icon: "history"; text: screen.day(hit.modelData.updated); tip: Theme.fill("Updated {}", Theme.day(hit.modelData.updated)) }
-                            Chip { visible: hit.modelData.subscriptions > 0; tone: Theme.ok; icon: "download"; text: Theme.fill("{} subscribed", Theme.count(hit.modelData.subscriptions)) }
-                            Btn { text: Theme.say("Look up"); onClicked: screen.downloads.lookUp(hit.modelData.id) }
-                            Item { Layout.fillWidth: true }
+                    RowLayout {
+                        visible: screen.searchHits.length > 0
+                        width: parent.width
+                        spacing: Theme.gapLarge
+                        ListView {
+                            id: hitList
+                            Layout.fillWidth: true
+                            Layout.alignment: Qt.AlignTop
+                            implicitHeight: Math.min(contentHeight, Theme.sized(420))
+                            clip: true
+                            boundsBehavior: Flickable.StopAtBounds
+                            Wheel {}
+                            ScrollBar.vertical: ListBar {}
+                            model: screen.searchHits
+                            RowKeys {
+                                objectName: "searchHitKeys"
+                                parent: hitList
+                                view: hitList
+                                title: Theme.say("Workshop hits")
+                                count: hitList.count
+                                current: screen.searchPicked
+                                onChosen: index => screen.searchPicked = index
+                                onEntered: if (screen.searchHit) screen.downloads.lookUp(screen.searchHit.id)
+                            }
+                            delegate: Item {
+                                id: hit
+                                required property int index
+                                required property var modelData
+                                readonly property bool current: index === screen.searchPicked
+                                width: hitList.width
+                                height: Theme.sized(34)
+                                Accessible.role: Accessible.ListItem
+                                Accessible.name: modelData.title
+                                Rectangle {
+                                    anchors.fill: parent
+                                    radius: Theme.corner
+                                    color: hit.current ? Theme.accent : Theme.hover
+                                    opacity: hit.current ? 1 : hitHover.hovered ? 0.05 : 0
+                                }
+                                HoverHandler { id: hitHover }
+                                TapHandler { onTapped: screen.searchPicked = hit.index }
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: Theme.gapSmall
+                                    spacing: Theme.gap
+                                    Text { Layout.fillWidth: true; Layout.maximumWidth: implicitWidth + 1; elide: Text.ElideRight; color: hit.current ? Theme.onSelected : Theme.ink; font.pixelSize: Theme.body; text: hit.modelData.title }
+                                    Chip { onAccent: hit.current; tone: Theme.moved; icon: "history"; text: screen.day(hit.modelData.updated); tip: Theme.fill("Updated {}", Theme.day(hit.modelData.updated)) }
+                                    Chip { visible: hit.modelData.subscriptions > 0; onAccent: hit.current; tone: Theme.ok; icon: "download"; text: Theme.fill("{} subscribed", Theme.count(hit.modelData.subscriptions)) }
+                                    Btn { text: Theme.say("Look up"); onClicked: screen.downloads.lookUp(hit.modelData.id) }
+                                    Item { Layout.fillWidth: true }
+                                }
+                            }
                         }
+                        Column {
+                            objectName: "searchHitPane"
+                            visible: !!screen.searchHit
+                            Layout.preferredWidth: Math.min(Theme.sized(360), page.width * 0.4)
+                            Layout.alignment: Qt.AlignTop
+                            spacing: Theme.gapSmall
+                            // Held open while the picture is fetched, so the pane does not jump.
+                            Rectangle {
+                                visible: !!screen.searchHit && !!screen.searchHit.preview
+                                width: parent.width
+                                height: width * 9 / 16
+                                radius: Theme.cornerLarge
+                                color: Theme.well
+                                clip: true
+                                Image {
+                                    anchors.fill: parent
+                                    asynchronous: true
+                                    fillMode: Image.PreserveAspectFit
+                                    sourceSize.width: 720
+                                    source: screen.searchPreview ? Theme.fileUrl(screen.searchPreview) : ""
+                                }
+                            }
+                            Text { width: parent.width; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: Theme.heading; font.weight: Font.DemiBold; text: screen.searchHit ? screen.searchHit.title : "" }
+                            Flow {
+                                width: parent.width
+                                spacing: Theme.gapTiny
+                                Chip { tone: Theme.moved; icon: "history"; text: screen.searchHit ? Theme.fill("Updated {}", screen.day(screen.searchHit.updated)) : "" }
+                                Chip { visible: !!screen.searchHit && screen.searchHit.size > 0; text: screen.searchHit ? screen.megabytes(screen.searchHit.size / 1048576) : "" }
+                                Chip { visible: !!screen.searchHit && screen.searchHit.subscriptions > 0; tone: Theme.ok; icon: "download"; text: screen.searchHit ? Theme.fill("{} subscribed", Theme.count(screen.searchHit.subscriptions)) : "" }
+                                Repeater {
+                                    model: screen.searchHit ? screen.searchHit.tags : []
+                                    Chip { required property string modelData; text: modelData }
+                                }
+                            }
+                            Text {
+                                visible: text !== ""
+                                width: parent.width
+                                wrapMode: Text.WordWrap
+                                maximumLineCount: 10
+                                elide: Text.ElideRight
+                                color: Theme.ink2
+                                font.pixelSize: Theme.body
+                                text: screen.searchHit ? screen.searchHit.description : ""
+                            }
+                            Flow {
+                                width: parent.width
+                                spacing: Theme.gapSmall
+                                Btn { primary: true; text: Theme.say("Look up"); onClicked: screen.downloads.lookUp(screen.searchHit.id) }
+                                Btn { icon: "external-link"; text: Theme.say("Open its page"); onClicked: Theme.openWorkshop(screen.searchHit.id) }
+                            }
+                        }
+                    }
+                    Btn {
+                        visible: !!searchBox.more
+                        enabled: !screen.downloads.searchBusy
+                        icon: "chevron-down"
+                        text: screen.downloads.searchBusy && screen.downloads.searchPage > 1 ? Theme.say("Asking Steam…") : Theme.say("More results")
+                        onClicked: screen.downloads.search(searchBox.text, searchBox.page + 1)
                     }
                 }
             }

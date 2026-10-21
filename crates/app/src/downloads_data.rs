@@ -28,10 +28,15 @@ pub mod qobject {
         /// `{ done, asked, resume, refused }`.
         #[qproperty(QVariant, notes_state, cxx_name = "notesState")]
         #[qproperty(QVariant, replacements)]
-        /// `[{ id, title, updated, subscriptions }]`; with a problem: `{ problem }`.
+        /// `{ text, page, total, found: [{ id, title, updated, subscriptions, description, tags,
+        /// size, preview }], more, problem? }`.
         #[qproperty(QVariant, searched)]
         #[qproperty(bool, can_search, cxx_name = "canSearch")]
         #[qproperty(bool, search_busy, cxx_name = "searchBusy")]
+        /// The page of hits asked last; 0 before any.
+        #[qproperty(i32, search_page, cxx_name = "searchPage")]
+        /// `{ id: file }`: the kept preview pictures of search hits.
+        #[qproperty(QVariant, previews)]
         #[qproperty(bool, steamcmd)]
         #[qproperty(QString, task_note, cxx_name = "taskNote")]
         #[qproperty(bool, task_running, cxx_name = "taskRunning")]
@@ -53,9 +58,14 @@ pub mod qobject {
         #[cxx_name = "lookUp"]
         fn look_up(self: Pin<&mut DownloadsData>, pasted: &QString);
 
-        /// Asks Steam with the user's own WebAPI key, off the window's thread.
+        /// Asks Steam with the user's own WebAPI key, off the window's thread. Page 1 starts
+        /// the hits afresh; a later page of the same text adds to them.
         #[qinvokable]
-        fn search(self: Pin<&mut DownloadsData>, text: &QString);
+        fn search(self: Pin<&mut DownloadsData>, text: &QString, page: i32);
+        /// Fetches a search hit's preview picture once, off the window's thread, into `previews`.
+        #[qinvokable]
+        #[cxx_name = "fetchPreview"]
+        fn fetch_preview(self: Pin<&mut DownloadsData>, id: &QString, url: &QString);
 
         /// Steam must be running.
         #[qinvokable]
@@ -127,14 +137,14 @@ use crate::changes::Changes;
 use crate::qml::values::to_qml;
 use crate::reports::Answer;
 use crate::workspace::changed::{ChangeNotes, Only, SinceLaunch, since_shown};
-use crate::workspace::downloads::{Queue, Updates, updates_shown};
+use crate::workspace::downloads::{Hits, Queue, Updates, updates_shown};
 use crate::workspace::fetch::Done;
 use core::pin::Pin;
 use cxx_qt::{CxxQtType, Threading};
 use cxx_qt_lib::{QString, QVariant};
 use rimstack_core::base::error::Error;
 use rimstack_core::mods::library::ModId;
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::Arc;
 
 mod notes;
@@ -155,6 +165,8 @@ pub struct DownloadsDataRust {
     searched: QVariant,
     can_search: bool,
     search_busy: bool,
+    search_page: i32,
+    previews: QVariant,
     steamcmd: bool,
     task_note: QString,
     task_running: bool,
@@ -166,6 +178,9 @@ pub struct DownloadsDataRust {
     changed: SinceLaunch,
     fetched: ChangeNotes,
     asked_of_steam: HashSet<String>,
+    hits: Hits,
+    previews_kept: HashMap<String, String>,
+    previews_asked: HashSet<String>,
     waiting: VecDeque<(String, Work)>,
     since_reading: crate::jobs::Lane,
 }
@@ -189,6 +204,8 @@ impl Default for DownloadsDataRust {
             searched: QVariant::default(),
             can_search: false,
             search_busy: false,
+            search_page: 0,
+            previews: QVariant::default(),
             steamcmd: false,
             task_note: QString::default(),
             task_running: false,
@@ -200,6 +217,9 @@ impl Default for DownloadsDataRust {
             changed: SinceLaunch::default(),
             fetched: ChangeNotes::new(),
             asked_of_steam: HashSet::new(),
+            hits: Hits::default(),
+            previews_kept: HashMap::new(),
+            previews_asked: HashSet::new(),
             waiting: VecDeque::new(),
             since_reading: crate::jobs::Lane::default(),
         }
@@ -319,23 +339,71 @@ impl qobject::DownloadsData {
         );
     }
 
-    fn search(mut self: Pin<&mut Self>, text: &QString) {
+    fn search(mut self: Pin<&mut Self>, text: &QString, page: i32) {
         if self.search_busy || self.demo {
             return;
         }
         self.as_mut().set_search_busy(true);
+        self.as_mut().set_search_page(page.max(1));
         let (app, text) = (self.app(), text.to_string());
+        let page = usize::try_from(page).unwrap_or(1).max(1);
         crate::jobs::run(
             "workshop search",
             self.qt_thread(),
-            move || app.search_workshop(&text),
-            |mut me, found| {
-                let answer = match &found {
-                    Ok(found) => to_qml(&serde_json::json!({ "found": found })),
-                    Err(problem) => to_qml(&Answer::<()>::from(Err(problem.clone()))),
-                };
+            move || {
+                let found = app.search_workshop(&text, page);
+                (text, found)
+            },
+            move |mut me, (text, found)| {
+                let had = std::mem::take(&mut me.as_mut().rust_mut().get_mut().hits);
+                let hits = had.with(&text, page, found);
+                let answer = to_qml(&hits);
+                me.as_mut().rust_mut().get_mut().hits = hits;
                 me.as_mut().set_searched(answer);
                 me.as_mut().set_search_busy(false);
+            },
+        );
+    }
+
+    fn fetch_preview(mut self: Pin<&mut Self>, id: &QString, url: &QString) {
+        let (id, url) = (id.to_string(), url.to_string());
+        if self.demo
+            || url.is_empty()
+            || !self
+                .as_mut()
+                .rust_mut()
+                .get_mut()
+                .previews_asked
+                .insert(id.clone())
+        {
+            return;
+        }
+        let app = self.app();
+        crate::jobs::run(
+            "workshop preview",
+            self.qt_thread(),
+            move || {
+                let kept = app.workshop_preview(&id, &url);
+                (id, kept)
+            },
+            |mut me, (id, kept)| {
+                let file = match kept {
+                    Ok(file) => file,
+                    Err(problem) => {
+                        rimstack_core::problem!("{problem}");
+                        None
+                    }
+                };
+                let held = me.as_mut().rust_mut().get_mut();
+                // A failed fetch may be asked again when the hit is chosen again.
+                let Some(file) = file else {
+                    held.previews_asked.remove(&id);
+                    return;
+                };
+                held.previews_kept
+                    .insert(id, file.to_string_lossy().into_owned());
+                let shown = to_qml(&held.previews_kept);
+                me.set_previews(shown);
             },
         );
     }
