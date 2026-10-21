@@ -261,6 +261,11 @@ Item {
                 GroupTitle { visible: screen.finding === ""; text: Theme.say("Folders") }
                 Text { visible: screen.finding === ""; width: parent.width; bottomPadding: Theme.gapSmall; wrapMode: Text.WordWrap; color: Theme.ink3; font.pixelSize: Theme.small; text: Theme.say("Found through Steam. Type a folder to use another; empty the box to find it again.") }
                 Folder { title: Theme.say("RimWorld"); note: screen.info.gameVersion ? Theme.fill("version {}", screen.info.gameVersion) : ""; name: "game"; inUse: screen.info.game || ""; setByHand: screen.info.setGame || "" }
+                Line {
+                    title: Theme.say("Local mods")
+                    tip: Theme.say("The Mods folder inside the RimWorld folder: mods copied in by hand, and those downloaded here.")
+                    PathText { path: screen.info.localMods || Theme.say("Not found"); tone: screen.info.localMods ? Theme.ink : Theme.err; copyable: true; openTip: screen.info.localMods ? Theme.say("Open folder") : "" }
+                }
                 Folder { title: Theme.say("Config and saves"); name: "config"; inUse: screen.info.config || ""; setByHand: screen.info.setConfig || "" }
                 Folder { title: Theme.say("Workshop mods"); name: "workshop"; inUse: screen.info.workshop || ""; setByHand: screen.info.setWorkshop || "" }
 
