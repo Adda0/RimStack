@@ -588,6 +588,7 @@
  "Makes the load order of the last clean launch the list on the Mods screen. Save writes it.": "Делает порядок загрузки последнего чистого запуска списком на экране модов. Сохранение записывает его.",
  "Makes this launch's load order the list on the Mods screen. Save writes it.": "Делает порядок загрузки этого запуска списком на экране модов. Сохранение записывает его.",
  "Making room": "Освобождение места",
+ "Mark in the mod list": "Mark in the mod list",
  "Marked as working on RimWorld {}": "Отмечен как работающий в RimWorld {}",
  "Marked as working on this game version": "Отмечен как работающий в этой версии игры",
  "Match case": "Match case",

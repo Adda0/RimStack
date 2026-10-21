@@ -466,6 +466,14 @@ impl qobject::ModsData {
         self.show();
     }
 
+    pub(super) fn show_in_list(mut self: Pin<&mut Self>, kind: &QString, on: bool) -> QString {
+        let app = self.app();
+        let kept = app.show_in_list(&kind.to_string(), on);
+        self.as_mut().order_mut().recheck(&app);
+        self.show();
+        crate::words::why_not(&kept)
+    }
+
     pub(super) fn warn_again(mut self: Pin<&mut Self>, given: &QVariant) {
         let Some(ids) = ids(given) else {
             return self.refuse_list();
