@@ -43,6 +43,13 @@ Column {
             tone: modelData.error ? Theme.err : Theme.warn
             key: "problems-" + modelData.name
             spacing: Theme.gap
+            actions: Btn {
+                compact: true
+                icon: "copy"
+                spoken: Theme.say("Copy")
+                tip: Theme.say("Copies these problems as text, each with its mod's package id, to report them")
+                onClicked: Theme.copy(Mods.problemsText(group.modelData))
+            }
             // Errors always stay marked in the mod list: the game trips on them.
             Row {
                 visible: !group.modelData.error
@@ -96,6 +103,7 @@ Column {
                     error: modelData.error
                     name: modelData.name
                     words: modelData.words
+                    items: modelData.items
                     fix: modelData.fix
                     ignore: modelData.ignore
                     packageId: modelData.packageId

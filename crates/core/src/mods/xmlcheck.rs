@@ -256,18 +256,18 @@ pub fn check(
 pub fn troubles(found: &Found) -> Vec<Trouble> {
     let mut said = Vec::new();
     if !found.broken.is_empty() {
-        let files: Vec<String> = (found.broken.iter())
-            .map(|(file, line)| format!("{file}:{line}"))
+        let files: Vec<Sentence> = (found.broken.iter())
+            .map(|(file, line)| format!("{file}:{line}").into())
             .collect();
         let n = files.len();
         said.push(Trouble {
             error: true,
             words: say_n!(
                 n,
-                "{} XML file will not load, so the game skips what it holds: {}",
-                "{} XML files will not load, so the game skips what they hold: {}",
-                first_few(&files)
+                "{} XML file will not load, so the game skips what it holds:",
+                "{} XML files will not load, so the game skips what they hold:"
             ),
+            items: files,
             short: say!("XML that will not load"),
             fix: Fix::None,
             key: "xml-broken".to_string(),
@@ -280,10 +280,10 @@ pub fn troubles(found: &Found) -> Vec<Trouble> {
             error: false,
             words: say_n!(
                 n,
-                "{} patch aims at a def no active mod defines, so the game reports it failed: {}",
-                "{} patches aim at defs no active mod defines, so the game reports them failed: {}",
-                first_few(&found.misses)
+                "{} patch aims at a def no active mod defines, so the game reports it failed:",
+                "{} patches aim at defs no active mod defines, so the game reports them failed:"
             ),
+            items: found.misses.iter().map(|m| m.as_str().into()).collect(),
             short: say!("Patches miss their defs"),
             fix: Fix::None,
             key: "xml-misses".to_string(),
@@ -412,9 +412,17 @@ mod tests {
         let said = troubles(&found[1]);
         let keys: Vec<&str> = said.iter().map(|t| t.key.as_str()).collect();
         assert_eq!(keys, ["xml-broken", "xml-misses"]);
-        // Each names what it counts, not the count again.
-        assert!(said[0].words.to_string().ends_with(": Defs/broken.xml:4"));
-        assert!(said[1].words.to_string().contains(&found[1].misses[0]));
+        // Each lists what it counts, one an item, every one of them.
+        let items =
+            |t: &Trouble| -> Vec<String> { t.items.iter().map(Sentence::to_string).collect() };
+        assert_eq!(items(&said[0]), ["Defs/broken.xml:4"]);
+        assert_eq!(items(&said[1]), found[1].misses);
+        assert!(
+            said[1]
+                .words
+                .to_string()
+                .starts_with("4 patches aim at defs")
+        );
         let left_out = leaves_out(&found[1]).unwrap().to_string();
         assert!(left_out.contains(&found[1].absent[0]), "{left_out}");
     }

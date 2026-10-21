@@ -43,6 +43,7 @@ Column {
                 width: side.width
                 error: modelData.error
                 words: modelData.words
+                items: modelData.items
                 fix: modelData.fix
                 ignore: modelData.ignore
                 packageId: modelData.packageId

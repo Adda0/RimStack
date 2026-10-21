@@ -17,11 +17,28 @@ use std::collections::{HashMap, HashSet};
 pub struct Trouble {
     pub error: bool,
     pub words: Sentence,
+    /// What `words` leads to, one a line: the dlls, files or folders it is about.
+    pub items: Vec<Sentence>,
     pub short: Sentence,
     pub fix: Fix,
     /// What `Note::ignored` holds to ignore it; empty for a game version, which has `Fix::Trust`.
     pub key: String,
     pub kind: TroubleKind,
+}
+
+impl Trouble {
+    /// `words` with its first few `items` under it, one a line: for a tooltip.
+    pub fn in_full(&self) -> Sentence {
+        const SHOWN: usize = 3;
+        let dash = |item: &Sentence| Sentence::joined("", vec!["- ".into(), item.clone()]);
+        let mut lines = vec![self.words.clone()];
+        lines.extend(self.items.iter().take(SHOWN).map(dash));
+        match self.items.len().saturating_sub(SHOWN) {
+            0 => {}
+            more => lines.push(say!("{} more", more)),
+        }
+        Sentence::joined("\n", lines)
+    }
 }
 
 /// What a trouble is about: the Problems panel lists each kind under a heading of its own.
@@ -278,6 +295,7 @@ pub fn lacking(library: &Library, m: &crate::mods::list::Mod) -> Option<Trouble>
         words: say!(
             "Names no Workshop item: it has no About/PublishedFileId.txt, so a check cannot tell its updates."
         ),
+        items: Vec::new(),
         short: say!("No Workshop id"),
         fix: Fix::None,
         key: "no-workshop-id".to_string(),
@@ -297,6 +315,7 @@ pub fn unversioned(library: &Library, m: &Mod) -> Option<Trouble> {
         words: say!(
             "Names no game version in About.xml under supportedVersions: the game logs it as an error and marks the mod as made for another version."
         ),
+        items: Vec::new(),
         short: say!("No supported versions"),
         fix: Fix::None,
         key: "no-versions".to_string(),
@@ -382,6 +401,7 @@ pub fn troubles(
         Trouble {
             error: problem.is_error(),
             words,
+            items: Vec::new(),
             short,
             fix,
             key,
@@ -397,6 +417,7 @@ pub fn troubles(
             own.push(Trouble {
                 error: true,
                 words: say!("On the list, but not installed."),
+                items: Vec::new(),
                 short: say!("Not installed"),
                 fix: missing(&m.id).1,
                 key: "missing".to_string(),
@@ -497,6 +518,7 @@ fn duplicate(library: &Library, m: &Mod, read: &HashMap<ModId, String>) -> Optio
                 m.id,
                 why(i)?.inside()
             ),
+            items: Vec::new(),
             short: say!("another copy is installed"),
             fix: Fix::None,
             key: "duplicate".to_string(),
@@ -513,6 +535,7 @@ fn duplicate(library: &Library, m: &Mod, read: &HashMap<ModId, String>) -> Optio
                 read[&winner],
                 place(winner)?
             ),
+            items: Vec::new(),
             short: say!("the game loads another copy"),
             fix: Fix::None,
             key: "duplicate".to_string(),
@@ -684,6 +707,7 @@ mod tests {
         let trouble = |fix| Trouble {
             error: false,
             words: Sentence::default(),
+            items: Vec::new(),
             short: Sentence::default(),
             fix,
             key: String::new(),
@@ -821,6 +845,7 @@ mod tests {
         let not_with = |with: usize| Trouble {
             error: true,
             words: Sentence::default(),
+            items: Vec::new(),
             short: Sentence::default(),
             fix: Fix::Deactivate(with),
             key: format!(
@@ -900,6 +925,7 @@ mod tests {
         let trouble = |error: bool, fix: Fix| Trouble {
             error,
             words: Sentence::default(),
+            items: Vec::new(),
             short: Sentence::default(),
             fix,
             key: String::new(),

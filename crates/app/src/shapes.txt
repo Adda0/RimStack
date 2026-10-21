@@ -422,6 +422,8 @@ mods.details: object
         target: text
       group: text
       ignore: text
+      items: list
+        []: text
       modId: number
       name: text
       packageId: text
@@ -566,6 +568,8 @@ mods.detailsOf: object
         target: text
       group: text
       ignore: text
+      items: list
+        []: text
       modId: number
       name: text
       packageId: text
@@ -691,6 +695,8 @@ mods.overview: object
         target: text
       group: text
       ignore: text
+      items: list
+        []: never seen
       modId: number
       name: text
       packageId: text
@@ -710,6 +716,8 @@ mods.overview: object
             target: text
           group: text
           ignore: text
+          items: list
+            []: text
           modId: number
           name: text
           packageId: text
@@ -729,6 +737,8 @@ mods.overview: object
         target: text
       group: text
       ignore: text
+      items: list
+        []: text
       modId: number
       name: text
       packageId: text

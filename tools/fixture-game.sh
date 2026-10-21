@@ -54,6 +54,11 @@ for n in $(seq -w 1 100); do
         mkdir -p "$folder/Assemblies"
         printf 'not an assembly' > "$folder/Assemblies/0Harmony.dll"
     fi
+    if [ "$n" = 018 ] || [ "$n" = 019 ]; then
+        # Two dlls both ship in another size: 019 loads first, so the game takes its copies.
+        mkdir -p "$folder/Assemblies"
+        for lib in FixtureShared FixtureTools; do printf 'x%.0s' $(seq 1 $((10#$n))) > "$folder/Assemblies/$lib.dll"; done
+    fi
     if [ "$n" = 015 ]; then
         # Common on disk, common in LoadFolders.xml: on Linux the game skips it.
         mkdir -p "$folder/Common"
