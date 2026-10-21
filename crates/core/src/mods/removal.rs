@@ -3,10 +3,11 @@
 
 use crate::base::sentence::Sentence;
 use crate::mods::defs::Def;
+use crate::mods::infer::Inferred;
 use crate::mods::list::Category;
 use crate::rimworld::code::Facts;
 use crate::say;
-use std::collections::{BTreeSet, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 /// Def types a save refers to by name: things on maps, pawns and what they carry, the world.
 /// Their mod gone, the save points at defs that no longer exist.
@@ -104,6 +105,34 @@ impl Removal {
     }
 }
 
+/// A mod of the list left wanting once others leave, and why.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Wanting {
+    pub at: usize,
+    pub why: Vec<Sentence>,
+}
+
+/// The mods of a list left wanting once those at `gone` leave it: naming one as a dependency,
+/// or, by the rules read from their files, patching its defs, building on its parent defs or
+/// using its code. `requires` as `Library::requires_within` gives it, `rules` as `infer::infer`;
+/// in list order.
+pub fn left_wanting(gone: &[usize], requires: &[Vec<usize>], rules: &[Inferred]) -> Vec<Wanting> {
+    let mut found: BTreeMap<usize, Vec<Sentence>> = BTreeMap::new();
+    for (at, needs) in requires.iter().enumerate() {
+        if !gone.contains(&at) && needs.iter().any(|n| gone.contains(n)) {
+            let why = say!("names it as a dependency");
+            found.entry(at).or_default().push(why);
+        }
+    }
+    let breaking = |r: &&Inferred| r.needs && gone.contains(&r.first) && !gone.contains(&r.then);
+    for rule in rules.iter().filter(breaking) {
+        found.entry(rule.then).or_default().push(rule.why.clone());
+    }
+    (found.into_iter())
+        .map(|(at, why)| Wanting { at, why })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -170,5 +199,116 @@ mod tests {
             removal(Some(Category::Tweaks), &nothing, &comps),
             Removal::Safe(Some(Category::Tweaks))
         );
+    }
+
+    #[test]
+    fn a_mod_leaving_names_the_active_mods_needing_it_and_why() {
+        use crate::mods::{infer, library};
+        use crate::rimworld::dotnet::build::Builder;
+        use crate::rimworld::paths::{ModRoot, Source};
+        let tmp = tempfile::tempdir().unwrap();
+        let mods = tmp.path().join("Mods");
+        let add = |folder: &str, id: &str, extra: &str, files: &[(&str, &[u8])]| {
+            let root = mods.join(folder);
+            let about = format!(
+                "<ModMetaData><packageId>{id}</packageId><name>{folder}</name>{extra}</ModMetaData>"
+            );
+            for (file, bytes) in [("About/About.xml", about.as_bytes())].iter().chain(files) {
+                let path = root.join(file);
+                std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+                std::fs::write(path, bytes).unwrap();
+            }
+        };
+        let mut uses = Builder::new();
+        uses.reference("LibCode");
+        let uses = uses.finish();
+        add(
+            "Lib",
+            "t.lib",
+            "",
+            &[
+                (
+                    "Defs/Guns.xml",
+                    b"<Defs><ThingDef><defName>Lib_Gun</defName></ThingDef></Defs>",
+                ),
+                ("Assemblies/LibCode.dll", b"not read"),
+            ],
+        );
+        let deps = "<modDependencies><li><packageId>t.lib</packageId></li></modDependencies>";
+        add("App", "t.app", deps, &[]);
+        let patch = br#"<Patch><Operation Class="PatchOperationAdd"><xpath>Defs/ThingDef[defName="Lib_Gun"]/comps</xpath></Operation></Patch>"#;
+        add("Patcher", "t.patcher", "", &[("Patches/p.xml", patch)]);
+        add("Coder", "t.coder", "", &[("Assemblies/Coder.dll", &uses)]);
+        // A patch written for it is skipped without it: nothing is left wanting.
+        let guarded = br#"<Patch><Operation Class="PatchOperationFindMod"><mods><li>Lib</li></mods><match Class="PatchOperationAdd"><xpath>Defs/ThingDef[defName="Lib_Gun"]</xpath></match></Operation></Patch>"#;
+        add("Compat", "t.compat", "", &[("Patches/c.xml", guarded)]);
+        add(
+            "Alone",
+            "t.alone",
+            "",
+            &[(
+                "Defs/A.xml",
+                b"<Defs><ThingDef><defName>A</defName></ThingDef></Defs>",
+            )],
+        );
+        let roots = [ModRoot {
+            path: mods,
+            source: Source::Local,
+        }];
+        let active = [
+            "t.lib",
+            "t.alone",
+            "t.app",
+            "t.patcher",
+            "t.coder",
+            "t.compat",
+        ];
+        let active = active.map(String::from);
+        let library = library::build(library::scan(&roots), &active, "1.6");
+        let list = &library.active;
+        let paths: Vec<_> = (list.iter())
+            .map(|m| library.get(m.installed.unwrap()).unwrap().path.clone())
+            .collect();
+        let scanned: Vec<infer::Scanned> = (paths.iter())
+            .map(|p| infer::scan(std::slice::from_ref(p)))
+            .collect();
+        let names: Vec<String> = list.iter().map(|m| m.name.clone()).collect();
+        let rules = infer::infer(
+            &scanned.iter().collect::<Vec<_>>(),
+            &names,
+            &vec![false; list.len()],
+            &paths,
+        );
+        let requires = library.requires_within(list);
+        let place = |name: &str| names.iter().position(|n| n == name).unwrap();
+        let report = |gone: &str| -> Vec<(String, Vec<String>)> {
+            left_wanting(&[place(gone)], &requires, &rules)
+                .into_iter()
+                .map(|w| {
+                    (
+                        names[w.at].clone(),
+                        w.why.iter().map(|s| s.to_string()).collect(),
+                    )
+                })
+                .collect()
+        };
+        assert_eq!(
+            report("Lib"),
+            [
+                (
+                    "App".to_string(),
+                    vec!["names it as a dependency".to_string()]
+                ),
+                (
+                    "Patcher".to_string(),
+                    vec!["Patches/p.xml patches its Lib_Gun".to_string()]
+                ),
+                (
+                    "Coder".to_string(),
+                    vec!["Assemblies/Coder.dll uses its code".to_string()]
+                ),
+            ]
+        );
+        assert!(report("Alone").is_empty(), "nothing depends on it");
     }
 }

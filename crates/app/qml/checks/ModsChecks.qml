@@ -2,6 +2,7 @@
 // Exits with 1 if any check failed.
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Controls.Basic as Controls
 import RimStack.Ui
 
 Item {
@@ -453,6 +454,33 @@ Item {
         check("the selected mods move together", Mods.active.count === counts[0] - 2 && Mods.selectedCount === 0)
         Hub.mods.undo()
         check("and come back with one undo", Mods.active.count === counts[0] && order() === start && !Hub.mods.canUndo)
+
+        // A mod others need names them before it goes: under its removal verdict, each a button,
+        // and in the delete confirmation. 008 needs 010; nothing needs 008.
+        const wanted = byPackage("fixture.mod010"), wanter = byPackage("fixture.mod008")
+        check("the fixture's needed local mod and the one needing it are active", !!wanted && !!wanter)
+        if (wanted && wanter) {
+            Mods.select(wanter.id, true)
+            check("a mod nothing needs shows no one left wanting", (Mods.info.leftWanting || []).length === 0 && !Mods.info.withoutIt)
+            Mods.select(wanted.id, true)
+            Mods.tab = 0
+            const leftWanting = Mods.info.leftWanting || []
+            check("its details name the active mod needing it, and why", leftWanting.length === 1 && leftWanting[0].name === "Fixture Mod 008" && leftWanting[0].note === Theme.say("names it as a dependency") && Mods.info.withoutIt === Theme.plural(1, "{} active mod needs it", "{} active mods need it"))
+            const wantingChip = checks.find(checks.Window.contentItem, item => item.text === "Fixture Mod 008" && item.pressable === true && item.tip === Theme.say("names it as a dependency"))
+            check("as a button whose tip says why", !!wantingChip && wantingChip.visible)
+            Mods.toggleSelected()
+            check("deactivated, it offers the bin", !Mods.selectedActive && (Mods.info.binChoices || []).length > 0)
+            Mods.binRequested(wanted.id, 0, Mods.info.path || "")
+            const overlay = Controls.Overlay.overlay
+            const warning = checks.find(overlay, item => item.visible && typeof item.text === "string" && item.text.indexOf("Fixture Mod 008") >= 0)
+            check("the delete confirmation names the active mod needing it before anything goes", !!warning && warning.text === Theme.plural(1, "{} active mod needs it: {}", "{} active mods need it: {}", "Fixture Mod 008"))
+            const cancel = checks.find(overlay, item => item.visible && item.text === Theme.say("Cancel") && item.clicked !== undefined)
+            if (cancel)
+                cancel.clicked()
+            Hub.mods.undo()
+            check("and with the confirmation cancelled, undo brings it back", Mods.active.count === counts[0] && order() === start && !Hub.mods.dirty)
+            Mods.select(-1, false)
+        }
 
         const warned = [...new Set(Mods.troubles.filter(t => t.fix.action === "trust").map(t => t.modId))].slice(0, 3)
         if (warned.length === 3) {

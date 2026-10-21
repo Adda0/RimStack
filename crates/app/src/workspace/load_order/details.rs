@@ -9,7 +9,7 @@ use rimstack_core::mods::list::{Category, Mod};
 use rimstack_core::mods::tree::folder_tree;
 use rimstack_core::rimworld::loadfolders;
 use rimstack_core::rimworld::paths::Source;
-use rimstack_core::say;
+use rimstack_core::{say, say_n};
 use serde::Serialize;
 
 const MOST_PATCHES: usize = 200;
@@ -145,6 +145,10 @@ pub struct Details {
     /// Removing it mid-save, judged on what it adds; only for a mod in the newest save.
     removal: Option<Sentence>,
     removal_harms: bool,
+    /// The active mods it leaves wanting if it goes, each with why; empty for none.
+    left_wanting: Vec<Named>,
+    /// How many those are; `None` for none.
+    without_it: Option<Sentence>,
     load_folders: Vec<Sentence>,
     code: Sentence,
     sub: String,
@@ -357,6 +361,10 @@ impl LoadOrder {
             said.removal = Some(verdict.said());
             said.removal_harms = verdict.harms();
         }
+        said.left_wanting = self.left_wanting(app, library, &[id]);
+        let wanting = said.left_wanting.len();
+        said.without_it = (wanting > 0)
+            .then(|| say_n!(wanting, "{} active mod needs it", "{} active mods need it"));
         if let Some(copies) = library.copies(id) {
             let active: Vec<String> = self.active.mods().iter().map(|x| x.id.clone()).collect();
             let read = library.in_use(&active);
@@ -682,6 +690,71 @@ impl LoadOrder {
             .flatten()
             .collect(),
         )
+    }
+
+    /// The active mods left wanting once the mods `gone` leave, active or not, in list order;
+    /// each notes why.
+    pub fn left_wanting(&self, app: &App, library: &Library, gone: &[ModId]) -> Vec<Named> {
+        let mut mods: Vec<Mod> = self.active.mods().to_vec();
+        let mut places = Vec::new();
+        for &id in gone {
+            if let Some(at) = self.active.position_of(id) {
+                places.push(at);
+            } else if let Some(row) =
+                (self.inactive.mods().iter()).find(|m| m.installed == Some(id))
+            {
+                mods.push(row.clone());
+                places.push(mods.len() - 1);
+            }
+        }
+        if places.is_empty() {
+            return Vec::new();
+        }
+        // A clone: the list with an inactive mod in it is not the one kept. Unread files are not
+        // read now: an inactive mod's are read only for the newest save, and whatever builds on
+        // them misses them already.
+        let mut detected = self.detected.clone();
+        let rules = if mods.len() == self.active.mods().len() {
+            detected.of(app, library, &mods)
+        } else {
+            detected.reading(app, library, &mods, 0)
+        };
+        let requires = library.requires_within(&mods);
+        rimstack_core::mods::removal::left_wanting(&places, &requires, &rules)
+            .into_iter()
+            .map(|wanting| Named {
+                name: mods[wanting.at].name.clone(),
+                note: Sentence::joined("; ", wanting.why),
+                trouble: false,
+                mod_id: mods[wanting.at].installed,
+            })
+            .collect()
+    }
+
+    /// "N active mods need it: …" for a confirmation before `gone` leave; empty for none.
+    pub fn left_wanting_said(&self, app: &App, gone: &[ModId]) -> Sentence {
+        let loaded = app.library();
+        let Ok((library, _)) = &*loaded else {
+            return Sentence::default();
+        };
+        let wanting = self.left_wanting(app, library, gone);
+        let names: Vec<&str> = wanting.iter().map(|w| w.name.as_str()).collect();
+        let names = names.join(", ");
+        match (wanting.len(), gone.len()) {
+            (0, _) => Sentence::default(),
+            (n, 1) => say_n!(
+                n,
+                "{} active mod needs it: {}",
+                "{} active mods need it: {}",
+                names
+            ),
+            (n, _) => say_n!(
+                n,
+                "{} active mod needs them: {}",
+                "{} active mods need them: {}",
+                names
+            ),
+        }
     }
 
     pub fn overview(&self, app: &App) -> Overview {

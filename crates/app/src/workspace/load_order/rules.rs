@@ -26,6 +26,17 @@ const MOST_READ_NOW: usize = 3;
 impl Detected {
     /// Empty until the active mods' files were first read.
     pub fn of(&mut self, app: &App, library: &Library, mods: &[Mod]) -> Vec<infer::Inferred> {
+        self.reading(app, library, mods, MOST_READ_NOW)
+    }
+
+    /// `of`, reading at most `most` of the mods not yet read now; the others add nothing.
+    pub fn reading(
+        &mut self,
+        app: &App,
+        library: &Library,
+        mods: &[Mod],
+        most: usize,
+    ) -> Vec<infer::Inferred> {
         let known = app.conflicts().reading();
         let Some(read) = known.as_ref() else {
             return Vec::new();
@@ -43,16 +54,19 @@ impl Detected {
             .collect();
         let installed = |m: &Mod| m.installed.and_then(|i| library.get(i));
         let mut read_now: Vec<(usize, infer::Scanned)> = Vec::new();
+        let mut left_unread = false;
         for (at, m) in mods.iter().enumerate() {
             let unread = m.installed.is_some_and(|i| !read.scanned.contains_key(&i));
-            if let (true, Some(found), true) =
-                (unread, installed(m), read_now.len() < MOST_READ_NOW)
-            {
-                let loaded = loadfolders::folders(&found.path, &library.game_version, &|k| {
-                    active.contains(k)
-                });
-                read_now.push((at, infer::scan(&loaded)));
+            let Some(found) = installed(m).filter(|_| unread) else {
+                continue;
+            };
+            if read_now.len() == most {
+                left_unread = true;
+                continue;
             }
+            let loaded =
+                loadfolders::folders(&found.path, &library.game_version, &|k| active.contains(k));
+            read_now.push((at, infer::scan(&loaded)));
         }
         let nothing = infer::Scanned::default();
         let scanned: Vec<&infer::Scanned> = mods
@@ -77,7 +91,7 @@ impl Detected {
             .map(|m| installed(m).map(|i| i.path.clone()).unwrap_or_default())
             .collect();
         let rules = infer::infer(&scanned, &names, &official, &roots);
-        if read_now.is_empty() {
+        if read_now.is_empty() && !left_unread {
             self.kept = Some((list, read.members.clone(), rules.clone()));
         }
         rules

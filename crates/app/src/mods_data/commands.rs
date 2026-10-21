@@ -815,6 +815,18 @@ impl qobject::ModsData {
         crate::words::said(&crate::workspace::upkeep::bin_label(kind))
     }
 
+    pub(super) fn bin_wanting(&self, mod_id: i32, kind: i32) -> QString {
+        let Some(id) = id(mod_id).filter(|_| kind != crate::workspace::upkeep::BIN_DDS_ONLY) else {
+            return QString::default();
+        };
+        crate::words::said(&self.order.left_wanting_said(&self.app(), &[id]))
+    }
+
+    pub(super) fn left_wanting(&self, given: &QVariant) -> QString {
+        let gone = ids(given).unwrap_or_default();
+        crate::words::said(&self.order.left_wanting_said(&self.app(), &gone))
+    }
+
     /// What the selected installed mods offer for cleanup:
     /// `{ unsubscribe, unsubscribeBytes, bin, binBytes }`.
     pub(super) fn cleanup(&self, given: &QVariant) -> QVariant {

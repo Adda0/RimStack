@@ -41,6 +41,10 @@ for n in $(seq -w 1 100); do
         # 1.5 needs 002, so the two versions sort and warn differently.
         extra="$extra  <modDependenciesByVersion><v1.6><li><packageId>fixture.versiononly</packageId><displayName>Version Only</displayName></li></v1.6><v1.5><li><packageId>fixture.mod002</packageId></li></v1.5></modDependenciesByVersion>\n"
     fi
+    if [ "$n" = 008 ]; then
+        # Loads after 010 and needs it: removing 010 leaves it wanting.
+        extra="$extra  <modDependencies><li><packageId>fixture.mod010</packageId></li></modDependencies>\n"
+    fi
     case $n in
         # Royalty is needed by plain and by-version dependencies alike; 041 is off, 022 names 1.5 only.
         009|017|041)
