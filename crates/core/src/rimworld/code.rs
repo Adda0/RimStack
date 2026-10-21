@@ -14,7 +14,7 @@ const HOOKS: [&str; 4] = [
     "Verse.Def",
 ];
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Aim {
     pub target: String,
     pub method: String,
@@ -24,7 +24,7 @@ pub struct Aim {
     pub when: Option<When>,
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Facts {
     pub types: usize,
     /// Not counting the settings page.
@@ -90,7 +90,7 @@ impl Facts {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Code {
     pub facts: Facts,
     /// Sorted by target, then method; each method once.
@@ -160,34 +160,36 @@ fn assembly_folders(mod_root: &Path, game_version: &str) -> Vec<PathBuf> {
     older.pop().into_iter().collect()
 }
 
+/// The dlls [`read`] takes for a mod, sorted: those in the `Assemblies` folders the game loads.
+pub fn dlls(mod_root: &Path, game_version: &str) -> Vec<PathBuf> {
+    let mut dlls: Vec<PathBuf> = (assembly_folders(mod_root, game_version).into_iter())
+        .flat_map(|folder| std::fs::read_dir(folder).into_iter().flatten().flatten())
+        .map(|e| e.path())
+        .filter(|p| p.extension().is_some_and(|x| x.eq_ignore_ascii_case("dll")))
+        .collect();
+    dlls.sort();
+    dlls
+}
+
 /// Only assemblies that reference `Assembly-CSharp` count: bundled libraries
 /// say nothing about the mod.
-pub fn read(mod_root: &Path, game_version: &str, game: &Game) -> Code {
+pub fn read(dlls: &[PathBuf], game: &Game) -> Code {
     let mut code = Code::default();
-    for folder in assembly_folders(mod_root, game_version) {
-        let files = std::fs::read_dir(folder).into_iter().flatten().flatten();
-        for dll in files.map(|e| e.path()) {
-            if !dll
-                .extension()
-                .is_some_and(|x| x.eq_ignore_ascii_case("dll"))
-            {
-                continue;
-            }
-            let Ok(bytes) = std::fs::read(&dll) else {
-                continue;
-            };
-            let Some(assembly) = Assembly::read(&bytes) else {
-                continue;
-            };
-            if assembly.references().iter().any(|r| r == "Assembly-CSharp") {
-                code.add(
-                    &assembly.types(),
-                    &assembly.patches(),
-                    &assembly.looked_up(),
-                    &assembly.hand_applied(),
-                    game,
-                );
-            }
+    for dll in dlls {
+        let Ok(bytes) = std::fs::read(dll) else {
+            continue;
+        };
+        let Some(assembly) = Assembly::read(&bytes) else {
+            continue;
+        };
+        if assembly.references().iter().any(|r| r == "Assembly-CSharp") {
+            code.add(
+                &assembly.types(),
+                &assembly.patches(),
+                &assembly.looked_up(),
+                &assembly.hand_applied(),
+                game,
+            );
         }
     }
     code.finish()
