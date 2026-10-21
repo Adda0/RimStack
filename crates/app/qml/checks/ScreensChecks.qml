@@ -131,6 +131,27 @@ Item {
         },
         {
             section: 5,
+            what: "the keys sheet at the largest text size stays inside the smallest window and scrolls",
+            ready: () => checks.flipped(() => {
+                checks.size = [checks.window.width, checks.window.height]
+                checks.window.width = checks.window.minimumWidth
+                checks.window.height = checks.window.minimumHeight
+                Theme.stored.textScale = 1.6
+                checks.window.keysSheet.open()
+            }),
+            ok: () => {
+                const sheet = checks.window.keysSheet, scroll = sheet.scroll
+                const inside = sheet.x >= 0 && sheet.y >= 0 && sheet.x + sheet.width <= checks.window.width && sheet.y + sheet.height <= checks.window.height
+                const scrolls = !!scroll && scroll.height > 0 && scroll.contentHeight > scroll.height
+                sheet.close()
+                Theme.stored.textScale = 1
+                checks.window.width = checks.size[0]
+                checks.window.height = checks.size[1]
+                return checks.window.width === checks.size[0] && inside && scrolls
+            }
+        },
+        {
+            section: 5,
             what: "a theme chosen paints the open window without a restart",
             ready: () => checks.flipped(() => Theme.stored.theme = "light"),
             ok: () => {
@@ -293,6 +314,7 @@ Item {
     property bool kept: false
     property var fitted: []
     property int dragged: 0
+    property var size: []
     readonly property var sizes: [0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.4, 1.2, 1, 0.85, 1]
 
     Timer {
