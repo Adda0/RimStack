@@ -5,7 +5,7 @@ import RimStack.Ui
 
 Prompt {
     id: sheet
-    width: Theme.sized(620)
+    width: Math.min(Theme.sized(620), parent.width - 2 * Theme.gapWide)
     title: Theme.say("Keyboard")
     readonly property var groups: [
         [Theme.say("Everywhere"), [[Theme.say("Ctrl + K"), Theme.say("Search mods, commands and settings")], [Theme.say("Ctrl + 1 to 6"), Theme.say("Mods, Downloads, Textures, Saves, Logs, Settings")], ["?", Theme.say("This page")], [Theme.say("Left, Right"), Theme.say("Move a choice or the section")], [Theme.say("Tab"), Theme.say("Next control")], [Theme.say("Home, End, Page Up, Page Down"), Theme.say("To either end of a list, or a page further")], [Theme.say("Esc"), Theme.say("Close, cancel, discard a sort preview, clear the selection")]]],
@@ -35,12 +35,20 @@ Prompt {
         [Theme.say("Texture comparison"), [[Theme.say("Up, Down, Left, Right"), Theme.say("Previous or next texture")], [Theme.say("Left, Right, Home, End"), Theme.say("Move the line of the Slider view, once Tab reaches it")], ["1, 2", Theme.say("Keep the first or the second mod's")], [Theme.say("Esc"), Theme.say("Back to the lists")]]],
         [Theme.say("Dialogs and menus"), [[Theme.say("Enter, Space"), Theme.say("Press the focused button or menu entry; a dialog opens on its main one")], [Theme.say("Up, Down"), Theme.say("Move through a menu")], [Theme.say("Home, End, Page Up, Page Down"), Theme.say("The ends or a page on, in a menu, a choice or a slider")], [Theme.say("A letter"), Theme.say("The next menu entry starting with it")], [Theme.say("Ctrl + C"), Theme.say("Copy a text, or the log's marked line")], [Theme.say("Alt + N"), Theme.say("The newest notice's button")]]],
     ]
+    // The widest keys of the sheet; past half a column they wrap.
+    readonly property real keysWidth: {
+        let widest = 0
+        for (let at = 0; at < shownGroups.count; at++)
+            widest = Math.max(widest, shownGroups.itemAt(at)?.widest ?? 0)
+        return Math.ceil(widest)
+    }
     GridLayout {
         width: parent.width
         columns: 2
         columnSpacing: 24
         rowSpacing: Theme.gapCard
         Repeater {
+            id: shownGroups
             model: sheet.groups
             Column {
                 id: group
@@ -50,19 +58,36 @@ Prompt {
                 Layout.preferredWidth: 1
                 Layout.minimumWidth: 0
                 spacing: Theme.gapThin
+                readonly property real keysWidth: Math.min(sheet.keysWidth, Math.round(width / 2))
+                readonly property real widest: {
+                    let widest = 0
+                    for (let at = 0; at < rows.count; at++)
+                        widest = Math.max(widest, rows.itemAt(at)?.natural ?? 0)
+                    return widest
+                }
                 Text { bottomPadding: Theme.gapThin; color: Theme.ink2; font.pixelSize: Theme.small; font.weight: Font.DemiBold; text: Theme.say(group.modelData[0]) }
                 Repeater {
+                    id: rows
                     model: group.modelData[1]
                     Row {
                         id: key
                         required property var modelData
+                        readonly property real natural: caps.natural
                         spacing: Theme.gap
                         Flow {
-                            width: Theme.sized(150)
+                            id: caps
+                            readonly property real natural: {
+                                let wide = spacing * (combos.count - 1)
+                                for (const combo of children)
+                                    wide += combo.width
+                                return wide
+                            }
+                            width: group.keysWidth
                             spacing: Theme.gapTiny
                             Accessible.role: Accessible.StaticText
                             Accessible.name: key.modelData[0]
                             Repeater {
+                                id: combos
                                 model: key.modelData[0].split(", ")
                                 Row {
                                     id: combo
@@ -77,7 +102,7 @@ Prompt {
                                 }
                             }
                         }
-                        Text { width: group.width - Theme.sized(150) - Theme.gap; wrapMode: Text.WordWrap; color: Theme.ink2; font.pixelSize: Theme.small; text: Theme.say(key.modelData[1]) }
+                        Text { width: group.width - group.keysWidth - Theme.gap; wrapMode: Text.WordWrap; color: Theme.ink2; font.pixelSize: Theme.small; text: Theme.say(key.modelData[1]) }
                     }
                 }
             }

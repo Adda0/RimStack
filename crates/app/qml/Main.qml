@@ -435,6 +435,7 @@ ApplicationWindow {
     }
 
     property var opened: null
+    readonly property alias keysSheet: keysSheet
     property bool readyMarked: false
     onFrameSwapped: {
         if (!readyMarked) {
