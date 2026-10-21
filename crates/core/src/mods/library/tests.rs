@@ -528,6 +528,54 @@ fn an_id_from_an_earlier_reading_finds_nothing_in_the_next() {
 }
 
 #[test]
+fn the_active_mods_needing_a_mod_are_listed_for_it() {
+    let tmp = tempfile::tempdir().unwrap();
+    let local = tmp.path().join("Mods");
+    add_mod(&local, "lib", &about("a.lib", "Lib", &[]), &["Defs"]);
+    add_mod(&local, "one", &about("a.one", "One", &["a.lib"]), &["Defs"]);
+    add_mod(&local, "two", &about("a.two", "Two", &["A.Lib"]), &["Defs"]);
+    add_mod(
+        &local,
+        "versioned",
+        "<ModMetaData><packageId>a.versioned</packageId><name>Versioned</name>\
+         <modDependenciesByVersion><v1.6><li><packageId>a.lib</packageId></li></v1.6></modDependenciesByVersion>\
+         </ModMetaData>",
+        &["Defs"],
+    );
+    add_mod(
+        &local,
+        "old",
+        "<ModMetaData><packageId>a.old</packageId><name>Old</name>\
+         <modDependenciesByVersion><v1.5><li><packageId>a.lib</packageId></li></v1.5></modDependenciesByVersion>\
+         </ModMetaData>",
+        &["Defs"],
+    );
+    add_mod(&local, "off", &about("a.off", "Off", &["a.lib"]), &["Defs"]);
+    let roots = [ModRoot {
+        path: local,
+        source: Source::Local,
+    }];
+    let active = ["a.lib", "a.one", "a.two", "a.versioned", "a.old"].map(String::from);
+    let library = build(scan(&roots), &active, "1.6");
+    let lib = library
+        .installed
+        .iter()
+        .find(|m| m.folder == "lib")
+        .unwrap();
+    let mut needing: Vec<String> = library
+        .needed_by_active(lib)
+        .into_iter()
+        .map(|n| n.0)
+        .collect();
+    needing.sort();
+    assert_eq!(
+        needing,
+        ["One", "Two", "Versioned"],
+        "the plain and the 1.6 dependencies, not the inactive or the 1.5 one"
+    );
+}
+
+#[test]
 fn a_mod_knows_who_needs_it_and_switching_it_off_takes_them_along() {
     let tmp = tempfile::tempdir().unwrap();
     let local = tmp.path().join("Mods");

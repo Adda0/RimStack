@@ -20,6 +20,7 @@ Rectangle {
             AboutTab {}
             LoadOrderTab {}
             FilesTab {}
+            NeededByTab {}
         }
         ListSummary { visible: Mods.selectedId < 0 && Mods.comparing === null && !problems.visible && !Hub.mods.previewing }
     }

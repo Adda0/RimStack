@@ -303,7 +303,7 @@ Item {
         const next = Mods.tab === 1
         events.keyClick(Qt.Key_PageUp, Qt.ControlModifier, -1)
         events.keyClick(Qt.Key_PageUp, Qt.ControlModifier, -1)
-        check("Ctrl+Page Down and Ctrl+Page Up go round the tabs of the details", next && Mods.tab === 2)
+        check("Ctrl+Page Down and Ctrl+Page Up go round the tabs of the details", next && Mods.tab === 3)
         Mods.tab = 0
         Mods.select(-1, false)
     }

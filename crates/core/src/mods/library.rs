@@ -359,6 +359,19 @@ impl Library {
             .collect()
     }
 
+    /// The active mods requiring `m` on this game version: name and library id.
+    pub fn needed_by_active(&self, m: &Installed) -> Vec<(String, ModId)> {
+        let mine = self
+            .ids()
+            .find(|(_, other)| std::ptr::eq(*other, m))
+            .map(|(at, _)| at);
+        let active = |at: ModId| self.active.iter().any(|m| m.installed == Some(at));
+        self.needed_by(m)
+            .into_iter()
+            .filter(|(_, at)| Some(*at) != mine && active(*at))
+            .collect()
+    }
+
     /// For each of `mods`, the places in `mods` of the ones it requires on this game version.
     pub fn requires_within(&self, mods: &[Mod]) -> Vec<Vec<usize>> {
         let abouts = self.abouts(mods);

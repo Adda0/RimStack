@@ -317,7 +317,7 @@ impl LoadOrder {
                 .filter(|_| workshop)
                 .map(|bytes| *bytes as f64 / 1_048_576.0),
             requires: details::required(library.requirements(m)),
-            needed_by: details::needed_by(library.needed_by(m), self.active.mods()),
+            needed_by: details::needed_by(library.needed_by_active(m)),
             off_with: self.off_with(library, id),
             translates: library.translated(m).map(|(name, installed)| {
                 if installed {
