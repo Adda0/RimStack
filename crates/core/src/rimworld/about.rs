@@ -120,22 +120,27 @@ pub fn parse(bytes: &[u8]) -> Result<About> {
                 about.dependencies.base = dependency_ids(node);
                 read_alternatives(node, &mut about.alternatives);
             }
+            // Written as one element with a child per version, or as several: each adds its own.
             "moddependenciesbyversion" => {
-                about.dependencies.by_version = by_version(node, dependency_ids);
+                about
+                    .dependencies
+                    .by_version
+                    .extend(by_version(node, dependency_ids));
                 for version in node.children().filter(Node::is_element) {
                     read_alternatives(version, &mut about.alternatives);
                 }
             }
             "loadbefore" => about.load_before.base = items(node),
-            "loadbeforebyversion" => about.load_before.by_version = by_version(node, items),
+            "loadbeforebyversion" => about.load_before.by_version.extend(by_version(node, items)),
             "loadafter" => about.load_after.base = items(node),
-            "loadafterbyversion" => about.load_after.by_version = by_version(node, items),
+            "loadafterbyversion" => about.load_after.by_version.extend(by_version(node, items)),
             "forceloadbefore" => about.force_load_before = items(node),
             "forceloadafter" => about.force_load_after = items(node),
             "incompatiblewith" => about.incompatible_with.base = items(node),
-            "incompatiblewithbyversion" => {
-                about.incompatible_with.by_version = by_version(node, items)
-            }
+            "incompatiblewithbyversion" => about
+                .incompatible_with
+                .by_version
+                .extend(by_version(node, items)),
             _ => {}
         }
     }
@@ -322,6 +327,20 @@ Second line.</description>
         assert_eq!(a.dependencies.for_version("1.5"), ["Dep.First"]);
         assert_eq!(a.load_after.for_version("1.5"), ["Old.Thing"]);
         assert_eq!(a.load_after.for_version("1.6"), ["Ludeon.RimWorld"]);
+    }
+
+    #[test]
+    fn several_by_version_elements_each_keep_their_own_version() {
+        let a = parse(
+            br#"<ModMetaData><packageId>a.a</packageId>
+<modDependenciesByVersion><v1.5><li><packageId>Old.Dep</packageId></li></v1.5></modDependenciesByVersion>
+<modDependenciesByVersion><v1.6><li><packageId>New.Dep</packageId></li></v1.6></modDependenciesByVersion>
+</ModMetaData>"#,
+        )
+        .unwrap();
+        assert_eq!(a.dependencies.for_version("1.5"), ["Old.Dep"]);
+        assert_eq!(a.dependencies.for_version("1.6"), ["New.Dep"]);
+        assert!(a.dependencies.for_version("1.4").is_empty());
     }
 
     #[test]

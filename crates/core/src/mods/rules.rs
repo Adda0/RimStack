@@ -197,6 +197,44 @@ mod tests {
     }
 
     #[test]
+    fn a_dependency_named_for_one_version_orders_only_on_it() {
+        let mut a = about("a.a");
+        a.dependencies = list(&["c.c".to_string()]);
+        a.dependencies
+            .by_version
+            .insert("1.5".to_string(), vec!["b.b".to_string()]);
+        let mods = [a, about("b.b"), about("c.c")];
+        let refs: Vec<Option<&About>> = mods.iter().map(Some).collect();
+        let at = |version: &str| among(&refs, version);
+        assert_eq!(
+            at("1.5"),
+            vec![Rule {
+                first: 1,
+                then: 0,
+                kind: Kind::Requires
+            }]
+        );
+        // No list for 1.6: the plain dependencies apply, not the 1.5 one.
+        assert_eq!(
+            at("1.6"),
+            vec![Rule {
+                first: 2,
+                then: 0,
+                kind: Kind::Requires
+            }]
+        );
+        // With no version named, the plain dependencies alone apply.
+        assert_eq!(
+            at(""),
+            vec![Rule {
+                first: 2,
+                then: 0,
+                kind: Kind::Requires
+            }]
+        );
+    }
+
+    #[test]
     fn requirements_and_forced_rules_are_rules_too() {
         let mut a = about("a.a");
         a.dependencies = list(&["b.b".to_string()]);

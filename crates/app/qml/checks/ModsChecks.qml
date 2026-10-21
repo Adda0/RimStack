@@ -601,6 +601,7 @@ Item {
         Mods.filtered = ""
         const named = (key, name) => Mods.troubles.filter(t => t.ignore === key && t.name === name).length === 1
         check("a LoadFolders.xml folder in the wrong letter case, and an About.xml naming no game version, are problems", named("loadfolders-case", "Fixture Mod 015") && named("no-versions", "Fixture Mod 016"))
+        check("a dependency named for another game version is left out, and the one named for this version is missing", named("needs:fixture.versiononly", "Fixture Mod 038") && Mods.troubles.every(t => t.name !== "Fixture Mod 038" || t.ignore !== "needs:fixture.mod002"))
         const groups = Mods.overview.troubleGroups
         const headings = key => groups.filter(g => g.lines.some(t => t.ignore === key)).map(g => g.name)
         const apart = ["assembly-harmony", "loadfolders-case", "no-versions"].map(headings)
