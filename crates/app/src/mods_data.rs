@@ -185,6 +185,10 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "addTags"]
         fn add_tags(self: Pin<&mut ModsData>, mod_id: i32, tags: &QString);
+        /// The comma-separated `tags` become each mod's tags, or with `add` join those it has.
+        #[qinvokable]
+        #[cxx_name = "pasteTags"]
+        fn paste_tags(self: Pin<&mut ModsData>, ids: &QVariant, tags: &QString, add: bool);
         #[qinvokable]
         #[cxx_name = "removeTag"]
         fn remove_tag(self: Pin<&mut ModsData>, mod_id: i32, tag: &QString);
