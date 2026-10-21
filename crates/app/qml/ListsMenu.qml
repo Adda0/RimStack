@@ -1,4 +1,5 @@
 pragma ComponentBehavior: Bound
+import QtCore
 import QtQuick
 import QtQuick.Dialogs
 import QtQuick.Layouts
@@ -200,17 +201,17 @@ PopCard {
             id: files
             width: parent.width
             spacing: Theme.gapSmall
-            Btn { icon: "download"; text: Theme.say("Export as CSV"); tip: Theme.say("Writes the active mods as a CSV file, the columns of RimSort's export"); onClicked: { exportList.currentFile = "modlist.csv"; exportList.nameFilters = ["CSV (*.csv)"]; listsMenu.close(); exportList.open() } }
-            Btn { text: Theme.say("Export as ModsConfig"); tip: Theme.say("Writes the load order as the game's ModsConfig.xml"); onClicked: { exportList.currentFile = "ModsConfig.xml"; exportList.nameFilters = ["ModsConfig (*.xml)"]; listsMenu.close(); exportList.open() } }
-            Btn { text: Theme.say("Export as a RimSort list"); tip: Theme.say("Writes the load order as a saved mod list (.rml), which RimSort and the game read"); onClicked: { exportList.currentFile = "modlist.rml"; exportList.nameFilters = ["RimSort (*.rml)"]; listsMenu.close(); exportList.open() } }
+            Btn { icon: "download"; text: Theme.say("Export as CSV"); tip: Theme.say("Writes the active mods as a CSV file, the columns of RimSort's export"); onClicked: { exportList.nameFilters = ["CSV (*.csv)"]; exportList.selectedFile = exportList.currentFolder + "/modlist.csv"; listsMenu.close(); exportList.open() } }
+            Btn { text: Theme.say("Export as ModsConfig"); tip: Theme.say("Writes the load order as the game's ModsConfig.xml"); onClicked: { exportList.nameFilters = ["ModsConfig (*.xml)"]; exportList.selectedFile = exportList.currentFolder + "/ModsConfig.xml"; listsMenu.close(); exportList.open() } }
+            Btn { text: Theme.say("Export as a RimSort list"); tip: Theme.say("Writes the load order as a saved mod list (.rml), which RimSort and the game read"); onClicked: { exportList.nameFilters = ["RimSort (*.rml)"]; exportList.selectedFile = exportList.currentFolder + "/modlist.rml"; listsMenu.close(); exportList.open() } }
             Btn { text: Theme.say("Use a list from a file"); tip: Theme.say("A RimSort or RimPy mod list, a save's list, a share code or a text list becomes the load order. Save writes it."); onClicked: { listsMenu.close(); importList.open() } }
         }
 
         FileDialog {
             id: exportList
             fileMode: FileDialog.SaveFile
-            currentFile: "modlist.csv"
-            nameFilters: ["CSV (*.csv)"]
+            // The buttons offer a file in this folder: Qt takes a file URL, and a bare name as none.
+            currentFolder: StandardPaths.writableLocation(StandardPaths.DocumentsLocation)
             onAccepted: Hub.mods.exportList(selectedFile)
         }
 
