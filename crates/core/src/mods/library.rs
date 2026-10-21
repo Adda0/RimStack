@@ -34,6 +34,8 @@ pub struct Installed {
     pub git: bool,
     /// It names the Workshop item it is a copy of: a Workshop folder, or `PublishedFileId.txt`.
     pub published: bool,
+    /// `About/PublishedFileId.txt` as written, when the mod has one; may not be a Workshop id.
+    pub named: Option<String>,
     /// Seconds since 1970 its folder was made; `None` where the file system does not keep it.
     pub downloaded: Option<u64>,
 }
@@ -162,9 +164,10 @@ fn read_mod(path: PathBuf, source: Source) -> Installed {
             .map_err(|e| Error::file(&file, e))
             .and_then(|bytes| about::parse(&bytes)),
     };
+    let named = about::published_file_id_text(&path);
     let published = match source {
         Source::Official | Source::Workshop => true,
-        Source::Local => about::published_file_id(&path).is_some(),
+        Source::Local => named.as_deref().is_some_and(about::is_workshop_id),
     };
     Installed {
         folder: path
@@ -177,6 +180,7 @@ fn read_mod(path: PathBuf, source: Source) -> Installed {
         preview: about::preview(&path),
         git: path.join(".git").exists(),
         published,
+        named,
         downloaded: made_at(&path),
         about,
         source,

@@ -638,6 +638,8 @@ Item {
         check("a dependency named for another game version is left out, and the one named for this version is missing", named("needs:fixture.versiononly", "Fixture Mod 038") && Mods.troubles.every(t => t.name !== "Fixture Mod 038" || t.ignore !== "needs:fixture.mod002"))
         const groups = Mods.overview.troubleGroups
         const headings = key => groups.filter(g => g.lines.some(t => t.ignore === key)).map(g => g.name)
+        const mismatch = groups.filter(g => g.kind === "wrong-workshop-id")
+        check("a Workshop mod whose files name another item is marked on its row and sits under a heading of its own", named("wrong-workshop-id", "Fixture Workshop") && rowOf("Fixture Workshop").trouble >= 1 && mismatch.length === 1 && mismatch[0].name === Theme.say("Files naming another Workshop item") && mismatch[0].lines.length === 1)
         const apart = ["assembly-harmony", "loadfolders-case", "no-versions"].map(headings)
         const trusting = Mods.troubles.filter(t => t.fix.action === "trust").length
         const versionGroups = groups.filter(g => g.lines.some(t => t.fix.action === "trust"))

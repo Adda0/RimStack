@@ -174,6 +174,7 @@ fn active_ids_resolve_in_order_whatever_their_case() {
         preview: None,
         git: false,
         published: true,
+        named: None,
         downloaded: None,
     };
     assert_eq!(unnamed(Source::Official).display_name(), "Royalty");

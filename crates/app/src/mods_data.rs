@@ -146,6 +146,11 @@ pub mod qobject {
         fn end_sort(self: Pin<&mut ModsData>, keep: bool);
         #[qinvokable]
         fn rescan(self: Pin<&mut ModsData>);
+        /// Reads every installed mod's `About.xml` and `PublishedFileId.txt` again and says
+        /// how many hold no problem; no defs are read.
+        #[qinvokable]
+        #[cxx_name = "checkFiles"]
+        fn check_files(self: Pin<&mut ModsData>);
         #[qinvokable]
         fn trust(self: Pin<&mut ModsData>, ids: &QVariant, yes: bool);
         #[qinvokable]
