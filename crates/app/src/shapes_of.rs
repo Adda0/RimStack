@@ -422,19 +422,24 @@ fn lists(app: &App, shapes: &mut Shapes) {
         },
     );
     shapes.add("lists.original", &app.original_list());
-    shapes.add("lists.compareList", &app.compare_saved("mine"));
+    let compare = |left: &str| app.compare_orders(left, "current");
+    shapes.add("lists.compareOrders", &compare("list:mine"));
     // The same mods in another order fill "moved".
     let reordered = vec!["ann.a".to_string(), "ludeon.rimworld".to_string()];
     app.keep_list("reordered", Some(reordered), false).unwrap();
-    shapes.add("lists.compareList", &app.compare_saved("reordered"));
-    // A list with an installed but switched-off mod fills "onlySaved" and
+    shapes.add("lists.compareOrders", &compare("list:reordered"));
+    // A list with an installed but switched-off mod fills "onlyLeft" and
     // "addable"; one with a mod the install never had fills the written name.
     let with_hats = vec!["ludeon.rimworld".to_string(), "ann.hats".to_string()];
     app.keep_list("with hats", Some(with_hats), false).unwrap();
-    shapes.add("lists.compareList", &app.compare_saved("with hats"));
+    shapes.add("lists.compareOrders", &compare("list:with hats"));
     let with_gone = vec!["ludeon.rimworld".to_string(), "gone.mod".to_string()];
     app.keep_list("with gone", Some(with_gone), false).unwrap();
-    shapes.add("lists.compareList", &app.compare_saved("with gone"));
+    shapes.add("lists.compareOrders", &compare("list:with gone"));
+    shapes.add("lists.compareOrders", &compare("order:0"));
+    let on_disk = app.compare_orders("game", "list:with gone");
+    shapes.add("lists.compareOrders", &on_disk);
+    shapes.add("lists.orderChoices", &app.order_choices());
     // The lockfile, on this install and against one differing from it.
     let data = app.data_dir();
     let kept_lock = data.join("load.lock.json");
