@@ -3,7 +3,8 @@
 use crate::base::error::Error;
 use crate::rimworld::id;
 use serde_json::{Value, json};
-use std::collections::BTreeMap;
+use std::collections::hash_map::Entry;
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::Path;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -51,9 +52,10 @@ pub struct Notes {
 
 /// Commas separate; a tag repeated in any case is kept once, as first spelled.
 pub fn tags_in(text: &str) -> Vec<String> {
+    let mut seen = HashSet::new();
     let mut tags: Vec<String> = Vec::new();
     for tag in text.split(',').map(str::trim).filter(|t| !t.is_empty()) {
-        if !tags.iter().any(|seen| seen.eq_ignore_ascii_case(tag)) {
+        if seen.insert(tag.to_ascii_lowercase()) {
             tags.push(tag.to_string());
         }
     }
@@ -176,20 +178,22 @@ impl Notes {
         let mut taken = tags_in(before);
         taken.extend_from_slice(had);
         let mut counted: Vec<(String, usize)> = Vec::new();
+        let mut at: HashMap<String, usize> = HashMap::new();
         for tag in self.by_id.values().flat_map(|n| &n.tags) {
-            match counted
-                .iter_mut()
-                .find(|(seen, _)| seen.eq_ignore_ascii_case(tag))
-            {
-                Some((_, uses)) => *uses += 1,
-                None => counted.push((tag.clone(), 1)),
+            match at.entry(tag.to_ascii_lowercase()) {
+                Entry::Occupied(seen) => counted[*seen.get()].1 += 1,
+                Entry::Vacant(new) => {
+                    new.insert(counted.len());
+                    counted.push((tag.clone(), 1));
+                }
             }
         }
+        let taken: HashSet<String> = taken.iter().map(|t| t.to_ascii_lowercase()).collect();
         counted.retain(|(tag, _)| {
             let lower = tag.to_lowercase();
             lower.starts_with(&typed)
                 && lower != typed
-                && !taken.iter().any(|t| t.eq_ignore_ascii_case(tag))
+                && !taken.contains(&tag.to_ascii_lowercase())
         });
         counted.sort_by_cached_key(|(tag, uses)| (std::cmp::Reverse(*uses), tag.to_lowercase()));
         counted.into_iter().take(most).map(|(tag, _)| tag).collect()
