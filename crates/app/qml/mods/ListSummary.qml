@@ -27,8 +27,9 @@ Column {
         signal acted()
         width: summary.width
         spacing: Theme.gap
-        Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: Theme.body; text: line.text }
+        Text { Layout.fillWidth: true; Layout.maximumWidth: implicitWidth + 1; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: Theme.body; text: line.text }
         Btn { visible: line.action !== ""; primary: line.primary; text: line.action; onClicked: line.acted() }
+        Item { Layout.fillWidth: true }
     }
 
     Column {
@@ -83,6 +84,7 @@ Column {
             spacing: Theme.gap
             Text {
                 Layout.fillWidth: true
+                Layout.maximumWidth: implicitWidth + 1
                 wrapMode: Text.WordWrap
                 color: Theme.ink2
                 font.pixelSize: Theme.body
@@ -92,6 +94,7 @@ Column {
                 ].filter(part => part !== "").join(", ")
             }
             Btn { visible: launched.logged > 0; text: Theme.say("Open log"); onClicked: Mods.showSection(4) }
+            Item { Layout.fillWidth: true }
         }
         Line { visible: Hub.mods.dirty; text: Theme.fill("Not saved: {}", Hub.mods.unsaved); action: Theme.say("Save"); primary: true; onActed: Mods.save() }
         Line { visible: summary.errors.length === 0 && !Hub.mods.dirty && Mods.troubles.length === 0; text: Theme.say("No problems, and the list is saved.") }

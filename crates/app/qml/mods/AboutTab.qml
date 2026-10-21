@@ -64,16 +64,18 @@ Column {
             width: parent.width
             spacing: Theme.gap
             Icon { name: "eye-off"; color: Theme.ink3 }
-            Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.fill("Made for RimWorld {}; the warning is ignored.", (Mods.info.madeFor || "")) }
+            Text { Layout.fillWidth: true; Layout.maximumWidth: implicitWidth + 1; wrapMode: Text.WordWrap; color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.fill("Made for RimWorld {}; the warning is ignored.", (Mods.info.madeFor || "")) }
             Btn { text: Theme.say("Warn again"); onClicked: Mods.trust(Mods.selectedId, false) }
+            Item { Layout.fillWidth: true }
         }
         RowLayout {
             visible: Mods.info.problemsIgnored > 0
             width: parent.width
             spacing: Theme.gap
             Icon { name: "eye-off"; color: Theme.ink3 }
-            Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.plural(Mods.info.problemsIgnored || 0, "{} problem is ignored.", "{} problems are ignored.") }
+            Text { Layout.fillWidth: true; Layout.maximumWidth: implicitWidth + 1; wrapMode: Text.WordWrap; color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.plural(Mods.info.problemsIgnored || 0, "{} problem is ignored.", "{} problems are ignored.") }
             Btn { text: Theme.say("Warn again"); onClicked: Hub.mods.warnAgain([Mods.selectedId]) }
+            Item { Layout.fillWidth: true }
         }
     }
 
@@ -241,8 +243,9 @@ Column {
             width: parent.width
             spacing: Theme.gap
             Text { objectName: "term"; Layout.preferredWidth: facts.termWidth - Theme.gap; wrapMode: Text.Wrap; color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.say("Package id") }
-            CopyText { Layout.fillWidth: true; text: Mods.info.packageId || "" }
+            CopyText { Layout.fillWidth: true; Layout.maximumWidth: implicitWidth + 1; text: Mods.info.packageId || "" }
             Btn { compact: true; icon: "copy"; tip: Theme.say("Copy package id"); onClicked: Theme.copy(Mods.info.packageId) }
+            Item { Layout.fillWidth: true }
         }
         RowLayout {
             visible: !!Mods.info.path
@@ -256,19 +259,20 @@ Column {
             spacing: Theme.gap
             Defined { objectName: "term"; Layout.preferredWidth: Math.max(facts.termWidth, implicitWidth); text: Theme.say("Filed under") }
             Icon { name: Theme.categoryIcons[Theme.categoryNames.indexOf(Mods.info.category || "")] || "package"; size: Theme.sized(14); color: Theme.categoryColours[Theme.categoryNames.indexOf(Mods.info.category || "")] || Theme.ink2 }
-            Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: Mods.info.categoryChosen ? Theme.fill("{} (chosen)", Theme.say(Mods.info.category || "")) : Theme.say(Mods.info.category || "") }
+            Text { Layout.fillWidth: true; Layout.maximumWidth: implicitWidth + 1; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: Mods.info.categoryChosen ? Theme.fill("{} (chosen)", Theme.say(Mods.info.category || "")) : Theme.say(Mods.info.category || "") }
             Btn {
                 id: fileUnder
                 text: Theme.say("Change")
                 tip: Theme.say("RimStack files a mod by where it stands, what its folders hold and what its code is about. A category chosen here stands over that.")
                 onClicked: Mods.menuRequested(fileUnder, 0, fileUnder.height + 2, Mods.categoryChoices(Mods.selectedId))
             }
+            Item { Layout.fillWidth: true }
         }
         RowLayout {
             width: parent.width
             spacing: Theme.gap
             Defined { objectName: "term"; Layout.preferredWidth: Math.max(facts.termWidth, implicitWidth); text: Theme.say("Group") }
-            Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: Mods.info.sub || Theme.say("None") }
+            Text { Layout.fillWidth: true; Layout.maximumWidth: implicitWidth + 1; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: Mods.info.sub || Theme.say("None") }
             Btn {
                 id: groupButton
                 visible: !!Mods.info.groupChoices
@@ -277,6 +281,7 @@ Column {
                 tip: Theme.say("A group is a tag the mod is listed under, beside the other mods with it. Choose one in use, start a new one, or delete one for every mod in it.")
                 onClicked: Mods.menuRequested(groupButton, 0, groupButton.height + 2, Mods.groupEntries(Mods.selectedId, Mods.info))
             }
+            Item { Layout.fillWidth: true }
         }
     }
 
@@ -388,8 +393,9 @@ Column {
         RowLayout {
             width: parent.width
             spacing: Theme.gap
-            Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: Theme.body; lineHeight: 1.3; text: Mods.info.replacedByVersions ? Theme.fill("{}, for RimWorld {}", Mods.info.replacedBy || "", Mods.info.replacedByVersions) : Mods.info.replacedBy || "" }
+            Text { Layout.fillWidth: true; Layout.maximumWidth: implicitWidth + 1; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: Theme.body; lineHeight: 1.3; text: Mods.info.replacedByVersions ? Theme.fill("{}, for RimWorld {}", Mods.info.replacedBy || "", Mods.info.replacedByVersions) : Mods.info.replacedBy || "" }
             Btn { icon: "external-link"; text: Theme.say("Open"); onClicked: Theme.openWorkshop(Mods.info.replacedById) }
+            Item { Layout.fillWidth: true }
         }
         Row {
             spacing: Theme.gapSmall
@@ -413,9 +419,10 @@ Column {
                     width: parent.width
                     spacing: Theme.gapSmall
                     Chip { visible: copyLine.modelData.used; tone: Theme.ok; icon: "check"; text: Theme.say("in use") }
-                    Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: copyLine.modelData.folder + (copyLine.modelData.version ? " — " + copyLine.modelData.version : "") }
+                    Text { Layout.fillWidth: true; Layout.maximumWidth: implicitWidth + 1; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: copyLine.modelData.folder + (copyLine.modelData.version ? " — " + copyLine.modelData.version : "") }
                     Text { color: Theme.ink3; font.pixelSize: Theme.body; text: Theme.say(copyLine.modelData.source) }
                     Text { color: Theme.ink3; font.pixelSize: Theme.small; text: copyLine.modelData.megabytes ? Theme.fill("{} MB", (copyLine.modelData.megabytes < 10 ? copyLine.modelData.megabytes.toFixed(1) : Math.round(copyLine.modelData.megabytes))) : "" }
+                    Item { Layout.fillWidth: true }
                 }
                 Text { visible: !!copyLine.modelData.note; width: parent.width; wrapMode: Text.WordWrap; color: Theme.ink3; font.pixelSize: Theme.small; text: copyLine.modelData.note || "" }
                 Text { width: parent.width; elide: Text.ElideMiddle; color: Theme.ink3; font.pixelSize: Theme.small; text: copyLine.modelData.path }

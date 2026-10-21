@@ -39,6 +39,7 @@ Rectangle {
         Text {
             id: words
             Layout.fillWidth: true
+            Layout.maximumWidth: implicitWidth + 1
             wrapMode: Text.WordWrap
             textFormat: Text.StyledText
             color: Theme.ink
@@ -52,6 +53,7 @@ Rectangle {
         Text {
             visible: bar.asking && bar.search.first !== ""
             Layout.fillWidth: true
+            Layout.maximumWidth: implicitWidth + 1
             wrapMode: Text.WordWrap
             color: Theme.ink2
             font.pixelSize: Theme.small
@@ -69,6 +71,7 @@ Rectangle {
         Btn { visible: bar.asking; text: Theme.say("Works now"); onClicked: bar.answer(false) }
         Btn { visible: bar.search.found !== ""; primary: true; text: Theme.say("My list without it"); tip: Theme.say("The list the search began with, less this mod. Nothing is written before Save."); onClicked: bar.end(true) }
         Btn { text: bar.search.found !== "" ? Theme.say("My list as it was") : Theme.say("Stop"); tip: Theme.say("The list the search began with. Nothing is written before Save."); onClicked: bar.end(false) }
+        Item { Layout.fillWidth: true }
     }
     Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.edge }
 }

@@ -30,8 +30,10 @@ Column {
             required property var modelData
             width: side.width
             height: Theme.sized(21)
-            Text { Layout.fillWidth: true; elide: Text.ElideMiddle; color: Theme.ink; font.family: "monospace"; font.pixelSize: Theme.small; text: branch.modelData.folder }
+            spacing: Theme.gap
+            Text { Layout.fillWidth: true; Layout.maximumWidth: implicitWidth + 1; elide: Text.ElideMiddle; color: Theme.ink; font.family: "monospace"; font.pixelSize: Theme.small; text: branch.modelData.folder }
             Text { color: Theme.ink3; font.pixelSize: Theme.small; text: Theme.plural(branch.modelData.files, "{} file", "{} files") }
+            Item { Layout.fillWidth: true }
         }
     }
     GroupTitle { text: Theme.say("Folders the game loads from") }
