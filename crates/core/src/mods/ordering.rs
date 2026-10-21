@@ -91,16 +91,20 @@ pub fn sorted_by_category(
         for (at, &group) in again.groups.iter().enumerate() {
             groups[sorted.order[at]] = group;
         }
-        let dropped = (again.dropped.iter())
-            .map(|r| Rule {
-                first: sorted.order[r.first],
-                then: sorted.order[r.then],
-                kind: r.kind,
-            })
-            .collect();
+        let back = |found: &[Rule]| -> Vec<Rule> {
+            (found.iter())
+                .map(|r| Rule {
+                    first: sorted.order[r.first],
+                    then: sorted.order[r.then],
+                    kind: r.kind,
+                })
+                .collect()
+        };
+        let (dropped, off_group) = (back(&again.dropped), back(&again.off_group));
         sorted = sort::Sorted {
             order: again.order.iter().map(|&at| sorted.order[at]).collect(),
             dropped,
+            off_group,
             groups,
         };
         if held || seen.contains(&sorted.order) {

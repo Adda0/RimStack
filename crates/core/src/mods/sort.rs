@@ -8,6 +8,8 @@ use std::collections::BinaryHeap;
 pub struct Sorted {
     pub order: Vec<usize>,
     pub dropped: Vec<Rule>,
+    /// Those of `dropped` that gave way because they would take a mod out of its group, not in a loop.
+    pub off_group: Vec<Rule>,
     pub groups: Vec<usize>,
 }
 
@@ -43,6 +45,7 @@ pub fn sort(count: usize, rules: &[Rule]) -> Sorted {
     Sorted {
         order: fewest_moves(count, &kept).expect("kept rules have no loop"),
         dropped,
+        off_group: Vec::new(),
         groups: vec![0; count],
     }
 }
@@ -78,12 +81,16 @@ pub fn sort_grouped(groups: &[usize], bottom_group: usize, rules: &[Rule]) -> So
         for (at, &group) in again.groups.iter().enumerate() {
             groups[sorted.order[at]] = group;
         }
-        let dropped = (again.dropped.iter())
-            .map(|r| renumber(r, &|at| sorted.order[at]))
-            .collect();
+        let back = |found: &[Rule]| -> Vec<Rule> {
+            (found.iter())
+                .map(|r| renumber(r, &|at| sorted.order[at]))
+                .collect()
+        };
+        let (dropped, off_group) = (back(&again.dropped), back(&again.off_group));
         sorted = Sorted {
             order,
             dropped,
+            off_group,
             groups,
         };
         if held || seen.contains(&sorted.order) {
@@ -128,14 +135,15 @@ fn grouped_once(groups: &[usize], bottom_group: usize, rules: &[Rule]) -> Sorted
         group[m] = group[m].min(earliest.unwrap_or(usize::MAX));
     }
     // A hint that would take a mod out of its group gives way, as it does in a loop.
-    let (kept, against): (Vec<Rule>, Vec<Rule>) = kept
+    let (kept, off_group): (Vec<Rule>, Vec<Rule>) = kept
         .into_iter()
         .partition(|r| r.kind != Kind::Hint || group[r.first] <= group[r.then]);
-    dropped.extend(against);
+    dropped.extend(off_group.iter().copied());
     let place: Vec<usize> = (0..count).map(|m| group[m] * count + m).collect();
     Sorted {
         order: ordered(count, &kept, &place).expect("kept rules have no loop"),
         dropped,
+        off_group,
         groups: group,
     }
 }
@@ -363,6 +371,7 @@ mod tests {
         let sorted = sort(2, &[weak, strong]);
         assert_eq!(sorted.order, vec![1, 0]);
         assert_eq!(sorted.dropped, vec![weak]);
+        assert!(sorted.off_group.is_empty());
     }
 
     #[test]
@@ -447,6 +456,7 @@ mod tests {
         assert_eq!(across.groups, vec![0, 0, 3, 1]);
         assert_eq!(across.order, vec![0, 1, 3, 2]);
         assert_eq!(across.dropped, vec![hint(2, 0)]);
+        assert_eq!(across.off_group, vec![hint(2, 0)]);
         let inside = sort_grouped(&[0, 3, 3], 9, &[hint(2, 1)]);
         assert_eq!(inside.order, vec![0, 2, 1]);
     }

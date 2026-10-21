@@ -72,6 +72,8 @@ pub struct LoadOrder {
     pub problem: Sentence,
     /// A sentence each; the first is the news.
     pub sort_note: Vec<Sentence>,
+    /// The rules the sort on show could not follow.
+    sort_dropped: Vec<sorting::SortDrop>,
 }
 
 fn side_index(side: Side) -> usize {
@@ -226,6 +228,7 @@ impl LoadOrder {
             status: [Sentence::default(), Sentence::default()],
             problem: Sentence::default(),
             sort_note: Vec::new(),
+            sort_dropped: Vec::new(),
         }
     }
 
@@ -444,6 +447,7 @@ impl LoadOrder {
         }
         self.preview = None;
         self.sort_note.clear();
+        self.sort_dropped.clear();
         let now = arranged(app, library);
         let (mods, _) = rules::sorted_by_category(app, &mut self.detected, library, now.active);
         self.active.set_grouped(self.headings);

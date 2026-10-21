@@ -754,6 +754,8 @@ mods.packageMods: list
   []: number
 mods.shownIds: list
   []: number
+mods.sortDropped: list
+  []: never seen
 mods.sortMoves: list
   []: never seen
 mods.subsBeside: list
