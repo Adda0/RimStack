@@ -10,6 +10,8 @@ use std::collections::HashMap;
 const DETAILS_URL: &str =
     "https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/";
 
+const PAGE_URL: &str = "https://steamcommunity.com/sharedfiles/filedetails/?id=";
+
 /// `timeupdated` in `appworkshop_294100.acf`: seconds since 1970, by Workshop id.
 pub fn installed_times(acf: &str) -> HashMap<String, u64> {
     installed(acf, "timeupdated")
@@ -103,25 +105,19 @@ pub fn parse_details(json: &str) -> Result<Vec<Details>, Error> {
     Ok(files.iter().filter_map(details).collect())
 }
 
-/// The ids Steam answered are gone (`result` 9: removed or private). An id
-/// missing from the answer is not one of them: Steam was not asked of it.
-pub fn gone_in(json: &str) -> Result<Vec<String>, Error> {
+/// The ids the API hides (`result` 9): removed, private or friends-only items, and unlisted
+/// ones, which anyone with the link still has. An id missing from the answer is not one of
+/// them: Steam was not asked of it.
+pub fn hidden_in(json: &str) -> Result<Vec<String>, Error> {
     let root: Value = serde_json::from_str(json)
         .map_err(|e| Error::format(said!("Steam's answer is not JSON: {}", e)))?;
     let files = root
         .pointer("/response/publishedfiledetails")
         .and_then(Value::as_array)
         .ok_or_else(|| Error::format(said!("Steam's answer has no file list")))?;
-    let gone = |file: &&Value| {
-        file.get("result").and_then(Value::as_u64) != Some(1)
-            && file
-                .get("publishedfileid")
-                .and_then(Value::as_str)
-                .is_some()
-    };
     Ok(files
         .iter()
-        .filter(gone)
+        .filter(|file| file.get("result").and_then(Value::as_u64) == Some(9))
         .filter_map(|file| {
             file.get("publishedfileid")
                 .and_then(Value::as_str)
@@ -130,12 +126,45 @@ pub fn gone_in(json: &str) -> Result<Vec<String>, Error> {
         .collect())
 }
 
-/// What Steam said of the asked items, and which are gone for good.
+/// Of the hidden ids, those whose public page is Steam's error page: an unlisted item's page
+/// shows it. `page` gives a page's text, `None` when it was not had, which ends the asking:
+/// an id not seen gone is not gone.
+pub fn gone_among(hidden: &[String], mut page: impl FnMut(&str) -> Option<String>) -> Vec<String> {
+    let mut gone = Vec::new();
+    for id in hidden {
+        let Some(text) = page(id) else {
+            break;
+        };
+        if text.contains(r#"<div class="error_ctn">"#) {
+            gone.push(id.clone());
+        }
+    }
+    gone
+}
+
+fn page(agent: &ureq::Agent, id: &str) -> Option<String> {
+    // steamcommunity.com answers HTTP 429 to a page asked with gzip, and serves it asked plain.
+    let mut answer = agent
+        .get(&format!("{PAGE_URL}{id}"))
+        .header("accept-encoding", "identity")
+        .call()
+        .ok()?;
+    answer.body_mut().read_to_string().ok()
+}
+
+/// Blocks on the network: one page after another, as steamcommunity.com refuses many at once
+/// (HTTP 429).
+pub fn gone_of(hidden: &[String]) -> Vec<String> {
+    let agent = crate::base::web::agent(30);
+    gone_among(hidden, |id| page(&agent, id))
+}
+
+/// What Steam said of the asked items, and which it hides.
 #[derive(Debug, Default)]
 pub struct Answered {
     pub items: Vec<Details>,
-    /// Ids of items Steam reports removed or private.
-    pub gone: Vec<String>,
+    /// Not proof of removal: see `hidden_in`.
+    pub hidden: Vec<String>,
 }
 
 /// Blocks on the network. Steam is slow per item, so chunks of 100 go out in parallel.
@@ -165,7 +194,7 @@ pub fn fetch_details(ids: &[String]) -> Result<Answered, Error> {
             .map_err(crate::base::web::steam_failed)?;
         Ok(Answered {
             items: parse_details(&text)?,
-            gone: gone_in(&text)?,
+            hidden: hidden_in(&text)?,
         })
     };
     let answers: Vec<Result<Answered, Error>> = ids.par_chunks(100).map(ask).collect();
@@ -173,7 +202,7 @@ pub fn fetch_details(ids: &[String]) -> Result<Answered, Error> {
     for answer in answers {
         let answer = answer?;
         all.items.extend(answer.items);
-        all.gone.extend(answer.gone);
+        all.hidden.extend(answer.hidden);
     }
     Ok(all)
 }
@@ -368,13 +397,31 @@ mod tests {
     }
 
     #[test]
-    fn gone_items_are_known_by_their_id() {
-        // The shape Steam answers for a removed or private item.
-        let json = r#"{"response":{"result":1,"resultcount":2,"publishedfiledetails":[
+    fn a_hidden_item_is_gone_only_when_its_page_is_steams_error() {
+        // The API answers both alike: 3288243760 is unlisted and live, 9999999999 no item.
+        let json = r#"{"response":{"result":1,"resultcount":4,"publishedfiledetails":[
             {"publishedfileid":"2009463077","result":1,"title":"Harmony","time_updated":1756914561,"file_size":"5729526"},
-            {"publishedfileid":"1","result":9}]}}"#;
-        assert_eq!(gone_in(json).unwrap(), ["1".to_string()]);
-        assert!(gone_in("{}").is_err());
+            {"publishedfileid":"3288243760","result":9},
+            {"publishedfileid":"9999999999","result":9},
+            {"publishedfileid":"3811986740","result":2}]}}"#;
+        let hidden = hidden_in(json).unwrap();
+        assert_eq!(hidden, ["3288243760", "9999999999"]);
+        assert!(hidden_in("{}").is_err());
+        // Trimmed from what steamcommunity.com serves a visitor not logged in.
+        let shown = "<title>Steam Workshop::Salvaging</title>\n\
+            <div class=\"workshopItemTitle\">Salvaging</div>";
+        let error = "<title>Steam Community :: Error</title>\n<div class=\"error_ctn\">\n\
+            <h3>There was a problem accessing the item.  Please try again.</h3>";
+        let pages = |id: &str| Some(if id == "3288243760" { shown } else { error }.to_string());
+        assert_eq!(gone_among(&hidden, pages), ["9999999999"]);
+        // A refused page (HTTP 429) ends the asking: the rest is not gone.
+        let mut asked = 0;
+        let refused = |_: &str| {
+            asked += 1;
+            None
+        };
+        assert!(gone_among(&hidden, refused).is_empty());
+        assert_eq!(asked, 1);
     }
 
     #[test]
@@ -426,7 +473,7 @@ mod tests {
             now.items.len(),
             started.elapsed()
         );
-        println!("{} gone", now.gone.len());
+        println!("{} hidden", now.hidden.len());
         let newer = |d: &&Details| on_disk.get(&d.id).is_some_and(|&have| d.updated > have);
         let behind: Vec<&Details> = now.items.iter().filter(newer).collect();
         println!("{} on record, {} behind", on_disk.len(), behind.len());
@@ -443,6 +490,29 @@ mod tests {
         let found = fetch_details(&ids).unwrap();
         assert_eq!(found.items.len(), 1);
         assert_eq!(found.items[0].title, "Harmony");
+    }
+
+    #[test]
+    #[ignore = "needs the network and RIMSTACK_IDS: Workshop ids or links"]
+    fn real_hidden_items_are_gone_only_without_a_page() {
+        let ids = ids_in(&std::env::var("RIMSTACK_IDS").unwrap());
+        let hidden = fetch_details(&ids).unwrap().hidden;
+        let agent = crate::base::web::agent(30);
+        let mut read = Vec::new();
+        let gone = gone_among(&hidden, |id| {
+            let text = page(&agent, id);
+            if text.is_some() {
+                read.push(id.to_string());
+            }
+            text
+        });
+        println!(
+            "asked {} hidden {} pages read {}: {read:?}",
+            ids.len(),
+            hidden.len(),
+            read.len()
+        );
+        println!("gone {}: {gone:?}", gone.len());
     }
 
     #[test]
