@@ -67,10 +67,11 @@ Item {
                 Layout.topMargin: Theme.gapTiny
                 spacing: Theme.gapSmall
                 Rectangle { visible: line.changed; implicitWidth: 6; implicitHeight: 6; radius: Math.min(width, height) / 2; color: Theme.moved; Tip { text: Theme.say("Not the default") } }
-                Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: Theme.body; text: line.title }
+                Text { Layout.fillWidth: true; Layout.maximumWidth: implicitWidth + 1; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: Theme.body; text: line.title }
+                Btn { visible: line.changed; icon: "undo-2"; tip: Theme.say("Back to the default"); onClicked: line.reset() }
+                Item { Layout.fillWidth: true }
             }
             RowLayout { id: held; Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.minimumHeight: Theme.sized(28); spacing: Theme.gap }
-            Btn { visible: line.changed; icon: "undo-2"; tip: Theme.say("Back to the default"); onClicked: line.reset() }
         }
         Text {
             id: help
@@ -598,7 +599,7 @@ Item {
                             dimmed: database.modelData.waiting
                             onFlipped: on => Hub.settings.useDatabase(database.modelData.id, on)
                         }
-                        Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: Theme.body; text: database.modelData.use }
+                        Text { Layout.fillWidth: true; Layout.maximumWidth: implicitWidth + 1; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: Theme.body; text: database.modelData.use }
                         Btn {
                             visible: database.modelData.refreshable
                             enabled: !Hub.settings.namesBusy
@@ -608,6 +609,7 @@ Item {
                             onClicked: Hub.settings.refreshNames()
                         }
                         Text { visible: database.modelData.updated > 0; color: Theme.ink2; font.pixelSize: Theme.small; text: Theme.day(database.modelData.updated) }
+                        Item { Layout.fillWidth: true }
                     }
                 }
                 Text {

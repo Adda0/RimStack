@@ -18,6 +18,7 @@ RowLayout {
     Text {
         id: line
         Layout.fillWidth: true
+        Layout.maximumWidth: implicitWidth + 1
         Layout.minimumWidth: 0
         elide: Text.ElideMiddle
         maximumLineCount: 1
@@ -31,4 +32,5 @@ RowLayout {
     }
     Btn { visible: holder.copyable && holder.path !== ""; compact: true; icon: "copy"; tip: Theme.say("Copy path"); onClicked: Theme.copy(holder.path) }
     Btn { visible: holder.openTip !== ""; enabled: holder.path !== ""; compact: true; icon: holder.openIcon; tip: holder.openTip; onClicked: Qt.openUrlExternally(Theme.fileUrl(holder.path)) }
+    Item { Layout.fillWidth: true }
 }
