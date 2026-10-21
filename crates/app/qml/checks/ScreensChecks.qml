@@ -267,7 +267,22 @@ Item {
                 return !!lookUp && row.width > Theme.sized(600) && name.width <= name.implicitWidth + 2
                     && Math.abs(row.children[1].x - (name.x + name.width + row.spacing)) <= 1 && lookUp.x + lookUp.width < row.width / 2
             }
-        }
+        },
+        ...[["Export as CSV", "modlist.csv"], ["Export as ModsConfig", "ModsConfig.xml"], ["Export as a RimSort list", "modlist.rml"]].map(([button, name]) => ({
+            section: 0,
+            what: button + " opens its file dialog offering " + name + " in a folder",
+            ready: () => checks.flipped(() => checks.labelled(checks.holding(checks.window.contentItem, "listsMenu").listsMenu.contentItem, Theme.say(button)).clicked()),
+            ok: () => {
+                const file = checks.dialogs(checks.holding(checks.window.contentItem, "listsMenu").listsMenu.contentItem)
+                    .map(dialog => {
+                        const shown = dialog.selectedFile.toString()
+                        dialog.close()
+                        return shown
+                    })
+                    .find(shown => shown.endsWith("/" + name))
+                return !!file && file.startsWith("file:///")
+            }
+        }))
     ]
     property bool typed: false
     property bool askedFind: false
@@ -333,6 +348,23 @@ Item {
                 return found
         }
         return null
+    }
+    function labelled(item, text) {
+        if (item.text === text && item.clicked !== undefined)
+            return item
+        for (const child of item.children) {
+            const found = labelled(child, text)
+            if (found)
+                return found
+        }
+        return null
+    }
+    // A file dialog is no item: it sits among an item's resources, not its children.
+    function dialogs(item) {
+        let found = item.selectedFile !== undefined ? [item] : []
+        for (const child of Array.from(item.children || []).concat(Array.from(item.resources || [])))
+            found = found.concat(dialogs(child))
+        return found
     }
     // Every text shown on a card is whole and inside it, and the card inside the window.
     function whole(card, item) {
