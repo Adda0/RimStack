@@ -10,6 +10,8 @@ PopCard {
     anchors.centerIn: Overlay.overlay
 
     signal useList(var ids)
+    // A key as Hub.lists.compareOrders takes it.
+    signal compare(string key)
 
     // Read fresh on each open: the load order changes while the menu is up.
     property var orders: []
@@ -108,6 +110,14 @@ PopCard {
                                     ordersPopup.close()
                                 } else
                                     Notices.say(done, "err")
+                            }
+                        }
+                        Btn {
+                            text: Theme.say("Compare")
+                            tip: Theme.say("Shows the mods this order and the load order hold apart or in a different order")
+                            onClicked: {
+                                ordersPopup.close()
+                                ordersPopup.compare("order:" + order.index)
                             }
                         }
                         Item { Layout.fillWidth: true }
