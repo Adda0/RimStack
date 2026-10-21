@@ -239,6 +239,7 @@ mod tests {
             then,
             why: Default::default(),
             code,
+            needs: code,
         }
     }
 

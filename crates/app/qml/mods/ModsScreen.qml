@@ -264,6 +264,7 @@ Rectangle {
         title: Hub.mods.binTitle(binPrompt.modId, binPrompt.kind)
         Text { width: parent.width; wrapMode: Text.WrapAnywhere; color: Theme.ink2; font.pixelSize: Theme.small; text: binPrompt.folder }
         Text { width: parent.width; wrapMode: Text.WordWrap; color: Theme.ink2; font.pixelSize: Theme.body; text: Hub.mods.binNote(binPrompt.modId, binPrompt.kind) }
+        Text { visible: text !== ""; width: parent.width; wrapMode: Text.WordWrap; color: Theme.warn; font.pixelSize: Theme.body; text: Hub.mods.binWanting(binPrompt.modId, binPrompt.kind) }
         buttons: [
             Btn { text: Theme.say("Cancel"); onClicked: binPrompt.close() },
             Btn { danger: true; text: Hub.mods.binLabel(binPrompt.kind); onClicked: { Hub.mods.binKind(binPrompt.modId, binPrompt.kind); binPrompt.close() } }

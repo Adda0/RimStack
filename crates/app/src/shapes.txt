@@ -409,6 +409,12 @@ mods.details: object
     []: text
   groupSize: number
   held: text
+  leftWanting: list
+    []: object
+      modId: number
+      name: text
+      note: text
+      trouble: bool
   loadFolders: list
     []: text
   loadTime: text
@@ -500,6 +506,7 @@ mods.details: object
       modId: number
       name: text
       textures: number
+  withoutIt: nothing or text
   workshop: bool
   workshopPage: nothing or text
   xmlLeavesOut: nothing or text
@@ -556,6 +563,12 @@ mods.detailsOf: object
     []: text
   groupSize: number
   held: text
+  leftWanting: list
+    []: object
+      modId: number
+      name: text
+      note: text
+      trouble: bool
   loadFolders: list
     []: text
   loadTime: text
@@ -647,6 +660,7 @@ mods.detailsOf: object
       modId: number
       name: text
       textures: number
+  withoutIt: nothing or text
   workshop: bool
   workshopPage: nothing or text
   xmlLeavesOut: nothing or text

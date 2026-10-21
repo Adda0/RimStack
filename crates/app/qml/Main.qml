@@ -360,6 +360,7 @@ ApplicationWindow {
                 required property var modelData
                 readonly property bool path: !!modelData.path
                 width: parent.width
+                visible: text !== ""
                 text: path ? modelData.path : modelData
                 wrapMode: path ? Text.WrapAnywhere : Text.WordWrap
                 color: path ? Theme.ink : Theme.ink2

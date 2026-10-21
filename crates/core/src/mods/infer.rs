@@ -324,6 +324,9 @@ pub struct Inferred {
     pub why: Sentence,
     /// From compiled code or a parent def, the game needs this order; from patches, only a tidy order.
     pub code: bool,
+    /// Without `first`, `then` fails as the game loads; not for patches written for it, which
+    /// the game skips when it is missing.
+    pub needs: bool,
 }
 
 pub fn infer(
@@ -378,13 +381,14 @@ pub fn infer(
 
     let mut rules: Vec<Inferred> = Vec::new();
     let mut seen: HashSet<(usize, usize)> = HashSet::new();
-    let mut add = |first: usize, then: usize, why: Sentence, code: bool| {
+    let mut add = |first: usize, then: usize, why: Sentence, code: bool, needs: bool| {
         if seen.insert((first, then)) {
             rules.push(Inferred {
                 first,
                 then,
                 why,
                 code,
+                needs,
             });
         }
     };
@@ -392,12 +396,24 @@ pub fn infer(
         // The game checks an assembly's types as it loads it: what it uses must already be loaded.
         for (name, dll) in &s.uses {
             if let Some(other) = only(assembly_of.get(name.as_str()), me) {
-                add(other, me, say!("{} uses its code", shown(dll, me)), true);
+                add(
+                    other,
+                    me,
+                    say!("{} uses its code", shown(dll, me)),
+                    true,
+                    true,
+                );
             }
         }
         for (target, dll) in &s.patches {
             if let Some(other) = only(type_of.get(target.as_str()), me) {
-                add(other, me, say!("{} patches its code", shown(dll, me)), true);
+                add(
+                    other,
+                    me,
+                    say!("{} patches its code", shown(dll, me)),
+                    true,
+                    true,
+                );
             }
         }
         // The game only takes a parent from the def's own mod or an earlier one.
@@ -407,6 +423,7 @@ pub fn infer(
                     other,
                     me,
                     say!("{} builds on its {}", shown(file, me), parent),
+                    true,
                     true,
                 );
             }
@@ -421,6 +438,7 @@ pub fn infer(
                     me,
                     say!("{} has patches for it", shown(file, me)),
                     false,
+                    false,
                 );
             }
         }
@@ -431,6 +449,7 @@ pub fn infer(
                     me,
                     say!("{} patches its {}", shown(file, me), def),
                     false,
+                    true,
                 );
             }
         }
