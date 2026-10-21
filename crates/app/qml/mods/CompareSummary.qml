@@ -25,8 +25,10 @@ Column {
             required property var modelData
             width: cmpSummary.width
             height: Theme.sized(24)
-            Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: tally.modelData[0] }
+            spacing: Theme.gap
+            Text { Layout.fillWidth: true; Layout.maximumWidth: implicitWidth + 1; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: tally.modelData[0] }
             Text { color: Theme.ink2; font.pixelSize: Theme.body; text: tally.modelData[1] }
+            Item { Layout.fillWidth: true }
         }
     }
 

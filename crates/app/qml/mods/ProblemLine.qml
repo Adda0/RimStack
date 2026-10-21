@@ -24,7 +24,7 @@ GridLayout {
     readonly property string said: Mods.problemText({ name: line.name, packageId: line.packageId, words: line.words, items: line.items })
     columnSpacing: Theme.gap
     rowSpacing: Theme.gapTiny
-    columns: 3 - Number(stacked)
+    columns: 4 - Number(stacked)
     Icon { Layout.alignment: Qt.AlignTop; Layout.topMargin: Theme.gapHair; name: line.error ? "circle-alert" : "triangle-alert"; size: 14; color: line.error ? Theme.err : Theme.warn }
     CopyText {
         id: lineText
@@ -34,6 +34,7 @@ GridLayout {
         readonly property string style: "<style>a { color: " + Theme.ink + "; text-decoration: none; } ul { margin-top: 2px; margin-bottom: 0px; }</style>"
         Layout.fillWidth: true
         textFormat: TextEdit.RichText
+        Layout.maximumWidth: implicitWidth + 1
         whole: line.said
         text: style + (linked ? "<a href=\"mod\">" + named + "</a>" : named) + Theme.plain(line.words)
             + (shown.length === 0 ? "" : "<ul>" + shown.map(item => "<li>" + Theme.plain(item) + "</li>").join("") + "</ul>")
@@ -71,4 +72,5 @@ GridLayout {
             }
         }
     }
+    Item { Layout.row: 0; Layout.column: 3 - Number(line.stacked); Layout.fillWidth: true }
 }
