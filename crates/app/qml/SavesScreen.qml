@@ -309,8 +309,9 @@ Item {
                             height: Theme.sized(22)
                             spacing: Theme.gap
                             Icon { name: gone.modelData.installed ? "minus" : "circle-alert"; size: 13; color: gone.modelData.installed ? Theme.ink3 : Theme.err }
-                            Text { Layout.fillWidth: true; elide: Text.ElideRight; color: gone.modelData.installed ? Theme.ink : Theme.err; font.pixelSize: Theme.body; text: gone.modelData.name }
+                            Text { Layout.fillWidth: true; Layout.maximumWidth: implicitWidth + 1; elide: Text.ElideRight; color: gone.modelData.installed ? Theme.ink : Theme.err; font.pixelSize: Theme.body; text: gone.modelData.name }
                             Text { color: Theme.ink3; font.pixelSize: Theme.small; text: gone.modelData.installed ? Theme.say("not active") : Theme.say("not installed") }
+                            Item { Layout.fillWidth: true }
                         }
                     }
                     Btn {
