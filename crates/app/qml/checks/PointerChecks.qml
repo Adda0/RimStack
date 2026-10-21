@@ -667,8 +667,8 @@ Item {
         }
     }
 
-    // Dialogs, popups and shared controls by keyboard, one step every 400 ms: popups take
-    // clicks and keys only once they have faded in.
+    // Dialogs, popups and shared controls by keyboard: each step runs when the last
+    // let go, and a step returning false runs again until its wait (notYet) gives in.
     property int ran: 0
     function ask() {
         Notices.ask({ title: "Check", lines: [], label: "Run", run: () => checks.ran += 1 })
@@ -723,12 +723,64 @@ Item {
         const list = checks.commandList()
         return list ? Array.from(list.model).map(command => command.name) : []
     }
+    // The palette's filter field, once it is the one taking the keys: it is focused
+    // when the popup has opened (onOpened), not when its fade-in starts.
+    function palette() {
+        const box = checks.field(screen.Window.contentItem, Theme.say("A mod, a command or a setting"))
+        return box && box.visible && box.editing ? box : null
+    }
+    function openPalette() {
+        if (!checks.palette())
+            events.keyClick(Qt.Key_K, Qt.ControlModifier, -1)
+        return checks.palette() !== null
+    }
+    // True once the palette takes the keys; presses Ctrl+K again until it does, then
+    // after `notYet`'s pause gives in so a check can report the wait instead.
+    function paletteUp() {
+        const up = checks.openPalette()
+        if (up) {
+            checks.tries = 0
+            return true
+        }
+        return !checks.notYet(false)
+    }
+    // Keys of a step that is not ready are not sent again: a step returning true runs
+    // once, one returning false again only when its wait says so.
+    property int tries: 0
+    function notYet(ready) {
+        if (ready) {
+            checks.tries = 0
+            return false
+        }
+        if (checks.tries++ < 25)
+            return true
+        checks.tries = 0
+        return false
+    }
+    // Types the command's name and runs it once it is the first the palette offers.
+    // False until then, so the step is run again; the field is cleared first, so a
+    // keystroke that reached nothing leaves no half-typed text to type on top of.
     function runCommand(name) {
-        for (const c of name)
-            events.keyClickChar(c, Qt.NoModifier, -1)
-        const first = checks.commandNames()[0] === name
+        checks.ranFirst = false
+        const box = checks.palette()
+        if (!box) {
+            checks.openPalette()
+            return false
+        }
+        if (box.text !== name) {
+            box.text = ""
+            for (const c of name)
+                events.keyClickChar(c, Qt.NoModifier, -1)
+        }
+        checks.ranFirst = checks.commandNames()[0] === name
+        if (!checks.ranFirst) {
+            if (checks.notYet(false))
+                return false
+            return true
+        }
+        checks.tries = 0
         events.keyClick(Qt.Key_Return, Qt.NoModifier, -1)
-        return first
+        return true
     }
     function loadOrder() {
         const ids = []
@@ -789,8 +841,12 @@ Item {
             check("and closes it", !checks.asked())
             checks.screen.viewMenu.open()
         },
+        // The first button has the keys from the show, but keys of a fading-in card
+        // are not a person's: a person types into the card they see whole.
         () => {
             const card = checks.screen.viewMenu, headings = Mods.prefs.headings
+            if (checks.notYet(card.opened))
+                return false
             const first = checks.focused().text === Theme.say("Under category headings")
             events.keyClick(Qt.Key_Return, Qt.NoModifier, -1)
             const under = Mods.prefs.headings === 1
@@ -809,7 +865,10 @@ Item {
             checks.order.forceActiveFocus()
             events.keyClick(Qt.Key_Space, Qt.NoModifier, -1)
         },
+        // `opened`, not `visible`: keys of a fading-in menu are not a person's.
         () => {
+            if (checks.notYet(checks.screen.rowMenu.opened))
+                return false
             const all = Hub.mods.inactiveOrders.all
             const listed = checks.screen.menuOpen && checks.screen.rowMenu.entries.length === all.length
             events.keyClick(Qt.Key_Down, Qt.NoModifier, -1)
@@ -823,6 +882,8 @@ Item {
             Mods.menuRequested(checks.activeList, 0, 0, checks.pick(["Alpha", "Beta", "", "Bravo", "Gamma", "Delta"]))
         },
         () => {
+            if (checks.notYet(checks.screen.rowMenu.opened))
+                return false
             const menu = checks.screen.rowMenu, at = []
             for (const key of [Qt.Key_End, Qt.Key_Home, Qt.Key_B, Qt.Key_B, Qt.Key_B, Qt.Key_PageDown, Qt.Key_PageUp]) {
                 events.keyClick(key, Qt.NoModifier, -1)
@@ -850,38 +911,44 @@ Item {
             events.keyClick(Qt.Key_Escape, Qt.NoModifier, -1)
             check("Esc during a sort preview discards it, the list back in its order, and keeps the selection", previewing && !Hub.mods.previewing && checks.loadOrder() === checks.sortedFrom && !Hub.mods.dirty && selected >= 0 && Mods.selectedId === selected)
             Mods.previewSort()
-            events.keyClick(Qt.Key_K, Qt.ControlModifier, -1)
+            checks.openPalette()
         },
         () => {
+            if (!checks.paletteUp())
+                return false
             const names = checks.commandNames()
             check("during a preview the command palette offers Apply sort and Discard sort", Hub.mods.previewing && names.indexOf(Theme.say("Apply sort")) >= 0 && names.indexOf(Theme.say("Discard sort")) >= 0)
-            checks.ranFirst = checks.runCommand(Theme.say("Discard sort"))
         },
+        () => checks.runCommand(Theme.say("Discard sort")),
         () => {
             check("and Discard sort ends it, the list back in its order", checks.ranFirst && !Hub.mods.previewing && checks.loadOrder() === checks.sortedFrom && !Hub.mods.dirty)
             Mods.previewSort()
-            events.keyClick(Qt.Key_K, Qt.ControlModifier, -1)
+            checks.openPalette()
         },
-        () => checks.ranFirst = checks.runCommand(Theme.say("Apply sort")),
+        () => checks.runCommand(Theme.say("Apply sort")),
         () => {
             check("Apply sort keeps the sorted order", checks.ranFirst && !Hub.mods.previewing && Hub.mods.dirty && checks.loadOrder() !== checks.sortedFrom)
-            events.keyClick(Qt.Key_K, Qt.ControlModifier, -1)
+            checks.openPalette()
         },
         () => {
+            if (!checks.paletteUp())
+                return false
             const names = checks.commandNames()
             check("with no preview it offers Discard changes for what is unsaved, and neither sort command", names.indexOf(Theme.say("Discard changes")) >= 0 && names.indexOf(Theme.say("Apply sort")) < 0 && names.indexOf(Theme.say("Discard sort")) < 0)
-            checks.ranFirst = checks.runCommand(Theme.say("Discard changes"))
         },
+        () => checks.runCommand(Theme.say("Discard changes")),
         () => {
             check("and Discard changes goes back to the saved list", checks.ranFirst && !Hub.mods.dirty && checks.loadOrder() === checks.sortedFrom)
             Mods.problemRow = -1
-            events.keyClick(Qt.Key_K, Qt.ControlModifier, -1)
+            checks.openPalette()
         },
         () => {
+            if (!checks.paletteUp())
+                return false
             const names = checks.commandNames()
             check("a list with problems offers Previous problem, and no Discard changes once saved", names.indexOf(Theme.say("Previous problem")) >= 0 && names.indexOf(Theme.say("Discard changes")) < 0)
-            checks.ranFirst = checks.runCommand(Theme.say("Previous problem"))
         },
+        () => checks.runCommand(Theme.say("Previous problem")),
         () => {
             const last = Hub.mods.nextProblem(-1, false)
             check("and Previous problem goes back round to the last problem and selects its mod", checks.ranFirst && last >= 0 && (Hub.mods.troubled < 2 || last !== Hub.mods.nextProblem(-1, true)) && Mods.problemRow === last && Mods.selectedId === Mods.active.modIdAt(last))
@@ -1021,14 +1088,20 @@ Item {
         id: popups
         property int at: 0
         interval: 400
-        repeat: true
-        // A step that throws is not run again; one that returns false is, until it is ready.
+        repeat: false
+        // Chained by hand, not repeated: a step the window's thread is still busy in
+        // cannot be overtaken by the next tick running the steps after it.
         onTriggered: {
             if (at === checks.popupSteps.length) {
-                stop()
                 Qt.exit(checks.failed > 0 ? 1 : 0)
-            } else if (checks.popupSteps[at++]() === false)
-                at -= 1
+                return
+            }
+            try {
+                if (checks.popupSteps[at++]() === false)
+                    at -= 1
+            } finally {
+                start()
+            }
         }
     }
 }
