@@ -127,16 +127,22 @@ impl App {
         self.change_notes(&[id], Changes::NOTES, |note| note.text = text.clone())
     }
 
-    /// Each tag of the comma-separated `text` the mod has in no case yet goes last.
-    pub fn add_tags(&self, id: ModId, text: &str) -> bool {
+    /// Each tag of the comma-separated `text` a mod has in no case yet goes last.
+    pub fn add_tags(&self, ids: &[ModId], text: &str) -> bool {
         let tags = notes::tags_in(text);
-        self.change_notes(&[id], Changes::NOTES, |note| {
+        self.change_notes(ids, Changes::NOTES, |note| {
             for tag in &tags {
                 if !note.tags.iter().any(|had| had.eq_ignore_ascii_case(tag)) {
                     note.tags.push(tag.clone());
                 }
             }
         })
+    }
+
+    /// The comma-separated `text` becomes each mod's tags, its first tag the group.
+    pub fn set_tags(&self, ids: &[ModId], text: &str) -> bool {
+        let tags = notes::tags_in(text);
+        self.change_notes(ids, Changes::NOTES, |note| note.tags = tags.clone())
     }
 
     pub fn clear_tags(&self, id: ModId) -> bool {
@@ -355,8 +361,8 @@ mod tests {
         };
         app.set_note(core, "trade, Travel", "");
         app.set_note(id, "travel", "far");
-        assert!(app.add_tags(id, "TRAVEL, maps , "));
-        assert!(!app.add_tags(id, "Maps"));
+        assert!(app.add_tags(&[id], "TRAVEL, maps , "));
+        assert!(!app.add_tags(&[id], "Maps"));
         let note = || app.notes().reading().get("ann.roads").cloned().unwrap();
         assert_eq!(note().tags, ["travel", "maps"]);
         let offered: Vec<String> = app
@@ -368,6 +374,32 @@ mod tests {
         assert!(app.set_note_text(id, "near"));
         assert!(app.clear_tags(id));
         assert_eq!((note().tags.len(), note().text), (0, "near".to_string()));
+    }
+
+    #[test]
+    fn tags_set_on_two_mods_replace_theirs_and_keep_their_notes() {
+        let (_tmp, app) = installed();
+        let id = roads(&app);
+        let core = {
+            let loaded = app.library();
+            let (library, _) = loaded.as_ref().as_ref().unwrap();
+            library.ids().find(|(_, m)| m.folder == "Core").unwrap().0
+        };
+        app.set_note(id, "travel", "far");
+        app.set_note(core, "base", "");
+        assert!(app.set_tags(&[id, core], "Maps, trade, maps"));
+        assert!(!app.set_tags(&[id, core], "Maps, trade"));
+        let notes = app.notes().reading();
+        let roads = notes.get("ann.roads").unwrap();
+        assert_eq!(roads.group(), "Maps");
+        assert_eq!(
+            (roads.tags.join(", "), roads.text.as_str()),
+            ("Maps, trade".to_string(), "far")
+        );
+        assert_eq!(
+            notes.get("ludeon.rimworld").unwrap().tags,
+            ["Maps", "trade"]
+        );
     }
 
     #[test]

@@ -73,8 +73,14 @@ QtObject {
                 { text: Theme.say("Update"), icon: "download", run: () => Hub.downloads.updateFromGit(row.modId) },
             ])
         // One entry, as the tags in use may be many: the groups open in a menu of their own.
-        if (about.groupChoices)
-            groups.push([{ text: Theme.say("Group under a tag"), icon: "tag", run: () => Mods.menuRequested(row, x, y, Mods.groupEntries(row.modId, about)) }])
+        const tags = about.groupChoices ? [{ text: Theme.say("Group under a tag"), icon: "tag", run: () => Mods.menuRequested(row, x, y, Mods.groupEntries(row.modId, about)) }] : []
+        // Pasting replaces the tags, the first copied one the group; adding keeps those a mod has.
+        if (row.modId >= 0)
+            tags.push(
+                { text: Theme.say("Copy tags"), icon: "copy", off: !about.tags, run: () => Mods.copyTags(about.tags) },
+                { text: many ? Theme.plural(Mods.selectedCount, "Paste tags onto {} mod", "Paste tags onto {} mods") : Theme.say("Paste tags"), icon: "tag", off: !Mods.copiedTags, run: () => Mods.pasteTags(false) },
+                { text: many ? Theme.plural(Mods.selectedCount, "Add copied tags to {} mod", "Add copied tags to {} mods") : Theme.say("Add copied tags"), icon: "plus", off: !Mods.copiedTags, run: () => Mods.pasteTags(true) })
+        groups.push(tags)
         // Paints the selected mods' rows, as RimSort and RimPy users do to spot mods at a glance:
         // one entry, showing the colour in use, whose menu narrows the swatches as one types.
         if (row.modId >= 0)
