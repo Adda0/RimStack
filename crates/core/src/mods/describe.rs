@@ -21,6 +21,49 @@ pub struct Trouble {
     pub fix: Fix,
     /// What `Note::ignored` holds to ignore it; empty for a game version, which has `Fix::Trust`.
     pub key: String,
+    pub kind: TroubleKind,
+}
+
+/// What a trouble is about: the Problems panel lists each kind under a heading of its own.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TroubleKind {
+    NeededOff,
+    NeededMissing,
+    NotInstalled,
+    Incompatible,
+    OutOfOrder,
+    GameVersion,
+    NoVersions,
+    NoWorkshopId,
+    GoneFromWorkshop,
+    Duplicate,
+    XmlBroken,
+    PatchMisses,
+    OwnHarmony,
+    DllClash,
+    LoadFoldersCase,
+}
+
+impl TroubleKind {
+    pub fn heading(self) -> &'static str {
+        match self {
+            TroubleKind::NeededOff => named("Needed and switched off"),
+            TroubleKind::NeededMissing => named("Needed and not installed"),
+            TroubleKind::NotInstalled => named("Not installed"),
+            TroubleKind::Incompatible => named("Cannot be used together"),
+            TroubleKind::OutOfOrder => named("Out of order"),
+            TroubleKind::GameVersion => named("Made for another game version"),
+            TroubleKind::NoVersions => named("No supported versions"),
+            TroubleKind::NoWorkshopId => named("No Workshop id"),
+            TroubleKind::GoneFromWorkshop => named("Gone from the Workshop"),
+            TroubleKind::Duplicate => named("Installed more than once"),
+            TroubleKind::XmlBroken => named("XML that will not load"),
+            TroubleKind::PatchMisses => named("Patches miss their defs"),
+            TroubleKind::OwnHarmony => named("Ships its own 0Harmony.dll"),
+            TroubleKind::DllClash => named("Dlls other active mods also ship"),
+            TroubleKind::LoadFoldersCase => named("LoadFolders.xml letter case"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -96,18 +139,6 @@ impl Fix {
             Fix::Move(..) => named("Move it there"),
             Fix::Trust => named("Ignore"),
             Fix::Sort => named("Sort"),
-        }
-    }
-
-    pub fn group(&self) -> &'static str {
-        match self {
-            Fix::None => named("Other"),
-            Fix::Activate(_) => named("Needed and switched off"),
-            Fix::Subscribe(_) | Fix::Search(_) => named("Needed and not installed"),
-            Fix::Deactivate(_) => named("Cannot be used together"),
-            Fix::Move(..) => named("Out of order"),
-            Fix::Trust => named("Made for another game version"),
-            Fix::Sort => named("In the wrong order"),
         }
     }
 }
@@ -229,6 +260,7 @@ pub fn lacking(library: &Library, m: &crate::mods::list::Mod) -> Option<Trouble>
         short: say!("No Workshop id"),
         fix: Fix::None,
         key: "no-workshop-id".to_string(),
+        kind: TroubleKind::NoWorkshopId,
     })
 }
 
@@ -247,6 +279,7 @@ pub fn unversioned(library: &Library, m: &Mod) -> Option<Trouble> {
         short: say!("No supported versions"),
         fix: Fix::None,
         key: "no-versions".to_string(),
+        kind: TroubleKind::NoVersions,
     })
 }
 
@@ -277,7 +310,7 @@ pub fn troubles(
             }
             Problem::GameVersion { .. } => String::new(),
         };
-        let (words, short, fix) = match &problem {
+        let (words, short, fix, kind) = match &problem {
             Problem::Requires {
                 id,
                 name: Some(name),
@@ -287,6 +320,7 @@ pub fn troubles(
                 Fix::Activate(crate::rimworld::id::fold(
                     &crate::rimworld::id::split_steam(id).0,
                 )),
+                TroubleKind::NeededOff,
             ),
             Problem::Requires { id, name: None } => {
                 let folded_id = crate::rimworld::id::fold(&crate::rimworld::id::split_steam(id).0);
@@ -295,6 +329,7 @@ pub fn troubles(
                         say!("Needs the {} DLC, which is not installed.", dlc),
                         say!("Missing the {} DLC", dlc),
                         Fix::None,
+                        TroubleKind::NeededMissing,
                     )
                 } else {
                     let (name, fix) = missing(id);
@@ -302,6 +337,7 @@ pub fn troubles(
                         say!("Needs {}, which is not installed.", name),
                         say!("Missing {}", name),
                         fix,
+                        TroubleKind::NeededMissing,
                     )
                 }
             }
@@ -309,6 +345,7 @@ pub fn troubles(
                 say!("Cannot be used together with {}.", mods[*with].name),
                 say!("Not with {}", mods[*with].name),
                 Fix::Deactivate(*with),
+                TroubleKind::Incompatible,
             ),
             Problem::GameVersion { supports } => (
                 say!(
@@ -318,6 +355,7 @@ pub fn troubles(
                 ),
                 say!("Made for {}", details::newest(supports).unwrap_or_default()),
                 Fix::Trust,
+                TroubleKind::GameVersion,
             ),
         };
         Trouble {
@@ -326,6 +364,7 @@ pub fn troubles(
             short,
             fix,
             key,
+            kind,
         }
     };
     let mut all: Vec<Vec<Trouble>> = found
@@ -361,6 +400,8 @@ pub fn troubles(
             words,
             short,
             fix: Fix::Sort,
+            items: Vec::new(),
+            kind: TroubleKind::OutOfOrder,
             key,
         });
     }
@@ -372,6 +413,7 @@ pub fn troubles(
                 short: say!("Not installed"),
                 fix: missing(&m.id).1,
                 key: "missing".to_string(),
+                kind: TroubleKind::NotInstalled,
             });
         }
         if let Some(lack) = lacking(library, m) {
@@ -471,6 +513,7 @@ fn duplicate(library: &Library, m: &Mod, read: &HashMap<ModId, String>) -> Optio
             short: say!("another copy is installed"),
             fix: Fix::None,
             key: "duplicate".to_string(),
+            kind: TroubleKind::Duplicate,
         }
     } else {
         let winner = copies.all.iter().copied().find(|o| read.contains_key(o))?;
@@ -486,6 +529,7 @@ fn duplicate(library: &Library, m: &Mod, read: &HashMap<ModId, String>) -> Optio
             short: say!("the game loads another copy"),
             fix: Fix::None,
             key: "duplicate".to_string(),
+            kind: TroubleKind::Duplicate,
         }
     };
     Some(trouble)
@@ -656,6 +700,7 @@ mod tests {
             short: Sentence::default(),
             fix,
             key: String::new(),
+            kind: TroubleKind::GameVersion,
         };
         assert!(warned_for_version(&[
             trouble(Fix::None),
@@ -850,6 +895,7 @@ mod tests {
                 "not-with:{}",
                 crate::rimworld::id::fold(&library.active[with].id)
             ),
+            kind: TroubleKind::Incompatible,
         };
         found[0].push(not_with(1));
         found[1].push(not_with(0));
@@ -899,13 +945,12 @@ mod tests {
     }
 
     #[test]
-    fn a_fix_has_an_action_a_target_a_button_and_a_kind() {
+    fn a_fix_has_an_action_a_target_and_a_button() {
         let fix = Fix::Activate("a.fine".to_string());
         assert_eq!(
             (fix.action(), fix.target().as_str()),
             ("activate", "a.fine")
         );
-        assert_eq!(fix.group(), "Needed and switched off");
         let other = Fix::Deactivate(3);
         assert_eq!(
             (other.action(), other.target().as_str()),
@@ -926,6 +971,7 @@ mod tests {
             short: Sentence::default(),
             fix,
             key: String::new(),
+            kind: TroubleKind::GameVersion,
         };
         let needs = |id: &str| trouble(true, Fix::Activate(id.to_string()));
         let counted = tally(&[
