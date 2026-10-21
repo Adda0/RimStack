@@ -1,6 +1,7 @@
 //! Active mods come first in each.
 
-use crate::mods::library::{Library, ModId};
+use crate::kept::updates::asks_git;
+use crate::mods::library::{Installed, Library, ModId};
 use crate::rimworld::paths::Source;
 use crate::sources::replacements::Replacement;
 use serde::Serialize;
@@ -245,9 +246,52 @@ pub fn asked(
     ids.iter().map(one).collect()
 }
 
+/// The checkouts Git is run in, by [`asks_git`].
+pub fn checkouts(
+    library: &Library,
+    git_for_workshop: bool,
+) -> impl Iterator<Item = (ModId, &Installed)> {
+    library
+        .ids()
+        .filter(move |(_, m)| asks_git(m.source, m.git, git_for_workshop))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_author_s_repository_left_in_a_workshop_item_is_no_checkout_git_runs_in() {
+        use crate::mods::library::{build, scan};
+        use crate::rimworld::paths::ModRoot;
+        let tmp = tempfile::tempdir().unwrap();
+        let roots =
+            [("Mods", Source::Local), ("workshop", Source::Workshop)].map(|(folder, source)| {
+                ModRoot {
+                    path: tmp.path().join(folder),
+                    source,
+                }
+            });
+        for (root, folder, config) in [
+            (&roots[0].path, "kept", "[core]\n\tbare = false\n"),
+            (
+                &roots[1].path,
+                "2941",
+                "[core]\n\tbare = false\n[diff]\n\ttool = vsdiffmerge\n",
+            ),
+        ] {
+            let git = root.join(folder).join(".git");
+            std::fs::create_dir_all(git.join("objects")).unwrap();
+            std::fs::write(git.join("config"), config).unwrap();
+        }
+        let library = build(scan(&roots), &[], "1.6");
+        let folders = |on| {
+            let found = checkouts(&library, on).map(|(_, m)| m.folder.clone());
+            found.collect::<Vec<_>>()
+        };
+        assert_eq!(folders(false), ["kept"]);
+        assert_eq!(folders(true), ["kept", "2941"]);
+    }
 
     fn sample() -> HashMap<&'static str, Item<'static>> {
         let item = |at, name, active| Item {
