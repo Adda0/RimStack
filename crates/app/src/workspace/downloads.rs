@@ -110,6 +110,55 @@ pub struct Queue {
     pub wanted: Vec<String>,
 }
 
+/// The Workshop search the Downloads screen shows: every page asked so far, in order.
+#[derive(Serialize, Default, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct Hits {
+    pub text: String,
+    /// The last page that came; 0 before any.
+    pub page: usize,
+    pub total: u64,
+    pub found: Vec<workshop::Found>,
+    /// Steam has hits past these.
+    pub more: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub problem: Option<Sentence>,
+}
+
+impl Hits {
+    /// A later page of the same search adds its new hits; any other answer starts afresh.
+    pub fn with(
+        mut self,
+        text: &str,
+        page: usize,
+        answer: Result<workshop::Searched, Error>,
+    ) -> Hits {
+        if page <= 1 || self.text != text {
+            self = Hits {
+                text: text.to_string(),
+                ..Hits::default()
+            };
+        }
+        match answer {
+            Ok(searched) => {
+                let had: HashSet<String> = self.found.iter().map(|hit| hit.id.clone()).collect();
+                self.found.extend(
+                    searched
+                        .found
+                        .into_iter()
+                        .filter(|hit| !had.contains(&hit.id)),
+                );
+                self.page = page;
+                self.total = searched.total;
+                self.problem = None;
+            }
+            Err(problem) => self.problem = Some(problem.sentence().clone()),
+        }
+        self.more = self.page > 0 && (self.found.len() as u64) < self.total;
+        self
+    }
+}
+
 impl App {
     fn checked_file(&self) -> PathBuf {
         self.own_dir().join("updates.json")
@@ -328,12 +377,19 @@ impl App {
         self.settings().get("steamKey").map(String::from)
     }
 
-    /// Blocks on the network; the key goes only to api.steampowered.com.
-    pub fn search_workshop(&self, text: &str) -> Result<Vec<workshop::Found>, Error> {
+    /// Blocks on the network; the key goes only to api.steampowered.com. `page` starts at 1.
+    pub fn search_workshop(&self, text: &str, page: usize) -> Result<workshop::Searched, Error> {
         let Some(key) = self.steam_key() else {
             return Err(Error::refused(say!("no Steam WebAPI key kept")));
         };
-        workshop::query_files(&key, text.trim(), 1)
+        workshop::query_files(&key, text.trim(), page)
+    }
+
+    /// A search hit's preview picture, kept in the cache folder; blocks on the network the
+    /// first time. `None` for an address that is not a picture to fetch.
+    pub fn workshop_preview(&self, id: &str, url: &str) -> Result<Option<PathBuf>, Error> {
+        let dir = self.data_dir().join("cache").join("workshop-previews");
+        workshop::keep_preview(&dir, id, url)
     }
 
     pub fn replaceable(&self) -> Vec<Replaceable> {
@@ -500,5 +556,47 @@ mod tests {
         assert_eq!(app.replacements_ignored().len(), 2);
         app.ignore_replacement(None).unwrap();
         assert!(app.replacements_ignored().is_empty());
+    }
+
+    fn hit(id: &str) -> workshop::Found {
+        workshop::Found {
+            id: id.into(),
+            title: id.into(),
+            updated: 0,
+            subscriptions: None,
+            description: String::new(),
+            tags: Vec::new(),
+            size: 0,
+            preview: String::new(),
+        }
+    }
+
+    #[test]
+    fn more_results_add_to_the_hits_of_the_same_search() {
+        let page = |ids: &[&str]| {
+            Ok(workshop::Searched {
+                total: 3,
+                found: ids.iter().map(|id| hit(id)).collect(),
+            })
+        };
+        let ids = |hits: &Hits| {
+            hits.found
+                .iter()
+                .map(|hit| hit.id.clone())
+                .collect::<Vec<_>>()
+        };
+        let first = Hits::default().with("hat", 1, page(&["1", "2"]));
+        assert!(first.more && first.page == 1);
+        // A hit that moved onto the next page meanwhile is not listed twice.
+        let second = first.with("hat", 2, page(&["2", "3"]));
+        assert_eq!(ids(&second), ["1", "2", "3"]);
+        assert!(!second.more && second.page == 2);
+        let refused = second.with("hat", 3, Err(Error::refused("no")));
+        assert_eq!(ids(&refused), ["1", "2", "3"]);
+        assert!(refused.problem.is_some() && refused.page == 2);
+        let other = refused.with("cap", 2, page(&["9"]));
+        assert_eq!(ids(&other), ["9"]);
+        let again = other.with("cap", 1, Err(Error::refused("no")));
+        assert!(again.found.is_empty() && !again.more && again.problem.is_some());
     }
 }

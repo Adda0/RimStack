@@ -6,6 +6,7 @@ use crate::base::vdf::{Token, tokens};
 use rayon::prelude::*;
 use serde_json::Value;
 use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 
 const DETAILS_URL: &str =
     "https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/";
@@ -227,37 +228,80 @@ pub struct Found {
     pub updated: u64,
     /// `None` when Steam does not say.
     pub subscriptions: Option<u64>,
+    /// Plain text, one line; empty when Steam does not say.
+    pub description: String,
+    /// As the Workshop lists them: "Mod" and the game versions, as "1.6".
+    pub tags: Vec<String>,
+    /// Bytes; 0 when Steam does not say.
+    pub size: u64,
+    /// The preview picture's address; empty when there is none.
+    pub preview: String,
+}
+
+/// A page of hits, and how many the whole search has.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Searched {
+    pub total: u64,
+    pub found: Vec<Found>,
 }
 
 /// A page of `IPublishedFileService/QueryFiles` search results.
-pub fn parse_search(json: &str) -> Result<Vec<Found>, Error> {
+pub fn parse_search(json: &str) -> Result<Searched, Error> {
     let root: Value = serde_json::from_str(json)
         .map_err(|e| Error::format(said!("Steam's answer is not JSON: {}", e)))?;
-    let files = root
-        .pointer("/response/publishedfiledetails")
-        .and_then(Value::as_array)
-        .ok_or_else(|| Error::format(said!("Steam's answer has no file list")))?;
+    let total = root.pointer("/response/total").and_then(Value::as_u64);
+    // A search with no hits has a total and no list.
+    let files = match root.pointer("/response/publishedfiledetails") {
+        Some(files) => files.as_array(),
+        None => total.map(|_| &EMPTY),
+    }
+    .ok_or_else(|| Error::format(said!("Steam's answer has no file list")))?;
     let found = |file: &Value| -> Option<Found> {
         if file.get("result").and_then(Value::as_u64) != Some(1) {
             return None;
         }
+        let text = |name: &str| file.get(name).and_then(Value::as_str).unwrap_or("");
+        // 64-bit numbers come as text.
+        let number = |name: &str| {
+            let value = file.get(name)?;
+            value.as_u64().or_else(|| value.as_str()?.parse().ok())
+        };
+        let described = [text("short_description"), text("file_description")]
+            .into_iter()
+            .find(|said| !said.trim().is_empty())
+            .unwrap_or("");
+        let tags = file
+            .get("tags")
+            .and_then(Value::as_array)
+            .map_or(&EMPTY, |tags| tags);
         Some(Found {
             id: file.get("publishedfileid")?.as_str()?.to_string(),
             title: file.get("title")?.as_str()?.to_string(),
-            updated: file
-                .get("time_updated")
-                .and_then(Value::as_u64)
-                .unwrap_or(0),
-            subscriptions: file.get("lifetime_subscriptions").and_then(Value::as_u64),
+            updated: number("time_updated").unwrap_or(0),
+            subscriptions: number("lifetime_subscriptions"),
+            description: crate::base::markup::plain(described),
+            tags: tags
+                .iter()
+                .filter_map(|tag| tag.get("tag")?.as_str())
+                .map(String::from)
+                .collect(),
+            size: number("file_size").unwrap_or(0),
+            preview: text("preview_url").to_string(),
         })
     };
-    Ok(files.iter().filter_map(found).collect())
+    Ok(Searched {
+        total: total.unwrap_or(0),
+        found: files.iter().filter_map(found).collect(),
+    })
 }
+
+static EMPTY: Vec<Value> = Vec::new();
 
 /// Blocks on the network. The key goes only to api.steampowered.com and is never logged.
 /// `page` starts at 1.
-pub fn query_files(key: &str, text: &str, page: usize) -> Result<Vec<Found>, Error> {
+pub fn query_files(key: &str, text: &str, page: usize) -> Result<Searched, Error> {
     let agent = crate::base::web::agent(60);
+    // `preview_url` comes without `return_previews`, which adds only the further pictures.
     let mut response = agent
         .get(QUERY_URL)
         .query_pairs([
@@ -269,6 +313,8 @@ pub fn query_files(key: &str, text: &str, page: usize) -> Result<Vec<Found>, Err
             ("search_text", text),
             ("filetype", "0"),
             ("return_metadata", "1"),
+            ("return_tags", "1"),
+            ("return_short_description", "1"),
         ])
         .header("x-webapi-key", key)
         .call()
@@ -278,6 +324,74 @@ pub fn query_files(key: &str, text: &str, page: usize) -> Result<Vec<Found>, Err
         .read_to_string()
         .map_err(crate::base::web::steam_failed)?;
     parse_search(&text)
+}
+
+/// Where a hit's preview picture is kept in `dir`: by id and the picture's own name, which
+/// Steam changes with the picture. `None` for an address that is not a picture to fetch.
+pub fn preview_file(dir: &Path, id: &str, url: &str) -> Option<PathBuf> {
+    let (_, path) = url.strip_prefix("https://")?.split_once('/')?;
+    let path = path.split(['?', '#']).next()?;
+    let name: String = path
+        .rsplit('/')
+        .find(|part| !part.is_empty())?
+        .chars()
+        .filter(char::is_ascii_alphanumeric)
+        .take(64)
+        .collect();
+    (is_workshop_id(id) && !name.is_empty()).then(|| dir.join(format!("{id}-{name}")))
+}
+
+/// Pictures kept in the preview folder; the oldest go beyond this.
+const PREVIEWS_KEPT: usize = 300;
+
+/// The kept copy of a hit's preview picture, fetched first if there is none: blocks on the
+/// network then. `None` for an address that is not a picture to fetch.
+pub fn keep_preview(dir: &Path, id: &str, url: &str) -> Result<Option<PathBuf>, Error> {
+    let Some(file) = preview_file(dir, id, url) else {
+        return Ok(None);
+    };
+    if file.is_file() {
+        return Ok(Some(file));
+    }
+    let mut response = crate::base::web::agent(60)
+        .get(url)
+        .call()
+        .map_err(crate::base::web::failed)?;
+    let bytes = response
+        .body_mut()
+        .with_config()
+        .limit(16 * 1024 * 1024)
+        .read_to_vec()
+        .map_err(crate::base::web::failed)?;
+    crate::base::atomic_file::write(&file, bytes)?;
+    prune_previews(dir, &file, id, PREVIEWS_KEPT);
+    Ok(Some(file))
+}
+
+/// Removes the hit's older pictures, then the oldest others past `most` files.
+/// A name with a dot is a write still under way, and stays.
+fn prune_previews(dir: &Path, new: &Path, id: &str, most: usize) {
+    let mine = format!("{id}-");
+    let mut others: Vec<(std::time::SystemTime, PathBuf)> = Vec::new();
+    for entry in std::fs::read_dir(dir).into_iter().flatten().flatten() {
+        let path = entry.path();
+        let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
+            continue;
+        };
+        if path == new || name.contains('.') {
+            continue;
+        }
+        if name.starts_with(&mine) {
+            let _ = std::fs::remove_file(&path);
+        } else if let Ok(modified) = entry.metadata().and_then(|m| m.modified()) {
+            others.push((modified, path));
+        }
+    }
+    others.sort();
+    let over = (others.len() + 1).saturating_sub(most);
+    for (_, path) in &others[..over] {
+        let _ = std::fs::remove_file(path);
+    }
 }
 
 pub fn parse_collections(json: &str) -> Result<Vec<(String, Vec<String>)>, Error> {
@@ -420,28 +534,103 @@ mod tests {
 
     #[test]
     fn search_results_skip_items_steam_does_not_know() {
+        // Harmony as Steam gave it on 2026-10-21, in QueryFiles' field names; the markup is added.
         let json = r#"{"response":{"total":4123,"publishedfiledetails":[
-            {"publishedfileid":"2009463077","result":1,"title":"Harmony","time_updated":1756914561,"lifetime_subscriptions":3181967},
+            {"publishedfileid":"2009463077","result":1,"creator":"76561197973010050",
+             "file_size":"8306239",
+             "preview_url":"https://images.steamusercontent.com/ugc/779624067826598337/7EED02FFB4AE4DA8D029623C2C82F5D8F0FD77FF/",
+             "title":"Harmony","short_description":"[h1]Harmony[/h1]\r\nThe shared patch library used by [b]many[/b] RimWorld mods.\n[img]https://x.org/a.png[/img]",
+             "time_updated":1792065891,"lifetime_subscriptions":4148309,
+             "tags":[{"tag":"Mod","display_name":"Mod"},{"tag":"1.6","display_name":"1.6"},{"tag":"1.5","display_name":"1.5"}]},
             {"publishedfileid":"3298098166","result":1,"title":"No counts"},
+            {"publishedfileid":"3298098167","result":1,"title":"Long only","file_description":"Full [i]text[/i]","file_size":12},
             {"publishedfileid":"1","result":9}]}}"#;
+        let searched = parse_search(json).unwrap();
+        assert_eq!(searched.total, 4123);
         assert_eq!(
-            parse_search(json).unwrap(),
+            searched.found,
             [
                 Found {
                     id: "2009463077".into(),
                     title: "Harmony".into(),
-                    updated: 1756914561,
-                    subscriptions: Some(3181967),
+                    updated: 1792065891,
+                    subscriptions: Some(4148309),
+                    description: "Harmony The shared patch library used by many RimWorld mods."
+                        .into(),
+                    tags: vec!["Mod".into(), "1.6".into(), "1.5".into()],
+                    size: 8306239,
+                    preview: "https://images.steamusercontent.com/ugc/779624067826598337/7EED02FFB4AE4DA8D029623C2C82F5D8F0FD77FF/".into(),
                 },
                 Found {
                     id: "3298098166".into(),
                     title: "No counts".into(),
                     updated: 0,
                     subscriptions: None,
+                    description: String::new(),
+                    tags: Vec::new(),
+                    size: 0,
+                    preview: String::new(),
+                },
+                Found {
+                    id: "3298098167".into(),
+                    title: "Long only".into(),
+                    updated: 0,
+                    subscriptions: None,
+                    description: "Full text".into(),
+                    tags: Vec::new(),
+                    size: 12,
+                    preview: String::new(),
                 },
             ]
         );
+        // No hits: a total and no list.
+        assert_eq!(
+            parse_search(r#"{"response":{"total":0}}"#).unwrap(),
+            Searched::default()
+        );
         assert!(parse_search("{}").is_err());
+    }
+
+    #[test]
+    fn a_preview_is_kept_by_hit_and_picture() {
+        let dir = Path::new("/c");
+        let url = "https://images.steamusercontent.com/ugc/7796/7EED02FF/";
+        assert_eq!(
+            preview_file(dir, "2009463077", url),
+            Some(dir.join("2009463077-7EED02FF"))
+        );
+        assert_eq!(
+            preview_file(dir, "5", "https://x.org/a/b.jpg?w=1"),
+            Some(dir.join("5-bjpg"))
+        );
+        assert_eq!(preview_file(dir, "../5", url), None);
+        assert_eq!(preview_file(dir, "5", "http://x.org/a.jpg"), None);
+        assert_eq!(preview_file(dir, "5", "https://x.org/"), None);
+    }
+
+    #[test]
+    fn a_new_preview_replaces_the_hit_s_old_one_and_the_oldest_go() {
+        let dir = tempfile::tempdir().unwrap();
+        let at = |name: &str| dir.path().join(name);
+        for (name, age) in [
+            ("5-old", 30),
+            ("6-a", 20),
+            ("7-a", 10),
+            ("8-a.9-0.part", 40),
+        ] {
+            std::fs::write(at(name), "x").unwrap();
+            let file = std::fs::File::options().write(true).open(at(name)).unwrap();
+            file.set_modified(std::time::SystemTime::now() - std::time::Duration::from_secs(age))
+                .unwrap();
+        }
+        std::fs::write(at("5-new"), "x").unwrap();
+        prune_previews(dir.path(), &at("5-new"), "5", 2);
+        let mut left: Vec<String> = std::fs::read_dir(dir.path())
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().into_string().unwrap())
+            .collect();
+        left.sort();
+        assert_eq!(left, ["5-new", "7-a", "8-a.9-0.part"]);
     }
 
     #[test]
