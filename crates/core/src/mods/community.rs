@@ -271,7 +271,7 @@ pub fn works_on_file(data_dir: &Path, game_version: &str) -> PathBuf {
 /// The folded package ids in a `ModIdsToFix.xml` text.
 pub fn works_on(xml: &str) -> Result<std::collections::HashSet<String>, Error> {
     let xml = xml.strip_prefix('\u{feff}').unwrap_or(xml);
-    let doc = roxmltree::Document::parse(xml)
+    let doc = crate::base::xml::parse(xml)
         .map_err(|e| Error::format(said!("the list is not XML: {}", e)))?;
     if !doc.root_element().has_tag_name("ModIdsToFix") {
         return Err(Error::format(said!("the list is not a ModIdsToFix file")));

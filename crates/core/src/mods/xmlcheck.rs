@@ -47,8 +47,7 @@ fn parsed(text: &str) -> Result<Document<'_>, u32> {
         allow_dtd: true,
         ..ParsingOptions::default()
     };
-    Document::parse_with_options(text.trim_start_matches('\u{feff}'), options)
-        .map_err(|e| e.pos().row)
+    crate::base::xml::parse_with(text.trim_start_matches('\u{feff}'), options).map_err(|e| e.row())
 }
 
 fn asked(doc: &Document, file: &Path, into: &mut Read) {

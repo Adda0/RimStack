@@ -1,8 +1,8 @@
 use crate::base::error::Error;
 use crate::said;
 
+use crate::base::xml;
 use crate::rimworld::id;
-use roxmltree::Document;
 use std::collections::HashSet;
 use std::io::{BufRead, Read};
 use std::path::{Path, PathBuf};
@@ -73,7 +73,7 @@ pub fn read_header(path: &Path) -> Result<Header, Error> {
 
 fn parse_header(text: &str) -> Result<Header, Error> {
     let text = text.strip_prefix('\u{feff}').unwrap_or(text);
-    let doc = Document::parse(text).map_err(|e| Error::format(said!("malformed XML: {}", e)))?;
+    let doc = xml::parse(text).map_err(|e| Error::format(said!("malformed XML: {}", e)))?;
     let meta = doc
         .root_element()
         .children()

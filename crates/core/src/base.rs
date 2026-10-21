@@ -20,3 +20,4 @@ pub mod versions;
 pub mod walk;
 pub mod watch;
 pub(crate) mod web;
+pub mod xml;

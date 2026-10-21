@@ -1,5 +1,4 @@
 use crate::rimworld::id;
-use roxmltree::Document;
 use std::path::{Component, Path, PathBuf};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -25,7 +24,7 @@ impl Entry {
 /// `None` when there is no such list or the file is not XML.
 pub fn declared(xml: &str, game_version: &str) -> Option<Vec<Entry>> {
     let xml = xml.strip_prefix('\u{feff}').unwrap_or(xml);
-    let doc = Document::parse(xml).ok()?;
+    let doc = crate::base::xml::parse(xml).ok()?;
     let lists = || doc.root_element().children().filter(|n| n.is_element());
     let named = |wanted: &str| {
         lists().find(|n| {
