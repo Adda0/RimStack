@@ -4,7 +4,8 @@ use rimstack_core::base::sentence::Sentence;
 use rimstack_core::mods::describe;
 use rimstack_core::mods::library::ModId;
 use rimstack_core::mods::list::{Category, Mod, Row};
-use rimstack_core::mods::rules::Kind;
+use rimstack_core::mods::rules::{Kind, Rule};
+use rimstack_core::mods::sort::Sorted;
 use rimstack_core::mods::sort_reasons::{self, Why};
 use rimstack_core::{say, say_n};
 use serde::Serialize;
@@ -43,6 +44,52 @@ pub struct SortMove {
     pub why: Sentence,
 }
 
+/// A rule the sort could not follow.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SortDrop {
+    pub first: String,
+    pub then: String,
+    /// Package ids as the list names them.
+    pub first_id: String,
+    pub then_id: String,
+    pub kind: Sentence,
+    pub why: Sentence,
+    /// The rule in words, naming both mods.
+    pub rule: Sentence,
+}
+
+fn kind_name(kind: Kind) -> Sentence {
+    match kind {
+        Kind::Yours => say!("your rule"),
+        Kind::Requires => say!("required"),
+        Kind::LoadAfter => say!("load after"),
+        Kind::LoadBefore => say!("load before"),
+        Kind::ForceLoadAfter => say!("force load after"),
+        Kind::ForceLoadBefore => say!("force load before"),
+        Kind::CommunityAfter | Kind::CommunityBefore => say!("community rule"),
+        Kind::CommunityBottom => say!("community: at the bottom"),
+        Kind::Hint => say!("patch hint"),
+        Kind::Inferred => say!("detected from code"),
+    }
+}
+
+fn dropped(mods: &[Mod], sorted: &Sorted) -> Vec<SortDrop> {
+    let drop = |r: &Rule| SortDrop {
+        first: mods[r.first].name.clone(),
+        then: mods[r.then].name.clone(),
+        first_id: mods[r.first].id.clone(),
+        then_id: mods[r.then].id.clone(),
+        kind: kind_name(r.kind),
+        why: match sorted.off_group.contains(r) {
+            true => say!("would leave its category"),
+            false => say!("in a loop"),
+        },
+        rule: describe::rule(r, mods),
+    };
+    sorted.dropped.iter().map(drop).collect()
+}
+
 impl LoadOrder {
     pub fn preview_sort(&mut self, app: &App) {
         if self.preview.is_some() || !self.is_installed() {
@@ -63,6 +110,7 @@ impl LoadOrder {
         if moves == 0 {
             return;
         }
+        self.sort_dropped = dropped(&mods, &sorted);
         let names: Vec<&str> = mods.iter().map(|m| m.name.as_str()).collect();
         let categories: Vec<Category> = mods.iter().map(|m| m.category).collect();
         let why = sorted
@@ -103,6 +151,7 @@ impl LoadOrder {
             self.active.set_grouped(preview.grouped_before);
             self.active.set_mods(preview.before);
             self.sort_note.clear();
+            self.sort_dropped.clear();
             self.settle(app);
         }
     }
@@ -110,6 +159,7 @@ impl LoadOrder {
     pub(super) fn end_preview(&mut self) {
         self.preview = None;
         self.sort_note.clear();
+        self.sort_dropped.clear();
     }
 
     /// Off the window's thread. `None` while a sort is on show or the list is made up.
@@ -167,6 +217,35 @@ impl LoadOrder {
             .collect()
     }
 
+    pub fn sort_dropped(&self) -> &[SortDrop] {
+        &self.sort_dropped
+    }
+
+    /// The sort on show as text to paste into a report: what moves and why, then the rules it
+    /// could not follow.
+    pub fn sort_report(&self) -> String {
+        let put = crate::words::put;
+        let mut lines: Vec<String> = self.sort_note.iter().map(put).collect();
+        for group in self.sort_moves() {
+            lines.push(String::new());
+            lines.push(put(&Sentence::named(group.name)));
+            for m in group.moves {
+                let why = put(&m.why);
+                lines.push(format!("- {}: {} → {}, {why}", m.name, m.from, m.to));
+            }
+        }
+        if !self.sort_dropped.is_empty() {
+            lines.push(String::new());
+            lines.push(put(&dropped_title(self.sort_dropped.len())));
+            for d in &self.sort_dropped {
+                let (rule, kind, why) = (put(&d.rule), put(&d.kind), put(&d.why));
+                let ids = format!("[{} → {}]", d.first_id, d.then_id);
+                lines.push(format!("- {rule} ({kind}, {why}) {ids}"));
+            }
+        }
+        lines.join("\n")
+    }
+
     pub(super) fn why_moved(&self, index: usize) -> Option<&Sentence> {
         let why = self.preview.as_ref()?.why.get(index)?.as_ref();
         why.map(|w| &w.text)
@@ -187,7 +266,7 @@ impl LoadOrder {
     }
 }
 
-fn note(mods: &[Mod], sorted: &rimstack_core::mods::sort::Sorted, moves: usize) -> Vec<Sentence> {
+fn note(mods: &[Mod], sorted: &Sorted, moves: usize) -> Vec<Sentence> {
     let mut note = vec![match moves {
         0 => say!("Already in order."),
         n => say_n!(
@@ -220,4 +299,98 @@ fn note(mods: &[Mod], sorted: &rimstack_core::mods::sort::Sorted, moves: usize) 
         ));
     }
     note
+}
+
+fn dropped_title(n: usize) -> Sentence {
+    say_n!(
+        n,
+        "{} rule could not be followed",
+        "{} rules could not be followed"
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rimstack_core::mods::sort;
+
+    fn mods(names: &[&str]) -> Vec<Mod> {
+        let mut mods = rimstack_core::mods::demo::generate(names.len());
+        for (m, name) in mods.iter_mut().zip(names) {
+            m.name = name.to_string();
+            m.id = format!("ann.{}", name.to_lowercase());
+        }
+        mods
+    }
+
+    fn said(drop: &SortDrop) -> [String; 7] {
+        [
+            drop.first.clone(),
+            drop.then.clone(),
+            drop.first_id.clone(),
+            drop.then_id.clone(),
+            drop.kind.to_string(),
+            drop.why.to_string(),
+            drop.rule.to_string(),
+        ]
+    }
+
+    #[test]
+    fn a_loop_of_rules_gives_the_rule_it_dropped_with_its_kind_and_sentence() {
+        let mods = mods(&["Roads", "Hats"]);
+        let required = Rule {
+            first: 0,
+            then: 1,
+            kind: Kind::Requires,
+        };
+        let yours = Rule {
+            first: 1,
+            then: 0,
+            kind: Kind::Yours,
+        };
+        let found = dropped(&mods, &sort::sort(2, &[required, yours]));
+        let found: Vec<[String; 7]> = found.iter().map(said).collect();
+        assert_eq!(
+            found,
+            [[
+                "Roads",
+                "Hats",
+                "ann.roads",
+                "ann.hats",
+                "required",
+                "in a loop",
+                "Hats requires Roads"
+            ]
+            .map(String::from)]
+        );
+        assert_eq!(
+            dropped_title(found.len()).to_string(),
+            "1 rule could not be followed"
+        );
+    }
+
+    #[test]
+    fn a_patch_hint_that_would_take_a_mod_out_of_its_category_says_so() {
+        let mods = mods(&["Lib", "Other", "Patch", "Last"]);
+        let hint = Rule {
+            first: 2,
+            then: 0,
+            kind: Kind::Hint,
+        };
+        let found = dropped(&mods, &sort::sort_grouped(&[0, 0, 3, 1], 9, &[hint]));
+        let found: Vec<[String; 7]> = found.iter().map(said).collect();
+        assert_eq!(
+            found,
+            [[
+                "Patch",
+                "Lib",
+                "ann.patch",
+                "ann.lib",
+                "patch hint",
+                "would leave its category",
+                "their files put Patch before Lib"
+            ]
+            .map(String::from)]
+        );
+    }
 }

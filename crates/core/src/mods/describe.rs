@@ -682,6 +682,7 @@ pub fn rule(rule: &Rule, mods: &[Mod]) -> Sentence {
         let (first, then) = (&mods[rule.first].name, &mods[rule.then].name);
         return match rule.kind {
             Kind::Yours => say!("your rule puts {} before {}", first, then),
+            Kind::Inferred | Kind::Hint => say!("their files put {} before {}", first, then),
             _ => say!("the community rules put {} before {}", first, then),
         };
     };

@@ -257,6 +257,15 @@ Item {
         return null
     }
 
+    function every(item, test, into) {
+        for (const child of item.children) {
+            if (test(child))
+                into.push(child)
+            checks.every(child, test, into)
+        }
+        return into
+    }
+
     function runChecks() {
         checks.failed = 0
         checks.stepBegan = Date.now()
@@ -664,6 +673,26 @@ Item {
         const sortLines = Hub.mods.sortMoves()
         check("each move of a sort has a reason", !Hub.mods.previewing || sortLines.every(group => group.name !== "" && group.moves.every(m => m.why !== "")))
         Mods.endSort(false)
+        // 004's own rule loads it after 002; a rule of yours the other way makes a loop the sort must break.
+        const idOf = name => activeMods().filter(x => x.view.name === name)[0].id
+        const [mod004, mod002] = [idOf("Fixture Mod 004"), idOf("Fixture Mod 002")]
+        Hub.mods.addRule(mod004, mod002)
+        Mods.previewSort()
+        const dropped = Hub.mods.sortDropped()
+        const droppedCard = checks.find(checks.Window.contentItem, item => item.key === "sort-dropped")
+        const droppedLines = droppedCard ? checks.every(droppedCard, item => item.whole !== undefined && item.visible, []) : []
+        const loopLine = droppedLines.find(line => line.text.indexOf("Fixture Mod 004") >= 0 && line.text.indexOf("Fixture Mod 002") >= 0)
+        check("a sort that breaks a loop shows the rules it could not follow, counted in the card's title", Hub.mods.previewing && dropped.length > 0 && !!droppedCard && droppedCard.visible && droppedCard.title === Theme.plural(dropped.length, "{} rule could not be followed", "{} rules could not be followed") && droppedLines.length === dropped.length)
+        check("its line names both mods, the kind and why, and copies with their package ids", !!loopLine && loopLine.text.indexOf(Theme.say("load after")) >= 0 && loopLine.text.indexOf(Theme.say("in a loop")) >= 0 && loopLine.whole.indexOf("[fixture.mod002 → fixture.mod004]") > 0 && loopLine.readOnly && loopLine.selectByMouse)
+        const reportCopy = checks.find(checks.Window.contentItem, item => item.spoken === Theme.say("Copy the report") && item.visible)
+        if (reportCopy)
+            reportCopy.clicked()
+        const report = Theme.pasted()
+        const loopMoves = Hub.mods.sortMoves()
+        check("Copy the report puts the moves with their reasons and the dropped rules on the clipboard", !!reportCopy && report === Hub.mods.sortReport() && report.indexOf(Theme.plural(dropped.length, "{} rule could not be followed", "{} rules could not be followed")) > 0 && report.indexOf("[fixture.mod002 → fixture.mod004]") > 0 && loopMoves.length > 0 && report.indexOf(Theme.say(loopMoves[0].name)) > 0 && report.indexOf(loopMoves[0].moves[0].why) > 0)
+        Mods.endSort(false)
+        Hub.mods.removeRule(mod004, mod002)
+        check("discarded, the sort leaves no dropped rules behind", Hub.mods.sortDropped().length === 0)
         Mods.leftOffRestored = true
         const one = Mods.nthMod(Mods.active, 3), other = Mods.nthMod(Mods.active, 7)
         Mods.select(one, true)
