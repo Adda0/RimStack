@@ -647,6 +647,30 @@ Item {
     function logsScreen() {
         return checks.find(screen.Window.contentItem, item => item.recorded !== undefined && item.launches !== undefined)
     }
+    // The open command palette's list: its model holds the commands it shows.
+    function commandList() {
+        const box = checks.field(screen.Window.contentItem, Theme.say("A mod, a command or a setting"))
+        return box ? checks.find(box.parent, item => item.currentIndex !== undefined && item.model !== undefined) : null
+    }
+    function commandNames() {
+        const list = checks.commandList()
+        return list ? Array.from(list.model).map(command => command.name) : []
+    }
+    function runCommand(name) {
+        for (const c of name)
+            events.keyClickChar(c, Qt.NoModifier, -1)
+        const first = checks.commandNames()[0] === name
+        events.keyClick(Qt.Key_Return, Qt.NoModifier, -1)
+        return first
+    }
+    function loadOrder() {
+        const ids = []
+        for (let i = 0; i < Mods.active.count; i++)
+            ids.push(Mods.nthMod(Mods.active, i))
+        return ids.join(",")
+    }
+    property string sortedFrom
+    property bool ranFirst
     property int waited: 0
     property Item order
     property string wasOrder
@@ -742,6 +766,56 @@ Item {
             events.keyClick(Qt.Key_Down, Qt.NoModifier, -1)
             events.keyClick(Qt.Key_Space, Qt.NoModifier, -1)
             check("and so does Space", checks.chose === "Beta" && !checks.screen.menuOpen)
+        },
+        () => {
+            // From the saved list: the steps before leave unsaved moves.
+            Hub.mods.discardChanges()
+            checks.sortedFrom = checks.loadOrder()
+            Mods.select(Mods.nthMod(Mods.active, 0), true)
+            checks.activeList.forceActiveFocus()
+            Mods.previewSort()
+        },
+        () => {
+            const previewing = Hub.mods.previewing, selected = Mods.selectedId
+            events.keyClick(Qt.Key_Escape, Qt.NoModifier, -1)
+            check("Esc during a sort preview discards it, the list back in its order, and keeps the selection", previewing && !Hub.mods.previewing && checks.loadOrder() === checks.sortedFrom && !Hub.mods.dirty && selected >= 0 && Mods.selectedId === selected)
+            Mods.previewSort()
+            events.keyClick(Qt.Key_K, Qt.ControlModifier, -1)
+        },
+        () => {
+            const names = checks.commandNames()
+            check("during a preview the command palette offers Apply sort and Discard sort", Hub.mods.previewing && names.indexOf(Theme.say("Apply sort")) >= 0 && names.indexOf(Theme.say("Discard sort")) >= 0)
+            checks.ranFirst = checks.runCommand(Theme.say("Discard sort"))
+        },
+        () => {
+            check("and Discard sort ends it, the list back in its order", checks.ranFirst && !Hub.mods.previewing && checks.loadOrder() === checks.sortedFrom && !Hub.mods.dirty)
+            Mods.previewSort()
+            events.keyClick(Qt.Key_K, Qt.ControlModifier, -1)
+        },
+        () => checks.ranFirst = checks.runCommand(Theme.say("Apply sort")),
+        () => {
+            check("Apply sort keeps the sorted order", checks.ranFirst && !Hub.mods.previewing && Hub.mods.dirty && checks.loadOrder() !== checks.sortedFrom)
+            events.keyClick(Qt.Key_K, Qt.ControlModifier, -1)
+        },
+        () => {
+            const names = checks.commandNames()
+            check("with no preview it offers Discard changes for what is unsaved, and neither sort command", names.indexOf(Theme.say("Discard changes")) >= 0 && names.indexOf(Theme.say("Apply sort")) < 0 && names.indexOf(Theme.say("Discard sort")) < 0)
+            checks.ranFirst = checks.runCommand(Theme.say("Discard changes"))
+        },
+        () => {
+            check("and Discard changes goes back to the saved list", checks.ranFirst && !Hub.mods.dirty && checks.loadOrder() === checks.sortedFrom)
+            Mods.problemRow = -1
+            events.keyClick(Qt.Key_K, Qt.ControlModifier, -1)
+        },
+        () => {
+            const names = checks.commandNames()
+            check("a list with problems offers Previous problem, and no Discard changes once saved", names.indexOf(Theme.say("Previous problem")) >= 0 && names.indexOf(Theme.say("Discard changes")) < 0)
+            checks.ranFirst = checks.runCommand(Theme.say("Previous problem"))
+        },
+        () => {
+            const last = Hub.mods.nextProblem(-1, false)
+            check("and Previous problem goes back round to the last problem and selects its mod", checks.ranFirst && last >= 0 && (Hub.mods.troubled < 2 || last !== Hub.mods.nextProblem(-1, true)) && Mods.problemRow === last && Mods.selectedId === Mods.active.modIdAt(last))
+            Mods.select(-1, false)
         },
         () => {
             shared.visible = true
