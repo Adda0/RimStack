@@ -213,6 +213,18 @@ Item {
 
     function tagSelected(tag) { Hub.mods.addTag(selectedIds, tag) }
     function subSelected(name) { Hub.mods.group(selectedIds, name) }
+    // Copied for pasting onto other mods, and onto the clipboard as the Add tags box takes them.
+    property string copiedTags: ""
+    function copyTags(tags) {
+        copiedTags = tags
+        Theme.copy(tags)
+    }
+    // The selected mods take the copied tags, or with `add` gain them; Undo gives each its own back.
+    function pasteTags(add) {
+        const ids = selectedIds, before = ids.map(id => about(id).tags || "")
+        Hub.mods.pasteTags(ids, copiedTags, add)
+        Notices.offer(Theme.plural(ids.length, "Tags pasted onto {} mod", "Tags pasted onto {} mods"), Theme.say("Undo"), () => ids.forEach((id, at) => Hub.mods.pasteTags([id], before[at], false)))
+    }
     function selectedToEdge(top) {
         Hub.mods.toEdge(selectedIds, top)
         reveal(active, active.rowOf(active.indexOf(selectedId)), false)

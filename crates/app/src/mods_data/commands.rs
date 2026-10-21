@@ -508,7 +508,27 @@ impl qobject::ModsData {
 
     pub(super) fn add_tags(self: Pin<&mut Self>, mod_id: i32, tags: &QString) {
         let tags = tags.to_string();
-        self.change_tags(mod_id, |app, id| app.add_tags(id, &tags));
+        self.change_tags(mod_id, |app, id| app.add_tags(&[id], &tags));
+    }
+
+    pub(super) fn paste_tags(
+        mut self: Pin<&mut Self>,
+        given: &QVariant,
+        tags: &QString,
+        add: bool,
+    ) {
+        let Some(ids) = ids(given) else {
+            return self.refuse_list();
+        };
+        let (app, tags) = (self.app(), tags.to_string());
+        let changed = match add {
+            true => app.add_tags(&ids, &tags),
+            false => app.set_tags(&ids, &tags),
+        };
+        if changed {
+            self.as_mut().order_mut().sync(&app);
+            self.show();
+        }
     }
 
     pub(super) fn remove_tag(self: Pin<&mut Self>, mod_id: i32, tag: &QString) {

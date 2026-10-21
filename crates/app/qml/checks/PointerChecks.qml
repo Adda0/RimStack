@@ -478,9 +478,71 @@ Item {
             const menu = checks.screen.rowMenu
             checks.check("the Menu key opens the selected mod's menu", checks.screen.menuOpen && checks.entry(menu, Theme.say("Copy name")) !== null)
             events.keyClick(Qt.Key_Escape, Qt.NoModifier, -1)
-            Mods.select(-1, false)
-            comparing.start()
+            checks.copyPasteTags()
         }
+    }
+    // Opens the menu of the mods selected, with the Menu key; `after` runs once it has faded in.
+    Timer {
+        id: tagsMenuShown
+        property var after
+        interval: 400
+        onTriggered: after()
+    }
+    function tagsMenu(ids, after) {
+        Mods.select(ids[0], true)
+        for (const id of ids.slice(1))
+            Mods.selectAlso(id, true)
+        Mods.focusList(Mods.active)
+        events.keyClick(Qt.Key_Menu, Qt.NoModifier, -1)
+        tagsMenuShown.after = after
+        tagsMenuShown.start()
+    }
+    function clickEntry(text) {
+        const entry = checks.entry(checks.screen.rowMenu, text)
+        if (entry)
+            events.mouseClick(entry, entry.width / 2, entry.height / 2, Qt.LeftButton, Qt.NoModifier, -1)
+        return entry !== null
+    }
+    // The group heading the mod's row sits under; groups show only under headings.
+    function groupAbove(modId) {
+        for (let r = Mods.active.rowOf(Mods.active.indexOf(modId)); r >= 0; r--)
+            if (Mods.active.at(r).isHeader === true)
+                return Mods.active.at(r).isSub === true ? Mods.active.at(r).name : ""
+        return ""
+    }
+    function undoOffered() {
+        const offer = Notices.shown.find(notice => notice.run)
+        offer.run()
+        Notices.dismiss(offer.key)
+    }
+    function copyPasteTags() {
+        const [a, b, c] = [1, 2, 3].map(n => Mods.nthMod(Mods.active, n))
+        const copied = "pointer-copied, pointer-second", tags = id => Mods.about(id).tags || ""
+        Hub.mods.pasteTags([a], copied, false)
+        Hub.mods.pasteTags([b], "pointer-own", false)
+        Hub.mods.pasteTags([c], "", false)
+        Mods.prefs.headings = 1
+        checks.tagsMenu([a], () => {
+            checks.check("Copy tags in a mod's menu keeps its tags for pasting and puts them on the clipboard", checks.clickEntry(Theme.say("Copy tags")) && Mods.copiedTags === copied && checks.copied() === copied)
+            checks.tagsMenu([b], () => {
+                checks.check("Paste tags gives another mod those tags, the first its group heading", checks.clickEntry(Theme.say("Paste tags")) && tags(b) === copied && checks.groupAbove(b) === "pointer-copied")
+                checks.undoOffered()
+                checks.check("and Undo gives it its own tags and group back", tags(b) === "pointer-own" && checks.groupAbove(b) === "pointer-own")
+                Mods.pasteTags(true)
+                checks.check("adding the copied tags keeps its own first", tags(b) === "pointer-own, " + copied && checks.groupAbove(b) === "pointer-own")
+                checks.undoOffered()
+                checks.tagsMenu([b, c], () => {
+                    checks.check("Paste tags onto two selected mods gives both the copied tags", checks.clickEntry(Theme.plural(2, "Paste tags onto {} mod", "Paste tags onto {} mods")) && tags(b) === copied && tags(c) === copied && checks.groupAbove(b) === "pointer-copied")
+                    checks.undoOffered()
+                    checks.check("and one Undo gives each its own tags back", tags(b) === "pointer-own" && tags(c) === "")
+                    Hub.mods.pasteTags([a, b], "", false)
+                    Mods.copiedTags = ""
+                    Mods.prefs.headings = 0
+                    Mods.select(-1, false)
+                    comparing.start()
+                })
+            })
+        })
     }
     Timer {
         id: comparing
