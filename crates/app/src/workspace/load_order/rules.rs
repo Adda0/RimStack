@@ -197,6 +197,7 @@ pub fn troubles(
                     short: say!("gone from the Workshop"),
                     fix: describe::Fix::None,
                     key: String::new(),
+                    kind: describe::TroubleKind::GoneFromWorkshop,
                 });
             }
         }
@@ -268,6 +269,7 @@ pub fn order_troubles(
                 short: say!("Should load {}.", words.inside()),
                 fix: describe::Fix::Move(other, after),
                 key,
+                kind: describe::TroubleKind::OutOfOrder,
             }]
         })
         .collect()

@@ -3,7 +3,7 @@
 //! from them, silently; elsewhere the path is found and nothing is told.
 
 use crate::base::sentence::Sentence;
-use crate::mods::describe::{Fix, Trouble};
+use crate::mods::describe::{Fix, Trouble, TroubleKind};
 use crate::rimworld::loadfolders::Miscased;
 use crate::{say, say_n};
 
@@ -26,6 +26,7 @@ pub fn troubles(miscased: &[Miscased]) -> Vec<Trouble> {
         short: say!("LoadFolders.xml letter case"),
         fix: Fix::None,
         key: "loadfolders-case".to_string(),
+        kind: TroubleKind::LoadFoldersCase,
     }]
 }
 
