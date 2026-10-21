@@ -175,7 +175,7 @@ fn cxx_name_in(attributes: &str) -> Option<&str> {
     rest.split('"').next()
 }
 
-const UNFILLED: [(&str, &str); 28] = [
+const UNFILLED: [(&str, &str); 29] = [
     ("logs.since", "a clean launch before the last"),
     (
         "mods.details.copies.[].megabytes",
@@ -251,6 +251,10 @@ const UNFILLED: [(&str, &str); 28] = [
     ),
     ("mods.overview.communityMods", "the community's rules"),
     ("mods.overview.communityTime", "the community's rules"),
+    (
+        "mods.overview.toGet.[].items",
+        "a mod to get is about no dlls or files",
+    ),
     ("mods.sortMoves", "a sort that would move a made-up mod"),
 ];
 

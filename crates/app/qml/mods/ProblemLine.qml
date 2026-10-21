@@ -8,6 +8,10 @@ GridLayout {
     property bool error: true
     property string name
     property string words
+    // Shown under the words, one a line: the dlls, files or folders the problem is about.
+    property var items: []
+    readonly property int most: 8
+    property bool open: false
     // { action, target, label }: what `Mods.applyFix` is given.
     property var fix: ({})
     property int modId: -1
@@ -16,20 +20,31 @@ GridLayout {
     property string packageId
     // The action on a line of its own, under the words.
     property bool stacked: false
+    // The problem as text to paste into a report.
+    readonly property string said: Mods.problemText({ name: line.name, packageId: line.packageId, words: line.words, items: line.items })
     columnSpacing: Theme.gap
     rowSpacing: Theme.gapTiny
     columns: 3 - Number(stacked)
     Icon { Layout.alignment: Qt.AlignTop; Layout.topMargin: Theme.gapHair; name: line.error ? "circle-alert" : "triangle-alert"; size: 14; color: line.error ? Theme.err : Theme.warn }
-    Text {
+    CopyText {
+        id: lineText
+        readonly property bool linked: line.name !== "" && line.modId >= 0
+        readonly property string named: line.name === "" ? "" : "<b>" + Theme.plain(line.name) + "</b>&nbsp; "
+        readonly property var shown: line.open ? line.items : line.items.slice(0, line.most)
+        readonly property string style: "<style>a { color: " + Theme.ink + "; text-decoration: none; } ul { margin-top: 2px; margin-bottom: 0px; }</style>"
         Layout.fillWidth: true
-        wrapMode: Text.WordWrap
-        textFormat: Text.StyledText
-        color: Theme.ink
-        font.pixelSize: Theme.body
-        lineHeight: 1.25
-        text: (line.name !== "" ? "<b>" + Theme.plain(line.name) + "</b>  " : "") + Theme.plain(line.words)
-        HoverHandler { enabled: line.name !== "" && line.modId >= 0; cursorShape: Qt.PointingHandCursor }
-        TapHandler { enabled: line.name !== "" && line.modId >= 0; onTapped: Mods.showMod(line.modId) }
+        textFormat: TextEdit.RichText
+        whole: line.said
+        text: style + (linked ? "<a href=\"mod\">" + named + "</a>" : named) + Theme.plain(line.words)
+            + (shown.length === 0 ? "" : "<ul>" + shown.map(item => "<li>" + Theme.plain(item) + "</li>").join("") + "</ul>")
+        onLinkActivated: Mods.showMod(line.modId)
+    }
+    Btn {
+        visible: line.items.length > line.most
+        Layout.row: 1 + Number(line.stacked)
+        Layout.column: 1
+        text: line.open ? Theme.fill("Show {}", line.most) : Theme.fill("{} more", (line.items.length - line.most))
+        onClicked: line.open = !line.open
     }
     Row {
         Layout.alignment: Qt.AlignTop

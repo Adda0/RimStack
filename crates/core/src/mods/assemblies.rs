@@ -129,6 +129,7 @@ pub fn troubles(found: &Found) -> Vec<Trouble> {
         said.push(Trouble {
             error: false,
             words,
+            items: Vec::new(),
             short: say!("Ships its own 0Harmony.dll"),
             fix: Fix::None,
             key: "assembly-harmony".to_string(),
@@ -161,10 +162,10 @@ pub fn troubles(found: &Found) -> Vec<Trouble> {
             error: false,
             words: say_n!(
                 n,
-                "{} dll another active mod also ships, differently; the game loads only the first copy: {}",
-                "{} dlls other active mods also ship, differently; the game loads only the first copy: {}",
-                Sentence::joined("; ", files).inside()
+                "{} dll another active mod also ships, differently; the game loads only the first copy:",
+                "{} dlls other active mods also ship, differently; the game loads only the first copy:"
             ),
+            items: files,
             short: say!("A dll two active mods ship"),
             fix: Fix::None,
             key: "assembly-clash".to_string(),
@@ -276,11 +277,48 @@ mod tests {
                 other_first: true,
             }]
         );
+        let items = |found: &Found| -> Vec<String> {
+            troubles(found)[0]
+                .items
+                .iter()
+                .map(Sentence::to_string)
+                .collect()
+        };
+        assert_eq!(
+            items(&found[1]),
+            ["SomeLib.dll (1.3 vs 1.2), also in A Mod, which loads first: the game uses that copy"]
+        );
+        assert_eq!(
+            items(&found[0]),
+            [
+                "SomeLib.dll (1.2 vs 1.3), also in B Mod: this mod loads first, so the game uses this copy"
+            ]
+        );
+    }
+
+    #[test]
+    fn each_dll_two_mods_ship_differently_is_an_item_of_its_own() {
+        let a = a_mod(vec![a_dll("One", [1, 2, 0, 0]), a_dll("Two", [2, 1, 0, 0])]);
+        let b = a_mod(vec![a_dll("One", [1, 3, 0, 0]), a_dll("Two", [2, 2, 0, 0])]);
+        let found = checked(&[&a, &b], &["a.a", "b.b"], &["A Mod", "B Mod"]);
         let said = troubles(&found[1]);
-        let words = said[0].words.to_string();
-        assert!(words.contains("SomeLib.dll (1.3 vs 1.2), also in A Mod, which loads first"));
-        let words = troubles(&found[0])[0].words.to_string();
-        assert!(words.contains("also in B Mod: this mod loads first"));
+        assert_eq!(said.len(), 1);
+        assert_eq!(
+            said[0].words.to_string(),
+            "2 dlls other active mods also ship, differently; the game loads only the first copy:"
+        );
+        let items: Vec<String> = said[0].items.iter().map(Sentence::to_string).collect();
+        assert_eq!(
+            items,
+            [
+                "One.dll (1.3 vs 1.2), also in A Mod, which loads first: the game uses that copy",
+                "Two.dll (2.2 vs 2.1), also in A Mod, which loads first: the game uses that copy"
+            ]
+        );
+        assert_eq!(
+            said[0].in_full().to_string(),
+            format!("{}\n- {}\n- {}", said[0].words, items[0], items[1])
+        );
     }
 
     #[test]

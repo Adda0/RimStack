@@ -597,7 +597,7 @@ Item {
         check("every problem has its words and its fix", Mods.troubles.every(t => t.words !== "" && t.group !== "") && Mods.troubles.length >= Hub.mods.errors)
         const bundled = Mods.troubles.filter(t => t.ignore === "assembly-harmony")
         Mods.filtered = "is:assemblies"
-        check("a mod shipping its own 0Harmony.dll is a problem, and is:assemblies finds it", bundled.length === 1 && bundled[0].name === "Fixture Mod 012" && Mods.active.matching === 1)
+        check("a mod shipping its own 0Harmony.dll is a problem, and is:assemblies finds it beside the two shipping the same dlls", bundled.length === 1 && bundled[0].name === "Fixture Mod 012" && Mods.active.matching === 3)
         Mods.filtered = ""
         const named = (key, name) => Mods.troubles.filter(t => t.ignore === key && t.name === name).length === 1
         check("a LoadFolders.xml folder in the wrong letter case, and an About.xml naming no game version, are problems", named("loadfolders-case", "Fixture Mod 015") && named("no-versions", "Fixture Mod 016"))
