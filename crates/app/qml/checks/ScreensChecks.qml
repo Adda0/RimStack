@@ -103,6 +103,12 @@ Item {
         },
         {
             section: 5,
+            what: "and lists the local Mods folder among them",
+            ready: () => true,
+            ok: () => checks.showing(checks.window.contentItem, Hub.settings.report.localMods)
+        },
+        {
+            section: 5,
             what: "a folder typed in Settings is judged after a pause, and a missing one is refused and not kept",
             ready: () => {
                 if (!checks.typed) {
@@ -288,6 +294,11 @@ Item {
         for (const child of root.children || [])
             found += fonted(child, family)
         return found
+    }
+    function showing(root, text) {
+        if (!root.visible)
+            return false
+        return root.text === text || Array.from(root.children || []).some(child => checks.showing(child, text))
     }
     function holding(item, name) {
         if (item[name] !== undefined)
