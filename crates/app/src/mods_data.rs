@@ -249,6 +249,15 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "binLabel"]
         fn bin_label(self: &ModsData, kind: i32) -> QString;
+        /// What a deletion of this `kind` leaves the active mods wanting; empty when the mod
+        /// stays or nothing needs it.
+        #[qinvokable]
+        #[cxx_name = "binWanting"]
+        fn bin_wanting(self: &ModsData, mod_id: i32, kind: i32) -> QString;
+        /// "N active mods need it: …" before these mods leave; empty when nothing needs them.
+        #[qinvokable]
+        #[cxx_name = "leftWanting"]
+        fn left_wanting(self: &ModsData, ids: &QVariant) -> QString;
         #[qinvokable]
         #[cxx_name = "copyToLocal"]
         fn copy_to_local(self: Pin<&mut ModsData>, mod_id: i32);

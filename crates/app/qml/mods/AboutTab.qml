@@ -210,7 +210,7 @@ Column {
         actions: SavedMark {}
         // As wide as the longest term in the language shown, so no term runs into its value;
         // past 40% of the card a term wraps instead.
-        readonly property var terms: ["Contains", "Translates", "Mid-save removal", "Code", "Load time", "Package id", "Folder", "Filed under", "Group"]
+        readonly property var terms: ["Contains", "Translates", "Mid-save removal", "Without it", "Code", "Load time", "Package id", "Folder", "Filed under", "Group"]
         readonly property real termWidth: Math.min(side.width * 0.4, Math.max(Theme.sized(92), ...terms.map(term => Math.ceil(termMetrics.advanceWidth(Theme.say(term))) + (Theme.meaning(Theme.say(term)) !== "" ? Theme.sized(12) + Theme.gapSmall : 0))))
         FontMetrics { id: termMetrics; font.pixelSize: Theme.body }
         Repeater {
@@ -218,16 +218,43 @@ Column {
                 [Theme.say("Contains"), [Mods.info.contains, Mods.textures.count ? Theme.plural(Mods.textures.count, "{} texture", "{} textures") : ""].filter(s => s).join("; ")],
                 [Theme.say("Translates"), Mods.info.translates],
                 [Theme.say("Mid-save removal"), Mods.info.removal],
+                // The active mods left wanting if it went, each a button whose tip says why.
+                [Theme.say("Without it"), Mods.info.withoutIt, Mods.info.leftWanting],
                 [Theme.say("Code"), Mods.info.code],
                 [Theme.say("Load time"), Mods.info.loadTime],
             ].filter(pair => pair[1])
             Item {
                 id: fact
                 required property var modelData
+                readonly property var chips: modelData[2] || []
                 width: side.width
                 implicitHeight: Math.max(factName.implicitHeight, factValue.implicitHeight)
                 Text { id: factName; objectName: "term"; width: facts.termWidth; wrapMode: Text.Wrap; color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.say(fact.modelData[0]) }
-                CopyText { id: factValue; anchors.left: factName.right; anchors.leftMargin: 4; anchors.right: parent.right; text: fact.modelData[1] }
+                Column {
+                    id: factValue
+                    anchors.left: factName.right
+                    anchors.leftMargin: 4
+                    anchors.right: parent.right
+                    spacing: Theme.gapTiny
+                    CopyText { width: parent.width; text: fact.modelData[1] }
+                    Flow {
+                        id: factChips
+                        visible: fact.chips.length > 0
+                        width: parent.width
+                        spacing: Theme.gapTiny
+                        Repeater {
+                            model: fact.chips
+                            Chip {
+                                required property var modelData
+                                pressable: true
+                                maxWidth: factChips.width
+                                text: modelData.name
+                                tip: modelData.note
+                                onClicked: Mods.select(modelData.modId, true)
+                            }
+                        }
+                    }
+                }
             }
         }
         RowLayout {
@@ -392,7 +419,7 @@ Column {
         Row {
             spacing: Theme.gapSmall
             Btn { visible: Mods.selectedActive && !Hub.mods.previewing; icon: "minus"; text: Theme.say("Deactivate this one"); onClicked: Mods.toggleSelected() }
-            Btn { visible: !!Mods.info.workshop; danger: true; text: Theme.say("Unsubscribe…"); onClicked: Mods.unsubscribe(Mods.info.name || "", Mods.info.folder, Mods.info.path) }
+            Btn { visible: !!Mods.info.workshop; danger: true; text: Theme.say("Unsubscribe…"); onClicked: Mods.unsubscribe(Mods.selectedId) }
         }
     }
 

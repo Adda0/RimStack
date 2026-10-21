@@ -102,13 +102,13 @@ QtObject {
                 last.push({ text: Theme.plural(cleanup.unsubscribe, "Unsubscribe {} Workshop mod…", "Unsubscribe {} Workshop mods…"), icon: "minus", danger: true,
                   run: () => Notices.ask({
                     title: Theme.plural(cleanup.unsubscribe, "Unsubscribe {} Workshop mod", "Unsubscribe {} Workshop mods"),
-                    lines: [Theme.say("Steam, which must be running, unsubscribes every one and deletes its folder"), Theme.fill("Together {} MB on disk", (cleanup.unsubscribeBytes / 1048576).toFixed(1))],
+                    lines: [Theme.say("Steam, which must be running, unsubscribes every one and deletes its folder"), Theme.fill("Together {} MB on disk", (cleanup.unsubscribeBytes / 1048576).toFixed(1)), Hub.mods.leftWanting(Mods.selectedIds)],
                     label: Theme.say("Unsubscribe"), danger: true, run: () => Hub.downloads.unsubscribeMany(Mods.selectedIds) }) })
             if (cleanup.bin > 0)
                 last.push({ text: Theme.plural(cleanup.bin, "Delete {} mod…", "Delete {} mods…"), icon: "trash-2", danger: true,
                   run: () => Notices.ask({
                     title: Theme.plural(cleanup.bin, "Move {} mod to the bin", "Move {} mods to the bin"),
-                    lines: [Theme.fill("Together {} MB on disk", (cleanup.binBytes / 1048576).toFixed(1)), Theme.say("The game's own mods and mods in use stay")],
+                    lines: [Theme.fill("Together {} MB on disk", (cleanup.binBytes / 1048576).toFixed(1)), Theme.say("The game's own mods and mods in use stay"), Hub.mods.leftWanting(Mods.selectedIds)],
                     label: Theme.say("Move to the bin"), danger: true, run: () => Hub.mods.binMany(Mods.selectedIds) }) })
         }
         groups.push(last)
