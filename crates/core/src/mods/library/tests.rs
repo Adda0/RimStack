@@ -484,7 +484,7 @@ fn rows_point_back_at_their_mod_and_requirements_are_named() {
 
 #[test]
 fn loading_without_a_game_says_what_to_set() {
-    let nothing_found = load(&Paths::default()).unwrap_err();
+    let nothing_found = load(&Paths::default(), None).unwrap_err();
     assert_eq!(nothing_found.kind(), crate::base::error::Kind::Refused);
     assert!(nothing_found.to_string().contains("RIMSTACK_GAME"));
 }

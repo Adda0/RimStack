@@ -202,6 +202,11 @@ impl App {
         self.own_dir().join("launches.json")
     }
 
+    /// What the last scan read from each mod's About.xml and dlls.
+    pub fn mods_read_file(&self) -> PathBuf {
+        self.own_dir().join("mods-read.json")
+    }
+
     pub fn kept_logs_dir(&self) -> PathBuf {
         self.own_dir().join("logs")
     }
@@ -265,7 +270,7 @@ impl App {
 
     fn install(&self) -> Arc<install::Install> {
         self.install
-            .get(|| install::Install::of(Arc::new(self.find_paths())))
+            .get(|| install::Install::of(Arc::new(self.find_paths()), self.mods_read_file()))
     }
 
     pub fn paths(&self) -> Arc<paths::Paths> {
@@ -327,7 +332,7 @@ impl App {
 
     /// Whoever still shows the earlier reading holds it until done.
     pub fn rescan(&self) {
-        let fresh = install::Install::of(self.paths()).read_all();
+        let fresh = install::Install::of(self.paths(), self.mods_read_file()).read_all();
         self.install.put(fresh);
         self.textures_changed();
         self.publish(crate::changes::Changes::LIBRARY);
@@ -344,7 +349,8 @@ impl App {
 
     /// Everything is in place before anyone is told.
     pub fn reread_folders(&self) {
-        let fresh = install::Install::of(Arc::new(self.find_paths())).read_all();
+        let paths = Arc::new(self.find_paths());
+        let fresh = install::Install::of(paths, self.mods_read_file()).read_all();
         let on_disk = fresh.on_disk();
         self.install.put(fresh);
         *self.session() = Session::new(on_disk);

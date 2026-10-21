@@ -12,6 +12,7 @@ use crate::rimworld::paths::{ModRoot, Paths, Source};
 use rayon::prelude::*;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::LazyLock;
 
 pub use crate::mods::classify::Kinds;
 use crate::mods::classify::{Standing, classify};
@@ -28,7 +29,7 @@ pub struct Installed {
     pub folder: String,
     pub about: Result<About, Error>,
     pub kinds: Kinds,
-    /// Empty until `read_code`.
+    /// Empty until `load` reads it; `scan` alone leaves it so.
     pub code: Code,
     pub preview: Option<PathBuf>,
     pub git: bool,
@@ -157,14 +158,17 @@ fn kinds(mod_root: &Path) -> Kinds {
     found
 }
 
-fn read_mod(path: PathBuf, source: Source) -> Installed {
-    let about = match about::locate(&path) {
-        None => Err(Error::format(said!("no About.xml"))),
-        Some(file) => std::fs::read(&file)
-            .map_err(|e| Error::file(&file, e))
-            .and_then(|bytes| about::parse(&bytes)),
-    };
-    let named = about::published_file_id_text(&path);
+fn read_about(file: &Path) -> Result<About, Error> {
+    std::fs::read(file)
+        .map_err(|e| Error::file(file, e))
+        .and_then(|bytes| about::parse(&bytes))
+}
+
+fn read_mod(path: PathBuf, source: Source, kept: &mut Entry, tally: &Tally) -> Installed {
+    let about = kept.about(about::locate(&path).as_deref(), tally, read_about);
+    let about = about.unwrap_or_else(|| Err(Error::format(said!("no About.xml"))));
+    let named_file = about::published_file_id_file(&path);
+    let named = kept.named(named_file.as_deref(), tally, about::published_file_id_in);
     let published = match source {
         Source::Official | Source::Workshop => true,
         Source::Local => named.as_deref().is_some_and(about::is_workshop_id),
@@ -197,7 +201,13 @@ fn made_at(path: &Path) -> Option<u64> {
 
 /// Sorted by source, then folder name.
 pub fn scan(roots: &[ModRoot]) -> Vec<Installed> {
-    let folders: Vec<(PathBuf, Source)> = roots
+    let read = scan_kept(roots, &mut Remembered::fresh(""), &Tally::default());
+    read.into_iter().map(|(m, _)| m).collect()
+}
+
+/// Files whose stamps match what `kept` holds are not read again.
+fn scan_kept(roots: &[ModRoot], kept: &mut Remembered, tally: &Tally) -> Vec<(Installed, Entry)> {
+    let folders: Vec<(PathBuf, Source, Entry)> = roots
         .iter()
         .flat_map(|root| {
             std::fs::read_dir(&root.path)
@@ -207,12 +217,16 @@ pub fn scan(roots: &[ModRoot]) -> Vec<Installed> {
                 .filter(|e| e.path().is_dir() && aside::left_beside(&e.file_name()).is_none())
                 .map(|e| (e.path(), root.source))
         })
+        .map(|(path, source)| {
+            let entry = kept.take(&path);
+            (path, source, entry)
+        })
         .collect();
-    let mut mods: Vec<Installed> = folders
+    let mut mods: Vec<(Installed, Entry)> = folders
         .into_par_iter()
-        .map(|(path, source)| read_mod(path, source))
+        .map(|(path, source, mut entry)| (read_mod(path, source, &mut entry, tally), entry))
         .collect();
-    mods.sort_by(|a, b| (a.source, &a.folder).cmp(&(b.source, &b.folder)));
+    mods.sort_by(|(a, _), (b, _)| (a.source, &a.folder).cmp(&(b.source, &b.folder)));
     mods
 }
 
@@ -253,14 +267,38 @@ pub fn resolve_active<'a>(active: &'a [String], mods: &'a [Installed]) -> Vec<Re
         .collect()
 }
 
-/// Nothing is read without the game's own code to hold it against.
-pub fn read_code(mods: &mut [Installed], game: Option<&Game>, game_version: &str) {
-    let Some(game) = game else {
-        return;
-    };
-    mods.par_iter_mut()
-        .filter(|m| m.kinds.assemblies && m.source != Source::Official)
-        .for_each(|m| m.code = crate::rimworld::code::read(&m.path, game_version, game));
+fn has_code(m: &Installed) -> bool {
+    m.kinds.assemblies && m.source != Source::Official
+}
+
+/// Each mod's code, taking what `kept` holds for dlls whose stamps did not change. `game` is
+/// read only when some mod's code is; without it no code is read.
+fn read_code_kept(
+    mods: &mut [(Installed, Entry)],
+    game: &(impl std::ops::Deref<Target = Option<Game>> + Sync),
+    keep: bool,
+    game_version: &str,
+    tally: &Tally,
+) {
+    mods.par_iter_mut().for_each(|(m, entry)| {
+        if !has_code(m) {
+            entry.forget_code(tally);
+            return;
+        }
+        let dlls = crate::rimworld::code::dlls(&m.path, game_version);
+        let stamped = keep.then(|| remembered::stamps(&dlls)).flatten();
+        if let Some(code) = entry.kept_code(stamped.as_deref()) {
+            m.code = code.clone();
+            return;
+        }
+        match &**game {
+            Some(game) => {
+                m.code = crate::rimworld::code::read(&dlls, game);
+                entry.keep_code(stamped, &m.code, tally);
+            }
+            None => entry.forget_code(tally),
+        }
+    });
 }
 
 fn before_game(mods: &[Installed], game_version: &str) -> std::collections::HashSet<String> {
@@ -687,7 +725,12 @@ pub fn build(mods: Vec<Installed>, active: &[String], game_version: &str) -> Lib
     library
 }
 
-pub fn load(paths: &Paths) -> Result<Library, Error> {
+/// `kept`: the file that keeps what this scan read for the next; `None` reads everything.
+pub fn load(paths: &Paths, kept: Option<&Path>) -> Result<Library, Error> {
+    load_counted(paths, kept, &Tally::default())
+}
+
+fn load_counted(paths: &Paths, kept: Option<&Path>, tally: &Tally) -> Result<Library, Error> {
     let roots = paths.roots();
     if roots.is_empty() {
         return Err(Error::refused(said!(
@@ -701,13 +744,48 @@ pub fn load(paths: &Paths) -> Result<Library, Error> {
     })?;
     let active = crate::rimworld::modsconfig::read(&config)?.active;
     let version = paths.game_version.as_deref().unwrap_or_default();
-    let (mut mods, game) = rayon::join(
-        || scan(&roots),
-        || paths.game.as_deref().and_then(Game::find),
-    );
-    read_code(&mut mods, game.as_ref(), version);
+    let mut remembered = match kept {
+        Some(file) => Remembered::read(file, version),
+        None => Remembered::fresh(version),
+    };
+    let game_dll = paths.game.as_deref().and_then(Game::locate);
+    let find_game = || Game::read(&std::fs::read(game_dll.as_deref()?).ok()?);
+    let same_game = remembered.same_game(game_dll.as_deref(), tally);
+    let keep = kept.is_some() && remembered.game_known();
+    // Another game reads every mod's code: its own is read beside the scan.
+    let (mut mods, found) = match same_game {
+        true => (scan_kept(&roots, &mut remembered, tally), None),
+        false => {
+            let (mods, found) =
+                rayon::join(|| scan_kept(&roots, &mut remembered, tally), find_game);
+            (mods, Some(found))
+        }
+    };
+    let game = LazyLock::new(|| found.unwrap_or_else(find_game));
+    read_code_kept(&mut mods, &game, keep, version, tally);
+    if let Some(file) = kept {
+        crate::note!(
+            "mods_read about={} code={} of {}",
+            tally.about(),
+            tally.code(),
+            mods.len()
+        );
+        let entries = mods
+            .iter_mut()
+            .map(|(m, e)| (m.path.as_path(), std::mem::take(e)));
+        let remembered = remembered.next(entries, tally);
+        if tally.changed()
+            && let Err(problem) = remembered.write(file)
+        {
+            crate::problem!("{problem}");
+        }
+    }
+    let mods = mods.into_iter().map(|(m, _)| m).collect();
     Ok(build(mods, &active, version))
 }
+
+pub mod remembered;
+use remembered::{Entry, Remembered, Tally};
 
 mod copies;
 mod mod_id;
