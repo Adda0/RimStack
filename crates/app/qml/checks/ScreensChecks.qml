@@ -282,12 +282,88 @@ Item {
                     .find(shown => shown.endsWith("/" + name))
                 return !!file && file.startsWith("file:///")
             }
-        }))
+        })),
+        {
+            section: 3,
+            what: "a save's row counts the mods it needs that are missing and the ones switched off",
+            ready: () => checks.listed(Hub.saves.saves).length === 2,
+            ok: () => {
+                const two = checks.saveNamed("Colony Two"), one = checks.saveNamed("Colony One")
+                return !!two && !!one && two.notInstalled === 1 && two.notActive === 0
+                    && two.missing.length === 1 && two.missing[0].installed === false
+                    && one.notInstalled === 0 && one.notActive === 0
+                    && checks.chips(Theme.fill("{} not installed", 1)).length === 1
+                    && checks.chips(Theme.fill("{} not active", 1)).length === 0
+            }
+        },
+        {
+            section: 3,
+            what: "a save's order action makes its mods the load order, with nothing written until Save",
+            ready: () => {
+                if (checks.orderStage === 0) {
+                    checks.orderStage = 1
+                    const screen = checks.matching(checks.window.contentItem, item => item.reader === Hub.saves && item.save !== undefined)[0]
+                    const index = checks.listed(Hub.saves.saves).findIndex(save => save.name === "Colony One")
+                    if (!screen || index < 0)
+                        return false
+                    screen.selected = index
+                    checks.beforeOrder = checks.loadOrder()
+                    checks.wantCount = checks.saveNamed("Colony One").ids.length
+                    return false
+                }
+                if (checks.orderStage === 1) {
+                    checks.orderStage = 2
+                    const button = checks.buttons(Theme.say("Use this save's mod list"))[0]
+                    if (!!button && button.visible && button.enabled)
+                        button.clicked()
+                    return false
+                }
+                return true
+            },
+            ok: () => {
+                const after = checks.loadOrder()
+                const taken = after !== checks.beforeOrder && after.split(",").length === checks.wantCount
+                const waiting = !Hub.mods.saving && Hub.mods.dirty
+                Hub.mods.discardChanges()
+                return taken && waiting && !Hub.mods.dirty && checks.loadOrder() === checks.beforeOrder
+            }
+        },
+        {
+            section: 3,
+            what: "a save counts a mod it needs that is installed but switched off",
+            ready: () => {
+                if (checks.offStage === 0) {
+                    checks.offStage = 1
+                    const one = checks.saveNamed("Colony One")
+                    checks.beforeOrder = checks.loadOrder()
+                    checks.window.useList(one.ids.filter(id => id !== "fixture.mod020"))
+                    return false
+                }
+                if (checks.offStage === 1) {
+                    checks.offStage = 2
+                    Hub.saves.reread()
+                    return false
+                }
+                return !Hub.saves.busy && checks.listed(Hub.saves.saves).length === 2
+            },
+            ok: () => {
+                const one = checks.saveNamed("Colony One")
+                const shown = !!one && one.notInstalled === 0 && one.notActive === 1
+                    && checks.chips(Theme.fill("{} not active", 1)).length >= 1
+                Hub.mods.discardChanges()
+                Hub.saves.reread()
+                return shown && !Hub.mods.dirty && checks.loadOrder() === checks.beforeOrder
+            }
+        }
     ]
     property bool typed: false
     property bool askedFind: false
     property bool changed: false
     property string before
+    property string beforeOrder
+    property int wantCount: 0
+    property int orderStage: 0
+    property int offStage: 0
     property var textureReport
     function matching(root, test) {
         let found = test(root) ? [root] : []
@@ -300,6 +376,20 @@ Item {
     }
     function buttons(text) {
         return matching(checks.window.contentItem, item => item.danger !== undefined && item.text === text)
+    }
+    // As the id list the active side of the Mods screen shows.
+    function loadOrder() {
+        const ids = []
+        for (let i = 0; i < Mods.active.count; i++)
+            ids.push(Mods.nthMod(Mods.active, i))
+        return ids.join(",")
+    }
+    function saveNamed(name) {
+        return checks.listed(Hub.saves.saves).find(save => save.name === name)
+    }
+    // The save rows' chips hold the counts: `pressable` keeps plain Text out.
+    function chips(text) {
+        return matching(checks.window.contentItem, item => item.pressable !== undefined && item.text === text && item.visible)
     }
     function inside(item, outer) {
         for (let at = item; at; at = at.parent)
