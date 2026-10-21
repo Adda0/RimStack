@@ -12,6 +12,8 @@ downloads.notesState: object
   done: number
   refused: bool
   resume: number
+downloads.previews: map
+  {}: text
 downloads.queue: object
   items: absent or list
     []: object
@@ -42,13 +44,22 @@ downloads.replacements: list
     newName: text
     newVersions: text
 downloads.searched: object
-  found: absent or list
+  found: list
     []: object
+      description: text
       id: text
+      preview: text
+      size: number
       subscriptions: nothing or number
+      tags: list
+        []: text
       title: text
       updated: number
+  more: bool
+  page: number
   problem: absent or text
+  text: text
+  total: number
 downloads.since: object
   active: number
   count: number

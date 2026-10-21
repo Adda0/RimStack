@@ -634,16 +634,30 @@ fn downloads(app: &App, shapes: &mut Shapes) {
         title: "Ann.B".into(),
         updated: 1,
         subscriptions: Some(2),
+        description: "Roads.".into(),
+        tags: vec!["Mod".into(), "1.6".into()],
+        size: 3,
+        preview: "https://images.steamusercontent.com/ugc/1/A/".into(),
     };
-    let asked = vec![
-        searched.clone(),
-        rimstack_core::rimworld::workshop::Found {
-            subscriptions: None,
-            ..searched
-        },
-    ];
-    shapes.add("downloads.searched", &serde_json::json!({ "found": asked }));
-    shapes.add("downloads.searched", &Answer::<()>::from(refused));
+    let asked = rimstack_core::rimworld::workshop::Searched {
+        total: 40,
+        found: vec![
+            searched.clone(),
+            rimstack_core::rimworld::workshop::Found {
+                id: "2".into(),
+                subscriptions: None,
+                ..searched
+            },
+        ],
+    };
+    let hits = crate::workspace::downloads::Hits::default().with("ann", 1, Ok(asked));
+    shapes.add("downloads.searched", &hits);
+    let hits = hits.with("ann", 2, refused.map(|()| Default::default()));
+    shapes.add("downloads.searched", &hits);
+    shapes.add(
+        "downloads.previews",
+        &std::collections::HashMap::from([("1", "/cache/workshop-previews/1-A")]),
+    );
     let mut since = app.since_launch();
     since.items.push(Changed {
         git: false,

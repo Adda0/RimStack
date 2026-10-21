@@ -174,6 +174,47 @@ pub fn rich(text: &str) -> String {
     html.trim().replace('\n', "<br>")
 }
 
+/// Whether `[tag]` is markup; `Some(true)` for one that stands between words, as a list item.
+fn apart(tag: &str) -> Option<bool> {
+    let name = tag.strip_prefix('/').unwrap_or(tag);
+    let name = name.split_once('=').map_or(name, |(name, _)| name);
+    match name.to_lowercase().as_str() {
+        "b" | "i" | "u" | "strike" | "spoiler" | "url" | "noparse" => Some(false),
+        "*" | "hr" | "table" | "tr" | "td" | "th" => Some(true),
+        other => PAIRS.iter().any(|(bb, _)| *bb == other).then_some(true),
+    }
+}
+
+/// One line of plain text: markup and pictures left out, every run of spaces and line breaks one space.
+pub fn plain(text: &str) -> String {
+    let text = without_game_tags(text);
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text.as_str();
+    while let Some(open) = rest.find('[') {
+        out += &rest[..open];
+        rest = &rest[open..];
+        let Some(close) = rest.find(']') else {
+            break;
+        };
+        let tag = &rest[1..close];
+        let after = &rest[close + 1..];
+        if tag.eq_ignore_ascii_case("img") {
+            rest = after.find("[/img]").map_or(after, |end| &after[end + 6..]);
+            out.push(' ');
+        } else if let Some(apart) = apart(tag) {
+            if apart {
+                out.push(' ');
+            }
+            rest = after;
+        } else {
+            out.push('[');
+            rest = &rest[1..];
+        }
+    }
+    out += rest;
+    out.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -221,5 +262,20 @@ mod tests {
         );
         assert_eq!(rich("a < b & c"), "a &lt; b &amp; c");
         assert_eq!(rich("x [script]y"), "x [script]y");
+    }
+
+    #[test]
+    fn plain_text_keeps_the_words_and_drops_the_markup() {
+        assert_eq!(
+            plain(
+                "[h1]Title[/h1]\r\n[b]Bold[/b], [url=https://x.org]a page[/url].\n[img]https://x.org/a.png[/img]\n[list][*]One[*]Two[/list]"
+            ),
+            "Title Bold, a page. One Two"
+        );
+        assert_eq!(
+            plain("<color=#ff0000>Red</color> [CF] Mod [1.6]"),
+            "Red [CF] Mod [1.6]"
+        );
+        assert_eq!(plain("open [ never closed"), "open [ never closed");
     }
 }

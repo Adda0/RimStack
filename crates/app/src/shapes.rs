@@ -103,7 +103,7 @@ impl Shape {
 }
 
 /// Paths whose keys are data, not fields; a list's items are `[]`.
-const MAPS: [&str; 7] = [
+const MAPS: [&str; 8] = [
     "settings.words",
     "settings.ownColours",
     "mods.columnWidths",
@@ -111,6 +111,7 @@ const MAPS: [&str; 7] = [
     "mods.detailsOf.conflictMarks",
     "downloads.notes",
     "mods.carried.also",
+    "downloads.previews",
 ];
 
 #[derive(Default)]

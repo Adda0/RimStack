@@ -282,6 +282,36 @@ Item {
                     && Math.abs(row.children[1].x - (name.x + name.width + row.spacing)) <= 1 && lookUp.x + lookUp.width < row.width / 2
             }
         },
+        {
+            section: 1,
+            what: "choosing a Workshop hit shows its title, description, tags and actions, and More results asks for the next page",
+            ready: () => checks.flipped(() => {
+                Hub.downloads.searched = ({
+                    text: "hat", page: 1, total: 50, more: true,
+                    found: [{
+                        id: "9", title: "Hat", updated: 1700000000, subscriptions: 5,
+                        description: "A hat with ideas.", tags: ["Mod", "1.6"], size: 2048, preview: ""
+                    }]
+                })
+            }),
+            ok: () => {
+                const keys = checks.named("searchHitKeys")
+                if (keys)
+                    keys.go(0)
+                const pane = checks.named("searchHitPane")
+                if (pane)
+                    checks.buttons(Theme.say("More results")).map(more => more.clicked())
+                const ok = !!pane && pane.visible
+                    && checks.showing(pane, "Hat") && checks.showing(pane, "A hat with ideas.")
+                    && checks.showing(pane, "Mod") && checks.showing(pane, "1.6")
+                    && checks.matching(pane, item => item.danger !== undefined && item.text === Theme.say("Look up")).length === 1
+                    && checks.matching(pane, item => item.danger !== undefined && item.text === Theme.say("Open its page")).length === 1
+                    && Hub.downloads.searchPage === 2
+                Hub.downloads.searchPicked = -1
+                Hub.downloads.searched = ({ found: [] })
+                return ok
+            }
+        },
         ...[["Export as CSV", "modlist.csv"], ["Export as ModsConfig", "ModsConfig.xml"], ["Export as a RimSort list", "modlist.rml"]].map(([button, name]) => ({
             section: 0,
             what: button + " opens its file dialog offering " + name + " in a folder",
