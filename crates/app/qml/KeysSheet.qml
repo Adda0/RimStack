@@ -60,10 +60,19 @@ Prompt {
                     rowSpacing: Theme.gapThin
                     Repeater {
                         model: group.modelData[1]
-                        Row {
+                        // Keys past half the group wrap, so a long list of them stays inside the sheet.
+                        Flow {
                             id: key
                             required property var modelData
+                            readonly property real natural: {
+                                let wide = -spacing
+                                for (const combo of children)
+                                    if (combo.width > 0)
+                                        wide += combo.width + spacing
+                                return Math.max(0, wide)
+                            }
                             Layout.alignment: Qt.AlignTop
+                            Layout.preferredWidth: Math.min(natural, Math.round(group.width / 2))
                             spacing: Theme.gapTiny
                             Accessible.role: Accessible.StaticText
                             Accessible.name: key.modelData[0]

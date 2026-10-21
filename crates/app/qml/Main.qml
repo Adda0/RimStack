@@ -437,6 +437,7 @@ ApplicationWindow {
 
     readonly property var openable: ({ play: topBar.beforePlay, history: statusBar.historyMenu, keys: keysSheet, search: commands, lists: topBar.listsMenu, tray: statusBar.trayMenu, ask: question, find: findFiles })
     property var opened: null
+    readonly property alias keysSheet: keysSheet
     property bool readyMarked: false
     onFrameSwapped: {
         if (!readyMarked) {
