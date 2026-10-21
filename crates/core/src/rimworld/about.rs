@@ -23,6 +23,8 @@ impl Versioned {
 pub struct About {
     /// As the author wrote it; compare through `id::fold`.
     pub package_id: String,
+    /// `About.xml`'s own `<publishedFileId>`, when the author wrote one.
+    pub published_file_id: Option<String>,
     pub name: Option<String>,
     pub authors: Vec<String>,
     pub mod_version: Option<String>,
@@ -69,6 +71,12 @@ pub fn preview(mod_root: &Path) -> Option<PathBuf> {
 /// The Workshop item a copy names in `About/PublishedFileId.txt`: a number above 0, as RimSort
 /// and Steam take it.
 pub fn published_file_id(mod_root: &Path) -> Option<String> {
+    published_file_id_text(mod_root).filter(|id| is_workshop_id(id))
+}
+
+/// `About/PublishedFileId.txt` as written, trimmed: what a copy names itself, whether or not
+/// it is a Workshop id. `None` when it has no such file or the file is empty.
+pub fn published_file_id_text(mod_root: &Path) -> Option<String> {
     let exact = mod_root.join("About").join("PublishedFileId.txt");
     let file = match exact.is_file() {
         true => exact,
@@ -79,7 +87,7 @@ pub fn published_file_id(mod_root: &Path) -> Option<String> {
     };
     let text = std::fs::read_to_string(file).ok()?;
     let id = text.trim_start_matches('\u{feff}').trim();
-    is_workshop_id(id).then(|| id.to_string())
+    (!id.is_empty()).then(|| id.to_string())
 }
 
 /// Digits only, and not 0.
@@ -105,6 +113,9 @@ pub fn parse(bytes: &[u8]) -> Result<About> {
     for node in doc.root_element().children().filter(Node::is_element) {
         match node.tag_name().name().to_ascii_lowercase().as_str() {
             "packageid" => about.package_id = text_of(node),
+            "publishedfileid" => {
+                about.published_file_id = Some(text_of(node)).filter(|s| !s.is_empty())
+            }
             "name" => about.name = Some(text_of(node)).filter(|s| !s.is_empty()),
             "modversion" => about.mod_version = Some(text_of(node)).filter(|s| !s.is_empty()),
             // Authors write line breaks out as `\n`, as the game reads them.

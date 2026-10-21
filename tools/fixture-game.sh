@@ -89,9 +89,10 @@ mkdir -p "$folder/Languages/English/Keyed"
 printf '<LanguageData><Fixture100>Fixture</Fixture100></LanguageData>\n' > "$folder/Languages/English/Keyed/Fixture.xml"
 
 # One active Workshop mod, so sharing gives a Workshop link and a removed
-# check has something installed to look at.
+# check has something installed to look at. Its PublishedFileId.txt names another
+# item than its folder (as a Steam mix-up leaves it): the integrity check flags it.
 about "$dir/workshop/2941000101" fixture.workshop "Fixture Workshop"
-printf '%s\n' "2941000101" > "$dir/workshop/2941000101/About/PublishedFileId.txt"
+printf '%s\n' "2941000102" > "$dir/workshop/2941000101/About/PublishedFileId.txt"
 # The sizes and times of installed items, as Steam keeps them two folders up.
 printf '"AppWorkshop"\n{\n\t"WorkshopItemsInstalled"\n\t{\n\t\t"2941000101"\n\t\t{\n\t\t\t"size"\t\t"1024000"\n\t\t\t"timeupdated"\t\t"1730000000"\n\t\t}\n\t}\n}\n' > "$dir/../appworkshop_294100.acf"
 

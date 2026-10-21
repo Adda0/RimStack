@@ -205,6 +205,12 @@ PopCard {
             Btn { text: Theme.say("Export as ModsConfig"); tip: Theme.say("Writes the load order as the game's ModsConfig.xml"); onClicked: { exportList.nameFilters = ["ModsConfig (*.xml)"]; exportList.selectedFile = exportList.currentFolder + "/ModsConfig.xml"; listsMenu.close(); exportList.open() } }
             Btn { text: Theme.say("Export as a RimSort list"); tip: Theme.say("Writes the load order as a saved mod list (.rml), which RimSort and the game read"); onClicked: { exportList.nameFilters = ["RimSort (*.rml)"]; exportList.selectedFile = exportList.currentFolder + "/modlist.rml"; listsMenu.close(); exportList.open() } }
             Btn { text: Theme.say("Use a list from a file"); tip: Theme.say("A RimSort or RimPy mod list, a save's list, a share code or a text list becomes the load order. Save writes it."); onClicked: { listsMenu.close(); importList.open() } }
+            Btn {
+                icon: "search"
+                text: Theme.say("Check the files")
+                tip: Theme.say("Reads every installed mod's About.xml and PublishedFileId.txt again and says how many hold no problem: a Workshop mod's files naming another item than its folder, an About.xml missing or broken, or a package id the game cannot take")
+                onClicked: { listsMenu.close(); Hub.mods.checkFiles() }
+            }
         }
 
         FileDialog {

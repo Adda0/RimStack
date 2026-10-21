@@ -444,6 +444,44 @@ impl qobject::ModsData {
         crate::jobs::run("rescan", self.qt_thread(), move || app.rescan(), |_, ()| {});
     }
 
+    pub(super) fn check_files(self: Pin<&mut Self>) {
+        if self.demo {
+            return;
+        }
+        let app = self.app();
+        let loaded = app.library();
+        let library = match &*loaded {
+            Ok((library, _)) => library.clone(),
+            Err(why) => {
+                let said = crate::words::said_of(why);
+                return self.told(said, QString::from("err"));
+            }
+        };
+        crate::jobs::run(
+            "check files",
+            self.qt_thread(),
+            move || rimstack_core::mods::integrity::check(&library.installed),
+            |mut me, (checked, bad)| {
+                let fine = checked.saturating_sub(bad);
+                let said = Sentence::joined(
+                    ", ",
+                    vec![
+                        say_n!(
+                            checked,
+                            "Checked the files of {} mod",
+                            "Checked the files of {} mods"
+                        ),
+                        say_n!(fine, "{} is fine", "{} are fine"),
+                        say_n!(bad, "{} has a problem", "{} have problems"),
+                    ],
+                );
+                let tone = if bad == 0 { "ok" } else { "err" };
+                me.as_mut()
+                    .told(crate::words::said(&said), QString::from(tone));
+            },
+        );
+    }
+
     pub(super) fn trust(mut self: Pin<&mut Self>, given: &QVariant, yes: bool) {
         let Some(ids) = ids(given) else {
             return self.refuse_list();

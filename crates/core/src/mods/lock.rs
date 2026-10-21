@@ -334,6 +334,7 @@ mod tests {
                     preview: None,
                     git,
                     published: matches!(source, Source::Workshop),
+                    named: None,
                     downloaded: None,
                 }
             })
