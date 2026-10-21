@@ -528,6 +528,31 @@ Item {
             const before = view.chosen
             events.keyClick(Qt.Key_Down, Qt.NoModifier, -1)
             checks.check("the down key shows the next shared texture", view.textures.length < 2 || view.chosen === before + 1)
+            const shown = view.chosen
+            choice.forceActiveFocus()
+            events.keyClick(Qt.Key_Left, Qt.NoModifier, -1)
+            const zoomedOut = view.zoom === 4
+            events.keyClick(Qt.Key_Right, Qt.NoModifier, -1)
+            checks.check("with the zoom choice focused, Left and Right move the zoom and not the texture", zoomedOut && view.zoom === 8 && view.chosen === shown)
+            view.forceActiveFocus()
+            events.keyClick(Qt.Key_Left, Qt.NoModifier, -1)
+            const back = view.chosen
+            events.keyClick(Qt.Key_Right, Qt.NoModifier, -1)
+            checks.check("with nothing focused, Left and Right still change the texture", view.textures.length < 2 || back === shown - 1 && view.chosen === shown)
+            view.mode = 1
+            choice.forceActiveFocus()
+            events.keyClick(Qt.Key_Tab, Qt.NoModifier, -1)
+            const reached = view.divider.activeFocus
+            events.keyClick(Qt.Key_Home, Qt.NoModifier, -1)
+            const start = view.cut
+            events.keyClick(Qt.Key_Right, Qt.NoModifier, -1)
+            events.keyClick(Qt.Key_Right, Qt.NoModifier, -1)
+            const stepped = view.cut
+            events.keyClick(Qt.Key_End, Qt.NoModifier, -1)
+            const end = view.cut
+            events.keyClick(Qt.Key_Left, Qt.NoModifier, -1)
+            checks.check("Tab reaches the slider's line; Left, Right, Home and End move it and not the texture", reached && start === 0 && Math.abs(stepped - 0.1) < 1e-6 && end === 1 && Math.abs(view.cut - 0.95) < 1e-6 && view.chosen === shown)
+            view.mode = 0
             checks.keys()
             popups.start()
         }

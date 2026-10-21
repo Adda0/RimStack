@@ -45,6 +45,10 @@ for n in $(seq -w 1 100); do
         Patches) printf '<Patch><Operation Class="PatchOperationAdd"><xpath>Defs</xpath><value/></Operation></Patch>\n' > "$folder/Patches/Patch.xml" ;;
         Textures) base64 -d <<< "$png" > "$folder/Textures/Fixture$n.png" ;;
     esac
+    if [ "$n" = 020 ] || [ "$n" = 023 ]; then
+        # Two textures both hold: a texture conflict, so the comparison can be opened.
+        for shared in One Two; do base64 -d <<< "$png" > "$folder/Textures/Shared$shared.png"; done
+    fi
     if [ "$n" = 012 ]; then
         # A bundled Harmony: the scan reads its size; not being an assembly, no version.
         mkdir -p "$folder/Assemblies"

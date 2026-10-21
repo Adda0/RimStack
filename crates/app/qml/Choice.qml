@@ -26,6 +26,8 @@ Rectangle {
     activeFocusOnTab: true
     Accessible.role: Accessible.Grouping
     Accessible.name: title
+    // Ahead of a screen's own arrows, as in the texture comparison.
+    Keys.onShortcutOverride: event => event.accepted = [Qt.Key_Left, Qt.Key_Right, Qt.Key_Home, Qt.Key_End].indexOf(event.key) >= 0 || stacked && (event.key === Qt.Key_Up || event.key === Qt.Key_Down)
     Keys.onLeftPressed: move(-1)
     Keys.onRightPressed: move(1)
     Keys.onUpPressed: event => { if (stacked) move(-1); else event.accepted = false }

@@ -517,6 +517,7 @@
  "Launch arguments": "",
  "Launches": "",
  "Left, Right": "",
+ "Left, Right, Home, End": "",
  "Let go to install the mod from this .zip": "",
  "Lets the replaced mod go: Steam unsubscribes and deletes its folder": "",
  "Libraries": "",
@@ -624,6 +625,7 @@
  "Motion": "",
  "Move a choice or the section": "",
  "Move it there": "",
+ "Move the line of the Slider view, once Tab reaches it": "",
  "Move the selected mods one place": "",
  "Move through a menu": "",
  "Move to the bin": "",
@@ -1263,6 +1265,7 @@
  "Unsubscribe…": "",
  "Up to date": "",
  "Up, Down": "",
+ "Up, Down, Left, Right": "",
  "Update": "",
  "Update community rules": "",
  "Update in Steam": "",
@@ -1782,6 +1785,6 @@
  "{}× the size on disk, loads faster": "",
  "{}×{} is not a multiple of four, as its compression needs": "",
  "‹ Load order": "",
- "← → next texture": "",
+ "↑ ↓ ← → next texture": "",
  "✓ Kept": ""
 }

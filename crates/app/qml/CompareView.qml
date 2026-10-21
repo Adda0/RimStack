@@ -28,6 +28,8 @@ Rectangle {
     // 0 fits the picture to its box; otherwise how many times larger.
     property real zoom: 0
     readonly property alias zoomChoice: zoomChoices
+    readonly property alias divider: divider
+    readonly property alias cut: slider.cut
     // Scroll position of both pictures when zoomed, as a share of the way: 0 to 1.
     property real panX: 0.5
     property real panY: 0.5
@@ -65,8 +67,9 @@ Rectangle {
     }
 
     color: Theme.win
-    // Shortcuts, not key handlers: the keys must work wherever the
-    // keyboard was when the comparison opened.
+    // Shortcuts, not key handlers: the keys must work wherever the keyboard
+    // was when the comparison opened. A focused choice or the slider's line
+    // takes its own arrows ahead of them.
     Shortcut { sequences: ["Up", "Left"]; onActivated: view.chosen = Math.max(0, view.chosen - 1) }
     Shortcut { sequences: ["Down", "Right"]; onActivated: view.chosen = Math.min(view.textures.length - 1, view.chosen + 1) }
     Shortcut { sequence: "Escape"; onActivated: view.done() }
@@ -321,11 +324,23 @@ Rectangle {
                     Picture { x: -parent.x; width: under.width; height: under.height; named: Theme.say("The later mod's picture"); file: view.texture ? view.texture.laterShown : "" }
                 }
                 Item {
+                    id: divider
                     x: under.width * slider.cut - width / 2
                     width: 28
                     height: under.height
+                    activeFocusOnTab: true
+                    Accessible.role: Accessible.Slider
+                    Accessible.name: Theme.say("Slider")
+                    Keys.onShortcutOverride: event => event.accepted = [Qt.Key_Left, Qt.Key_Right, Qt.Key_Home, Qt.Key_End].indexOf(event.key) >= 0
+                    Keys.onLeftPressed: slider.cut = Math.max(0, slider.cut - 0.05)
+                    Keys.onRightPressed: slider.cut = Math.min(1, slider.cut + 0.05)
+                    Keys.onPressed: event => {
+                        event.accepted = event.key === Qt.Key_Home || event.key === Qt.Key_End
+                        if (event.accepted)
+                            slider.cut = event.key === Qt.Key_Home ? 0 : 1
+                    }
                     Rectangle { anchors.horizontalCenter: parent.horizontalCenter; width: 2; height: parent.height; color: Theme.focus }
-                    Rectangle { anchors.centerIn: parent; width: 14; height: 34; radius: Theme.corner; color: Theme.focus }
+                    Rectangle { anchors.centerIn: parent; width: 14; height: 34; radius: Theme.corner; color: Theme.focus; FocusRing { of: divider } }
                     DragHandler {
                         target: null
                         xAxis.enabled: true
@@ -360,7 +375,7 @@ Rectangle {
                     anchors.leftMargin: Theme.gapCard
                     anchors.rightMargin: Theme.gapCard
                     spacing: Theme.gapWide
-                    Text { color: Theme.ink2; font.pixelSize: Theme.small; text: Theme.say("← → next texture") }
+                    Text { color: Theme.ink2; font.pixelSize: Theme.small; text: Theme.say("↑ ↓ ← → next texture") }
                     Text { color: Theme.ink2; font.pixelSize: Theme.small; text: Theme.say("1 2 keep left or right") }
                     Item { Layout.fillWidth: true }
                     Text { color: Theme.ink2; font.pixelSize: Theme.small; text: view.zoom > 0 ? Theme.say("Dragging moves both sides together") : Theme.say("Zoom in to look closer") }
