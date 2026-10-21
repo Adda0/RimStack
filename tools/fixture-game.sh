@@ -41,6 +41,15 @@ for n in $(seq -w 1 100); do
         # 1.5 needs 002, so the two versions sort and warn differently.
         extra="$extra  <modDependenciesByVersion><v1.6><li><packageId>fixture.versiononly</packageId><displayName>Version Only</displayName></li></v1.6><v1.5><li><packageId>fixture.mod002</packageId></li></v1.5></modDependenciesByVersion>\n"
     fi
+    case $n in
+        # Royalty is needed by plain and by-version dependencies alike; 041 is off, 022 names 1.5 only.
+        009|017|041)
+            extra="$extra  <modDependencies><li><packageId>ludeon.rimworld.royalty</packageId></li></modDependencies>\n" ;;
+        021)
+            extra="$extra  <modDependenciesByVersion><v1.6><li><packageId>ludeon.rimworld.royalty</packageId></li></v1.6></modDependenciesByVersion>\n" ;;
+        022)
+            extra="$extra  <modDependenciesByVersion><v1.5><li><packageId>ludeon.rimworld.royalty</packageId></li></v1.5></modDependenciesByVersion>\n" ;;
+    esac
     about "$folder" "fixture.mod$n" "Fixture Mod $n" "$(printf "$extra")" "$version"
     printf '%s\n' "2941000$(printf %s "$n")" > "$folder/About/PublishedFileId.txt"
     kind=${kinds[$((10#$n % 3))]}

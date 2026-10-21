@@ -402,7 +402,7 @@ Item {
             prefs.lastMod = modId >= 0 ? String(info.packageId || "").toLowerCase() : ""
     }
 
-    // Which tab of the details panel shows: 0 About, 1 Load order, 2 Files.
+    // Which tab of the details panel shows: 0 About, 1 Load order, 2 Files, 3 Needed by.
     property int tab: 0
 
     // Library id -> true.

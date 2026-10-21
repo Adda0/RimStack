@@ -230,6 +230,17 @@ Item {
         return null
     }
 
+    function find(item, test) {
+        for (const child of item.children) {
+            if (test(child))
+                return child
+            const found = checks.find(child, test)
+            if (found !== null)
+                return found
+        }
+        return null
+    }
+
     function runChecks() {
         checks.failed = 0
         checks.stepBegan = Date.now()
@@ -302,6 +313,29 @@ Item {
             check("undo names the first copy again", back.length === 1 && back[0].source === "Local" && !Hub.mods.dirty)
         }
         Mods.select(-1, false)
+
+        // The Needed by tab lists the active mods whose About.xml needs this one, plain and by version, each a button.
+        const byPackage = key => { for (let r = 0; r < Mods.active.rows(); r++) { const id = Mods.active.modIdAt(r); if (id >= 0 && Mods.about(id).packageId === key) return { id, view: Mods.active.at(r) } } return null }
+        const royalty = byPackage("ludeon.rimworld.royalty")
+        check("the fixture's needed mods are active", !!royalty)
+        if (royalty) {
+            Mods.select(royalty.id, true)
+            const needing = (Mods.info.neededBy || []).map(n => n.name).sort()
+            check("its Needed by tab lists the three, the 1.5-only and the inactive one left out", needing.join(", ") === "Fixture Mod 009, Fixture Mod 017, Fixture Mod 021")
+            check("and counts them in its title", checks.find(checks.Window.contentItem, item => item.text === Theme.fill("Needed by ({})", 3)) !== null)
+            const named = name => checks.find(checks.Window.contentItem, item => item.text === name && item.pressable === true)
+            const chip = named("Fixture Mod 017")
+            check("each needing mod is a button", !!chip && !!named("Fixture Mod 009") && !!named("Fixture Mod 021"))
+            if (chip) {
+                chip.clicked()
+                check("whose click selects it", Mods.selectedId !== royalty.id && Mods.about(Mods.selectedId).packageId === "fixture.mod017")
+                // Nothing needs that one: its open tab says so.
+                Mods.tab = 3
+                check("a mod nothing needs says so", checks.find(checks.Window.contentItem, item => item.text === Theme.say("Nothing needs it.") && item.visible) !== null && (Mods.info.neededBy || []).length === 0)
+                Mods.tab = 0
+            }
+            Mods.select(-1, false)
+        }
 
         // A load order the mods' own rules disagree with warns on the row; its fix is one move.
         const activeMods = () => { const list = []; for (let r = 0; r < Mods.active.rows(); r++) { const id = Mods.active.modIdAt(r); if (id >= 0) list.push({ id, view: Mods.active.at(r) }) } return list }
