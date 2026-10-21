@@ -11,8 +11,14 @@ Column {
     // { name, moves } per kind of reason; each move { name, from, to, modId, why }.
     readonly property var groups: visible ? Hub.mods.sortMoves() : []
     readonly property int moved: groups.reduce((sum, group) => sum + group.moves.length, 0)
+    // { first, then, firstId, thenId, kind, why, rule } per rule the sort could not follow.
+    readonly property var dropped: (visible && Hub.mods.sortDropped()) || []
 
-    Text { color: Theme.ink; font.pixelSize: Theme.heading; font.weight: Font.DemiBold; text: Theme.say("Sort preview") }
+    Row {
+        spacing: Theme.gap
+        Text { anchors.verticalCenter: parent.verticalCenter; color: Theme.ink; font.pixelSize: Theme.heading; font.weight: Font.DemiBold; text: Theme.say("Sort preview") }
+        Btn { id: reportCopy; icon: "copy"; compact: true; spoken: Theme.say("Copy the report"); tip: Theme.say("Copies what moves and why, and the rules the sort could not follow, as text for a bug report"); onClicked: Theme.copy(Hub.mods.sortReport()) }
+    }
     Text { color: Theme.ink2; font.pixelSize: Theme.body; bottomPadding: Theme.gapMedium; text: Theme.plural(moves.moved, "{} mod moves", "{} mods move") }
     Repeater {
         model: moves.groups
@@ -64,6 +70,24 @@ Column {
                     }
                     Tip { text: move.modelData.why; over: hovering.hovered }
                 }
+            }
+        }
+    }
+    Card {
+        id: droppedCard
+        visible: moves.dropped.length > 0
+        title: Theme.plural(moves.dropped.length, "{} rule could not be followed", "{} rules could not be followed")
+        key: "sort-dropped"
+        Repeater {
+            model: moves.dropped
+            CopyText {
+                id: droppedLine
+                required property var modelData
+                width: droppedCard.width
+                font.pixelSize: Theme.caption
+                text: modelData.rule + " (" + modelData.kind + ", " + modelData.why + ")"
+                whole: text + " [" + modelData.firstId + " → " + modelData.thenId + "]"
+                Tip { text: droppedLine.modelData.firstId + " → " + droppedLine.modelData.thenId }
             }
         }
     }

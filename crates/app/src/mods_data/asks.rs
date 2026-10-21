@@ -121,6 +121,14 @@ impl qobject::ModsData {
         to_qml(&self.order.sort_moves())
     }
 
+    pub(super) fn sort_dropped(&self) -> QVariant {
+        to_qml(&self.order.sort_dropped())
+    }
+
+    pub(super) fn sort_report(&self) -> QString {
+        QString::from(&self.order.sort_report())
+    }
+
     pub(super) fn first_moved(&self) -> i32 {
         held(self.order.first_moved())
     }

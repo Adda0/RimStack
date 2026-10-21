@@ -308,6 +308,14 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "sortMoves"]
         fn sort_moves(self: &ModsData) -> QVariant;
+        /// `[{ first, then, firstId, thenId, kind, why, rule }]`: the rules the sort on show could not follow.
+        #[qinvokable]
+        #[cxx_name = "sortDropped"]
+        fn sort_dropped(self: &ModsData) -> QVariant;
+        /// The sort on show as text for a report: its moves with their reasons, then the dropped rules.
+        #[qinvokable]
+        #[cxx_name = "sortReport"]
+        fn sort_report(self: &ModsData) -> QString;
         #[qinvokable]
         #[cxx_name = "firstMoved"]
         fn first_moved(self: &ModsData) -> i32;

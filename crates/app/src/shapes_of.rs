@@ -327,6 +327,7 @@ fn mods(app: &App, shapes: &mut Shapes) {
     shapes.add("mods.cleanup", &order.cleanup(app, &[roads, shop, hats]));
     order.preview_sort(app);
     shapes.add("mods.sortMoves", &order.sort_moves());
+    shapes.add("mods.sortDropped", &order.sort_dropped());
     let list = order.list(Side::Active);
     shapes.add("mods.othersThrough", &list.others_through(a, b).map(ids));
     let same = order.same_mods_in(&order);
