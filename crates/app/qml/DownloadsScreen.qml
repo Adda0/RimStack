@@ -280,6 +280,12 @@ Item {
                             tone: Theme.moved
                             icon: "download"
                             text: Theme.plural(screen.report.count, "{} update available", "{} updates available")
+                        },
+                        Chip {
+                            visible: !screen.downloads.updatesBusy && !screen.report.problem && screen.report.hiddenUnchecked > 0
+                            icon: "eye-off"
+                            text: Theme.plural(screen.report.hiddenUnchecked, "{} hidden item not checked yet", "{} hidden items not checked yet")
+                            tip: Theme.say("Steam hides removed, private and unlisted items alike, so each one's Workshop page is looked at, a few per check: Steam refuses many at once. The next check goes on with these.")
                         }
                     ]
                     actions: Btn {

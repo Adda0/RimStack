@@ -126,20 +126,23 @@ pub fn hidden_in(json: &str) -> Result<Vec<String>, Error> {
         .collect())
 }
 
-/// Of the hidden ids, those whose public page is Steam's error page: an unlisted item's page
-/// shows it. `page` gives a page's text, `None` when it was not had, which ends the asking:
-/// an id not seen gone is not gone.
-pub fn gone_among(hidden: &[String], mut page: impl FnMut(&str) -> Option<String>) -> Vec<String> {
-    let mut gone = Vec::new();
-    for id in hidden {
-        let Some(text) = page(id) else {
-            break;
-        };
+/// What a hidden id's public page shows: the item, to anyone with the link (unlisted), or
+/// Steam's error page (removed or private).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Page {
+    Live,
+    Gone,
+}
+
+impl Page {
+    pub fn of(text: &str) -> Page {
         if text.contains(r#"<div class="error_ctn">"#) {
-            gone.push(id.clone());
+            Page::Gone
+        } else {
+            Page::Live
         }
     }
-    gone
 }
 
 fn page(agent: &ureq::Agent, id: &str) -> Option<String> {
@@ -152,11 +155,11 @@ fn page(agent: &ureq::Agent, id: &str) -> Option<String> {
     answer.body_mut().read_to_string().ok()
 }
 
-/// Blocks on the network: one page after another, as steamcommunity.com refuses many at once
-/// (HTTP 429).
-pub fn gone_of(hidden: &[String]) -> Vec<String> {
+/// Blocks on the network: one page at a time, as steamcommunity.com refuses many at once
+/// (HTTP 429). `None` when the page was not had.
+pub fn pages() -> impl FnMut(&str) -> Option<Page> {
     let agent = crate::base::web::agent(30);
-    gone_among(hidden, |id| page(&agent, id))
+    move |id| page(&agent, id).map(|text| Page::of(&text))
 }
 
 /// What Steam said of the asked items, and which it hides.
@@ -412,16 +415,7 @@ mod tests {
             <div class=\"workshopItemTitle\">Salvaging</div>";
         let error = "<title>Steam Community :: Error</title>\n<div class=\"error_ctn\">\n\
             <h3>There was a problem accessing the item.  Please try again.</h3>";
-        let pages = |id: &str| Some(if id == "3288243760" { shown } else { error }.to_string());
-        assert_eq!(gone_among(&hidden, pages), ["9999999999"]);
-        // A refused page (HTTP 429) ends the asking: the rest is not gone.
-        let mut asked = 0;
-        let refused = |_: &str| {
-            asked += 1;
-            None
-        };
-        assert!(gone_among(&hidden, refused).is_empty());
-        assert_eq!(asked, 1);
+        assert_eq!((Page::of(shown), Page::of(error)), (Page::Live, Page::Gone));
     }
 
     #[test]
@@ -497,22 +491,20 @@ mod tests {
     fn real_hidden_items_are_gone_only_without_a_page() {
         let ids = ids_in(&std::env::var("RIMSTACK_IDS").unwrap());
         let hidden = fetch_details(&ids).unwrap().hidden;
-        let agent = crate::base::web::agent(30);
-        let mut read = Vec::new();
-        let gone = gone_among(&hidden, |id| {
-            let text = page(&agent, id);
-            if text.is_some() {
-                read.push(id.to_string());
-            }
-            text
-        });
+        let mut look = pages();
+        let mut seen = Vec::new();
+        for id in &hidden {
+            let Some(said) = look(id) else {
+                break;
+            };
+            seen.push((id.clone(), said));
+        }
         println!(
-            "asked {} hidden {} pages read {}: {read:?}",
+            "asked {} hidden {} pages read {}: {seen:?}",
             ids.len(),
             hidden.len(),
-            read.len()
+            seen.len()
         );
-        println!("gone {}: {gone:?}", gone.len());
     }
 
     #[test]

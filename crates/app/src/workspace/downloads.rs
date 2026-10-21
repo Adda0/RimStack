@@ -41,6 +41,8 @@ pub struct Updates {
     pub steamcmd: Vec<Behind>,
     pub checkouts: Vec<Checkout>,
     pub problem: Option<Sentence>,
+    /// The ids the API hides whose page is still to be looked at.
+    pub hidden_unchecked: usize,
 }
 
 #[derive(Serialize)]
@@ -63,6 +65,7 @@ pub struct UpdatesShown<'a> {
     pub steamcmd: Vec<BehindShown<'a>>,
     pub checkouts: &'a [Checkout],
     pub checkouts_behind: Vec<&'a Checkout>,
+    pub hidden_unchecked: usize,
 }
 
 pub fn updates_shown<'a>(updates: &'a Updates, asked: &HashSet<String>) -> UpdatesShown<'a> {
@@ -94,6 +97,7 @@ pub fn updates_shown<'a>(updates: &'a Updates, asked: &HashSet<String>) -> Updat
             .collect(),
         checkouts: &updates.checkouts,
         checkouts_behind: updates.checkouts.iter().filter(|c| c.is_behind()).collect(),
+        hidden_unchecked: updates.hidden_unchecked,
     }
 }
 
@@ -157,14 +161,15 @@ impl App {
         let ids: Vec<String> = ids.into_iter().collect();
         let problem = match workshop::fetch_details(&ids) {
             Ok(now) => {
-                kept.checked = Some(super::now_secs());
+                let at = super::now_secs();
+                kept.checked = Some(at);
                 kept.asked = Some(ids.len() as u64);
                 kept.now = now
                     .items
                     .iter()
                     .map(|d| (d.id.clone(), d.updated))
                     .collect();
-                kept.gone = workshop::gone_of(&now.hidden);
+                kept.look_at_hidden(&now.hidden, at, workshop::pages());
                 None
             }
             Err(problem) => Some(problem.sentence().clone()),
@@ -216,7 +221,7 @@ impl App {
                     .map(|row| row.id.clone())
                     .collect(),
             );
-            *self.removed().writing() = Some(kept.gone.iter().cloned().collect());
+            *self.removed().writing() = Some(kept.gone().cloned().collect());
         }
         Updates {
             checked: kept.checked,
@@ -226,6 +231,7 @@ impl App {
             steamcmd,
             checkouts: self.checkouts_of(library, &kept.checkouts),
             problem: None,
+            hidden_unchecked: kept.hidden_unchecked(super::now_secs()),
         }
     }
 

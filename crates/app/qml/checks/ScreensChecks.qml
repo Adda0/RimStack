@@ -96,6 +96,20 @@ Item {
             }
         },
         {
+            section: 1,
+            what: "a check that left hidden items' pages unlooked at says how many on the Updates card",
+            ready: () => checks.flipped(() => {
+                checks.downloadsUpdatesReport = Hub.downloads.updates
+                Hub.downloads.updates = Object.assign({}, checks.downloadsUpdatesReport, { checked: 1, count: 0, problem: null, hiddenUnchecked: 3 })
+            }),
+            ok: () => {
+                const said = Theme.plural(3, "{} hidden item not checked yet", "{} hidden items not checked yet")
+                const shown = checks.chips(said).length === 1
+                Hub.downloads.updates = checks.downloadsUpdatesReport || ({})
+                return shown && checks.chips(said).length === 0
+            }
+        },
+        {
             section: 5,
             what: "Settings shows the folders in use, worked out in Rust",
             ready: () => true,
@@ -365,6 +379,7 @@ Item {
     property int orderStage: 0
     property int offStage: 0
     property var textureReport
+    property var downloadsUpdatesReport
     function matching(root, test) {
         let found = test(root) ? [root] : []
         for (const child of root.children || [])
