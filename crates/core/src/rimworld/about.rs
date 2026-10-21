@@ -1,7 +1,8 @@
 use crate::base::error::{Error, Result};
 use crate::said;
 
-use roxmltree::{Document, Node};
+use crate::base::xml;
+use roxmltree::Node;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
@@ -106,7 +107,7 @@ fn child_ignoring_case(dir: &Path, lower_name: &str) -> Option<PathBuf> {
 pub fn parse(bytes: &[u8]) -> Result<About> {
     let bytes = bytes.strip_prefix(&[0xEF, 0xBB, 0xBF]).unwrap_or(bytes);
     let text = std::str::from_utf8(bytes).map_err(|_| Error::format(said!("not UTF-8")))?;
-    let doc = Document::parse(text).map_err(|e| Error::format(said!("malformed XML: {}", e)))?;
+    let doc = xml::parse(text).map_err(|e| Error::format(said!("malformed XML: {}", e)))?;
 
     let mut about = About::default();
     // Direct children only: a dependency's <packageId> is not the mod's own.

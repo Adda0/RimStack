@@ -29,7 +29,7 @@ fn without_mark(text: &str) -> &str {
 }
 
 fn document(text: &str) -> Result<Document<'_>> {
-    Document::parse(text).map_err(|e| Error::format(said!("malformed XML: {}", e)))
+    crate::base::xml::parse(text).map_err(|e| Error::format(said!("malformed XML: {}", e)))
 }
 
 fn no_list() -> Error {
