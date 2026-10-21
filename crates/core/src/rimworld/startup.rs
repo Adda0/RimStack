@@ -12,7 +12,7 @@ pub struct Measured {
 }
 
 pub fn parse(xml: &str) -> Option<Measured> {
-    let doc = roxmltree::Document::parse(xml.trim_start_matches('\u{feff}')).ok()?;
+    let doc = crate::base::xml::parse(xml.trim_start_matches('\u{feff}')).ok()?;
     let named = |node: roxmltree::Node, name: &str| {
         let child = node.children().find(|n| n.has_tag_name(name))?;
         Some(child.text()?.trim().to_string())

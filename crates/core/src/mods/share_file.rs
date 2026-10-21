@@ -5,7 +5,8 @@ use crate::base::error::{Error, Result};
 use crate::rimworld::id;
 use crate::said;
 
-use roxmltree::{Document, Node};
+use crate::base::xml;
+use roxmltree::Node;
 
 /// One line of a CSV list, from whatever RimStack knows of the mod; empty
 /// stays empty.
@@ -147,7 +148,7 @@ fn below<'a>(node: &Node<'a, 'a>, names: &[&str]) -> Option<Node<'a, 'a>> {
 /// made by the game, RimSort or RimPy, a `<savedModList>` (.rml) or a save
 /// (.rws). Ids come out folded, in listed order, each once.
 pub fn ids_in_list(text: &str) -> Result<Vec<String>> {
-    let doc = Document::parse(text.strip_prefix('\u{feff}').unwrap_or(text))
+    let doc = xml::parse(text.strip_prefix('\u{feff}').unwrap_or(text))
         .map_err(|e| Error::format(said!("malformed XML: {}", e)))?;
     let root = doc.root_element();
     let list = below(&root, &["activeMods"])
@@ -327,7 +328,7 @@ mod tests {
         assert!(text.contains("<savedModList>"));
         assert_eq!(ids_in_list(&text).unwrap(), ids);
         // And the shape RimSort's validate_rimworld_mods_list walks:
-        let doc = Document::parse(&text).unwrap();
+        let doc = xml::parse(&text).unwrap();
         let walked = below(&doc.root_element(), &["meta", "modIds"]);
         assert_eq!(items(walked).len(), 2);
     }

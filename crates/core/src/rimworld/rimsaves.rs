@@ -3,7 +3,6 @@
 //! `RimSaves/Previews/<stem>.dat` and `RimSaves/Meta/<stem>.dat`. Read only:
 //! RimStack never writes them.
 
-use roxmltree::Document;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
@@ -26,7 +25,7 @@ pub struct Settings {
 
 pub fn parse_settings(xml: &str) -> Option<Settings> {
     let xml = xml.strip_prefix('\u{feff}').unwrap_or(xml);
-    let doc = Document::parse(xml).ok()?;
+    let doc = crate::base::xml::parse(xml).ok()?;
     let block = doc.descendants().find(|n| n.has_tag_name("ModSettings"))?;
     let child = |name: &str| block.children().find(|n| n.has_tag_name(name));
     let mut folders: Vec<String> = child("folders")
