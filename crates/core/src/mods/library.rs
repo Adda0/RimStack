@@ -413,18 +413,32 @@ impl Library {
 }
 
 /// `off` grown by every mod needing one in it, directly or through another;
-/// `requires` as [`Library::requires_within`] gives it.
+/// `requires` as [`Library::requires_within`] gives it. Places past `off` are left out.
 pub fn with_needing(requires: &[Vec<usize>], mut off: Vec<bool>) -> Vec<bool> {
-    loop {
-        let needs_one = |at: usize| requires[at].iter().any(|r| off[*r]);
-        let more: Vec<usize> = (0..off.len())
-            .filter(|at| !off[*at] && needs_one(*at))
-            .collect();
-        if more.is_empty() {
-            return off;
+    let needing = needing(requires, off.len());
+    let mut todo: Vec<usize> = (0..off.len()).filter(|at| off[*at]).collect();
+    while let Some(at) = todo.pop() {
+        for &by in &needing[at] {
+            if !off[by] {
+                off[by] = true;
+                todo.push(by);
+            }
         }
-        more.into_iter().for_each(|at| off[at] = true);
     }
+    off
+}
+
+/// For each of the first `count` mods, those of them that need it directly.
+pub fn needing(requires: &[Vec<usize>], count: usize) -> Vec<Vec<usize>> {
+    let mut needing = vec![Vec::new(); count];
+    for (at, needs) in requires.iter().enumerate().take(count) {
+        for &need in needs {
+            if let Some(by) = needing.get_mut(need) {
+                by.push(at);
+            }
+        }
+    }
+    needing
 }
 
 fn patched(aim: &crate::rimworld::code::Aim) -> String {
