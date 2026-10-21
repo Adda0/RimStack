@@ -373,6 +373,15 @@ Item {
             ListView {
                 id: logView
                 property int marked: 0
+                // The keys overlay inside a list takes the keys; the list itself
+                // must take the Copy key: under Qt's focus scoping the press after
+                // a modifier goes to the view, never to an item holding a shortcut.
+                Keys.onPressed: event => {
+                    if (event.matches(StandardKey.Copy) && logView.count > 0) {
+                        Theme.copy(screen.lines[logKeys.current].text)
+                        event.accepted = true
+                    }
+                }
                 visible: screen.view === 2
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -390,7 +399,6 @@ Item {
                     count: logView.count
                     current: Math.max(0, screen.lines.findIndex(l => l.number === logView.marked))
                     onChosen: index => logView.marked = screen.lines[index].number
-                    Shortcut { sequences: [StandardKey.Copy]; enabled: logKeys.activeFocus && logView.count > 0; onActivated: Theme.copy(screen.lines[logKeys.current].text) }
                 }
                 delegate: Item {
                     id: logLine
