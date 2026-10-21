@@ -117,10 +117,11 @@ pub fn rml_xml(ids: &[String]) -> String {
 }
 
 fn ids_of(walk: impl Iterator<Item = String>) -> Vec<String> {
+    let mut seen = std::collections::HashSet::new();
     let mut ids: Vec<String> = Vec::new();
     for text in walk {
         let folded = id::fold(text.trim());
-        if !folded.is_empty() && !ids.contains(&folded) {
+        if !folded.is_empty() && seen.insert(folded.clone()) {
             ids.push(folded);
         }
     }
