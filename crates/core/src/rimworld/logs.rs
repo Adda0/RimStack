@@ -202,24 +202,31 @@ const NOT_A_MOD: [&str; 13] = [
 /// `assemblies` is keyed by lower-case assembly
 /// name without `.dll`. The first is the one the error most likely comes from.
 pub fn mods_in<T: Copy + PartialEq>(group: &ErrorGroup, assemblies: &HashMap<String, T>) -> Vec<T> {
+    let longest = assemblies.keys().map(String::len).max().unwrap_or(0);
     let mut found: Vec<T> = Vec::new();
     let lines = std::iter::once(&group.head).chain(&group.trace);
     for line in lines {
         for word in line.split(|c: char| !(c.is_alphanumeric() || c == '.' || c == '_')) {
-            let mut parts: Vec<&str> = word.split('.').filter(|p| !p.is_empty()).collect();
+            let parts: Vec<&str> = word.split('.').filter(|p| !p.is_empty()).collect();
             if parts.len() < 2 || NOT_A_MOD.contains(&parts[0]) {
                 continue;
             }
-            // "Author.Mod.Type.Method": try the longest namespace first.
-            parts.pop();
-            while !parts.is_empty() {
-                if let Some(owner) = assemblies.get(&parts.join(".").to_lowercase()) {
-                    if !found.contains(owner) {
-                        found.push(*owner);
-                    }
+            // "Author.Mod.Type.Method": the namespaces no longer than an assembly's name,
+            // longest first.
+            let mut namespaces: Vec<String> = Vec::new();
+            for part in &parts[..parts.len() - 1] {
+                let mut name = namespaces.last().map_or(String::new(), |n| format!("{n}."));
+                name += &part.to_lowercase();
+                if name.len() > longest {
                     break;
                 }
-                parts.pop();
+                namespaces.push(name);
+            }
+            let owner = namespaces.iter().rev().find_map(|n| assemblies.get(n));
+            if let Some(owner) = owner
+                && !found.contains(owner)
+            {
+                found.push(*owner);
             }
         }
     }
