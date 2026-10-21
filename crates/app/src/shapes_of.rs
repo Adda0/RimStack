@@ -591,6 +591,7 @@ fn downloads(app: &App, shapes: &mut Shapes) {
         steamcmd: vec![behind(true)],
         checkouts: vec![checkout],
         problem: Some(rimstack_core::said!("refused")),
+        hidden_unchecked: 2,
     };
     let asked = HashSet::from(["1".to_string()]);
     shapes.add("downloads.updates", &updates_shown(&updates, &asked));
