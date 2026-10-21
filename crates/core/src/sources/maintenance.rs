@@ -1,22 +1,82 @@
 use crate::base::error::{Error, Result};
+use crate::rimworld::id::fold;
 use crate::said;
 
 use std::path::{Path, PathBuf};
 
-/// Nothing is replaced: a folder of that name refuses the copy.
+/// Named after the mod (see [`folder_name`]), ` (2)` and on when a folder of that name is
+/// another mod's. Nothing is replaced: a folder of the same package id refuses the copy.
+/// The copy keeps `About/PublishedFileId.txt`, so it still names its Workshop item.
 pub fn copy_to_local(mod_root: &Path, local_mods: &Path) -> Result<PathBuf> {
-    let name = mod_root
+    let folder = mod_root
         .file_name()
-        .ok_or_else(|| Error::refused(said!("the mod's folder has no name")))?;
-    let to = local_mods.join(name);
-    if to.exists() {
-        return Err(Error::refused(said!("{} is there already", to.display())));
+        .ok_or_else(|| Error::refused(said!("the mod's folder has no name")))?
+        .to_string_lossy();
+    let about = about_of(mod_root);
+    let key = about.as_ref().map(|a| fold(&a.package_id));
+    let taken: Vec<(String, PathBuf)> = std::fs::read_dir(local_mods)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .map(|e| (e.file_name().to_string_lossy().to_lowercase(), e.path()))
+        .collect();
+    let same_mod = taken.iter().find(|(name, path)| match &key {
+        Some(key) => about_of(path).is_some_and(|a| &fold(&a.package_id) == key),
+        None => *name == folder.to_lowercase(),
+    });
+    if let Some((_, there)) = same_mod {
+        return Err(Error::refused(said!(
+            "{} is there already",
+            there.display()
+        )));
     }
+    let base = folder_name(
+        about.as_ref().and_then(|a| a.name.as_deref()),
+        about.as_ref().map(|a| a.package_id.as_str()),
+        &folder,
+    );
+    let free = |name: &String| !taken.iter().any(|(t, _)| *t == name.to_lowercase());
+    let name = std::iter::once(base.clone())
+        .chain((2..).map(|n| format!("{base} ({n})")))
+        .find(free)
+        .unwrap_or_default();
+    let to = local_mods.join(name);
     crate::base::walk::copy(mod_root, &to).map_err(|e| {
         let _ = std::fs::remove_dir_all(&to);
         Error::file(&to, e)
     })?;
     Ok(to)
+}
+
+fn about_of(mod_root: &Path) -> Option<crate::rimworld::about::About> {
+    let file = crate::rimworld::about::locate(mod_root)?;
+    crate::rimworld::about::parse(&std::fs::read(file).ok()?).ok()
+}
+
+const RESERVED: [&str; 22] = [
+    "con", "prn", "aux", "nul", "com1", "com2", "com3", "com4", "com5", "com6", "com7", "com8",
+    "com9", "lpt1", "lpt2", "lpt3", "lpt4", "lpt5", "lpt6", "lpt7", "lpt8", "lpt9",
+];
+
+/// A folder name every system takes: the mod's name, else its package id, else `folder`.
+/// Drops `<>:"/\|?*` and control characters, trailing dots and spaces, Windows' device names;
+/// at most 80 characters.
+pub fn folder_name(name: Option<&str>, package_id: Option<&str>, folder: &str) -> String {
+    let safe = |text: &str| {
+        let kept: String = text
+            .chars()
+            .filter(|c| !c.is_control() && !"<>:\"/\\|?*".contains(*c))
+            .take(80)
+            .collect();
+        let kept = kept.trim().trim_end_matches(['.', ' ']).to_string();
+        let stem = kept.split('.').next().unwrap_or_default().trim_end();
+        (!kept.is_empty() && !RESERVED.contains(&stem.to_lowercase().as_str())).then_some(kept)
+    };
+    [name, package_id, Some(folder)]
+        .into_iter()
+        .flatten()
+        .find_map(safe)
+        .unwrap_or_else(|| "Mod".to_string())
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
@@ -201,6 +261,65 @@ pub fn start_game(game_dir: &Path, arguments: &str) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_copy_s_folder_name_drops_what_any_system_refuses() {
+        for bad in ['<', '>', ':', '"', '/', '\\', '|', '?', '*', '\n', '\u{7}'] {
+            assert_eq!(
+                folder_name(Some(&format!("Ha{bad}rmony")), None, "1"),
+                "Harmony"
+            );
+        }
+        assert_eq!(folder_name(Some(" Roads. . "), None, "1"), "Roads");
+        assert_eq!(folder_name(Some(&"x".repeat(200)), None, "1").len(), 80);
+    }
+
+    #[test]
+    fn a_reserved_or_empty_name_falls_back_to_the_package_id_then_the_folder() {
+        assert_eq!(
+            folder_name(Some("CON"), Some("Ann.Roads"), "1"),
+            "Ann.Roads"
+        );
+        assert_eq!(folder_name(Some("nul.txt"), None, "123"), "123");
+        assert_eq!(folder_name(Some("Com1"), None, "123"), "123");
+        assert_eq!(folder_name(Some("Console"), None, "123"), "Console");
+        assert_eq!(folder_name(Some("?*"), Some(""), "123"), "123");
+        assert_eq!(folder_name(None, None, "123"), "123");
+    }
+
+    fn workshop_mod(root: &Path, folder: &str, name: &str, id: &str) -> PathBuf {
+        let at = root.join(folder);
+        std::fs::create_dir_all(at.join("About")).unwrap();
+        std::fs::write(
+            at.join("About/About.xml"),
+            format!("<ModMetaData><name>{name}</name><packageId>{id}</packageId></ModMetaData>"),
+        )
+        .unwrap();
+        std::fs::write(at.join("About/PublishedFileId.txt"), folder).unwrap();
+        at
+    }
+
+    #[test]
+    fn a_copy_is_named_after_its_mod_with_a_number_when_another_mod_has_the_name() {
+        let tmp = tempfile::tempdir().unwrap();
+        let mods = tmp.path().join("Mods");
+        std::fs::create_dir_all(mods.join("harmony")).unwrap();
+        let harmony = workshop_mod(tmp.path(), "2009463077", "Harmony", "brrainz.harmony");
+        let copy = copy_to_local(&harmony, &mods).unwrap();
+        assert_eq!(copy, mods.join("Harmony (2)"));
+        assert_eq!(
+            std::fs::read_to_string(copy.join("About/PublishedFileId.txt")).unwrap(),
+            "2009463077"
+        );
+        let other = workshop_mod(tmp.path(), "77", "Harmony", "someone.else");
+        assert_eq!(
+            copy_to_local(&other, &mods).unwrap(),
+            mods.join("Harmony (3)")
+        );
+        // Its own package id already in Mods, under any folder: no second copy.
+        let again = copy_to_local(&harmony, &mods).unwrap_err();
+        assert_eq!(again.kind(), crate::base::error::Kind::Refused);
+    }
 
     #[test]
     fn launch_options_are_divided_at_spaces_outside_quotes() {

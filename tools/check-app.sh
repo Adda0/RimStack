@@ -152,8 +152,8 @@ sed -i '/check.second/d' "$tmp/config3/Config/ModsConfig.xml"
 wait "$shown" && ok=0 || ok=$?
 shown "$live"
 sound "$live" "--check=live"
-[ -f "$game/Mods/900001/About/About.xml" ] || fail "the copied mod is not in the game's own Mods folder"
-rm -rf "$game/Mods/fourth" "$game/Mods/900001"
+[ -f "$game/Mods/third/About/About.xml" ] || fail "the copied mod is not in the game's own Mods folder under its name"
+rm -rf "$game/Mods/fourth" "$game/Mods/third"
 [ "$ok" = 0 ] || fail "the live changes"
 
 "$(dirname "$0")/fixture-game.sh" "$tmp/screens"
