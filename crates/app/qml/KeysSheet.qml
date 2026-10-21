@@ -8,7 +8,7 @@ Prompt {
     wanted: Theme.sized(760)
     title: Theme.say("Keyboard")
     readonly property var groups: [
-        [Theme.say("Everywhere"), [[Theme.say("Ctrl + K"), Theme.say("Search mods, commands and settings")], [Theme.say("Ctrl + 1 to 6"), Theme.say("Mods, Downloads, Textures, Saves, Logs, Settings")], ["?", Theme.say("This page")], [Theme.say("Left, Right"), Theme.say("Move a choice or the section")], [Theme.say("Tab"), Theme.say("Next control")], [Theme.say("Home, End, Page Up, Page Down"), Theme.say("To either end of a list, or a page further")], [Theme.say("Esc"), Theme.say("Close, cancel, clear the selection")]]],
+        [Theme.say("Everywhere"), [[Theme.say("Ctrl + K"), Theme.say("Search mods, commands and settings")], [Theme.say("Ctrl + 1 to 6"), Theme.say("Mods, Downloads, Textures, Saves, Logs, Settings")], ["?", Theme.say("This page")], [Theme.say("Left, Right"), Theme.say("Move a choice or the section")], [Theme.say("Tab"), Theme.say("Next control")], [Theme.say("Home, End, Page Up, Page Down"), Theme.say("To either end of a list, or a page further")], [Theme.say("Esc"), Theme.say("Close, cancel, discard a sort preview, clear the selection")]]],
         [Theme.say("Load order"), [
             [Theme.say("Ctrl + S"), Theme.say("Save")],
             [Theme.say("Ctrl + Z"), Theme.say("Undo")],
