@@ -178,6 +178,29 @@ Item {
                 checks.window.useFont("")
                 return left === 0 && moved > 0 && checks.fonted(checks.window.contentItem, "RimStack Check Sans") === 0
             }
+        },
+        {
+            section: 0,
+            what: "the lists menu shows every line whole, a long list name too, at the usual and a large text size",
+            ready: () => {
+                const menu = checks.holding(checks.window.contentItem, "listsMenu").listsMenu
+                if (checks.fitted.length === 0 && !menu.visible) {
+                    checks.kept = Hub.lists.keep(checks.longList, false) === ""
+                    menu.open()
+                    return false
+                }
+                if (!menu.opened)
+                    return false
+                checks.fitted = checks.fitted.concat([checks.whole(menu.contentItem, menu.contentItem)])
+                Theme.stored.textScale = 1.5
+                return checks.fitted.length === 2
+            },
+            ok: () => {
+                checks.holding(checks.window.contentItem, "listsMenu").listsMenu.close()
+                Theme.stored.textScale = 1
+                Hub.lists.remove(checks.longList)
+                return checks.kept && checks.fitted.length === 2 && checks.fitted.every(fits => fits)
+            }
         }
     ]
     property bool typed: false
@@ -200,6 +223,30 @@ Item {
             found += fonted(child, family)
         return found
     }
+    function holding(item, name) {
+        if (item[name] !== undefined)
+            return item
+        for (const child of item.children) {
+            const found = holding(child, name)
+            if (found)
+                return found
+        }
+        return null
+    }
+    // Every text shown on a card is whole and inside it, and the card inside the window.
+    function whole(card, item) {
+        if (!item.visible)
+            return true
+        if (item.truncated !== undefined && (item.truncated || item.mapToItem(card, item.width, 0).x > card.width + 0.5 || item.mapToItem(null, item.width, 0).x > checks.window.width))
+            return false
+        for (const child of item.children)
+            if (!whole(card, child))
+                return false
+        return true
+    }
+    readonly property string longList: "A medieval run with the big overhauls"
+    property bool kept: false
+    property var fitted: []
     property int dragged: 0
     readonly property var sizes: [0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.4, 1.2, 1, 0.85, 1]
 
