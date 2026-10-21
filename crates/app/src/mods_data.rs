@@ -151,6 +151,10 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "ignoreProblem"]
         fn ignore_problem(self: Pin<&mut ModsData>, package_id: &QString, key: &QString, yes: bool);
+        /// Empty when kept; otherwise why the setting could not be written.
+        #[qinvokable]
+        #[cxx_name = "showInList"]
+        fn show_in_list(self: Pin<&mut ModsData>, kind: &QString, on: bool) -> QString;
         #[qinvokable]
         #[cxx_name = "warnAgain"]
         fn warn_again(self: Pin<&mut ModsData>, ids: &QVariant);
@@ -822,7 +826,7 @@ impl qobject::ModsData {
         self.as_mut().set_can_redo(redo);
         let order = &self.order;
         let (errors, warnings) = order.errors_and_warnings();
-        let troubled = order.troubles().iter().filter(|t| !t.is_empty()).count();
+        let troubled = order.marked().filter(|marked| *marked).count();
         let previewing = order.previewing();
         let (note, more) = match order.sort_note.split_first() {
             Some((first, rest)) => (

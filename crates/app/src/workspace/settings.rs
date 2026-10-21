@@ -88,6 +88,7 @@ pub fn effects(name: &str) -> Changes {
                 Changes::PROBLEMS
             }
             "databasesOff" => Changes::COMMUNITY | Changes::PROBLEMS,
+            "panelOnly" => Changes::PROBLEMS,
             _ => Changes::NONE,
         }
 }
@@ -533,6 +534,24 @@ impl App {
             .map(|database| database.id)
             .collect();
         self.keep_setting("databasesOff", &off.join(","))
+    }
+
+    /// The kinds of warning the mod list leaves unmarked, by `TroubleKind::key`.
+    pub fn panel_only(&self) -> Vec<String> {
+        self.settings()
+            .listed("panelOnly")
+            .map(String::from)
+            .collect()
+    }
+
+    /// `on` marks a kind of warning in the mod list again; off keeps it to the Problems panel.
+    pub fn show_in_list(&self, kind: &str, on: bool) -> Result<()> {
+        let mut kept = self.panel_only();
+        kept.retain(|k| k != kind);
+        if !on {
+            kept.push(kind.to_string());
+        }
+        self.keep_setting("panelOnly", &kept.join(","))
     }
 
     pub fn download_databases(&self) -> Result<()> {

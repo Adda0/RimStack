@@ -42,7 +42,7 @@ Column {
             }
         }
         Btn {
-            readonly property int alike: Mods.overview.versionOnly || 0
+            readonly property int alike: Mods.overview.trustable || 0
             visible: alike > 1 && !!Mods.info.offerTrust && !Hub.mods.previewing
             text: Theme.fill("Ignore all {} for RimWorld {}", alike, (Mods.overview.gameVersion || ""))
             tip: Theme.say("No warning about the game version while RimWorld stays on this version.")

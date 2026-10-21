@@ -64,6 +64,27 @@ impl TroubleKind {
             TroubleKind::LoadFoldersCase => named("LoadFolders.xml letter case"),
         }
     }
+
+    /// What the `panelOnly` setting names it by; where one exists, its `Trouble::key`.
+    pub fn key(self) -> &'static str {
+        match self {
+            TroubleKind::NeededOff => "needed-off",
+            TroubleKind::NeededMissing => "needed-missing",
+            TroubleKind::NotInstalled => "missing",
+            TroubleKind::Incompatible => "not-with",
+            TroubleKind::OutOfOrder => "order",
+            TroubleKind::GameVersion => "game-version",
+            TroubleKind::NoVersions => "no-versions",
+            TroubleKind::NoWorkshopId => "no-workshop-id",
+            TroubleKind::GoneFromWorkshop => "workshop-gone",
+            TroubleKind::Duplicate => "duplicate",
+            TroubleKind::XmlBroken => "xml-broken",
+            TroubleKind::PatchMisses => "xml-misses",
+            TroubleKind::OwnHarmony => "assembly-harmony",
+            TroubleKind::DllClash => "assembly-clash",
+            TroubleKind::LoadFoldersCase => "loadfolders-case",
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -147,18 +168,21 @@ pub struct Tally {
     pub other_warnings: usize,
 }
 
-pub fn tally(troubles: &[Vec<Trouble>]) -> Tally {
+pub fn tally<'a, Own: IntoIterator<Item = &'a Trouble>>(
+    troubles: impl IntoIterator<Item = Own>,
+) -> Tally {
     let mut tally = Tally::default();
     for own in troubles {
+        let mut other = false;
         for trouble in own {
             match &trouble.fix {
                 Fix::Activate(id) if !tally.needed.contains(id) => tally.needed.push(id.clone()),
                 Fix::Trust => tally.version_only += 1,
                 _ => {}
             }
+            other |= !trouble.error && trouble.fix != Fix::Trust;
         }
-        let other = |t: &Trouble| !t.error && t.fix != Fix::Trust;
-        tally.other_warnings += usize::from(own.iter().any(other));
+        tally.other_warnings += usize::from(other);
     }
     tally
 }

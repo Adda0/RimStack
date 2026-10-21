@@ -694,6 +694,7 @@ mods.overview: object
   troubleGroups: list
     []: object
       error: bool
+      kind: text
       lines: list
         []: object
           error: bool
@@ -709,6 +710,7 @@ mods.overview: object
           packageId: text
           short: text
           words: text
+      listed: bool
       name: text
       shared: bool
       trusted: number
@@ -727,6 +729,7 @@ mods.overview: object
       packageId: text
       short: text
       words: text
+  trustable: number
   trusted: list
     []: object
       modId: number
@@ -735,6 +738,7 @@ mods.overview: object
       trouble: bool
   unreadable: number
   versionOnly: number
+  warned: number
   worksOn: number
 mods.packageMods: list
   []: number

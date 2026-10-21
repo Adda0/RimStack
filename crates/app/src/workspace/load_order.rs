@@ -1,7 +1,7 @@
 use crate::App;
 use rimstack_core::base::locks::Shared;
 use rimstack_core::base::sentence::Sentence;
-use rimstack_core::mods::describe::Trouble;
+use rimstack_core::mods::describe::{Trouble, TroubleKind};
 use rimstack_core::mods::library::{Library, ModId};
 pub use rimstack_core::mods::list::Side;
 use rimstack_core::mods::list::{Arrange, Arrangement, Category, GroupedList, Mod, SortKey, flag};
@@ -53,6 +53,8 @@ pub struct LoadOrder {
     active: GroupedList,
     inactive: GroupedList,
     troubles: Vec<Vec<Trouble>>,
+    /// The kinds of warning the mod list leaves unmarked, by `TroubleKind::key`.
+    panel_only: Vec<String>,
     version_ignored: Vec<bool>,
     checked_order: Vec<Option<ModId>>,
     outdated: [Vec<Option<String>>; 2],
@@ -208,6 +210,7 @@ impl LoadOrder {
             active: GroupedList::new(Vec::new()),
             inactive: GroupedList::new(Vec::new()),
             troubles: Vec::new(),
+            panel_only: Vec::new(),
             version_ignored: Vec::new(),
             checked_order: Vec::new(),
             outdated: [Vec::new(), Vec::new()],
@@ -294,6 +297,26 @@ impl LoadOrder {
         &self.troubles
     }
 
+    /// Whether the mod list marks this kind of warning, or leaves it to the Problems panel.
+    fn lists(&self, kind: TroubleKind) -> bool {
+        !self.panel_only.iter().any(|k| k == kind.key())
+    }
+
+    /// Whether the mod list marks it: every error, and the warnings not kept to the Problems panel.
+    pub fn in_list(&self, trouble: &Trouble) -> bool {
+        trouble.error || self.lists(trouble.kind)
+    }
+
+    /// For each active mod, whether its row is marked with a trouble.
+    pub fn marked(&self) -> impl Iterator<Item = bool> + '_ {
+        (self.troubles.iter()).map(|own| own.iter().any(|t| self.in_list(t)))
+    }
+
+    /// The troubles of each active mod its row marks.
+    pub fn listed(&self) -> impl Iterator<Item = impl Iterator<Item = &Trouble> + '_> + '_ {
+        (self.troubles.iter()).map(|own| own.iter().filter(|t| self.in_list(t)))
+    }
+
     pub fn needed(&self) -> Vec<String> {
         rimstack_core::mods::describe::tally(&self.troubles).needed
     }
@@ -322,7 +345,7 @@ impl LoadOrder {
 
     pub fn errors_and_warnings(&self) -> (usize, usize) {
         let with = |error: bool| {
-            let has = |own: &&Vec<Trouble>| own.iter().any(|t| t.error == error);
+            let has = |own: &&Vec<Trouble>| own.iter().any(|t| t.error == error && self.in_list(t));
             self.troubles.iter().filter(has).count()
         };
         (with(true), with(false))
@@ -373,6 +396,7 @@ impl LoadOrder {
                 let mods = self.active.mods();
                 (self.troubles, self.version_ignored) =
                     rules::troubles(app, &mut self.detected, library, mods, &trust);
+                self.panel_only = app.panel_only();
                 self.outdated[0] = rules::outdated(library, mods, &trust);
                 self.checked_order = active;
             }
@@ -614,7 +638,10 @@ impl LoadOrder {
             let key = rimstack_core::rimworld::id::split_steam(&m.id).0;
             let marks = [
                 (own.iter().any(|t| t.error), flag::ERROR),
-                (own.iter().any(|t| !t.error), flag::WARNING),
+                (
+                    own.iter().any(|t| !t.error && self.in_list(t)),
+                    flag::WARNING,
+                ),
                 (
                     rimstack_core::mods::describe::incomplete(installed, &key, &ignored),
                     flag::INCOMPLETE,

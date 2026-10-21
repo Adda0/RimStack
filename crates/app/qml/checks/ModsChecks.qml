@@ -240,8 +240,13 @@ Item {
                 checks.failed += 1
         }
         const order = () => { const ids = []; for (let i = 0; i < Mods.active.count; i++) ids.push(Mods.nthMod(Mods.active, i)); return ids.join(",") }
+        const rowOf = name => { for (let r = 0; r < Mods.active.rows(); r++) if (Mods.active.modIdAt(r) >= 0 && Mods.active.at(r).name === name) return Mods.active.at(r); return null }
         if (Mods.checkMode === "restore") {
             check("the order chosen before the restart is shown", Mods.inactive.rows() === Mods.inactive.count && Mods.active.rows() === Mods.active.count)
+            const bare = rowOf("Fixture Mod 016")
+            check("a kind of warning kept to the Problems panel stays off its row after a restart", !!bare && bare.trouble === 0 && Mods.overview.troubleGroups.some(g => g.kind === "no-versions" && !g.listed))
+            Hub.mods.showInList("no-versions", true)
+            check("marked in the mod list again, its row shows it", rowOf("Fixture Mod 016").trouble === 1)
             Hub.mods.moveMod(true, 3, 0)
             Mods.save(() => { check("moved back and saved", !Hub.mods.dirty); Qt.exit(checks.failed > 0 ? 1 : 0) })
             return
@@ -626,6 +631,15 @@ Item {
         const began = search.everything
         const back = search.end(false)
         check("stopped, nothing is left of it and the list it began with is given back", !search.active && back.length === began)
+        // A kind of warning kept to the Problems panel; the restore run finds it still kept there.
+        const warnedBefore = Hub.mods.warnings
+        check("a mod whose only problem is a missing game version list is marked on its row", rowOf("Fixture Mod 016").trouble === 1 && Mods.overview.warned === warnedBefore)
+        Hub.mods.showInList("no-versions", false)
+        Mods.filtered = "is:warning"
+        const warningRows = Mods.active.matching
+        Mods.filtered = ""
+        const kept = Mods.overview.troubleGroups.filter(g => g.kind === "no-versions")
+        check("kept to the Problems panel, that kind leaves the row and the counts, not the panel", rowOf("Fixture Mod 016").trouble === 0 && kept.length === 1 && !kept[0].listed && kept[0].lines.length === 1 && Hub.mods.warnings === warnedBefore - 1 && warningRows === Hub.mods.warnings && Mods.overview.warned === warnedBefore)
         Mods.select(Mods.nthMod(Mods.active, 20), true)
         Mods.selectAlso(Mods.nthMod(Mods.active, 22), true)
         const pair = Mods.selectedIds.slice(), unmoved = order()

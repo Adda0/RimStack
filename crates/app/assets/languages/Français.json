@@ -587,6 +587,7 @@
  "Makes the load order of the last clean launch the list on the Mods screen. Save writes it.": "Fait de l'ordre de chargement du dernier lancement sans erreur la liste de l'écran Mods. Enregistrer l'écrit.",
  "Makes this launch's load order the list on the Mods screen. Save writes it.": "Fait de l'ordre de chargement de ce lancement la liste de l'écran Mods. Enregistrer l'écrit.",
  "Making room": "Faire de la place",
+ "Mark in the mod list": "Signaler dans la liste des mods",
  "Marked as working on RimWorld {}": "Marqué comme fonctionnant sur RimWorld {}",
  "Marked as working on this game version": "Marqué comme fonctionnant sur cette version du jeu",
  "Match case": "Respecter la casse",

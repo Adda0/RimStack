@@ -216,7 +216,11 @@ pub struct Textures {
 #[derive(Serialize)]
 pub struct ProblemGroup {
     name: &'static str,
+    /// `TroubleKind::key`.
+    kind: &'static str,
     error: bool,
+    /// Whether the mod list marks this kind too, or leaves it to the Problems panel.
+    listed: bool,
     trusted: usize,
     shared: bool,
     lines: Vec<ProblemSaid>,
@@ -233,8 +237,13 @@ pub struct Overview {
     to_download: Vec<String>,
     trouble_groups: Vec<ProblemGroup>,
     needed: Vec<String>,
+    /// In the mod list: the kinds kept to the Problems panel are not counted.
     version_only: usize,
     other_warnings: usize,
+    /// Game version warnings, the mod list's or not: what "Ignore all" sets aside.
+    trustable: usize,
+    /// Mods with a warning, the kinds kept to the Problems panel among them.
+    warned: usize,
     slowest: Vec<Slow>,
     load_times: bool,
     installed: usize,
@@ -697,9 +706,12 @@ impl LoadOrder {
                 .into_iter()
                 .map(|(kind, lines)| {
                     let trusted = lines.iter().filter(|t| t.trust).count();
+                    let error = lines.first().is_some_and(|t| t.error);
                     ProblemGroup {
                         name: kind.heading(),
-                        error: lines.first().is_some_and(|t| t.error),
+                        kind: kind.key(),
+                        error,
+                        listed: error || self.lists(kind),
                         trusted,
                         shared: trusted > 1 && trusted == lines.len(),
                         lines,
@@ -728,7 +740,13 @@ impl LoadOrder {
             })
             .collect();
         let community = app.community();
-        let tally = describe::tally(&self.troubles);
+        let tally = describe::tally(self.listed());
+        let trustable = (self.troubles.iter().flatten())
+            .filter(|t| t.fix == describe::Fix::Trust)
+            .count();
+        let warned = (self.troubles.iter())
+            .filter(|own| own.iter().any(|t| !t.error))
+            .count();
         Overview {
             game_version: library.game_version.clone(),
             categories: Category::ALL
@@ -743,6 +761,8 @@ impl LoadOrder {
             needed: tally.needed,
             version_only: tally.version_only,
             other_warnings: tally.other_warnings,
+            warned,
+            trustable,
             slowest: details::slowest(mods, 5),
             load_times: mods.iter().any(|m| m.load_micros.is_some()),
             installed: library.installed.len(),
