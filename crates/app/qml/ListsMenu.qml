@@ -15,11 +15,27 @@ PopCard {
     readonly property var snapshots: Hub.lists.snapshots || []
     property string problem
 
-    width: Theme.sized(380)
+    // As wide as its widest line, so no list name is cut short; the margins keep it inside the window.
+    readonly property real widest: {
+        const flows = [clipboard, files, friend]
+        let most = 0
+        for (const line of entries.children) {
+            // The problem and the button rows wrap to any width: a row counts by its widest button.
+            if (line === problemLine)
+                continue
+            for (const part of flows.indexOf(line) >= 0 ? line.children : [line])
+                most = Math.max(most, part.implicitWidth)
+        }
+        return most
+    }
+    width: Math.min(Math.max(Theme.sized(380), widest + leftPadding + rightPadding), parent.Window.width - leftMargin - rightMargin)
+    leftMargin: Theme.gap
+    rightMargin: Theme.gap
     padding: Theme.gapLarge
     onAboutToShow: problem = ""
 
     contentItem: Column {
+        id: entries
         spacing: Theme.gapSmall
 
         Text { color: Theme.ink; font.pixelSize: Theme.title; font.weight: Font.DemiBold; text: Theme.say("Saved lists") }
@@ -108,7 +124,7 @@ PopCard {
             Toggle { silent: true; id: keepSettings; anchors.verticalCenter: parent.verticalCenter; on: Mods.prefs.listWithSettings; onFlipped: Mods.prefs.listWithSettings = !keepSettings.on }
             Text { anchors.verticalCenter: parent.verticalCenter; color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.say("Keep the mods' settings too") }
         }
-        Text { visible: listsMenu.problem !== ""; width: parent.width; wrapMode: Text.WordWrap; color: Theme.err; font.pixelSize: Theme.body; text: listsMenu.problem }
+        Text { id: problemLine; visible: listsMenu.problem !== ""; width: parent.width; wrapMode: Text.WordWrap; color: Theme.err; font.pixelSize: Theme.body; text: listsMenu.problem }
 
         Text { visible: listsMenu.snapshots.length > 0; topPadding: Theme.gapSmall; color: Theme.ink; font.pixelSize: Theme.title; font.weight: Font.DemiBold; text: Theme.say("Earlier") }
         Repeater {
@@ -153,6 +169,7 @@ PopCard {
 
         Text { topPadding: Theme.gapSmall; color: Theme.ink; font.pixelSize: Theme.title; font.weight: Font.DemiBold; text: Theme.say("Clipboard") }
         Flow {
+            id: clipboard
             width: parent.width
             spacing: Theme.gapSmall
             Btn { icon: "copy"; text: Theme.say("Copy the load order"); tip: Theme.say("The active mods as text, one a line"); onClicked: { Theme.copy(Hub.mods.listing()); listsMenu.close() } }
@@ -180,6 +197,7 @@ PopCard {
 
         Text { topPadding: Theme.gapSmall; color: Theme.ink; font.pixelSize: Theme.title; font.weight: Font.DemiBold; text: Theme.say("Files") }
         Flow {
+            id: files
             width: parent.width
             spacing: Theme.gapSmall
             Btn { icon: "download"; text: Theme.say("Export as CSV"); tip: Theme.say("Writes the active mods as a CSV file, the columns of RimSort's export"); onClicked: { exportList.currentFile = "modlist.csv"; exportList.nameFilters = ["CSV (*.csv)"]; listsMenu.close(); exportList.open() } }
@@ -215,6 +233,7 @@ PopCard {
 
         Text { topPadding: Theme.gapSmall; color: Theme.ink; font.pixelSize: Theme.title; font.weight: Font.DemiBold; text: Theme.say("For a friend") }
         Flow {
+            id: friend
             width: parent.width
             spacing: Theme.gapSmall
             Btn {
