@@ -12,6 +12,8 @@ use std::time::Instant;
 
 pub struct Install {
     paths: Arc<Paths>,
+    /// What the scan read, kept for the next one.
+    kept: PathBuf,
     library: OnceLock<Arc<Loaded>>,
     steam_record: OnceLock<Arc<SteamRecord>>,
     startup: OnceLock<Arc<Measured>>,
@@ -22,9 +24,10 @@ pub struct Install {
 }
 
 impl Install {
-    pub fn of(paths: Arc<Paths>) -> Self {
+    pub fn of(paths: Arc<Paths>, kept: PathBuf) -> Self {
         Self {
             paths,
+            kept,
             library: OnceLock::new(),
             steam_record: OnceLock::new(),
             startup: OnceLock::new(),
@@ -51,7 +54,8 @@ impl Install {
     pub fn library(&self) -> Arc<Loaded> {
         let load = || {
             let started = Instant::now();
-            let loaded = library::load(&self.paths).map(|library| (library, started.elapsed()));
+            let loaded = library::load(&self.paths, Some(&self.kept))
+                .map(|library| (library, started.elapsed()));
             if let Ok((_, took)) = &loaded {
                 rimstack_core::note!("scan_ms={}", took.as_millis());
             }

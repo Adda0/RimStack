@@ -9,7 +9,7 @@ fn real_install_categories() {
     let home = std::path::PathBuf::from(std::env::var_os("HOME").unwrap());
     let paths = detect(&home, &Overrides::from_env());
     let started = std::time::Instant::now();
-    let library = load(&paths).unwrap();
+    let library = load(&paths, None).unwrap();
     println!("loaded in {:?}", started.elapsed());
     let all = || library.active.iter().chain(&library.inactive);
     for category in [Category::Loaders, Category::Interface, Category::Tweaks] {

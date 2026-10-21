@@ -6,7 +6,7 @@ use roxmltree::Node;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Versioned {
     pub base: Vec<String>,
     /// Keyed by the version of the XML tag without its `v`: `v1.6` is `1.6`.
@@ -20,7 +20,7 @@ impl Versioned {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct About {
     /// As the author wrote it; compare through `id::fold`.
     pub package_id: String,
@@ -78,14 +78,23 @@ pub fn published_file_id(mod_root: &Path) -> Option<String> {
 /// `About/PublishedFileId.txt` as written, trimmed: what a copy names itself, whether or not
 /// it is a Workshop id. `None` when it has no such file or the file is empty.
 pub fn published_file_id_text(mod_root: &Path) -> Option<String> {
+    published_file_id_in(&published_file_id_file(mod_root)?)
+}
+
+/// Where `About/PublishedFileId.txt` is, in any letter case.
+pub fn published_file_id_file(mod_root: &Path) -> Option<PathBuf> {
     let exact = mod_root.join("About").join("PublishedFileId.txt");
-    let file = match exact.is_file() {
-        true => exact,
+    match exact.is_file() {
+        true => Some(exact),
         false => child_ignoring_case(
             &child_ignoring_case(mod_root, "about")?,
             "publishedfileid.txt",
-        )?,
-    };
+        ),
+    }
+}
+
+/// What [`published_file_id_text`] reads, from the file it found.
+pub fn published_file_id_in(file: &Path) -> Option<String> {
     let text = std::fs::read_to_string(file).ok()?;
     let id = text.trim_start_matches('\u{feff}').trim();
     (!id.is_empty()).then(|| id.to_string())

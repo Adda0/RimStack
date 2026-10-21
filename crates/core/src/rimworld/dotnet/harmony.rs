@@ -2,7 +2,7 @@ use super::{
     Assembly, CUSTOM_ATTRIBUTE, MEMBER_REF, METHOD_DEF, TYPE_DEF, TYPE_REF, compressed, il, u32_at,
 };
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Does {
     pub prefix: bool,
     /// The prefix returns `bool`: a `false` from it skips the original.
