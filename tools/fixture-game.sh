@@ -90,6 +90,11 @@ printf '<Defs><ThingDef><defName>Fixture006</defName></ThingDef></Defs>\n' > "$g
 about "$dir/workshop/2941000006" fixture.mod006 "Fixture Mod Z006" '<modVersion>1.1</modVersion>' "1.6"
 mkdir -p "$dir/workshop/2941000006/Defs"
 printf '<Defs><ThingDef><defName>Fixture006Shop</defName></ThingDef></Defs>\n' > "$dir/workshop/2941000006/Defs/Things.xml"
+# Its author's Git repository came along, with settings past a plain clone's: Steam owns the
+# folder, so RimStack runs no Git there unless asked to.
+mkdir -p "$dir/workshop/2941000006/.git/objects" "$dir/workshop/2941000006/.git/refs"
+printf 'ref: refs/heads/main\n' > "$dir/workshop/2941000006/.git/HEAD"
+printf '[core]\n\trepositoryformatversion = 0\n\tbare = false\n[diff]\n\ttool = vsdiffmerge\n' > "$dir/workshop/2941000006/.git/config"
 {
     printf '<?xml version="1.0" encoding="utf-8"?>\n<ModsConfigData>\n  <version>1.6.4871 rev598</version>\n  <activeMods>\n'
     printf '    <li>ludeon.rimworld</li>\n    <li>ludeon.rimworld.royalty</li>\n    <li>ludeon.rimworld.ideology</li>\n'

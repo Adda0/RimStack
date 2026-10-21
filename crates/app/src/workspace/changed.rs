@@ -1,5 +1,6 @@
 use super::App;
 use rimstack_core::kept::launches;
+use rimstack_core::kept::settings::Switch;
 use rimstack_core::mods::library::ModId;
 use rimstack_core::sources::changes::{self, AtLaunch, Note};
 use rimstack_core::sources::downloads::{self, Changed};
@@ -149,7 +150,8 @@ impl App {
         };
         let active = self.active_now(library);
         let mut rows = downloads::changed(&downloads::items(library, &active), &updated, now);
-        for (mod_id, m) in library.ids().filter(|(_, m)| m.git) {
+        let git_for_workshop = self.settings().switch(Switch::GitForWorkshop);
+        for (mod_id, m) in downloads::checkouts(library, git_for_workshop) {
             let commits = changes::git_notes(&m.path, time);
             if let Some(newest) = commits.first() {
                 rows.push(Changed {
