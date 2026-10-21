@@ -51,6 +51,32 @@ Item {
             ok: () => Hub.textures.report.all >= 33 && Hub.textures.report.rows.length > 0
         },
         {
+            section: 2,
+            what: "on 1.6 Textures says nothing of the game's texture cache and Convert remaining stays the main action",
+            ready: () => true,
+            ok: () => {
+                const notice = checks.named("cachesNotice")
+                const convert = checks.buttons(Theme.say("Convert remaining"))
+                return !!notice && !notice.visible && convert.length === 1 && convert[0].primary === (Hub.textures.report.remaining.length > 0)
+            }
+        },
+        {
+            section: 2,
+            what: "on a game that caches textures itself, Textures says so with Remove all converted beside it, and Convert remaining is no longer the main action",
+            ready: () => checks.flipped(() => {
+                checks.textureReport = Hub.textures.report
+                Hub.textures.report = Object.assign({}, checks.textureReport, { cachesSaid: "RimWorld 1.7 caches textures itself." })
+            }),
+            ok: () => {
+                const notice = checks.named("cachesNotice")
+                const remove = checks.buttons(Theme.say("Remove all converted…"))
+                const convert = checks.buttons(Theme.say("Convert remaining"))
+                const shown = !!notice && notice.visible && remove.length === 1 && checks.inside(remove[0], notice) && convert.length === 1 && !convert[0].primary
+                Hub.textures.report = checks.textureReport
+                return shown && !notice.visible && checks.buttons(Theme.say("Remove all converted…")).length === 1
+            }
+        },
+        {
             section: 1,
             what: "Downloads offers the mod the load order needs and nothing installs",
             ready: () => !Hub.downloads.queueBusy && !!Hub.downloads.queue,
@@ -207,6 +233,25 @@ Item {
     property bool askedFind: false
     property bool changed: false
     property string before
+    property var textureReport
+    function matching(root, test) {
+        let found = test(root) ? [root] : []
+        for (const child of root.children || [])
+            found = found.concat(matching(child, test))
+        return found
+    }
+    function named(name) {
+        return matching(checks.window.contentItem, item => item.objectName === name)[0] || null
+    }
+    function buttons(text) {
+        return matching(checks.window.contentItem, item => item.danger !== undefined && item.text === text)
+    }
+    function inside(item, outer) {
+        for (let at = item; at; at = at.parent)
+            if (at === outer)
+                return true
+        return false
+    }
     // Changes a setting on one tick and says it is ready on the next, so bindings settle first.
     function flipped(change) {
         if (changed) {
