@@ -59,8 +59,11 @@ Item {
     readonly property color quiet: current ? Theme.onSelectedDim : Theme.ink2
 
     Accessible.role: isHeader ? Accessible.Heading : Accessible.ListItem
-    Accessible.name: isHeader ? name + ", " + count
-        : [name, columns ? Theme.fill("{} of {}", number, ownModel.count) : "", troubleText, fresh ? Theme.say("new") : ""].filter(part => part !== "").join(", ")
+    // A tag's heading is named by the tag itself; a category's in the language chosen.
+    Accessible.name: isHeader ? [isSub ? name : Theme.say(name), Theme.plural(count, "{} mod", "{} mods"), again ? Theme.say("out of category order") : "", collapsed ? Theme.say("folded") : Theme.say("unfolded")].filter(part => part !== "").join(", ")
+        : name
+    Accessible.description: isHeader ? ""
+        : [Theme.say(Theme.categoryNames[category] || ""), troubleText, fresh ? Theme.say("new") : "", columns ? Theme.fill("{} of {}", number, ownModel.count) : ""].filter(part => part !== "").join(", ")
     Accessible.selectable: !isHeader
     Accessible.selected: current || holds
 

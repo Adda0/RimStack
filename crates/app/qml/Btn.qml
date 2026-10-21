@@ -29,10 +29,11 @@ Rectangle {
     border.width: primary ? 0 : 1
     border.color: toned ? Qt.rgba(tone.r, tone.g, tone.b, frame) : Qt.rgba(Theme.fieldLine.r, Theme.fieldLine.g, Theme.fieldLine.b, frame)
     FocusRing {}
-    Accessible.role: Accessible.Button
+    Accessible.role: menu ? Accessible.ButtonMenu : Accessible.Button
     Accessible.ignored: !visible
-    Accessible.name: spoken !== "" ? spoken : text !== "" ? text : tip !== "" ? tip : icon
-    Accessible.description: tip
+    // An icon's file name says nothing: a button showing only its icon is named by its tip.
+    Accessible.name: spoken !== "" ? spoken : text !== "" ? text : tip
+    Accessible.description: Accessible.name !== tip ? tip : ""
     Accessible.onPressAction: if (enabled) btn.clicked()
     readonly property color ground: primary ? (btnHover.hovered ? Theme.accentHi : Theme.accent)
         : toned ? Qt.rgba(tone.r, tone.g, tone.b, btnHover.hovered ? 0.3 : 0.18)

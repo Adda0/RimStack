@@ -170,6 +170,10 @@ Rectangle {
         name: "x"
         size: Theme.sized(12)
         color: clearHover.hovered ? Theme.ink : Theme.ink3
+        Accessible.role: Accessible.Button
+        Accessible.ignored: !visible
+        Accessible.name: Theme.say("Clear (Esc)")
+        Accessible.onPressAction: { field.text = ""; fieldInput.forceActiveFocus() }
         HoverHandler { id: clearHover; cursorShape: Qt.PointingHandCursor }
         TapHandler { onTapped: { field.text = ""; fieldInput.forceActiveFocus() } }
         Tip { text: Theme.say("Clear (Esc)") }

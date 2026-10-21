@@ -99,6 +99,7 @@ PopCard {
     FontMetrics { id: noteFont; font.pixelSize: Theme.small }
     contentItem: Item {
         id: body
+        Accessible.role: Accessible.PopupMenu
         readonly property real above: search.visible ? search.height + Theme.gapTiny : 0
         implicitWidth: Math.max(column.implicitWidth, search.visible ? Theme.sized(220) : 0)
         implicitHeight: above + column.implicitHeight
@@ -162,8 +163,9 @@ PopCard {
                         color: (over.hovered || menu.at === entry.index) && !entry.off ? Theme.accent : "transparent"
                         opacity: entry.off ? 0.4 : 1
                         Accessible.role: Accessible.MenuItem
-                        Accessible.name: entry.modelData.text || ""
+                        Accessible.name: words.text
                         Accessible.description: entry.modelData.note || ""
+                        Accessible.selected: menu.at === entry.index
                         Item { id: strip; width: parent.width; height: Theme.strip }
                         Rectangle { x: Theme.gapMedium; anchors.verticalCenter: strip.verticalCenter; visible: !!entry.modelData.colour; width: Theme.gapMedium; height: width; radius: width / 2; color: entry.modelData.colour || "transparent" }
                         Icon { x: Theme.gap; anchors.verticalCenter: strip.verticalCenter; visible: !!entry.modelData.icon; name: entry.modelData.icon || ""; color: words.color }

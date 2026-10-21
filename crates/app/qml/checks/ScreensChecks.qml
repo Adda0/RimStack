@@ -398,6 +398,37 @@ Item {
                 Hub.saves.reread()
                 return shown && !Hub.mods.dirty && checks.loadOrder() === checks.beforeOrder
             }
+        },
+        ...[[0, -1], [1, -1], [5, 0], [5, 1], [5, 2], [5, 3], [3, -1], [2, -1], [4, -1]].map(([section, part]) => ({
+            section: section,
+            what: "every control on " + ["Mods", "Downloads", "Textures", "Saves", "Logs", "Settings"][section] + (part >= 0 ? " part " + part : "") + " says what it is to a screen reader",
+            // A few ticks for the screen to fill in, and the settings part switched on one of them.
+            ready: () => checks.waited >= 3 && (part < 0 || checks.flipped(() => checks.holding(checks.window.contentItem, "parts").part = part)),
+            ok: () => checks.spoken(checks.unspoken())
+        })),
+        {
+            section: 0,
+            what: "a prompt is a dialog named by its title, to a screen reader",
+            ready: () => checks.flipped(() => checks.window.keysSheet.open()),
+            ok: () => {
+                const sheet = checks.window.keysSheet
+                const said = sheet.contentItem.Accessible.role === Accessible.Dialog && sheet.title !== "" && sheet.contentItem.Accessible.name === sheet.title
+                sheet.close()
+                return said
+            }
+        },
+        {
+            section: 0,
+            what: "the command palette is a dialog, and each of its commands has a name, to a screen reader",
+            ready: () => checks.flipped(() => checks.commandPalette().open()),
+            ok: () => {
+                const palette = checks.commandPalette()
+                const rows = checks.matching(palette.contentItem, item => item.modelData !== undefined && item.current !== undefined)
+                const left = rows.filter(row => row.Accessible.role !== Accessible.ListItem || row.Accessible.name.indexOf(row.modelData.name) !== 0).map(row => "command \"" + row.modelData.name + "\" (says \"" + row.Accessible.name + "\")")
+                const dialog = palette.contentItem.Accessible.role === Accessible.Dialog && palette.contentItem.Accessible.name !== ""
+                palette.close()
+                return checks.spoken(dialog ? left : left.concat(["the palette: no dialog role or name"])) && rows.length > 0
+            }
         }
     ]
     property bool typed: false
@@ -457,6 +488,49 @@ Item {
         for (const child of root.children || [])
             found += fonted(child, family)
         return found
+    }
+    // What a screen reader would get wrong on the shown screen, each as the item's type, what it
+    // shows and why: a control reached by Tab, a press or typing with no name (a plain text is
+    // read by what it says) or no role; a mod row named other than by its mod or with no category
+    // in its description; a heading or a card that does not say its count or whether it is folded.
+    function unspoken() {
+        const tapped = item => Array.from(item.resources || []).some(handler => handler.tapCount !== undefined && handler.enabled && handler.acceptedButtons !== Qt.RightButton)
+        const reachable = item => item.visible && (item.activeFocusOnTab === true || item.troubleText !== undefined || item.readOnly === false || tapped(item))
+        // "unfolded" holds "folded": the parts of the name are compared whole.
+        const says = (name, part) => name.split(", ").indexOf(part) >= 0
+        const folding = folded => folded ? Theme.say("folded") : Theme.say("unfolded")
+        const wrong = item => {
+            const name = item.Accessible.name, row = item.troubleText !== undefined
+            if (name === "" && !(item.truncated !== undefined && item.text !== ""))
+                return "no name"
+            if (item.Accessible.role === Accessible.NoRole && item.truncated === undefined && item.readOnly === undefined)
+                return "no role"
+            if (row && !item.isHeader && name !== item.name)
+                return "named other than its mod"
+            if (row && !item.isHeader && item.Accessible.description.indexOf(Theme.say(Theme.categoryNames[item.category] || "")) < 0)
+                return "no category in its description"
+            if (row && item.isHeader && (name.indexOf(Theme.count(item.count)) < 0 || !says(name, folding(item.collapsed))))
+                return "no count or fold"
+            if (item.parent && item.parent.startsFolded !== undefined && item.parent.key !== "" && !says(name, folding(item.parent.folded)))
+                return "no fold"
+            return ""
+        }
+        const shows = at => at ? [at.objectName, at.text, at.title, at.placeholder, at.tip, at.icon, at.name].find(said => typeof said === "string" && said !== "") : undefined
+        return matching(checks.window.contentItem, item => reachable(item) && !item.Accessible.ignored && wrong(item) !== "")
+            .map(item => {
+                const said = shows(item) || (shows(item.parent) ? "in " + shows(item.parent) : "")
+                return String(item).replace(/_QMLTYPE_\d+|_QML_\d+|\(0x[0-9a-f]+\)/g, "") + (said ? " \"" + said + "\"" : "") + ": " + wrong(item) + (item.Accessible.name !== "" ? " (says \"" + item.Accessible.name + "\")" : "")
+            })
+    }
+    // Says what was found wrong on a line of its own; true when nothing was.
+    function spoken(wrong) {
+        if (wrong.length > 0)
+            console.log("check unspoken: " + wrong.join("; "))
+        return wrong.length === 0
+    }
+    // A popup is no item: the palette sits among the window's resources.
+    function commandPalette() {
+        return Array.from(checks.window.contentItem.resources).find(found => found.findMods !== undefined)
     }
     // The first visible item, from the root down, that passes the test.
     function shown(root, test) {

@@ -42,6 +42,8 @@ Popup {
     Overlay.modal: Rectangle { color: Theme.scrim }
 
     contentItem: Column {
+        Accessible.role: Accessible.Dialog
+        Accessible.name: Theme.say("Search mods, commands and settings")
         spacing: Theme.gapSmall
         FilterField {
             id: box
@@ -77,6 +79,9 @@ Popup {
                 readonly property bool current: index === popup.chosen
                 width: list.width
                 height: Theme.sized(30)
+                Accessible.role: Accessible.ListItem
+                Accessible.name: [row.modelData.name, row.modelData.keys || row.modelData.group || ""].filter(part => part !== "").join(", ")
+                Accessible.selected: row.current
                 Rectangle { anchors.fill: parent; radius: Theme.corner; color: row.current ? Theme.accent : Theme.hover; opacity: row.current ? 1 : rowHover.hovered ? 0.05 : 0 }
                 HoverHandler { id: rowHover }
                 TapHandler { gesturePolicy: TapHandler.ReleaseWithinBounds; onTapped: { popup.chosen = row.index; popup.runChosen() } }
