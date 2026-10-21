@@ -180,7 +180,8 @@ impl qobject::TexturesData {
     }
 
     fn show(mut self: Pin<&mut Self>) {
-        let report = to_qml(&shown(&self.rows, self.active_only));
+        let game_version = self.app().paths().game_version.clone().unwrap_or_default();
+        let report = to_qml(&shown(&self.rows, self.active_only, &game_version));
         self.as_mut().set_report(report);
     }
 

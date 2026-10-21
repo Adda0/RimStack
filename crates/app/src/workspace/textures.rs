@@ -2,7 +2,7 @@ use super::App;
 use rayon::prelude::*;
 use rimstack_core::base::error::Error;
 use rimstack_core::base::sentence::Sentence;
-use rimstack_core::base::sizes;
+use rimstack_core::base::{sizes, versions};
 use rimstack_core::mods::hidden::{self, Hidden};
 use rimstack_core::mods::library::{Library, ModId};
 use rimstack_core::mods::{conflicts, ddsaudit, texdiff, textures};
@@ -42,9 +42,15 @@ pub struct TexturesShown<'a> {
     pub out_of_date: usize,
     pub waiting: usize,
     pub first_waiting: Option<ModId>,
+    /// Only for a game that caches its textures itself, with what removing RimStack's DDS frees.
+    pub caches_said: Option<Sentence>,
 }
 
-pub fn shown(rows: &[textures::Row], active_only: bool) -> TexturesShown<'_> {
+pub fn shown<'a>(
+    rows: &'a [textures::Row],
+    active_only: bool,
+    game_version: &str,
+) -> TexturesShown<'a> {
     let on_show: Vec<&textures::Row> = rows.iter().filter(|r| !active_only || r.active).collect();
     let ids = |keep: &dyn Fn(&textures::Row) -> bool| -> Vec<ModId> {
         on_show.iter().filter(|r| keep(r)).map(|r| r.id).collect()
@@ -80,6 +86,7 @@ pub fn shown(rows: &[textures::Row], active_only: bool) -> TexturesShown<'_> {
         remaining: ids(&|r| !r.skipped && r.not_converted > 0),
         stale: ids(&|r| !r.skipped && r.out_of_date > 0),
         made_files: made.iter().map(|r| r.converted + r.out_of_date).sum(),
+        caches_said: caches_said(game_version, made.iter().map(|r| r.made_mb).sum()),
         made: made.iter().map(|r| r.id).collect(),
         out_of_date: on_show
             .iter()
@@ -96,6 +103,30 @@ pub fn shown(rows: &[textures::Row], active_only: bool) -> TexturesShown<'_> {
             })
             .collect(),
     }
+}
+
+/// From 1.7 on, Ludeon's own engine fills a texture cache on the first start; unknown is older.
+fn game_caches_textures(game_version: &str) -> bool {
+    !game_version.trim().is_empty() && !versions::newer(game_version, "1.7")
+}
+
+fn caches_said(game_version: &str, made_mb: f64) -> Option<Sentence> {
+    if !game_caches_textures(game_version) {
+        return None;
+    }
+    let caches = say!(
+        "RimWorld {} caches textures itself on its first start, so converting them to DDS is not needed.",
+        game_version
+    );
+    if made_mb <= 0.0 {
+        return Some(caches);
+    }
+    let (made, _) = sizes::together(made_mb, 0.0);
+    let frees = say!(
+        "Removing the DDS files RimStack made frees {}.",
+        made.inside()
+    );
+    Some(Sentence::joined(" ", vec![caches, frees]))
 }
 
 fn sizes_said(png_mb: f64, dds_mb: f64) -> Option<Sentence> {
@@ -543,6 +574,20 @@ mod tests {
         );
     }
 
+    #[test]
+    fn only_a_game_from_1_7_on_is_told_converting_is_not_needed() {
+        let said = |version, made_mb| super::caches_said(version, made_mb).map(|s| s.to_string());
+        assert_eq!(said("1.6", 20.0), None);
+        assert_eq!(said("", 20.0), None, "an unknown version");
+        let caches =
+            "caches textures itself on its first start, so converting them to DDS is not needed.";
+        assert_eq!(said("1.7", 0.0).unwrap(), format!("RimWorld 1.7 {caches}"));
+        assert_eq!(
+            said("1.8", 2048.0).unwrap(),
+            format!("RimWorld 1.8 {caches} Removing the DDS files RimStack made frees 2.0 GB.")
+        );
+    }
+
     use super::*;
     use crate::workspace::tests::installed;
 
@@ -556,7 +601,7 @@ mod tests {
         let (tmp, app) = installed();
         texture(&tmp.path().join("game/Mods/roads/Textures/road.png"));
         let rows = app.texture_rows();
-        let on_show = crate::qml::values::as_shown(&shown(&rows, false));
+        let on_show = crate::qml::values::as_shown(&shown(&rows, false, "1.6"));
         assert_eq!(on_show["rows"][0]["name"], "Ann.Roads");
         assert_eq!(on_show["rows"][0]["state"], "Not converted");
         assert_eq!(on_show["usual"], "Not converted");
@@ -564,12 +609,15 @@ mod tests {
         assert_eq!(on_show["have"], 0);
         assert_eq!(on_show["waiting"], 1);
         assert_eq!(on_show["remaining"].as_array().unwrap().len(), 1);
-        assert!(shown(&rows, true).rows.is_empty(), "Roads is not active");
+        assert!(
+            shown(&rows, true, "1.6").rows.is_empty(),
+            "Roads is not active"
+        );
 
         app.skip_textures(rows[0].id, true).unwrap();
         let rows = app.texture_rows();
         assert_eq!((rows[0].state, rows[0].waits), ("Skipped", false));
-        assert!(shown(&rows, false).remaining.is_empty());
+        assert!(shown(&rows, false, "1.6").remaining.is_empty());
     }
 
     #[test]
