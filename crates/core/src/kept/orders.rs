@@ -12,7 +12,9 @@ const KEPT: usize = 50;
 #[serde(rename_all = "camelCase")]
 pub enum How {
     Saved,
-    /// Found in the file, written by the game or another tool.
+    /// Written by the game as it started, its way of taking the list over.
+    Game,
+    /// Found in the file, written while the game was not running, by another tool.
     Outside,
 }
 

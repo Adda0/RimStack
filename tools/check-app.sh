@@ -131,7 +131,15 @@ echo "check ok    after unhiding, the two mods are exactly as they were"
 mkdir -p "$tmp/workshop-b/900001/About" "$tmp/settings3/RimStack" "$tmp/config3/Config"
 printf '<ModMetaData><name>third</name><packageId>check.third</packageId><supportedVersions><li>1.6</li></supportedVersions></ModMetaData>' > "$tmp/workshop-b/900001/About/About.xml"
 cp "$tmp/config2/Config/ModsConfig.xml" "$tmp/config3/Config/"
-printf '{ "workshop": "%s", "setupDone": "yes", "language": "%s" }' "$tmp/empty-workshop" "$language" > "$tmp/settings3/RimStack/settings.json"
+printf '{ "workshop": "%s", "setupDone": "yes", "launch": "direct", "language": "%s" }' "$tmp/empty-workshop" "$language" > "$tmp/settings3/RimStack/settings.json"
+# Started direct, it rewrites ModsConfig.xml as RimWorld does and is gone again
+# before a look can see its process: the write is the game's.
+cat > "$game/RimWorld" <<'FAKE'
+#!/usr/bin/env bash
+sleep 2
+sed -i 's/check\.first/check.second/' "$RIMSTACK_CONFIG/Config/ModsConfig.xml"
+FAKE
+chmod +x "$game/RimWorld"
 live="$tmp/live.log"
 env -u RIMSTACK_WORKSHOP RIMSTACK_GAME="$game" RIMSTACK_CONFIG="$tmp/config3" XDG_DATA_HOME="$tmp/data3" XDG_CONFIG_HOME="$tmp/settings3" \
     QT_QPA_PLATFORM=offscreen QT_FORCE_STDERR_LOGGING=1 timeout 60 "$app" --check=live "--live-folder=$tmp/workshop-b" > "$live" 2>&1 &
