@@ -102,8 +102,12 @@ mod tests {
     }
 
     fn check_all(abouts: &[About]) -> Vec<Vec<Problem>> {
+        check_at(abouts, "1.6")
+    }
+
+    fn check_at(abouts: &[About], game_version: &str) -> Vec<Vec<Problem>> {
         let refs: Vec<Option<&About>> = abouts.iter().map(Some).collect();
-        check(&refs, "1.6", |key| {
+        check(&refs, game_version, |key| {
             (key == "on.disk").then(|| "On Disk".to_string())
         })
     }
@@ -115,6 +119,37 @@ mod tests {
         a.supported_versions = vec!["1.5".into(), "1.6".into()];
         let found = check_all(&[a, about("b.b")]);
         assert!(found.iter().all(Vec::is_empty));
+    }
+
+    #[test]
+    fn a_dependency_list_follows_the_game_version() {
+        let mut a = about("a.a");
+        a.dependencies = list(&["On.Disk"]);
+        a.dependencies
+            .by_version
+            .insert("1.5".into(), vec!["Old.Dep".into()]);
+        a.dependencies
+            .by_version
+            .insert("1.6".into(), vec!["New.Dep".into()]);
+        let mods = [a, about("on.disk")];
+        let only = |version: &str| check_at(&mods, version)[0].clone();
+        assert_eq!(
+            only("1.6"),
+            vec![Problem::Requires {
+                id: "New.Dep".into(),
+                name: None
+            }]
+        );
+        assert_eq!(
+            only("1.5"),
+            vec![Problem::Requires {
+                id: "Old.Dep".into(),
+                name: None
+            }]
+        );
+        // A version no list names falls back to the plain dependencies.
+        assert!(only("").is_empty());
+        assert!(only("1.4").is_empty());
     }
 
     #[test]

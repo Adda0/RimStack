@@ -36,6 +36,11 @@ for n in $(seq -w 1 100); do
         # The one rule the fixture order breaks: 004 loads before 002, its rule says after.
         extra="$extra  <loadAfter><li>fixture.mod002</li></loadAfter>\n"
     fi
+    if [ "$n" = 038 ]; then
+        # Dependencies that differ by game version: 1.6 needs a mod that is not installed,
+        # 1.5 needs 002, so the two versions sort and warn differently.
+        extra="$extra  <modDependenciesByVersion><v1.6><li><packageId>fixture.versiononly</packageId><displayName>Version Only</displayName></li></v1.6><v1.5><li><packageId>fixture.mod002</packageId></li></v1.5></modDependenciesByVersion>\n"
+    fi
     about "$folder" "fixture.mod$n" "Fixture Mod $n" "$(printf "$extra")" "$version"
     printf '%s\n' "2941000$(printf %s "$n")" > "$folder/About/PublishedFileId.txt"
     kind=${kinds[$((10#$n % 3))]}
