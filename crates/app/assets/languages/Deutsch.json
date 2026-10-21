@@ -518,6 +518,7 @@
  "Launch arguments": "Startargumente",
  "Launches": "Starts",
  "Left, Right": "Links, Rechts",
+ "Left, Right, Home, End": "Links, Rechts, Pos1, Ende",
  "Let go to install the mod from this .zip": "Loslassen, um den Mod aus dieser .zip zu installieren",
  "Lets the replaced mod go: Steam unsubscribes and deletes its folder": "Gibt den ersetzten Mod frei: Steam beendet das Abonnement und löscht seinen Ordner",
  "Libraries": "Bibliotheken",
@@ -625,6 +626,7 @@
  "Motion": "Bewegung",
  "Move a choice or the section": "Eine Auswahl oder den Abschnitt verschieben",
  "Move it there": "Dorthin verschieben",
+ "Move the line of the Slider view, once Tab reaches it": "Die Linie der Ansicht Schieberegler verschieben, sobald Tab sie erreicht",
  "Move the selected mods one place": "Die ausgewählten Mods um einen Platz verschieben",
  "Move through a menu": "Durch ein Menü gehen",
  "Move to the bin": "In den Papierkorb",
@@ -1264,6 +1266,7 @@
  "Unsubscribe…": "Abonnement beenden…",
  "Up to date": "Aktuell",
  "Up, Down": "Oben, Unten",
+ "Up, Down, Left, Right": "Oben, Unten, Links, Rechts",
  "Update": "Aktualisieren",
  "Update community rules": "Community-Regeln aktualisieren",
  "Update in Steam": "In Steam aktualisieren",
@@ -1783,6 +1786,6 @@
  "{}× the size on disk, loads faster": "{}× die Größe auf dem Datenträger, lädt schneller",
  "{}×{} is not a multiple of four, as its compression needs": "{}×{} ist kein Vielfaches von vier, wie es seine Komprimierung verlangt",
  "‹ Load order": "‹ Ladereihenfolge",
- "← → next texture": "← → nächste Textur",
+ "↑ ↓ ← → next texture": "↑ ↓ ← → nächste Textur",
  "✓ Kept": "✓ Behalten"
 }

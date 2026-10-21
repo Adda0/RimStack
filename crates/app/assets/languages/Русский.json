@@ -518,6 +518,7 @@
  "Launch arguments": "Параметры запуска",
  "Launches": "Запускает",
  "Left, Right": "Влево, вправо",
+ "Left, Right, Home, End": "Left, Right, Home, End",
  "Let go to install the mod from this .zip": "Let go to install the mod from this .zip",
  "Lets the replaced mod go: Steam unsubscribes and deletes its folder": "Отпускает заменённый мод: Steam отписывается и удаляет его папку",
  "Libraries": "Библиотеки",
@@ -625,6 +626,7 @@
  "Motion": "Анимация",
  "Move a choice or the section": "Переместить выбор или раздел",
  "Move it there": "Move it there",
+ "Move the line of the Slider view, once Tab reaches it": "Move the line of the Slider view, once Tab reaches it",
  "Move the selected mods one place": "Move the selected mods one place",
  "Move through a menu": "Move through a menu",
  "Move to the bin": "Переместить в корзину",
@@ -1264,6 +1266,7 @@
  "Unsubscribe…": "Отписаться…",
  "Up to date": "Актуально",
  "Up, Down": "Вверх, вниз",
+ "Up, Down, Left, Right": "Up, Down, Left, Right",
  "Update": "Обновить",
  "Update community rules": "Обновить правила сообщества",
  "Update in Steam": "Обновить в Steam",
@@ -1783,6 +1786,6 @@
  "{}× the size on disk, loads faster": "{}× размера на диске, загружается быстрее",
  "{}×{} is not a multiple of four, as its compression needs": "{}×{} не кратно четырём, как требует его сжатие",
  "‹ Load order": "‹ Порядок загрузки",
- "← → next texture": "← → следующая текстура",
+ "↑ ↓ ← → next texture": "↑ ↓ ← → next texture",
  "✓ Kept": "✓ Сохранено"
 }
