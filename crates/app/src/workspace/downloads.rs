@@ -164,7 +164,7 @@ impl App {
                     .iter()
                     .map(|d| (d.id.clone(), d.updated))
                     .collect();
-                kept.gone = now.gone;
+                kept.gone = workshop::gone_of(&now.hidden);
                 None
             }
             Err(problem) => Some(problem.sentence().clone()),
