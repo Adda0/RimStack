@@ -23,6 +23,7 @@ Rectangle {
     Accessible.role: pressable ? Accessible.Button : Accessible.StaticText
     Accessible.ignored: !visible
     Accessible.name: text !== "" ? text : tip
+    Accessible.description: text !== "" ? tip : ""
     Accessible.onPressAction: if (pressable) chip.clicked()
     Keys.onReturnPressed: chip.clicked()
     Keys.onEnterPressed: chip.clicked()
