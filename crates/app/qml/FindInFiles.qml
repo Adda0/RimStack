@@ -73,9 +73,10 @@ Popup {
                     RowLayout {
                         width: parent.width
                         spacing: Theme.gap
-                        Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: hit.modelData.modName + " — " + hit.modelData.file + ":" + hit.modelData.line }
+                        Text { Layout.fillWidth: true; Layout.maximumWidth: implicitWidth + 1; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: hit.modelData.modName + " — " + hit.modelData.file + ":" + hit.modelData.line }
                         Btn { compact: true; icon: "folder-open"; tip: Theme.say("Open folder"); onClicked: Qt.openUrlExternally(Theme.fileUrl(hit.modelData.folder)) }
                         Btn { compact: true; icon: "search"; tip: Theme.say("Show the mod"); onClicked: { popup.close(); popup.showMod(hit.modelData.modId) } }
+                        Item { Layout.fillWidth: true }
                     }
                     Text { width: parent.width; elide: Text.ElideRight; color: Theme.ink3; font.pixelSize: Theme.small; font.family: "monospace"; text: hit.modelData.text }
                 }
