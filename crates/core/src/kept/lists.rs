@@ -253,58 +253,67 @@ pub fn use_settings(
     Ok(done)
 }
 
-/// How a saved list differs from the current load order.
+/// How one order differs from another, `left` against `right`.
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Differences {
-    /// Indices in the saved list of mods only there.
-    pub only_saved: Vec<usize>,
-    /// Indices in the current list of mods only there.
-    pub only_current: Vec<usize>,
-    /// Indices in the saved list of the shared mods not in the longest run
-    /// both lists hold in one order: the fewest moves, not every shifted one.
-    pub moved: Vec<usize>,
+    /// Indices in the left order of mods only there.
+    pub only_left: Vec<usize>,
+    /// Indices in the right order of mods only there.
+    pub only_right: Vec<usize>,
+    /// The shared mods not in the longest run both orders hold in one order:
+    /// the fewest moves, not every shifted one. In the left order's order.
+    pub moved: Vec<Moved>,
+}
+
+/// A shared mod placed elsewhere in the right order.
+#[derive(Debug, PartialEq, Eq)]
+pub struct Moved {
+    /// Index in the left order.
+    pub at: usize,
+    /// Places later (+) or earlier (−) in the right order, among the mods both hold.
+    pub by: isize,
 }
 
 /// Ids are matched as the game matches them, case-insensitive.
-pub fn compare(saved: &[String], current: &[String]) -> Differences {
-    let saved_owned: Vec<String> = saved
+pub fn compare(left: &[String], right: &[String]) -> Differences {
+    let left_owned: Vec<String> = left
         .iter()
         .map(|id| crate::rimworld::id::fold(id))
         .collect();
-    let current_owned: Vec<String> = current
+    let right_owned: Vec<String> = right
         .iter()
         .map(|id| crate::rimworld::id::fold(id))
         .collect();
-    let saved_folded: Vec<&str> = saved_owned.iter().map(String::as_str).collect();
-    let current_folded: Vec<&str> = current_owned.iter().map(String::as_str).collect();
-    let in_saved: HashMap<&str, usize> = saved_folded
+    let left_folded: Vec<&str> = left_owned.iter().map(String::as_str).collect();
+    let right_folded: Vec<&str> = right_owned.iter().map(String::as_str).collect();
+    let in_left: HashMap<&str, usize> = left_folded
         .iter()
         .enumerate()
         .map(|(at, id)| (*id, at))
         .collect();
-    let in_current: HashMap<&str, usize> = current_folded
+    let in_right: HashMap<&str, usize> = right_folded
         .iter()
         .enumerate()
         .map(|(at, id)| (*id, at))
         .collect();
 
-    let only_saved = saved_folded
+    let only_left = left_folded
         .iter()
         .enumerate()
-        .filter(|(_, id)| !in_current.contains_key(*id))
+        .filter(|(_, id)| !in_right.contains_key(*id))
         .map(|(at, _)| at)
         .collect();
-    let only_current = current_folded
+    let only_right = right_folded
         .iter()
         .enumerate()
-        .filter(|(_, id)| !in_saved.contains_key(*id))
+        .filter(|(_, id)| !in_left.contains_key(*id))
         .map(|(at, _)| at)
         .collect();
 
-    // The shared mods in the current order, as their places in the saved one.
-    let shared: Vec<usize> = current_folded
+    // The shared mods in the right order, as their places in the left one.
+    let shared: Vec<usize> = right_folded
         .iter()
-        .filter_map(|id| in_saved.get(id).copied())
+        .filter_map(|id| in_left.get(id).copied())
         .collect();
     // The shared mods standing inside the longest rising run count as still
     // in place: the run is the most two orders can hold without a move.
@@ -335,16 +344,25 @@ pub fn compare(saved: &[String], current: &[String]) -> Differences {
         .enumerate()
         .map(|(at, &place)| (place, at))
         .collect();
-    let moved = saved_folded
-        .iter()
-        .enumerate()
-        .filter(|(saved_at, id)| in_current.contains_key(*id) && !kept[rank_of[saved_at]])
-        .map(|(saved_at, _)| saved_at)
-        .collect();
+    // A repeated id is matched at its last place only; the earlier ones are skipped.
+    let mut left_rank = 0;
+    let mut moved = Vec::new();
+    for at in 0..left_folded.len() {
+        let Some(&right_rank) = rank_of.get(&at) else {
+            continue;
+        };
+        if !kept[right_rank] {
+            moved.push(Moved {
+                at,
+                by: right_rank as isize - left_rank as isize,
+            });
+        }
+        left_rank += 1;
+    }
 
     Differences {
-        only_saved,
-        only_current,
+        only_left,
+        only_right,
         moved,
     }
 }
@@ -448,41 +466,59 @@ mod tests {
         assert_eq!(compare(&saved, &current), Differences::default());
     }
 
-    #[test]
-    fn comparing_finds_the_mods_only_one_side_holds() {
-        let saved = ids(&["a", "b", "c"]);
-        let current = ids(&["b", "c", "d"]);
-        let diff = compare(&saved, &current);
-        assert_eq!(diff.only_saved, vec![0]);
-        assert_eq!(diff.only_current, vec![2]);
-        assert_eq!(diff.moved, Vec::<usize>::new());
+    fn moved(diff: &Differences) -> Vec<(usize, isize)> {
+        diff.moved.iter().map(|m| (m.at, m.by)).collect()
     }
 
     #[test]
-    fn one_mod_out_of_place_moves_only_it() {
-        let saved = ids(&["a", "b", "c", "d"]);
-        let current = ids(&["a", "c", "d", "b"]);
-        assert_eq!(compare(&saved, &current).moved, vec![1]);
-        let saved = ids(&["a", "b", "c", "d"]);
-        let current = ids(&["d", "a", "b", "c"]);
-        assert_eq!(compare(&saved, &current).moved, vec![3]);
+    fn comparing_finds_the_mods_only_one_side_holds() {
+        let left = ids(&["a", "b", "c"]);
+        let right = ids(&["b", "c", "d"]);
+        let diff = compare(&left, &right);
+        assert_eq!(diff.only_left, vec![0]);
+        assert_eq!(diff.only_right, vec![2]);
+        assert!(diff.moved.is_empty());
+    }
+
+    #[test]
+    fn one_mod_out_of_place_moves_only_it_by_the_places_it_shifted() {
+        let left = ids(&["a", "b", "c", "d"]);
+        let right = ids(&["a", "c", "d", "b"]);
+        assert_eq!(moved(&compare(&left, &right)), [(1, 2)]);
+        let right = ids(&["d", "a", "b", "c"]);
+        assert_eq!(moved(&compare(&left, &right)), [(3, -3)]);
     }
 
     #[test]
     fn a_reversed_list_keeps_its_longest_run_still() {
-        let saved = ids(&["a", "b", "c"]);
-        let current = ids(&["c", "b", "a"]);
-        assert_eq!(compare(&saved, &current).moved, vec![1, 2]);
+        let left = ids(&["a", "b", "c"]);
+        let right = ids(&["c", "b", "a"]);
+        assert_eq!(moved(&compare(&left, &right)), [(1, 0), (2, -2)]);
     }
 
     #[test]
-    fn a_moved_mod_is_named_among_ones_only_elsewhere() {
-        let saved = ids(&["a", "b", "x", "c"]);
-        let current = ids(&["a", "x", "b", "y", "c"]);
-        let diff = compare(&saved, &current);
-        assert_eq!(diff.only_current, vec![3]);
-        assert_eq!(diff.only_saved, Vec::<usize>::new());
-        assert_eq!(diff.moved, vec![2]);
+    fn a_moved_mod_counts_its_places_among_the_mods_both_hold() {
+        let left = ids(&["a", "b", "x", "c"]);
+        let right = ids(&["a", "x", "b", "y", "c"]);
+        let diff = compare(&left, &right);
+        assert_eq!(diff.only_right, vec![3]);
+        assert_eq!(diff.only_left, Vec::<usize>::new());
+        assert_eq!(moved(&diff), [(2, -1)]);
+    }
+
+    #[test]
+    fn comparing_gives_each_side_its_own_and_the_moved_with_their_distances() {
+        let left = ids(&["core", "gone", "a", "b", "c", "d"]);
+        let right = ids(&["core", "b", "c", "new", "a", "d"]);
+        let diff = compare(&left, &right);
+        assert_eq!(diff.only_left, vec![1]);
+        assert_eq!(diff.only_right, vec![3]);
+        // Shared: core a b c d against core b c a d; a alone moves, 2 later.
+        assert_eq!(moved(&diff), [(2, 2)]);
+        assert_eq!(compare(&right, &right), Differences::default());
+        let back = compare(&right, &left);
+        assert_eq!(moved(&back), [(4, -2)]);
+        assert_eq!((back.only_left, back.only_right), (vec![3], vec![1]));
     }
 
     fn a_mod_file(config: &Path, file: &str, contents: &str) {

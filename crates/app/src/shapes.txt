@@ -143,21 +143,40 @@ lists.checkLock: object
   said: absent or list
     []: text
   same: absent or bool
-lists.compareList: object
+lists.compareOrders: object
   addable: list
     []: number
-  moved: list
-    []: object
-      id: text
-      name: text
-  onlyCurrent: list
-    []: object
-      id: text
-      name: text
-  onlySaved: list
-    []: object
-      id: text
-      name: text
+  left: text
+  moved: object
+    heading: text
+    mods: list
+      []: object
+        by: number
+        id: text
+        installed: bool
+        name: text
+        said: text
+  onlyLeft: object
+    heading: text
+    mods: list
+      []: object
+        by: number
+        id: text
+        installed: bool
+        name: text
+        said: text
+  onlyRight: object
+    heading: text
+    mods: list
+      []: object
+        by: number
+        id: text
+        installed: bool
+        name: text
+        said: text
+  report: text
+  right: text
+  same: bool
 lists.history: list
   []: object
     bringBack: text
@@ -172,6 +191,12 @@ lists.idsInText: list
   []: text
 lists.named: list or nothing
   []: text
+lists.orderChoices: list
+  []: object
+    key: text
+    pick: bool
+    text: text
+    title: text
 lists.original: list
   []: text
 lists.pastOrder: list or nothing

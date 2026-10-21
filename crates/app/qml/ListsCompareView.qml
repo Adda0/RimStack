@@ -9,13 +9,29 @@ PopCard {
     parent: Overlay.overlay
     anchors.centerIn: Overlay.overlay
 
-    property string listName: ""
+    // Keys as Hub.lists.compareOrders takes them: a saved list's against the load order unless picked.
+    property string left: ""
+    property string right: "current"
     // Read fresh on each open: the load order changes while the menu is up.
-    property var comparison: ({ "onlySaved": [], "onlyCurrent": [], "moved": [], "addable": [] })
+    property var comparison: ({ left: "", right: "", onlyLeft: { heading: "", mods: [] }, onlyRight: { heading: "", mods: [] }, moved: { heading: "", mods: [] }, same: false, addable: [], report: "" })
 
-    onAboutToShow: comparison = Hub.lists.compareList(listName)
+    function refresh() {
+        comparison = Hub.lists.compareOrders(left, right)
+    }
+    function withLoadOrder(key) {
+        left = key
+        right = "current"
+        open()
+    }
+    // `side` is "left" or "right": the menu of every order puts the one picked there.
+    function choose(button, side) {
+        const entries = Hub.lists.orderChoices().map(choice => Object.assign({ run: () => { comparePopup[side] = choice.key; comparePopup.refresh() } }, choice))
+        sideMenu.openAt(button, 0, button.height, entries)
+    }
 
-    width: Theme.sized(500)
+    onAboutToShow: refresh()
+
+    width: Theme.sized(540)
     height: Math.min(implicitHeight, parent.height - Theme.gapLarge)
     padding: Theme.gapLarge
 
@@ -28,15 +44,41 @@ PopCard {
             spacing: Theme.gap
 
             Text {
-                Layout.fillWidth: true
                 color: Theme.ink
                 font.pixelSize: Theme.title
                 font.weight: Font.DemiBold
-                elide: Text.ElideRight
-                text: Theme.fill("Compare {} with the load order", comparePopup.listName)
+                text: Theme.say("Compare")
             }
-
+            Btn {
+                icon: "copy"
+                compact: true
+                spoken: Theme.say("Copy the comparison")
+                tip: Theme.say("Copies each group as text, a line per mod with its package id")
+                onClicked: Theme.copy(comparePopup.comparison.report)
+            }
+            Item { Layout.fillWidth: true }
             Btn { text: Theme.say("Close"); onClicked: comparePopup.close() }
+        }
+
+        Flow {
+            Layout.fillWidth: true
+            spacing: Theme.gapSmall
+
+            Btn {
+                id: leftPick
+                menu: true
+                text: comparePopup.comparison.left
+                tip: Theme.say("The order compared: a saved list, an earlier order, the game's file or the load order")
+                onClicked: comparePopup.choose(leftPick, "left")
+            }
+            Text { height: leftPick.height; verticalAlignment: Text.AlignVCenter; color: Theme.ink2; font.pixelSize: Theme.body; text: Theme.say("with") }
+            Btn {
+                id: rightPick
+                menu: true
+                text: comparePopup.comparison.right
+                tip: Theme.say("The order it is compared with")
+                onClicked: comparePopup.choose(rightPick, "right")
+            }
         }
 
         ScrollView {
@@ -50,19 +92,15 @@ PopCard {
 
                 Text {
                     Layout.fillWidth: true
-                    visible: comparePopup.comparison.onlySaved.length === 0 && comparePopup.comparison.onlyCurrent.length === 0 && comparePopup.comparison.moved.length === 0
+                    visible: comparePopup.comparison.same
                     wrapMode: Text.WordWrap
                     color: Theme.ink2
                     font.pixelSize: Theme.body
-                    text: Theme.say("The saved list and the load order hold the same mods in the same order")
+                    text: Theme.say("Both hold the same mods in the same order")
                 }
 
                 Repeater {
-                    model: [
-                        { heading: Theme.say("Only in the saved list"), mods: comparePopup.comparison.onlySaved },
-                        { heading: Theme.say("Only in the load order"), mods: comparePopup.comparison.onlyCurrent },
-                        { heading: Theme.say("Placed differently"), mods: comparePopup.comparison.moved }
-                    ]
+                    model: [comparePopup.comparison.onlyLeft, comparePopup.comparison.onlyRight, comparePopup.comparison.moved]
 
                     ColumnLayout {
                         id: group
@@ -71,17 +109,24 @@ PopCard {
                         Layout.fillWidth: true
                         spacing: Theme.gapSmall
 
-                        GroupTitle { text: group.modelData.heading }
+                        GroupTitle { objectName: "compareHeading"; text: group.modelData.heading }
                         Repeater {
                             model: group.modelData.mods
-                            Text {
+                            Row {
                                 id: row
                                 required property var modelData
                                 Layout.fillWidth: true
-                                elide: Text.ElideRight
-                                color: Theme.ink
-                                font.pixelSize: Theme.body
-                                text: row.modelData.name
+                                spacing: Theme.gap
+                                Text {
+                                    id: modName
+                                    width: Math.min(implicitWidth, row.width - said.implicitWidth - row.spacing)
+                                    elide: Text.ElideRight
+                                    color: Theme.ink
+                                    font.pixelSize: Theme.body
+                                    text: row.modelData.name
+                                    Tip { text: row.modelData.id }
+                                }
+                                Text { id: said; anchors.baseline: modName.baseline; color: Theme.ink3; font.pixelSize: Theme.small; text: row.modelData.said }
                             }
                         }
                     }
@@ -91,13 +136,15 @@ PopCard {
 
         Btn {
             Layout.fillWidth: true
-            enabled: comparePopup.comparison.addable.length > 0
+            visible: comparePopup.comparison.addable.length > 0
             text: Theme.plural(comparePopup.comparison.addable.length, "Activate the {} missing mod", "Activate the {} missing mods")
-            tip: Theme.fill("Activates the mods {} holds that the load order lacks; nothing else changes, and Save still writes it", comparePopup.listName)
+            tip: Theme.fill("Activates the mods {} holds that the load order lacks; nothing else changes, and Save still writes it", comparePopup.comparison.left)
             onClicked: {
                 Hub.mods.takeAll(false, comparePopup.comparison.addable)
-                comparePopup.comparison = Hub.lists.compareList(comparePopup.listName)
+                comparePopup.refresh()
             }
         }
     }
+
+    PopMenu { id: sideMenu }
 }

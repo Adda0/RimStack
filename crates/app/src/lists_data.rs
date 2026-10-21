@@ -70,11 +70,18 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "pastOrder"]
         fn past_order(self: &ListsData, at: usize) -> QVariant;
-        /// `{ onlySaved, onlyCurrent, moved: [{ id, name }], addable: [modId] }`;
-        /// all empty for no such list.
+        /// `{ left, right, onlyLeft, onlyRight, moved, same, addable: [modId], report }`, each group
+        /// `{ heading, mods: [{ id, name, installed, by, said }] }`, for two orders named
+        /// `current`, `game`, `list:<name>` or `order:<at in pastOrders>`; no mods in any group
+        /// when either is not there.
         #[qinvokable]
-        #[cxx_name = "compareList"]
-        fn compare_list(self: &ListsData, name: &QString) -> QVariant;
+        #[cxx_name = "compareOrders"]
+        fn compare_orders(self: &ListsData, left: &QString, right: &QString) -> QVariant;
+        /// The orders `compareOrders` takes as menu entries `{ key, text, title, pick }`, a
+        /// caption over each kind of them having only a `title`.
+        #[qinvokable]
+        #[cxx_name = "orderChoices"]
+        fn order_choices(self: &ListsData) -> QVariant;
         /// Writes the load order as a lockfile there; empty text when it was written.
         #[qinvokable]
         #[cxx_name = "writeLock"]
@@ -210,8 +217,15 @@ impl qobject::ListsData {
     fn past_order(&self, at: usize) -> QVariant {
         to_qml(&self.app().past_order(at))
     }
-    fn compare_list(&self, name: &QString) -> QVariant {
-        to_qml(&self.app().compare_saved(&name.to_string()))
+    fn compare_orders(&self, left: &QString, right: &QString) -> QVariant {
+        to_qml(
+            &self
+                .app()
+                .compare_orders(&left.to_string(), &right.to_string()),
+        )
+    }
+    fn order_choices(&self) -> QVariant {
+        to_qml(&self.app().order_choices())
     }
     fn write_lock(&self, file: &QString) -> QString {
         said(self.app().write_lockfile(&PathBuf::from(file.to_string())))
