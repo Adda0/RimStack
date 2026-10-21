@@ -42,44 +42,61 @@ impl Bisect {
 
     /// The mods added since the launch without errors still suspected.
     pub fn seeded(&self) -> Vec<&str> {
+        let suspected: HashSet<usize> = self.suspects.iter().copied().collect();
         self.seeded
             .iter()
-            .filter(|at| self.suspects.contains(at))
+            .filter(|at| suspected.contains(at))
             .map(|&at| self.original[at].as_str())
             .collect()
     }
 
-    fn with_dependents(&self, off: Vec<bool>) -> Vec<bool> {
-        crate::mods::library::with_needing(&self.requires, off)
-    }
-
     /// All `false` when the suspects need each other and cannot be told apart.
     pub fn off(&self) -> Vec<bool> {
-        let none = vec![false; self.original.len()];
-        let suspected = |off: &[bool]| self.suspects.iter().filter(|at| off[**at]).count();
-        let half = self.suspects.len() / 2;
-        let mut off = none.clone();
-        let mut smallest: Option<Vec<bool>> = None;
-        for at in self.suspects.iter().rev() {
-            let mut with = off.clone();
-            with[*at] = true;
-            let with = self.with_dependents(with);
-            let count = suspected(&with);
-            if count <= half {
-                off = with;
-            } else if count < self.suspects.len()
-                && smallest.as_ref().is_none_or(|s| count < suspected(s))
-            {
-                smallest = Some(with);
+        let count = self.original.len();
+        let needing = crate::mods::library::needing(&self.requires, count);
+        let mut suspect = vec![false; count];
+        self.suspects.iter().for_each(|at| suspect[*at] = true);
+        // What taking `at` off takes with it beyond `off`: itself and every mod needing it.
+        let mut seen = vec![0usize; count];
+        let mut round = 0;
+        let mut with = |at: usize, off: &[bool]| -> Vec<usize> {
+            round += 1;
+            let mut taken = Vec::new();
+            let mut todo = vec![at];
+            while let Some(at) = todo.pop() {
+                if off[at] || seen[at] == round {
+                    continue;
+                }
+                seen[at] = round;
+                taken.push(at);
+                todo.extend(&needing[at]);
             }
-            if suspected(&off) == half {
+            taken
+        };
+        let half = self.suspects.len() / 2;
+        let mut off = vec![false; count];
+        let mut suspected = 0;
+        let mut smallest: Option<(usize, usize)> = None;
+        for &at in self.suspects.iter().rev() {
+            let taken = with(at, &off);
+            let more = suspected + taken.iter().filter(|t| suspect[**t]).count();
+            if more <= half {
+                taken.into_iter().for_each(|t| off[t] = true);
+                suspected = more;
+            } else if more < self.suspects.len() && smallest.is_none_or(|(least, _)| more < least) {
+                smallest = Some((more, at));
+            }
+            if suspected == half {
                 break;
             }
         }
-        match suspected(&off) {
-            0 => smallest.unwrap_or(none),
-            _ => off,
+        // Nothing went off, so the smallest is taken from all on.
+        if suspected == 0
+            && let Some((_, at)) = smallest
+        {
+            with(at, &off).into_iter().for_each(|t| off[t] = true);
         }
+        off
     }
 
     pub fn is_stuck(&self) -> bool {
@@ -113,9 +130,18 @@ impl Bisect {
             .trailing_zeros()
     }
 
-    /// A file that cannot be read is no search under way.
+    /// A file that cannot be read, or whose places point past its mods, is no search under way.
     pub fn read(file: &Path) -> Option<Self> {
-        serde_json::from_str(&std::fs::read_to_string(file).ok()?).ok()
+        let search: Self = serde_json::from_str(&std::fs::read_to_string(file).ok()?).ok()?;
+        let count = search.original.len();
+        let inside = |at: &usize| *at < count;
+        let once: HashSet<&usize> = search.suspects.iter().collect();
+        let sound = once.len() == search.suspects.len()
+            && search.suspects.iter().all(inside)
+            && search.seeded.iter().all(inside)
+            && search.requires.len() == count
+            && search.requires.iter().flatten().all(inside);
+        sound.then_some(search)
     }
 
     pub fn write(&self, file: &Path) -> Result<(), Error> {
@@ -279,5 +305,26 @@ mod tests {
         search.answer(false);
         search.write(&file).unwrap();
         assert_eq!(Bisect::read(&file), Some(search));
+    }
+
+    #[test]
+    fn a_search_whose_places_point_past_its_mods_is_none() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("bisect.json");
+        let read = |text: &str| {
+            std::fs::write(&file, text).unwrap();
+            Bisect::read(&file)
+        };
+        let good = r#"{"original":["a","b"],"suspects":[0,1],"seeded":[1],"requires":[[1],[]]}"#;
+        assert!(read(good).is_some());
+        for bad in [
+            r#"{"original":["a","b"],"suspects":[0,2],"seeded":[],"requires":[[],[]]}"#,
+            r#"{"original":["a","b"],"suspects":[0,0],"seeded":[],"requires":[[],[]]}"#,
+            r#"{"original":["a","b"],"suspects":[0],"seeded":[4],"requires":[[],[]]}"#,
+            r#"{"original":["a","b"],"suspects":[0],"seeded":[],"requires":[[]]}"#,
+            r#"{"original":["a","b"],"suspects":[0],"seeded":[],"requires":[[7],[]]}"#,
+        ] {
+            assert_eq!(read(bad), None, "{bad}");
+        }
     }
 }
