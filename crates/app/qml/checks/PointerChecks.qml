@@ -164,6 +164,29 @@ Item {
             if (Mods.active.count === 0 || !Hub.mods.filesRead)
                 return
             stop()
+            for (const list of [checks.activeList, checks.inactiveList])
+                list.contentY = Math.max(0, list.contentHeight - list.height)
+            rescanned.places = [checks.activeList.contentY, checks.inactiveList.contentY]
+            rescanned.resets = 0
+            Hub.mods.rescan()
+            rescanned.start()
+        }
+    }
+    Connections { target: checks.activeList?.model ?? null; function onModelReset() { rescanned.resets += 1 } }
+    Connections { target: checks.inactiveList?.model ?? null; function onModelReset() { rescanned.resets += 1 } }
+    Timer {
+        id: rescanned
+        property var places: []
+        property int resets: 0
+        interval: 300
+        repeat: true
+        onTriggered: {
+            if (Hub.mods.rescanning || !Hub.mods.filesRead)
+                return
+            stop()
+            checks.check("a rescan leaves both lists where they were scrolled", resets === 0 && checks.activeList.contentY === places[0] && checks.inactiveList.contentY === places[1])
+            checks.activeList.positionViewAtBeginning()
+            checks.inactiveList.positionViewAtBeginning()
             checks.hints()
             checks.divider()
             checks.suggestions()

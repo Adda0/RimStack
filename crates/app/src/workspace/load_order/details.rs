@@ -228,7 +228,7 @@ impl LoadOrder {
     }
 
     pub fn details(&mut self, app: &App, id: ModId) -> Details {
-        let loaded = app.library();
+        let loaded = self.reading(app);
         let Ok((library, _)) = &*loaded else {
             return Details::default();
         };
@@ -462,7 +462,7 @@ impl LoadOrder {
     }
 
     pub fn overview(&self, app: &App) -> Overview {
-        let loaded = app.library();
+        let loaded = self.reading(app);
         let Ok((library, took)) = &*loaded else {
             return Overview::default();
         };

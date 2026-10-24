@@ -43,7 +43,7 @@ impl LoadOrder {
     }
 
     fn settle_one(&mut self, app: &App, at: usize) {
-        let loaded = app.library();
+        let loaded = self.reading(app);
         let Ok((library, _)) = &*loaded else {
             return;
         };

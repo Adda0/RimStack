@@ -229,6 +229,32 @@ fn every_row_has_a_key_of_its_own_and_a_mod_row_its_id() {
 }
 
 #[test]
+fn a_mod_row_keeps_its_key_over_a_rescan_shown_or_not_and_each_copy_has_its_own() {
+    let (tmp, app) = installed();
+    std::fs::create_dir_all(tmp.path().join("workshop/123/About")).unwrap();
+    std::fs::write(
+        tmp.path().join("workshop/123/About/About.xml"),
+        "<ModMetaData><packageId>Ann.Roads</packageId></ModMetaData>",
+    )
+    .unwrap();
+    app.rescan();
+    let keys = |order: &LoadOrder| {
+        [Side::Active, Side::Inactive].map(|side| {
+            let rows = order.rows(&app, side).into_iter();
+            rows.map(|r| r.key).collect::<Vec<_>>()
+        })
+    };
+    let shown = LoadOrder::read(&app, true, false);
+    let before = keys(&shown);
+    let folders = before[1].iter();
+    let folders = folders.filter(|key| matches!(key, rows::RowKey::Installed(_, 0)));
+    assert_eq!(folders.count(), 2);
+    app.rescan();
+    assert_eq!(keys(&shown), before);
+    assert_eq!(keys(&LoadOrder::read(&app, true, false)), before);
+}
+
+#[test]
 fn a_sort_of_a_list_in_order_moves_nothing_and_says_so() {
     let (_tmp, app) = installed();
     let mut order = LoadOrder::read(&app, true, false);

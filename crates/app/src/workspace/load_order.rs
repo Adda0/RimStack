@@ -41,7 +41,9 @@ pub struct LoadOrder {
     batching: bool,
     headings: bool,
     by_name: bool,
-    installed: bool,
+    /// The reading its `ModId`s come from: after a rescan, `App::library` is a newer one.
+    /// `None` for a made-up list or one that could not be read.
+    reading: Option<std::sync::Arc<crate::workspace::Loaded>>,
     detected: rules::Detected,
     pub status: [Sentence; 2],
     /// Empty for none.
@@ -80,7 +82,7 @@ fn arranged(app: &App, library: &Library) -> rimstack_core::mods::library::Arran
 }
 
 impl LoadOrder {
-    fn empty(installed: bool) -> Self {
+    fn empty() -> Self {
         Self {
             active: GroupedList::new(Vec::new()),
             inactive: GroupedList::new(Vec::new()),
@@ -95,7 +97,7 @@ impl LoadOrder {
             batching: false,
             headings: true,
             by_name: false,
-            installed,
+            reading: None,
             detected: rules::Detected::default(),
             status: [Sentence::default(), Sentence::default()],
             problem: Sentence::default(),
@@ -104,7 +106,7 @@ impl LoadOrder {
     }
 
     pub fn demo(active: usize, inactive: usize) -> Self {
-        let mut order = Self::empty(false);
+        let mut order = Self::empty();
         order.active = GroupedList::new(demo::generate(active));
         order.inactive = GroupedList::new(demo::generate(inactive));
         order.twins = [
@@ -119,12 +121,13 @@ impl LoadOrder {
         let (library, took) = match &*loaded {
             Ok(read) => read,
             Err(problem) => {
-                let mut order = Self::empty(false);
+                let mut order = Self::empty();
                 order.problem = problem.sentence().clone();
                 return order;
             }
         };
-        let mut order = Self::empty(true);
+        let mut order = Self::empty();
+        order.reading = Some(loaded.clone());
         order.headings = headings;
         order.by_name = by_name;
         let now = arranged(app, library);
@@ -149,7 +152,12 @@ impl LoadOrder {
     }
 
     pub fn is_installed(&self) -> bool {
-        self.installed
+        self.reading.is_some()
+    }
+
+    /// The order's own reading; a made-up list has none and is given the current one.
+    fn reading(&self, app: &App) -> std::sync::Arc<crate::workspace::Loaded> {
+        self.reading.clone().unwrap_or_else(|| app.library())
     }
 
     pub fn list(&self, side: Side) -> &GroupedList {
@@ -196,7 +204,7 @@ impl LoadOrder {
 
     /// `None` when what was read still holds.
     pub fn files_to_read(&self, app: &App) -> Option<Vec<ModId>> {
-        if !self.installed {
+        if !self.is_installed() {
             return None;
         }
         let mut members: Vec<ModId> = self.checked_order.iter().flatten().copied().collect();
@@ -218,10 +226,10 @@ impl LoadOrder {
             .iter()
             .filter_map(|m| m.load_micros)
             .max();
-        if !self.installed {
+        if !self.is_installed() {
             return;
         }
-        let loaded = app.library();
+        let loaded = self.reading(app);
         let Ok((library, _)) = &*loaded else {
             return;
         };
@@ -267,7 +275,7 @@ impl LoadOrder {
         let Ok((library, _)) = &*loaded else {
             return;
         };
-        if !self.installed {
+        if !self.is_installed() {
             return;
         }
         self.preview = None;
@@ -278,15 +286,16 @@ impl LoadOrder {
         self.active.set_mods(mods);
         self.inactive.set_mods(now.inactive);
         self.inactive.arrange(self.by_name);
+        self.reading = Some(loaded.clone());
         self.settle(app);
     }
 
     pub fn refile(&mut self, app: &App) {
-        let loaded = app.library();
+        let loaded = self.reading(app);
         let (Ok((library, _)), None) = (&*loaded, &self.preview) else {
             return;
         };
-        if !self.installed {
+        if !self.is_installed() {
             return;
         }
         let mods = self.active.mods().to_vec();
@@ -408,7 +417,7 @@ impl LoadOrder {
     }
 
     pub fn fresh(&self, app: &App, side: Side) -> Vec<ModId> {
-        let loaded = app.library();
+        let loaded = self.reading(app);
         let Ok((library, _)) = &*loaded else {
             return Vec::new();
         };
@@ -483,7 +492,7 @@ pub struct FoundMod {
 
 impl LoadOrder {
     pub fn found(&self, app: &App, text: &str, most: usize) -> Vec<FoundMod> {
-        let loaded = app.library();
+        let loaded = self.reading(app);
         let Ok((library, _)) = &*loaded else {
             return Vec::new();
         };
