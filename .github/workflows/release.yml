@@ -3,10 +3,6 @@ name: release
 on:
   push:
     tags: ["v*"]
-    branches: [main]
-    paths: ["Cargo.lock", "**/Cargo.toml", ".github/workflows/release.yml", ".github/actions/**"]
-  schedule:
-    - cron: "41 4 * * 1,4"
   workflow_dispatch:
     inputs:
       tag:
@@ -25,7 +21,6 @@ env:
   CARGO_TERM_COLOR: always
   CARGO_PROFILE_RELEASE_STRIP: "true"
   RIMSTACK_PROFILE: release
-  RELEASING: ${{ github.event_name == 'workflow_dispatch' || github.ref_type == 'tag' }}
   QT_VERSION: "6.12.0"
   AQT_SOURCE: "git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
 
@@ -38,7 +33,6 @@ jobs:
       - name: Package
         run: packaging/linux/package.sh
       - uses: actions/upload-artifact@v7
-        if: env.RELEASING == 'true'
         with:
           name: package-linux
           path: target/packages/*
@@ -47,7 +41,7 @@ jobs:
   windows:
     runs-on: windows-latest
     env:
-      SIGNED: ${{ secrets.WINDOWS_CERT != '' && (github.event_name == 'workflow_dispatch' || github.ref_type == 'tag') }}
+      SIGNED: ${{ secrets.WINDOWS_CERT != '' }}
     steps:
       - uses: actions/checkout@v7
       - uses: jurplel/install-qt-action@v4
@@ -84,7 +78,6 @@ jobs:
           $env:PATH = "C:\Program Files (x86)\Inno Setup 6;$env:PATH"
           packaging\windows\package.ps1
       - uses: actions/upload-artifact@v7
-        if: env.RELEASING == 'true'
         with:
           name: package-windows
           path: target/packages/*
@@ -93,7 +86,7 @@ jobs:
   macos:
     runs-on: macos-latest
     env:
-      SIGNED: ${{ secrets.MAC_CERT != '' && (github.event_name == 'workflow_dispatch' || github.ref_type == 'tag') }}
+      SIGNED: ${{ secrets.MAC_CERT != '' }}
       NOTARIZED: ${{ secrets.MAC_NOTARY_APPLE_ID != '' }}
     steps:
       - uses: actions/checkout@v7
@@ -135,10 +128,9 @@ jobs:
           echo "MAC_NOTARY_PROFILE=rimstack" >> "$GITHUB_ENV"
       - name: Package
         env:
-          MAC_SIGN_IDENTITY: ${{ env.SIGNED == 'true' && secrets.MAC_SIGN_IDENTITY || '' }}
+          MAC_SIGN_IDENTITY: ${{ secrets.MAC_SIGN_IDENTITY }}
         run: packaging/macos/package.sh
       - uses: actions/upload-artifact@v7
-        if: env.RELEASING == 'true'
         with:
           name: package-macos
           path: target/packages/*
@@ -146,7 +138,7 @@ jobs:
 
   release:
     needs: [linux, windows, macos]
-    if: always() && contains(needs.*.result, 'success') && (github.event_name == 'workflow_dispatch' || github.ref_type == 'tag')
+    if: always() && contains(needs.*.result, 'success')
     runs-on: ubuntu-latest
     permissions:
       contents: write
