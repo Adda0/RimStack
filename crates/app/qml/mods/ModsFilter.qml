@@ -14,6 +14,7 @@ FilterField {
     readonly property alias suggesting: suggestions.visible
     onTypingChanged: suggestions.shut = false
     onEditingChanged: suggestions.shut = false
+    onTapped: suggestions.shut = false
     onEscaped: suggestions.shut = true
     Popup {
         id: suggestions

@@ -31,6 +31,7 @@ Rectangle {
     property bool syncing: false
     signal accepted()
     signal escaped()
+    signal tapped()
     function focusInput() { fieldInput.forceActiveFocus() }
     readonly property bool editing: fieldInput.activeFocus
 
@@ -133,6 +134,7 @@ Rectangle {
             field.text = ""
             field.escaped()
         }
+        TapHandler { onTapped: field.tapped() }
         Keys.onReturnPressed: field.accepted()
         Keys.onEnterPressed: field.accepted()
         Keys.onPressed: event => {

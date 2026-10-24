@@ -67,6 +67,9 @@ Item {
         const opened = filter.suggesting
         away()
         check("a click away from the filter closes its suggestions", opened && !filter.suggesting && filter.editing)
+        events.mouseClick(filter, filter.width / 2, filter.height / 2, Qt.LeftButton, Qt.NoModifier, -1)
+        check("a click back in the filter opens them again", filter.suggesting)
+        away()
         events.keyClick(Qt.Key_I, Qt.NoModifier, -1)
         check("and typing opens them again", filter.suggesting)
         const selected = Mods.selectedId
