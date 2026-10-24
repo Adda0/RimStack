@@ -1,15 +1,19 @@
 // Opened by address only when asked for, so RimStack itself never loads QtTest.
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Controls.Basic
 import QtTest
 import RimStack.Ui
 
 Item {
     id: checks
     property ModsScreen screen
-    property ListView activeList
+    property Item activePane
+    readonly property ListView activeList: activePane?.list ?? null
     property ListView inactiveList
     property Item details
+    readonly property Item viewButton: activePane?.viewButton ?? null
+    readonly property Popup viewMenu: activePane?.viewMenu ?? null
     property int failed: 0
 
     function check(what, ok) {
@@ -163,6 +167,13 @@ Item {
             checks.hints()
             checks.divider()
             checks.suggestions()
+            const middle = () => events.mouseClick(checks.viewButton, checks.viewButton.width / 2, checks.viewButton.height / 2, Qt.LeftButton, Qt.NoModifier, -1)
+            checks.viewMenu.enter = null
+            checks.viewMenu.exit = null
+            middle()
+            const shown = checks.viewMenu.visible
+            middle()
+            checks.check("a second click on View closes its menu", shown && !checks.viewMenu.visible)
             // `row` below assumes compact rows, 26 high.
             Mods.prefs.headings = 0
             Theme.stored.comfortable = false

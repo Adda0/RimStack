@@ -78,7 +78,7 @@ Rectangle {
                 color: Theme.warn
                 Tip { text: Theme.say("The list has changes that are not saved") }
             }
-            onClicked: listsMenu.open()
+            onClicked: listsMenu.visible = !listsMenu.visible
             ListsMenu {
                 id: listsMenu
                 y: listsButton.height + 6

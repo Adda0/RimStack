@@ -319,7 +319,7 @@ Timer {
         source: Mods.checkMode === "pointer" ? "qrc:/qt/qml/RimStack/Ui/qml/checks/PointerChecks.qml" : ""
         onLoaded: {
             item.screen = screen
-            item.activeList = activePane.list
+            item.activePane = activePane
             item.inactiveList = inactivePane.list
             item.details = detailsPane
         }

@@ -393,7 +393,7 @@ Item {
                         id: fontButton
                         menu: true
                         text: screen.info.font || Theme.say("System font")
-                        onClicked: fontPicker.open()
+                        onClicked: fontPicker.visible = !fontPicker.visible
                     }
                     Popup {
                         enter: PopIn {}
@@ -405,7 +405,7 @@ Item {
                         width: Theme.sized(320)
                         height: Theme.sized(380)
                         padding: Theme.gap
-                        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+                        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
                         background: Rectangle { radius: Theme.cornerLarge; color: Theme.bar; border.width: 1; border.color: Theme.line }
                         onOpened: { fontFilter.text = ""; fontFilter.focusInput() }
                         contentItem: ColumnLayout {

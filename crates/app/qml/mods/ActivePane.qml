@@ -37,6 +37,8 @@ Item {
     readonly property int otherWarnings: Mods.overview.otherWarnings || 0
     readonly property int warningsShown: versionLine ? otherWarnings : Hub.mods.warnings
     readonly property alias list: view
+    readonly property alias viewButton: viewButton
+    readonly property alias viewMenu: viewMenu
 
     function toggleTerm(term) {
         const now = filter.terms.indexOf(term) >= 0
@@ -354,11 +356,12 @@ Item {
                     menu: true
                     text: Theme.say("View")
                     spoken: Theme.say("View options")
-                    onClicked: viewMenu.open()
+                    onClicked: viewMenu.visible = !viewMenu.visible
                     Popup {
                         enter: PopIn {}
                         exit: PopOut {}
                         id: viewMenu
+                        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
                         x: parent.width - width
                         y: parent.height + 6
                         width: Theme.sized(250)
