@@ -23,6 +23,15 @@ Item {
     Binding { target: Hub.textures; property: "wanted"; value: screen.visible }
 
     readonly property real nameWidth: Theme.sized(460)
+    readonly property real countWidth: Math.max(countHeading.advanceWidth, widestCount.advanceWidth)
+    readonly property real pngWidth: Math.max(pngHeading.advanceWidth, widestSize.advanceWidth)
+    readonly property real ddsWidth: Math.max(ddsHeading.advanceWidth, widestSize.advanceWidth, notConverted.advanceWidth)
+    TextMetrics { id: countHeading; font.pixelSize: Theme.caption; font.weight: Font.Medium; text: Theme.say("Textures") }
+    TextMetrics { id: pngHeading; font.pixelSize: Theme.caption; font.weight: Font.Medium; text: Theme.say("PNG") }
+    TextMetrics { id: ddsHeading; font.pixelSize: Theme.caption; font.weight: Font.Medium; text: Theme.say("DDS") }
+    TextMetrics { id: widestCount; font.pixelSize: Theme.body; text: Theme.count(99999) }
+    TextMetrics { id: widestSize; font.pixelSize: Theme.body; text: screen.megabytes(99999) }
+    TextMetrics { id: notConverted; font.pixelSize: Theme.small; text: Theme.say("Not converted") }
 
     function megabytes(n) {
         if (n <= 0)
@@ -185,9 +194,9 @@ Item {
                     anchors.rightMargin: Theme.gapWide
                     spacing: Theme.gapLarge
                     Text { Layout.preferredWidth: screen.nameWidth; Layout.minimumWidth: Theme.sized(80); color: Theme.ink3; font.pixelSize: Theme.caption; font.weight: Font.Medium; text: Theme.say("Mod") }
-                    Text { Layout.preferredWidth: Theme.sized(80); horizontalAlignment: Text.AlignRight; color: Theme.ink3; font.pixelSize: Theme.caption; font.weight: Font.Medium; text: Theme.say("Textures") }
-                    Text { Layout.preferredWidth: Theme.sized(90); horizontalAlignment: Text.AlignRight; color: Theme.ink3; font.pixelSize: Theme.caption; font.weight: Font.Medium; text: Theme.say("PNG") }
-                    Text { Layout.preferredWidth: Theme.sized(90); horizontalAlignment: Text.AlignRight; color: Theme.ink3; font.pixelSize: Theme.caption; font.weight: Font.Medium; text: Theme.say("DDS") }
+                    Text { Layout.preferredWidth: screen.countWidth; horizontalAlignment: Text.AlignRight; color: Theme.ink3; font.pixelSize: Theme.caption; font.weight: Font.Medium; text: Theme.say("Textures") }
+                    Text { Layout.preferredWidth: screen.pngWidth; horizontalAlignment: Text.AlignRight; color: Theme.ink3; font.pixelSize: Theme.caption; font.weight: Font.Medium; text: Theme.say("PNG") }
+                    Text { Layout.preferredWidth: screen.ddsWidth; horizontalAlignment: Text.AlignRight; color: Theme.ink3; font.pixelSize: Theme.caption; font.weight: Font.Medium; text: Theme.say("DDS") }
                     Item { Layout.fillWidth: true }
                 }
                 Rectangle { anchors.bottom: parent.bottom; x: Theme.gapSmall; width: parent.width - 2 * Theme.gapSmall; height: 1; color: Theme.line }
@@ -261,16 +270,15 @@ Item {
                             }
                             Item { Layout.fillWidth: true }
                         }
-                        Text { Layout.preferredWidth: Theme.sized(80); horizontalAlignment: Text.AlignRight; color: row.quiet; font.pixelSize: Theme.body; text: Theme.count(row.modelData.textures) }
-                        Text { Layout.preferredWidth: Theme.sized(90); horizontalAlignment: Text.AlignRight; color: row.quiet; font.pixelSize: Theme.body; text: screen.megabytes(row.modelData.pngMb) }
+                        Text { Layout.preferredWidth: screen.countWidth; horizontalAlignment: Text.AlignRight; color: row.quiet; font.pixelSize: Theme.body; text: Theme.count(row.modelData.textures) }
+                        Text { Layout.preferredWidth: screen.pngWidth; horizontalAlignment: Text.AlignRight; color: row.quiet; font.pixelSize: Theme.body; text: screen.megabytes(row.modelData.pngMb) }
                         Item {
-                            Layout.preferredWidth: Theme.sized(90)
+                            Layout.preferredWidth: screen.ddsWidth
                             implicitHeight: made.implicitHeight
                             Text { id: made; anchors.right: parent.right; visible: row.modelData.ddsMb > 0; color: row.quiet; font.pixelSize: Theme.body; text: screen.megabytes(row.modelData.ddsMb) }
                             Text { anchors.right: parent.right; anchors.verticalCenter: made.verticalCenter; visible: !made.visible; color: row.faint; font.pixelSize: Theme.small; text: Theme.say("Not converted") }
                         }
                         Btn {
-                            Layout.preferredWidth: Theme.sized(84)
                             visible: row.modelData.notConverted + row.modelData.outOfDate > 0 && !row.modelData.skipped
                             enabled: !screen.tools.busy
                             text: row.verb
