@@ -27,7 +27,7 @@ pub fn all_rules(library: &Library, mods: &[Mod], sources: Sources) -> Vec<Rule>
     found.extend(from_files.map(|d| Rule {
         first: d.first,
         then: d.then,
-        kind: Kind::Inferred,
+        kind: if d.code { Kind::Inferred } else { Kind::Hint },
     }));
     if let Some(community) = sources.community {
         found.extend(community.rules(&abouts));

@@ -63,7 +63,8 @@ impl LoadOrder {
         if moves == 0 {
             return;
         }
-        let found = rules::all_rules(app, &mut self.detected, library, &mods);
+        let mut found = rules::all_rules(app, &mut self.detected, library, &mods);
+        found.retain(|r| !sorted.dropped.contains(r));
         let names: Vec<&str> = mods.iter().map(|m| m.name.as_str()).collect();
         let categories: Vec<Category> = mods.iter().map(|m| m.category).collect();
         let why = sorted
@@ -209,7 +210,7 @@ fn note(mods: &[Mod], sorted: &rimstack_core::mods::sort::Sorted, moves: usize) 
     let each: Vec<Sentence> = sorted
         .dropped
         .iter()
-        .filter(|r| !matches!(r.kind, Kind::CommunityBottom | Kind::Inferred))
+        .filter(|r| !matches!(r.kind, Kind::CommunityBottom | Kind::Inferred | Kind::Hint))
         .map(|r| describe::rule(r, mods))
         .collect();
     if !each.is_empty() {

@@ -8,6 +8,8 @@ use std::collections::HashMap;
 pub enum Kind {
     CommunityBottom,
     Inferred,
+    /// Inferred from patches, which the game applies after reading every mod: only a tidy order.
+    Hint,
     /// The game only checks that a required mod is active; RimStack also loads it first.
     Requires,
     LoadAfter,
@@ -23,7 +25,7 @@ impl Kind {
     pub fn strength(self) -> u8 {
         match self {
             // A hint from files gives way to everything, even "at the bottom".
-            Kind::Inferred => 0,
+            Kind::Inferred | Kind::Hint => 0,
             Kind::CommunityBottom => 1,
             Kind::Requires => 2,
             Kind::LoadAfter | Kind::LoadBefore => 3,
@@ -51,7 +53,8 @@ impl Rule {
             | Kind::CommunityBefore
             | Kind::CommunityBottom
             | Kind::Yours
-            | Kind::Inferred => None,
+            | Kind::Inferred
+            | Kind::Hint => None,
         }
     }
 
