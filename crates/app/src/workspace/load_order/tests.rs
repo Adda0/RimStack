@@ -382,3 +382,29 @@ fn a_mod_not_installed_taken_off_the_list_is_gone_from_both() {
     assert!(order.undo(&app));
     assert_eq!(app.session().current(), ["gone.mod", "ludeon.rimworld"]);
 }
+
+#[test]
+fn a_selection_is_carried_over_a_rescan_by_folder_and_a_mod_gone_leaves_it() {
+    let (tmp, app) = installed();
+    let old = LoadOrder::read(&app, true, false);
+    let core = old.list(Side::Active).mods()[0].installed.unwrap();
+    let was = roads(&old, Side::Inactive);
+    app.rescan();
+    let new = LoadOrder::read(&app, true, false);
+    let same = old.same_mods_in(&new);
+    let carried = new.carried(&same, &[was, core]);
+    let (core_now, roads_now) = (same[&core], same[&was]);
+    assert!(core_now != core && roads_now == roads(&new, Side::Inactive));
+    assert_eq!(carried.first, roads_now.to_qml());
+    assert!(!carried.active);
+    assert_eq!(
+        carried.also.keys().collect::<Vec<_>>(),
+        [&core_now.to_qml().to_string()]
+    );
+    std::fs::remove_dir_all(tmp.path().join("game/Mods/roads")).unwrap();
+    app.rescan();
+    let newest = LoadOrder::read(&app, true, false);
+    let gone = newest.carried(&new.same_mods_in(&newest), &[roads_now]);
+    assert_eq!(gone.first, -1);
+    assert!(gone.also.is_empty());
+}

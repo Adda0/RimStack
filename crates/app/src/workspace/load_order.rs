@@ -8,7 +8,7 @@ use rimstack_core::mods::list::{Category, GroupedList, Mod, SortKey, flag};
 use rimstack_core::mods::{demo, sort_reasons};
 use rimstack_core::say;
 use serde::Serialize;
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 mod details;
 mod edits;
@@ -509,6 +509,54 @@ impl LoadOrder {
             })
             .collect()
     }
+
+    pub fn same_mods_in(&self, newer: &LoadOrder) -> HashMap<ModId, ModId> {
+        let (Some(old), Some(new)) = (self.held(), newer.held()) else {
+            return HashMap::new();
+        };
+        let by_folder: HashMap<&std::path::Path, ModId> =
+            new.ids().map(|(id, m)| (m.path.as_path(), id)).collect();
+        let found = |(id, m): (ModId, &rimstack_core::mods::library::Installed)| {
+            Some((id, *by_folder.get(m.path.as_path())?))
+        };
+        old.ids().filter_map(found).collect()
+    }
+
+    fn held(&self) -> Option<&Library> {
+        self.reading.as_deref()?.as_ref().ok().map(|(l, _)| l)
+    }
+
+    /// `selected` of the earlier reading, in this one: what is gone is left out.
+    pub fn carried(&self, same: &HashMap<ModId, ModId>, selected: &[ModId]) -> Carried {
+        let kept: Vec<ModId> = selected
+            .iter()
+            .filter_map(|id| same.get(id).copied())
+            .collect();
+        let Some((&first, others)) = kept.split_first() else {
+            return Carried {
+                first: -1,
+                active: false,
+                also: BTreeMap::new(),
+            };
+        };
+        Carried {
+            first: first.to_qml(),
+            active: self.active.position_of(first).is_some(),
+            also: others
+                .iter()
+                .map(|id| (id.to_qml().to_string(), true))
+                .collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, PartialEq)]
+pub struct Carried {
+    /// -1 for none.
+    pub first: i32,
+    pub active: bool,
+    /// The others, as the window keeps them: id to `true`.
+    pub also: BTreeMap<String, bool>,
 }
 
 #[cfg(test)]

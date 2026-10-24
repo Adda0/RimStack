@@ -234,6 +234,11 @@ mod_rows.at: object
   version: text
   versionIgnored: bool
   whyMoved: text
+mods.carried: object
+  active: bool
+  also: map
+    {}: bool
+  first: number
 mods.columnPressed: list
   []: bool or text
 mods.columnWidths: map

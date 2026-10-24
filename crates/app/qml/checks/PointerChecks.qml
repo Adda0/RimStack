@@ -164,6 +164,16 @@ Item {
             if (Mods.active.count === 0 || !Hub.mods.filesRead)
                 return
             stop()
+            Mods.select(Mods.nthMod(Mods.active, 2), true)
+            Mods.selectAlso(Mods.nthMod(Mods.active, 3), true)
+            rescanned.chosen = Mods.about(Mods.selectedId).packageId
+            selectionShown.start()
+        }
+    }
+    Timer {
+        id: selectionShown
+        interval: Theme.calm + 200
+        onTriggered: {
             for (const list of [checks.activeList, checks.inactiveList])
                 list.contentY = Math.max(0, list.contentHeight - list.height)
             rescanned.places = [checks.activeList.contentY, checks.inactiveList.contentY]
@@ -178,6 +188,7 @@ Item {
         id: rescanned
         property var places: []
         property int resets: 0
+        property string chosen
         interval: 300
         repeat: true
         onTriggered: {
@@ -185,6 +196,8 @@ Item {
                 return
             stop()
             checks.check("a rescan leaves both lists where they were scrolled", resets === 0 && checks.activeList.contentY === places[0] && checks.inactiveList.contentY === places[1])
+            checks.check("and keeps the mods selected", Mods.selectedCount === 2 && Mods.selectedActive && Mods.about(Mods.selectedId).packageId === chosen && Mods.active.indexOf(Mods.selectedId) === 2)
+            Mods.select(-1, false)
             checks.activeList.positionViewAtBeginning()
             checks.inactiveList.positionViewAtBeginning()
             checks.hints()
