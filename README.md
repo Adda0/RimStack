@@ -67,7 +67,7 @@ Everything else that writes happens only when you ask: converting textures, hidi
 - **Downloads and updates.** Paste Workshop, collection or Git links to subscribe, fetch with SteamCMD, or clone. See which mods are behind, and what changed since the game last started.
 - **Filters, saved lists, tags and notes, Undo and Redo,** and every action from one search box (Ctrl + K).
 - **Coming from RimSort?** The first run imports your rules, tags and notes.
-- **Seven languages:** English, Deutsch, Español, Français, Italiano, Polski and Português.
+- **Eight languages:** English, Deutsch, Español, Français, Italiano, Polski, Português and Русский.
 
 Every panel is explained, with pictures, in the [guide](https://theforgotten69.github.io/RimStack/#guide).
 
