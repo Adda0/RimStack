@@ -41,8 +41,8 @@ Item {
             if (!Hub.mods.filesRead)
                 return
             stop()
-            if (Mods.checkMode === "screens") {
-                const made = Qt.createComponent("qrc:/qt/qml/RimStack/Ui/qml/checks/ScreensChecks.qml")
+            if (Mods.checkMode === "screens" || Mods.checkMode === "layout") {
+                const made = Qt.createComponent("qrc:/qt/qml/RimStack/Ui/qml/checks/" + (Mods.checkMode === "layout" ? "LayoutChecks.qml" : "ScreensChecks.qml"))
                 if (made.status !== Component.Ready) {
                     console.log("check FAIL the screen checks did not load: " + made.errorString())
                     Qt.exit(1)

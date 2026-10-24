@@ -7,7 +7,11 @@ import RimStack.Ui
 
 Item {
     id: activePane
-    readonly property bool tight: width < Theme.sized(640)
+    readonly property real headWide: Theme.gapCard + Theme.gapLarge + activeTitle.implicitWidth + activeCount.implicitWidth + sortButton.fullWidth + saveButton.fullWidth + 4 * Theme.gap
+    readonly property real extrasWide: Number(warningsShown > 0) * (warningsChip.implicitWidth + Theme.gap) + Number(Mods.problemCount > 0) * (problemsRow.implicitWidth + Theme.gap)
+        + Number(Hub.downloads.behindActive > 0) * (updatesButton.implicitWidth + Theme.gap) + Number(!Theme.demo) * (undoRow.implicitWidth + Theme.gap)
+    readonly property bool tight: width < headWide + extrasWide
+    readonly property bool cramped: width < headWide + more.implicitWidth + Theme.gap
     readonly property bool stepping: Mods.problemPlace > 0 && Mods.selectedId === Mods.problemMod
     function moreEntries() {
         const entries = []
@@ -65,8 +69,9 @@ Item {
             Layout.rightMargin: Theme.gapLarge
             Layout.preferredHeight: Theme.header
             spacing: Theme.gap
-            Text { color: Theme.ink; font.pixelSize: Theme.title; font.weight: Font.DemiBold; text: Theme.say("Active") }
+            Text { id: activeTitle; color: Theme.ink; font.pixelSize: Theme.title; font.weight: Font.DemiBold; text: Theme.say("Active") }
             Text {
+                id: activeCount
                 color: Theme.ink3
                 font.pixelSize: Theme.body
                 text: Theme.count(Mods.active.count)
@@ -80,6 +85,7 @@ Item {
             }
             Count { id: warningsChip; visible: activePane.warningsShown > 0 && !activePane.tight; term: "is:warning"; tone: Theme.warn; icon: "triangle-alert"; text: activePane.versionLine ? Theme.plural(activePane.warningsShown, "{} more warning", "{} more warnings") : Theme.plural(activePane.warningsShown, "{} warning", "{} warnings"); tip: Theme.say("Mods with a warning: the game runs, something about them may not. Click to show only these.") }
             Row {
+                id: problemsRow
                 visible: Mods.problemCount > 0 && !activePane.tight
                 spacing: Theme.gapLine
                 Btn {
@@ -99,12 +105,14 @@ Item {
             }
             Item { Layout.fillWidth: true }
             Btn {
+                id: updatesButton
                 visible: Hub.downloads.behindActive > 0 && !activePane.tight
                 text: Theme.plural(Hub.downloads.behindActive, "{} update", "{} updates")
                 tip: Theme.plural(Hub.downloads.behindActive, "{} active Workshop mod is older than its Workshop version", "{} active Workshop mods are older than their Workshop version")
                 onClicked: Mods.showSection(1)
             }
             Row {
+                id: undoRow
                 visible: !Theme.demo && !activePane.tight
                 spacing: Theme.gapLine
                 Btn { enabled: Hub.mods.canUndo && !Hub.mods.previewing; icon: "undo-2"; tip: Theme.say("Undo (Ctrl + Z)"); onClicked: Hub.mods.undo() }
@@ -112,6 +120,7 @@ Item {
             }
             Btn {
                 id: sortButton
+                compact: activePane.cramped
                 tone: Theme.moved
                 visible: !Theme.demo; enabled: !Hub.mods.previewing && Hub.mods.filesRead; icon: "arrow-up-down"; primary: Mods.sortPending > 0 && enabled; text: !Hub.mods.filesRead ? Theme.say("Reading files…") : Mods.sortPending > 0 ? Theme.plural(Mods.sortPending, "Sort · {} move", "Sort · {} moves") : Theme.say("Sort"); tip: Theme.say("Shows the order the rules ask for, to keep or discard. Nothing is written before Save."); onClicked: Mods.previewSort()
                 Hint { step: 2; atRight: true; text: Theme.say("Sort shows the order the mods' rules ask for and what would move. Apply moves the mods; Discard leaves the list as it was.") }
@@ -121,7 +130,7 @@ Item {
                 visible: !Theme.demo
                 implicitWidth: saveButton.implicitWidth
                 implicitHeight: saveButton.implicitHeight
-                Btn { id: saveButton; enabled: Hub.mods.dirty; primary: Hub.mods.dirty; icon: "save"; text: Theme.say("Save"); tip: Theme.say("Writes the load order to ModsConfig.xml (Ctrl + S). The file as it was is copied beside it first."); onClicked: Mods.save() }
+                Btn { id: saveButton; compact: activePane.cramped; enabled: Hub.mods.dirty; primary: Hub.mods.dirty; icon: "save"; text: Theme.say("Save"); tip: Theme.say("Writes the load order to ModsConfig.xml (Ctrl + S). The file as it was is copied beside it first."); onClicked: Mods.save() }
                     Hint { step: 3; atRight: true; text: Theme.say("Nothing reaches the game before Save. Until then every change can be undone or discarded.") }
             }
             Btn {
@@ -163,12 +172,12 @@ Item {
             Layout.leftMargin: Theme.gapLarge
             Layout.rightMargin: Theme.gapLarge
             Layout.bottomMargin: Theme.gap
-            implicitHeight: banner.implicitHeight + 10
+            implicitHeight: banner.implicitHeight + 2 * Theme.gapSmall
             radius: Theme.corner
             color: Qt.rgba(Theme.warn.r, Theme.warn.g, Theme.warn.b, 0.12)
             GridLayout {
                 id: banner
-                readonly property bool stacked: Theme.icon + said.implicitWidth + does.implicitWidth + 2 * columnSpacing > width
+                readonly property bool stacked: Theme.icon + said.implicitWidth + does.fullWidth + 2 * columnSpacing > width
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
@@ -180,15 +189,18 @@ Item {
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: Theme.gap
-                    Icon { Layout.alignment: Qt.AlignTop; name: "triangle-alert"; size: Theme.icon; color: Theme.warn }
+                    Icon { Layout.alignment: Qt.AlignTop; name: "triangle-alert"; color: Theme.warn }
                     Text { id: said; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: Theme.body; text: Theme.plural(activePane.versionOnly, "{} mod does not list RimWorld {}", "{} mods do not list RimWorld {}", (Mods.overview.gameVersion || "")) }
                 }
-                RowLayout {
+                Flow {
                     id: does
+                    readonly property real fullWidth: showWarnings.implicitWidth + spacing + ignoreVersion.implicitWidth
                     Layout.alignment: Qt.AlignRight
+                    Layout.fillWidth: banner.stacked
+                    Layout.preferredWidth: fullWidth
                     spacing: Theme.gap
-                    Btn { text: Theme.say("Show"); tip: Theme.say("Only the mods with a warning"); onClicked: activePane.toggleTerm("is:warning") }
-                    Btn { text: Theme.fill("Ignore for {}", (Mods.overview.gameVersion || "")); tip: Theme.say("No warning about the game version while RimWorld stays on this version. Settings, Sorting has the switch."); onClicked: Mods.setVersionAside(Mods.overview.gameVersion || "") }
+                    Btn { id: showWarnings; text: Theme.say("Show"); tip: Theme.say("Only the mods with a warning"); onClicked: activePane.toggleTerm("is:warning") }
+                    Btn { id: ignoreVersion; text: Theme.fill("Ignore for {}", (Mods.overview.gameVersion || "")); tip: Theme.say("No warning about the game version while RimWorld stays on this version. Settings, Sorting has the switch."); onClicked: Mods.setVersionAside(Mods.overview.gameVersion || "") }
                 }
             }
         }
@@ -217,7 +229,7 @@ Item {
             Layout.leftMargin: Theme.gapLarge
             Layout.rightMargin: Theme.gapLarge
             Layout.bottomMargin: Theme.gap
-            implicitHeight: sortBar.implicitHeight + 14
+            implicitHeight: sortBar.implicitHeight + 2 * Theme.gapSmall
             radius: Theme.corner
             color: Theme.banner
             RowLayout {
@@ -292,7 +304,7 @@ Item {
                     TapHandler { onTapped: Mods.columns.showBy(heading.column) }
                     TapHandler { acceptedButtons: Qt.RightButton; onTapped: point => Mods.menuRequested(heading, point.position.x, heading.height + 2, Mods.columns.menu()) }
                 }
-                Heading { Layout.preferredWidth: Theme.sized(28); horizontalAlignment: Text.AlignRight; column: ""; text: "#" }
+                Heading { Layout.preferredWidth: view.numberWidth; horizontalAlignment: Text.AlignRight; column: ""; text: "#" }
                 Heading { Layout.fillWidth: true; column: "name"; text: Theme.say("Name") + (Mods.columns.shownBy === "name" ? (Mods.columns.descending ? " ▾" : " ▴") : "") }
                 Repeater {
                     model: view.fitting
@@ -336,8 +348,9 @@ Item {
                     }
                 }
                 Btn {
+                    id: viewButton
                     Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
-                    Layout.leftMargin: Math.max(0, (view.wide ? Theme.sized(124) : Theme.sized(44)) - implicitWidth)
+                    Layout.leftMargin: view.quickWidth - implicitWidth
                     menu: true
                     text: Theme.say("View")
                     spoken: Theme.say("View options")
@@ -372,10 +385,11 @@ Item {
                     }
                 }
             }
-            Rectangle { anchors.bottom: parent.bottom; x: 6; width: parent.width - 12; height: 1; color: Theme.line }
+            Rectangle { anchors.bottom: parent.bottom; x: Theme.gapSmall; width: parent.width - 2 * Theme.gapSmall; height: 1; color: Theme.line }
         }
         ModList {
             id: view
+            headingTail: viewButton.implicitWidth
             columns: true
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -397,7 +411,7 @@ Item {
     Column {
         visible: Hub.mods.problem !== ""
         anchors.centerIn: parent
-        width: Math.min(parent.width - 80, 520)
+        width: Math.min(parent.width - 2 * Theme.sized(40), Theme.sized(520))
         spacing: Theme.gapSmall
         Text { width: parent.width; horizontalAlignment: Text.AlignHCenter; color: Theme.ink; font.pixelSize: Theme.title; font.weight: Font.DemiBold; text: Theme.say("Mods could not be read") }
         Text { visible: !Hub.settings.report.noModFolders; width: parent.width; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap; color: Theme.ink2; font.pixelSize: Theme.body; lineHeight: 1.3; text: Hub.mods.problem }

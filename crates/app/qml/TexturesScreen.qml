@@ -45,7 +45,7 @@ Item {
                 Layout.fillWidth: true
                 Layout.margins: Theme.gapLarge
                 Layout.bottomMargin: Theme.gap
-                implicitHeight: summary.implicitHeight + 16
+                implicitHeight: summary.implicitHeight + 2 * Theme.gap
                 color: "transparent"
                 readonly property int total: screen.report.total || 0
                 readonly property int have: screen.report.have || 0
@@ -190,7 +190,7 @@ Item {
                     Text { Layout.preferredWidth: Theme.sized(90); horizontalAlignment: Text.AlignRight; color: Theme.ink3; font.pixelSize: Theme.caption; font.weight: Font.Medium; text: Theme.say("DDS") }
                     Item { Layout.fillWidth: true }
                 }
-                Rectangle { anchors.bottom: parent.bottom; x: 6; width: parent.width - 12; height: 1; color: Theme.line }
+                Rectangle { anchors.bottom: parent.bottom; x: Theme.gapSmall; width: parent.width - 2 * Theme.gapSmall; height: 1; color: Theme.line }
             }
 
             ListView {
@@ -241,14 +241,16 @@ Item {
                         anchors.rightMargin: Theme.gapWide
                         spacing: Theme.gapLarge
                         RowLayout {
+                            id: cell
                             // A layout inside a layout takes spare room unless told not to;
                             // the heading's cell does not.
                             Layout.fillWidth: false
                             Layout.preferredWidth: screen.nameWidth
                             Layout.minimumWidth: Theme.sized(80)
                             spacing: Theme.gap
-                            Text { Layout.maximumWidth: screen.nameWidth - 190; elide: Text.ElideRight; color: row.current ? Theme.onSelected : Theme.ink; font.pixelSize: Theme.body; text: row.modelData.name }
+                            Text { Layout.maximumWidth: screen.nameWidth - badge.width - cell.spacing; elide: Text.ElideRight; color: row.current ? Theme.onSelected : Theme.ink; font.pixelSize: Theme.body; text: row.modelData.name }
                             Chip {
+                                id: badge
                                 visible: row.modelData.state !== screen.usual
                                 maxWidth: Theme.sized(190)
                                 Layout.alignment: Qt.AlignVCenter
@@ -282,7 +284,7 @@ Item {
                 Column {
                     visible: screen.shown.length === 0
                     anchors.centerIn: parent
-                    width: Math.min(parent.width - 80, 460)
+                    width: Math.min(parent.width - 4 * Theme.gapPage, Theme.sized(460))
                     spacing: Theme.gapSmall
                     Text { width: parent.width; horizontalAlignment: Text.AlignHCenter; color: Theme.ink; font.pixelSize: Theme.title; font.weight: Font.DemiBold; text: screen.tools.busy ? Theme.say("Counting textures…") : Theme.say("No textures") }
                     Text { visible: !screen.tools.busy; width: parent.width; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap; color: Theme.ink2; font.pixelSize: Theme.body; lineHeight: 1.3; text: (screen.report.all || 0) === 0 ? "" : Theme.say("None in active mods") }
@@ -301,9 +303,9 @@ Item {
 
             Column {
                 id: side
-                x: 14
-                y: 14
-                width: parent.width - 28
+                x: Theme.gapCard
+                y: Theme.gapCard
+                width: parent.width - 2 * Theme.gapCard
 
                 Column {
                     width: parent.width

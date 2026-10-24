@@ -65,7 +65,7 @@ Item {
     Flickable {
         id: scroller
         anchors.fill: parent
-        contentHeight: page.implicitHeight + 32
+        contentHeight: page.implicitHeight + 2 * Theme.gapWide
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         Wheel {}
@@ -73,9 +73,9 @@ Item {
 
         Column {
             id: page
-            x: Math.max(16, (parent.width - width) / 2)
-            y: 16
-            width: screen.width - 32
+            x: Math.max(Theme.gapWide, (parent.width - width) / 2)
+            y: Theme.gapWide
+            width: screen.width - 2 * Theme.gapWide
             spacing: Theme.gapPage
 
             Column {
@@ -267,7 +267,7 @@ Item {
                         width: page.width
                         height: Theme.sized(30)
                         spacing: Theme.gapLarge
-                        Icon { name: "git-branch"; size: Theme.icon; color: Theme.ink3 }
+                        Icon { name: "git-branch"; color: Theme.ink3 }
                         Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: checkout.modelData.name }
                         Chip {
                             maxWidth: Theme.sized(340)
@@ -376,7 +376,7 @@ Item {
                         RowLayout {
                             width: parent.width
                             spacing: Theme.gap
-                            Icon { name: changed.modelData.git ? "git-branch" : "cloud"; size: 14; color: changed.reached ? Theme.focus : Theme.ink3 }
+                            Icon { name: changed.modelData.git ? "git-branch" : "cloud"; color: changed.reached ? Theme.focus : Theme.ink3 }
                             Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; font.weight: Font.Medium; font.underline: changed.reached; text: changed.modelData.name; Accessible.role: Accessible.ListItem; Accessible.name: text }
                             Chip { visible: !changed.modelData.active; text: Theme.say("inactive") }
                             Chip { visible: changed.modelData.git; tone: Theme.moved; text: Theme.plural(changed.modelData.notes.length, "{} commit", "{} commits") }
@@ -455,7 +455,7 @@ Item {
                         width: page.width
                         height: Theme.sized(32)
                         spacing: Theme.gapLarge
-                        Icon { name: "git-branch"; size: 14; color: Theme.ink3 }
+                        Icon { name: "git-branch"; color: Theme.ink3 }
                         Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: repository.modelData.name }
                         Chip { visible: repository.modelData.installed; tone: Theme.ok; icon: "check"; text: Theme.say("Installed") }
                         Btn { icon: "external-link"; text: Theme.say("Repository page"); onClicked: Qt.openUrlExternally(repository.modelData.link) }
@@ -528,7 +528,7 @@ Item {
                             RowLayout {
                                 width: parent.width
                                 spacing: Theme.gap
-                                Icon { name: "corner-down-right"; size: Theme.icon; color: Theme.ink3 }
+                                Icon { name: "corner-down-right"; color: Theme.ink3 }
                                 Text { Layout.maximumWidth: parent.width - Theme.icon - Theme.gap - (hasNew.visible ? hasNew.width + Theme.gap : 0); elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; font.weight: Font.Medium; text: old.modelData.newName }
                                 Chip { id: hasNew; visible: old.modelData.haveNew; tone: Theme.ok; icon: "check"; text: Theme.say("installed") }
                                 Item { Layout.fillWidth: true }
