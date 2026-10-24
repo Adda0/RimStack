@@ -84,7 +84,7 @@ Grab the file for your system from the [Releases page](https://github.com/TheFor
 | System | File |
 |---|---|
 | Windows | Installer (`-setup.exe`) or zip |
-| macOS | dmg, Apple silicon only |
+| macOS | dmg, Apple silicon and Intel |
 | Linux | AppImage |
 | Arch (AUR) | Coming soon |
 
