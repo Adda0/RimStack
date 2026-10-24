@@ -16,6 +16,12 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/sponsors/TheForgotten69"><img src="https://img.shields.io/badge/GitHub_Sponsors-EA4AAA?style=for-the-badge&logo=githubsponsors&logoColor=white" alt="Sponsor on GitHub"></a>
+  <a href="https://ko-fi.com/theforgotten69"><img src="https://img.shields.io/badge/Ko--fi-FF5E5B?style=for-the-badge&logo=kofi&logoColor=white" alt="Support on Ko-fi"></a>
+  <a href="https://www.patreon.com/theforgotten69"><img src="https://img.shields.io/badge/Patreon-F96854?style=for-the-badge&logo=patreon&logoColor=white" alt="Support on Patreon"></a>
+</p>
+
+<p align="center">
   <img src="site/img/mods.png" alt="RimStack's Mods screen: the load order in categories, with Sort ready to move six mods" width="720">
 </p>
 
