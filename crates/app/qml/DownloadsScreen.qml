@@ -103,6 +103,76 @@ Item {
                 }
             }
 
+            Card {
+                visible: screen.queue.length + screen.repositories.length > 0 || !!(screen.found.problem || screen.found.note)
+                title: Theme.say("Look up")
+                note: screen.queue.length + screen.repositories.length > 0 ? screen.queue.length + screen.repositories.length : ""
+                actions: [
+                    Btn {
+                        visible: screen.wanted.length > 0
+                        icon: "plus"
+                        text: Theme.say("Subscribe in Steam")
+                        tip: Theme.say("Steam, which must be running, subscribes to each and downloads it; it keeps them up to date afterwards.")
+                        onClicked: screen.downloads.subscribeWanted()
+                    },
+                    Btn {
+                        visible: screen.wanted.length > 0 && screen.steamcmd
+                        icon: "download"
+                        text: Theme.say("Download with SteamCMD…")
+                        tip: Theme.fill("Into the game's own Mods folder, {}, without subscribing: Steam will not update these.", (screen.info.localMods || ""))
+                        onClicked: Notices.ask({
+                            title: Theme.plural(screen.wanted.length, "Download {} mod with SteamCMD", "Download {} mods with SteamCMD"),
+                            lines: [Theme.say("Each is downloaded and copied into the game's own Mods folder:"), { path: screen.info.localMods || "" }, Theme.say("Steam does not update mods installed this way.")],
+                            label: Theme.say("Download"), run: () => screen.downloads.downloadWanted() })
+                    }
+                ]
+                Text { visible: screen.queue.length === 0 && !!(screen.found.problem || screen.found.note); width: parent.width; wrapMode: Text.WordWrap; color: screen.found.problem ? Theme.err : Theme.ink2; font.pixelSize: Theme.body; text: screen.found.problem || screen.found.note || "" }
+                Repeater {
+                    model: screen.repositories
+                    RowLayout {
+                        id: repository
+                        required property var modelData
+                        required property int index
+                        readonly property bool cloning: screen.downloads.cloning === index
+                        width: page.width
+                        height: Theme.sized(32)
+                        spacing: Theme.gapLarge
+                        Icon { name: "git-branch"; color: Theme.ink3 }
+                        Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: repository.modelData.name }
+                        Chip { visible: repository.modelData.installed; tone: Theme.ok; icon: "check"; text: Theme.say("Installed") }
+                        Btn { icon: "external-link"; text: Theme.say("Repository page"); onClicked: Qt.openUrlExternally(repository.modelData.link) }
+                        Btn {
+                            visible: !repository.modelData.installed
+                            enabled: !!screen.info.git && !!repository.modelData.into && screen.downloads.cloning < 0
+                            primary: !repository.cloning
+                            icon: "download"
+                            text: repository.cloning ? Theme.say("Cloning…") : Theme.say("Clone…")
+                            tip: screen.info.git ? Theme.say("git clone into the game's own Mods folder; Check for updates then asks its repository") : Theme.say("Git is not installed")
+                            onClicked: Notices.ask({
+                                title: Theme.fill("Clone {}", repository.modelData.name),
+                                lines: [Theme.say("git clone, from"), { path: repository.modelData.link }, Theme.say("Into"), { path: repository.modelData.into }],
+                                label: Theme.say("Clone"), run: () => screen.downloads.cloneRepository(repository.index) })
+                        }
+                    }
+                }
+                Repeater {
+                    model: screen.queue
+                    RowLayout {
+                        id: item
+                        required property var modelData
+                        width: page.width
+                        height: Theme.sized(32)
+                        spacing: Theme.gapLarge
+                        Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: item.modelData.title || item.modelData.id }
+                        Cell { Layout.preferredWidth: Theme.sized(100); text: screen.day(item.modelData.updated) }
+                        Cell { Layout.preferredWidth: Theme.sized(70); horizontalAlignment: Text.AlignRight; text: screen.megabytes(item.modelData.megabytes) }
+                        Chip { visible: !item.modelData.title; tone: Theme.err; icon: "circle-alert"; text: Theme.say("Not on the Workshop") }
+                        Chip { visible: !!item.modelData.title && item.modelData.installed; tone: Theme.ok; icon: "check"; text: Theme.say("Installed") }
+                        Btn { visible: !!item.modelData.title && !item.modelData.installed; icon: "external-link"; text: Theme.say("Workshop page"); onClicked: Theme.openWorkshop(item.modelData.id) }
+                    }
+                }
+            }
+
             Flow {
                 id: cards
                 width: parent.width
@@ -419,74 +489,6 @@ Item {
                     visible: screen.changedShown.length > 12
                     text: screen.sinceOpen ? Theme.fill("Show {}", 12) : Theme.fill("{} more", (screen.changedShown.length - 12))
                     onClicked: screen.sinceOpen = !screen.sinceOpen
-                }
-            }
-
-            Card {
-                visible: screen.queue.length + screen.repositories.length > 0 || !!(screen.found.problem || screen.found.note)
-                title: Theme.say("Look up")
-                note: screen.queue.length + screen.repositories.length > 0 ? screen.queue.length + screen.repositories.length : ""
-                actions: [
-                    Btn {
-                        visible: screen.wanted.length > 0
-                        icon: "plus"
-                        text: Theme.say("Subscribe in Steam")
-                        tip: Theme.say("Steam, which must be running, subscribes to each and downloads it; it keeps them up to date afterwards.")
-                        onClicked: screen.downloads.subscribeWanted()
-                    },
-                    Btn {
-                        visible: screen.wanted.length > 0 && screen.steamcmd
-                        icon: "download"
-                        text: Theme.say("Download with SteamCMD…")
-                        tip: Theme.fill("Into the game's own Mods folder, {}, without subscribing: Steam will not update these.", (screen.info.localMods || ""))
-                        onClicked: Notices.ask({
-                            title: Theme.plural(screen.wanted.length, "Download {} mod with SteamCMD", "Download {} mods with SteamCMD"),
-                            lines: [Theme.say("Each is downloaded and copied into the game's own Mods folder:"), { path: screen.info.localMods || "" }, Theme.say("Steam does not update mods installed this way.")],
-                            label: Theme.say("Download"), run: () => screen.downloads.downloadWanted() })
-                    }
-                ]
-                Text { visible: screen.queue.length === 0 && !!(screen.found.problem || screen.found.note); width: parent.width; wrapMode: Text.WordWrap; color: screen.found.problem ? Theme.err : Theme.ink2; font.pixelSize: Theme.body; text: screen.found.problem || screen.found.note || "" }
-                Repeater {
-                    model: screen.repositories
-                    RowLayout {
-                        id: repository
-                        required property var modelData
-                        required property int index
-                        width: page.width
-                        height: Theme.sized(32)
-                        spacing: Theme.gapLarge
-                        Icon { name: "git-branch"; color: Theme.ink3 }
-                        Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: repository.modelData.name }
-                        Chip { visible: repository.modelData.installed; tone: Theme.ok; icon: "check"; text: Theme.say("Installed") }
-                        Btn { icon: "external-link"; text: Theme.say("Repository page"); onClicked: Qt.openUrlExternally(repository.modelData.link) }
-                        Btn {
-                            visible: !repository.modelData.installed
-                            enabled: !!screen.info.git && !!repository.modelData.into
-                            icon: "download"
-                            text: Theme.say("Clone…")
-                            tip: screen.info.git ? Theme.say("git clone into the game's own Mods folder; Check for updates then asks its repository") : Theme.say("Git is not installed")
-                            onClicked: Notices.ask({
-                                title: Theme.fill("Clone {}", repository.modelData.name),
-                                lines: [Theme.say("git clone, from"), { path: repository.modelData.link }, Theme.say("Into"), { path: repository.modelData.into }],
-                                label: Theme.say("Clone"), run: () => screen.downloads.cloneRepository(repository.index) })
-                        }
-                    }
-                }
-                Repeater {
-                    model: screen.queue
-                    RowLayout {
-                        id: item
-                        required property var modelData
-                        width: page.width
-                        height: Theme.sized(32)
-                        spacing: Theme.gapLarge
-                        Text { Layout.fillWidth: true; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: Theme.body; text: item.modelData.title || item.modelData.id }
-                        Cell { Layout.preferredWidth: Theme.sized(100); text: screen.day(item.modelData.updated) }
-                        Cell { Layout.preferredWidth: Theme.sized(70); horizontalAlignment: Text.AlignRight; text: screen.megabytes(item.modelData.megabytes) }
-                        Chip { visible: !item.modelData.title; tone: Theme.err; icon: "circle-alert"; text: Theme.say("Not on the Workshop") }
-                        Chip { visible: !!item.modelData.title && item.modelData.installed; tone: Theme.ok; icon: "check"; text: Theme.say("Installed") }
-                        Btn { visible: !!item.modelData.title && !item.modelData.installed; icon: "external-link"; text: Theme.say("Workshop page"); onClicked: Theme.openWorkshop(item.modelData.id) }
-                    }
                 }
             }
 
