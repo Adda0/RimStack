@@ -7,6 +7,7 @@ use std::collections::BinaryHeap;
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Sorted {
     pub order: Vec<usize>,
+    pub kept: Vec<Rule>,
     pub dropped: Vec<Rule>,
     pub groups: Vec<usize>,
 }
@@ -42,6 +43,7 @@ pub fn sort(count: usize, rules: &[Rule]) -> Sorted {
     let (kept, dropped) = without_loops(count, rules);
     Sorted {
         order: fewest_moves(count, &kept).expect("kept rules have no loop"),
+        kept,
         dropped,
         groups: vec![0; count],
     }
@@ -89,6 +91,7 @@ pub fn sort_grouped(groups: &[usize], bottom_group: usize, rules: &[Rule]) -> So
     let place: Vec<usize> = (0..count).map(|m| group[m] * count + m).collect();
     Sorted {
         order: ordered(count, &kept, &place).expect("kept rules have no loop"),
+        kept,
         dropped,
         groups: group,
     }

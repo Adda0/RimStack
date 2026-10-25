@@ -61,6 +61,10 @@ impl Rule {
     pub fn broken(&self) -> bool {
         self.first > self.then
     }
+
+    pub fn troubled(&self) -> bool {
+        self.broken() && self.kind != Kind::Hint
+    }
 }
 
 /// `None` stands for a mod with no readable `About.xml`.

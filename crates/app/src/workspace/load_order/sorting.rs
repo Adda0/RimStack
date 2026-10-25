@@ -63,8 +63,6 @@ impl LoadOrder {
         if moves == 0 {
             return;
         }
-        let mut found = rules::all_rules(app, &mut self.detected, library, &mods);
-        found.retain(|r| !sorted.dropped.contains(r));
         let names: Vec<&str> = mods.iter().map(|m| m.name.as_str()).collect();
         let categories: Vec<Category> = mods.iter().map(|m| m.category).collect();
         let why = sorted
@@ -72,7 +70,7 @@ impl LoadOrder {
             .iter()
             .zip(&moved)
             .map(|(&old, moved)| {
-                moved.then(|| sort_reasons::moved(old, &found, &names, &categories))
+                moved.then(|| sort_reasons::moved(old, &sorted.kept, &names, &categories))
             })
             .collect();
         let moved_from = sorted

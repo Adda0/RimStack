@@ -52,11 +52,10 @@ pub struct Neighbours {
 }
 
 fn said_by(rule: &Rule, at: usize) -> Sentence {
-    match (rule.broken(), rule.kind, rule.declared_by()) {
-        (_, Kind::Hint, _) => say!("detected from files"),
+    match (rule.troubled(), rule.kind, rule.declared_by()) {
         (true, ..) => say!("out of order"),
         (_, Kind::Yours, _) => say!("your rule"),
-        (_, Kind::Inferred, _) => say!("detected from files"),
+        (_, Kind::Inferred | Kind::Hint, _) => say!("detected from files"),
         (_, _, None) => say!("community rule"),
         (_, Kind::Requires, Some(by)) if by == at => say!("required"),
         (_, Kind::Requires, _) => say!("requires this mod"),
@@ -84,7 +83,7 @@ pub fn neighbours(rules: &[Rule], at: usize, mods: &[Mod]) -> Neighbours {
         lines.push(Named {
             name: mods[other].name.clone(),
             note: said_by(rule, at),
-            trouble: rule.broken() && rule.kind != Kind::Hint,
+            trouble: rule.troubled(),
             mod_id: mods[other].installed,
         });
     }
