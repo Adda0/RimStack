@@ -505,9 +505,9 @@ checksum = "aedcfb3409746eddb02b9e19ebda1c3394f759a152e48ee875a0844d1b955484"
 
 [[package]]
 name = "fixed_decimal"
-version = "0.7.2"
+version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "79c3c892f121fff406e5dd6b28c1b30096b95111c30701a899d4f2b18da6d1bd"
+checksum = "2214fb00f669ee96bee5bb29dfb1ddabe058b2bc426817efc79afa03c9bc55ae"
 dependencies = [
  "displaydoc",
  "smallvec",
@@ -686,9 +686,9 @@ dependencies = [
 
 [[package]]
 name = "icu_locale_fallback"
-version = "2.3.0"
+version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "251af8e57c9400e3eb58242fe5b8b1152b2a64fdf4cf632f923c38ccee6f2fa9"
+checksum = "406e9ae5b95d8aa37db6293405931b766a6172d1848daee22d70eb44aa78a43c"
 dependencies = [
  "icu_locale_core",
  "icu_locale_fallback_data",
@@ -700,9 +700,9 @@ dependencies = [
 
 [[package]]
 name = "icu_locale_fallback_data"
-version = "2.3.0"
+version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "decf2a22ec8fa68f1a0c1129a3f8583f8f8bc24e8b9ccbe98ead99f62a4dc3a8"
+checksum = "3632ebbd0c5c3637ba1a40bdf8288f2cb9d2268e73441a69d5fc73d7cfbaa87c"
 
 [[package]]
 name = "icu_normalizer"
@@ -726,9 +726,9 @@ checksum = "1563da1ed3e0b3bf3d74c9b85917ac9c56464d2f57242270c09c9e752f8021a0"
 
 [[package]]
 name = "icu_plurals"
-version = "2.3.0"
+version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e475e6766ef87b1d3c1f97be6363995b0bfaeddbc789671615df598a97ff0593"
+checksum = "2ef046647b445acf95ce0f8083fa292467d3df649959fa9a20f3f8abfd957c5d"
 dependencies = [
  "fixed_decimal",
  "icu_locale_fallback",
@@ -739,9 +739,9 @@ dependencies = [
 
 [[package]]
 name = "icu_plurals_data"
-version = "2.3.0"
+version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1251aa39a95e1333888e499b1263e1c196447a28948acf5bdabd82c046f153bf"
+checksum = "d43ff7df2c1a1d41588a6ddcba354d513d4a3e10eec22c06fe56d13c12a848ea"
 
 [[package]]
 name = "icu_properties"
@@ -1245,9 +1245,9 @@ dependencies = [
 
 [[package]]
 name = "roxmltree"
-version = "0.21.1"
+version = "0.21.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1964b10c76125c36f8afe190065a4bf9a87bf324842c05701330bba9f1cacbb"
+checksum = "9da7f59328b09405b181fee1018925fad50f157afb43c0c0f5c522c256dd5907"
 dependencies = [
  "memchr",
 ]
