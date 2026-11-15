@@ -15,6 +15,8 @@ use std::rc::Rc;
 use std::time::{Duration, Instant};
 
 const GLIDE: Duration = Duration::from_millis(200);
+/// How long a bar hidden while idle stays in view after the list last moved.
+const SHOWN_AFTER_MOVING: Duration = Duration::from_millis(1200);
 
 #[derive(Default)]
 pub struct Scroll {
@@ -31,6 +33,8 @@ pub struct Scroll {
     /// A row to bring into view once the list knows its height: its top and bottom, and
     /// whether to put it in the middle rather than just inside.
     asked: Option<(Pixels, Pixels, bool)>,
+    /// When the list last moved, for a bar shown only while scrolling.
+    moved: Option<Instant>,
 }
 
 pub type Scrolling = Rc<RefCell<Scroll>>;
@@ -53,9 +57,21 @@ impl Scroll {
     }
 
     pub fn set_top(&mut self, top: Pixels) {
-        self.top = top.clamp(px(0.), self.most());
+        let top = top.clamp(px(0.), self.most());
+        if top != self.top {
+            self.moved = Some(Instant::now());
+        }
+        self.top = top;
         self.goal = self.top;
         self.started = None;
+    }
+
+    /// Moved too recently for a bar shown only while scrolling to hide.
+    fn lately_moved(&self) -> bool {
+        self.started.is_some()
+            || self
+                .moved
+                .is_some_and(|at| at.elapsed() < SHOWN_AFTER_MOVING)
     }
 
     pub fn set_reduce_motion(&mut self, reduce: bool) {
@@ -91,6 +107,7 @@ impl Scroll {
         self.top = self.from + (self.goal - self.from) * eased;
         if part >= 1. {
             self.started = None;
+            self.moved = Some(Instant::now());
         }
         part < 1.
     }
@@ -286,6 +303,7 @@ pub fn bar(theme: &Theme, scroll: Scrolling, view: EntityId) -> impl IntoElement
         (length, (track - length) * part)
     };
     let drawn = scroll;
+    let only_scrolling = theme.appearance.idle_scrollbars;
     canvas(
         |_, _, _| (),
         move |bounds, (), window, _| {
@@ -299,13 +317,22 @@ pub fn bar(theme: &Theme, scroll: Scrolling, view: EntityId) -> impl IntoElement
                 bounds.left() + theme::GAP_HAIR,
                 bounds.top() + theme::GAP_HAIR + top,
             );
-            let shown = match scroll.hovered || scroll.held.is_some() {
+            let pointed = scroll.hovered || scroll.held.is_some();
+            let shown = match pointed {
                 true => strong,
                 false => colour,
             };
-            window.paint_quad(
-                fill(gpui::Bounds::new(at, size(width, length)), shown).corner_radii(width / 2.),
-            );
+            let idle = only_scrolling && !pointed && !scroll.lately_moved();
+            if !idle {
+                window.paint_quad(
+                    fill(gpui::Bounds::new(at, size(width, length)), shown)
+                        .corner_radii(width / 2.),
+                );
+            }
+            // Drawn again until the moved list's bar may hide.
+            if only_scrolling && !pointed && !idle {
+                window.request_animation_frame();
+            }
             drop(scroll);
             let (held, moved) = (drawn.clone(), drawn.clone());
             window.on_mouse_event(move |event: &MouseDownEvent, phase, window, cx| {

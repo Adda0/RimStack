@@ -1726,5 +1726,9 @@
  "Translates": "Traduce",
  "translates another mod": "traduce un altro mod",
  "Needed by ({})": "Richiesto da ({})",
- "Nothing needs it.": "Niente lo richiede."
+ "Nothing needs it.": "Niente lo richiede.",
+ "Scrollbars": "Barre di scorrimento",
+ "Shown": "Visibili",
+ "Shown: a list's scrollbar stays in view while the list is longer than its pane. When scrolling: it shows only while scrolling or pointed at.": "Visibili: la barra di una lista resta in vista finché la lista è più lunga del suo riquadro. In scorrimento: appare solo scorrendo o puntandola.",
+ "When scrolling": "In scorrimento"
 }

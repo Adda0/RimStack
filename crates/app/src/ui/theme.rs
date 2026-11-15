@@ -350,6 +350,8 @@ pub struct Appearance {
     pub comfortable: bool,
     pub high_contrast: bool,
     pub reduce_motion: bool,
+    /// A list's scrollbar shows only while it scrolls or is pointed at.
+    pub idle_scrollbars: bool,
     /// The user's own colours for this theme, from theme.json, when they are used.
     pub own: Vec<(String, String)>,
     /// `categoryColours`: a swatch's name for a category painted otherwise, as `3=Rose,5=Teal`.
@@ -365,6 +367,7 @@ impl Default for Appearance {
             comfortable: true,
             high_contrast: false,
             reduce_motion: false,
+            idle_scrollbars: false,
             own: Vec::new(),
             category_colours: String::new(),
         }
@@ -465,6 +468,7 @@ impl Appearance {
             comfortable: flag("comfortable", true),
             high_contrast: flag("highContrast", false),
             reduce_motion: flag("reduceMotion", false),
+            idle_scrollbars: flag("idleScrollbars", false),
             own: if flag("ownColours", false) {
                 own(theme.name())
             } else {

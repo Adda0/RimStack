@@ -420,6 +420,28 @@ impl Settings {
                 .filled(),
         ));
         rows.push(Row::Line(
+            Line::new(1, "scrollbars", put(&say!("Scrollbars")))
+                .tip(put(&say!(
+                    "Shown: a list's scrollbar stays in view while the list is longer than its pane. When scrolling: it shows only while scrolling or pointed at."
+                )))
+                .changed(look.idle_scrollbars, |s, _, cx| {
+                    s.keep_look("idleScrollbars", "false", cx)
+                })
+                .held(
+                    Choice::new(
+                        "scrollbars-choice",
+                        said(&[say!("Shown"), say!("When scrolling")]),
+                        usize::from(look.idle_scrollbars),
+                    )
+                    .within(Self::choice_room(theme, window))
+                    .title(put(&say!("Scrollbars")))
+                    .on_pick(act(cx, |s, at: usize, _, cx| {
+                        s.keep_look("idleScrollbars", if at == 1 { "true" } else { "false" }, cx)
+                    })),
+                )
+                .filled(),
+        ));
+        rows.push(Row::Line(
             Line::new(1, "contrast", put(&say!("Contrast")))
                 .tip(put(&say!(
                     "High: grey text and thin lines are drawn stronger, and panels get an outline."

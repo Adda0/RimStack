@@ -1726,5 +1726,9 @@
  "Translates": "Tłumaczy",
  "translates another mod": "tłumaczy inny mod",
  "Needed by ({})": "Wymagany przez ({})",
- "Nothing needs it.": "Nic go nie wymaga."
+ "Nothing needs it.": "Nic go nie wymaga.",
+ "Scrollbars": "Paski przewijania",
+ "Shown": "Zawsze",
+ "Shown: a list's scrollbar stays in view while the list is longer than its pane. When scrolling: it shows only while scrolling or pointed at.": "Zawsze: pasek przewijania listy jest widoczny, gdy lista jest dłuższa niż panel. Przy przewijaniu: pokazuje się tylko podczas przewijania lub wskazywania.",
+ "When scrolling": "Przy przewijaniu"
 }

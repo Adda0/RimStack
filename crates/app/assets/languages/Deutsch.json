@@ -1726,5 +1726,9 @@
  "Translates": "Übersetzt",
  "translates another mod": "übersetzt einen anderen Mod",
  "Needed by ({})": "Benötigt von ({})",
- "Nothing needs it.": "Nichts benötigt sie."
+ "Nothing needs it.": "Nichts benötigt sie.",
+ "Scrollbars": "Balken im Rollen",
+ "Shown": "Immer",
+ "Shown: a list's scrollbar stays in view while the list is longer than its pane. When scrolling: it shows only while scrolling or pointed at.": "Immer: Der Balken einer Liste bleibt sichtbar, solange die Liste länger als ihr Fenster ist. Beim Rollen: Er zeigt sich nur beim Rollen oder Zeigen darauf.",
+ "When scrolling": "Beim Rollen"
 }

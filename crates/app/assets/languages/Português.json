@@ -1726,5 +1726,9 @@
  "Translates": "Traduz",
  "translates another mod": "traduz outro mod",
  "Needed by ({})": "Requerido por ({})",
- "Nothing needs it.": "Nada precisa dele."
+ "Nothing needs it.": "Nada precisa dele.",
+ "Scrollbars": "Barras de deslocação",
+ "Shown": "Visíveis",
+ "Shown: a list's scrollbar stays in view while the list is longer than its pane. When scrolling: it shows only while scrolling or pointed at.": "Visíveis: a barra de uma lista fica à vista enquanto a lista for maior que o painel. Ao deslocar: aparece só ao deslocar ou apontar.",
+ "When scrolling": "Ao deslocar"
 }
