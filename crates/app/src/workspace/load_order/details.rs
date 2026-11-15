@@ -110,6 +110,8 @@ pub struct Details {
     pub repository: String,
     pub folder: String,
     pub preview: Option<String>,
+    /// Its `Mod_*` files of the game's Config.
+    pub settings_files: Vec<String>,
     pub author: String,
     pub package_id: String,
     pub version: String,
@@ -335,6 +337,7 @@ impl LoadOrder {
         choices.retain(|tag| *tag != said.sub && seen.insert(tag.clone()));
         said.group_choices = choices;
         said.can_bin = m.source != Source::Official && self.active.position_of(id).is_none();
+        said.settings_files = app.mod_settings_files(&m.folder);
         if workshop {
             said.workshop_page = Some(format!(
                 "https://steamcommunity.com/sharedfiles/filedetails/?id={}",

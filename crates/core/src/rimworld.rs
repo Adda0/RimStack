@@ -7,6 +7,7 @@ pub mod game;
 pub mod id;
 pub mod loadfolders;
 pub mod logs;
+pub mod mod_settings;
 pub mod modsconfig;
 pub mod official;
 pub mod paths;

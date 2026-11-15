@@ -1702,5 +1702,22 @@
  "Download all {} with SteamCMD": "Pobierz wszystkie {} przez SteamCMD",
  "Download {} with SteamCMD": "Pobierz {} przez SteamCMD",
  "Puts every missing mod that has a Workshop page in Look up, to subscribe to them in Steam or download them.": "Puts every missing mod that has a Workshop page in Look up, to subscribe to them in Steam or download them.",
- "SteamCMD downloads each missing mod that has a Workshop page into the game's Mods folder, without subscribing.": "SteamCMD pobiera każdy brakujący mod ze stroną Warsztatu do folderu Mods gry, bez subskrypcji."
+ "SteamCMD downloads each missing mod that has a Workshop page into the game's Mods folder, without subscribing.": "SteamCMD pobiera każdy brakujący mod ze stroną Warsztatu do folderu Mods gry, bez subskrypcji.",
+ "All settings files belong to installed mods": "Wszystkie pliki ustawień należą do zainstalowanych modów",
+ "All settings files belong to installed mods.": "Wszystkie pliki ustawień należą do zainstalowanych modów.",
+ "Every Mod_*.xml of the game's Config folder that no installed mod's folder names. A mod's settings come back if the mod itself does.": "Każdy Mod_*.xml z folderu Config gry, którego nazwy nie ma żaden zainstalowany mod. Ustawienia moda wracają, gdy wróci mod.",
+ "Every orphaned Mod_*.xml is moved out of": "Każdy osierocony Mod_*.xml zostaje przeniesiony z",
+ "Its Mod_*.xml are moved out of": "Jego pliki Mod_*.xml zostaną przeniesione z",
+ "Its Mod_*.xml files of the game's Config folder:": "Jego pliki Mod_*.xml w folderze Config gry:",
+ "Its settings files are set aside, so the mod starts from its defaults.": "Jego pliki ustawień zostaną odłożone, więc mod zacznie od ustawień domyślnych.",
+ "Moving the files back restores them.": "Przeniesienie plików z powrotem je przywróci.",
+ "Reset its settings…": "Zresetuj jego ustawienia…",
+ "Reset the settings of {}": "Zresetuj ustawienia {}",
+ "RimWorld is running. Close the game before moving mod settings aside.": "RimWorld działa. Zamknij grę przed odłożeniem ustawień modów.",
+ "Set the settings of gone mods aside": "Odłóż ustawienia znikniętych modów",
+ "Settings of mods that are gone": "Ustawienia znikniętych modów",
+ "Settings of {} mod that is gone, left behind:": "Ustawienia {} znikniętego moda, pozostawione:",
+ "Settings of {} mods that are gone, left behind:": "Ustawienia {} znikniętych modów, pozostawione:",
+ "That mod is no longer where it was read; read the folders again": "Tego moda nie ma już tam, gdzie go odczytano; odczytaj foldery ponownie",
+ "This mod has no settings files": "Ten mod nie ma plików ustawień"
 }

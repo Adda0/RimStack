@@ -18,6 +18,7 @@ mod left_off;
 mod list;
 mod list_state;
 mod menus;
+mod mod_settings;
 mod notes;
 mod panes;
 mod problems;
@@ -73,7 +74,8 @@ const ROWS_UNTOUCHED: Changes = Changes::LOGS
     .or(Changes::THEME)
     .or(Changes::DOWNLOAD_LIST)
     .or(Changes::KEY)
-    .or(Changes::SOURCE);
+    .or(Changes::SOURCE)
+    .or(Changes::MOD_SETTINGS);
 
 type AfterDrawn = Box<dyn FnMut(&mut Mods, &mut gpui::Window, &mut Context<Mods>) -> bool>;
 

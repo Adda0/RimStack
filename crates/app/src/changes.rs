@@ -27,6 +27,8 @@ impl Changes {
     pub const LISTS: Self = Self(1 << 14);
     pub const LAUNCHES: Self = Self(1 << 16);
     pub const FOLDERS: Self = Self(1 << 17);
+    /// Mod settings of the game's Config were moved.
+    pub const MOD_SETTINGS: Self = Self(1 << 18);
     pub const FIND: Self = Self(1 << 19);
     pub const FACTS: Self = Self(1 << 20);
     pub const DOWNLOAD_LIST: Self = Self(1 << 21);

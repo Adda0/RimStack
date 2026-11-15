@@ -1702,5 +1702,22 @@
  "Download all {} with SteamCMD": "Scarica tutti e {} con SteamCMD",
  "Download {} with SteamCMD": "Scarica {} con SteamCMD",
  "Puts every missing mod that has a Workshop page in Look up, to subscribe to them in Steam or download them.": "Puts every missing mod that has a Workshop page in Look up, to subscribe to them in Steam or download them.",
- "SteamCMD downloads each missing mod that has a Workshop page into the game's Mods folder, without subscribing.": "SteamCMD scarica ogni mod mancante che ha una pagina Workshop nella cartella Mods del gioco, senza abbonarsi."
+ "SteamCMD downloads each missing mod that has a Workshop page into the game's Mods folder, without subscribing.": "SteamCMD scarica ogni mod mancante che ha una pagina Workshop nella cartella Mods del gioco, senza abbonarsi.",
+ "All settings files belong to installed mods": "Tutti i file di impostazioni appartengono a mod installati",
+ "All settings files belong to installed mods.": "Tutti i file di impostazioni appartengono a mod installati.",
+ "Every Mod_*.xml of the game's Config folder that no installed mod's folder names. A mod's settings come back if the mod itself does.": "Ogni Mod_*.xml della cartella Config del gioco di cui nessun mod installato porta il nome. Le impostazioni di un mod tornano se il mod torna.",
+ "Every orphaned Mod_*.xml is moved out of": "Ogni Mod_*.xml orfano viene spostato fuori da",
+ "Its Mod_*.xml are moved out of": "I suoi Mod_*.xml vengono spostati via da",
+ "Its Mod_*.xml files of the game's Config folder:": "I suoi file Mod_*.xml della cartella Config del gioco:",
+ "Its settings files are set aside, so the mod starts from its defaults.": "I suoi file delle impostazioni vengono messi da parte, quindi la mod riparte con i valori predefiniti.",
+ "Moving the files back restores them.": "Rimettendo i file si ripristinano.",
+ "Reset its settings…": "Reimposta le sue impostazioni…",
+ "Reset the settings of {}": "Reimposta le impostazioni di {}",
+ "RimWorld is running. Close the game before moving mod settings aside.": "RimWorld è in esecuzione. Chiudi il gioco prima di mettere da parte le impostazioni delle mod.",
+ "Set the settings of gone mods aside": "Mettere da parte le impostazioni dei mod scomparsi",
+ "Settings of mods that are gone": "Impostazioni delle mod che non ci sono più",
+ "Settings of {} mod that is gone, left behind:": "Impostazioni di {} mod scomparso, lasciate indietro:",
+ "Settings of {} mods that are gone, left behind:": "Impostazioni di {} mod scomparsi, lasciate indietro:",
+ "That mod is no longer where it was read; read the folders again": "Quel mod non è più dove è stato letto; rileggi le cartelle",
+ "This mod has no settings files": "Questo mod non ha file di impostazioni"
 }

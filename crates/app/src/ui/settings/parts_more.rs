@@ -351,6 +351,27 @@ impl Settings {
                 .held(Btn::new("mod-settings-aside", put(&say!("Set aside…"))).danger().on_click(cx.listener(|s, _, window, cx| s.ask_mod_settings_aside(window, cx))))
                 .held(div().flex_1().min_w_0().child(label(theme, theme.body(), c.ink2, self.said.mod_settings.clone()))),
         ));
+        let orphans = report.orphan_settings.len();
+        let left_behind = match orphans {
+            0 => put(&say!("All settings files belong to installed mods.")),
+            n => put(&say_n!(
+                n,
+                "Settings of {} mod that is gone, left behind:",
+                "Settings of {} mods that are gone, left behind:"
+            )),
+        };
+        rows.push(Row::Line(
+            Line::new(4, "orphan-settings", put(&say!("Settings of mods that are gone")))
+                .tip(put(&say!("Every Mod_*.xml of the game's Config folder that no installed mod's folder names. A mod's settings come back if the mod itself does.")))
+                .held(Btn::new("orphan-settings-aside", put(&say!("Set aside…"))).danger().enabled(orphans > 0).on_click(cx.listener(|s, _, window, cx| s.ask_orphan_settings_aside(window, cx))))
+                .held(div().flex_1().min_w_0().child(label(theme, theme.body(), c.ink2, left_behind))),
+        ));
+        for file in &report.orphan_settings {
+            rows.push(Row::Under(
+                4,
+                under(theme, c.ink3, theme.small(), file.clone()),
+            ));
+        }
 
         rows.push(Row::Group(4, put(&say!("Load order"))));
         let backup = report.backup.is_some();
@@ -547,6 +568,37 @@ impl Settings {
             lines,
             label: put(&say!("Set aside")),
             danger: false,
+            run,
+        };
+        prompt::ask(question, window, cx);
+    }
+
+    fn ask_orphan_settings_aside(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let report = &self.report;
+        let lines = vec![
+            Asked::Text(put(&say!("Every orphaned Mod_*.xml is moved out of"))),
+            Asked::Path(report.config_folder.clone().unwrap_or_default()),
+            Asked::Text(put(&say!(
+                "into a new folder, named mod-settings and the time, in"
+            ))),
+            Asked::Path(report.data_folder.clone()),
+            Asked::Text(put(&say!("Moving the files back restores them."))),
+        ];
+        let me = cx.entity().downgrade();
+        let run = Box::new(move |_: &mut Window, cx: &mut gpui::App| {
+            let _ = me.update(cx, |s, cx| {
+                s.said.mod_settings = match crate::ui::app(cx).set_orphan_settings_aside() {
+                    Ok(said) => put(&said),
+                    Err(problem) => crate::words::said_of(&problem),
+                };
+                cx.notify();
+            });
+        });
+        let question = Question {
+            title: put(&say!("Set the settings of gone mods aside")),
+            lines,
+            label: put(&say!("Set aside")),
+            danger: true,
             run,
         };
         prompt::ask(question, window, cx);

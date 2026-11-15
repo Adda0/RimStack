@@ -47,7 +47,8 @@ const READS: Changes = Changes::SETTINGS
     .or(Changes::COMMUNITY)
     .or(Changes::LANGUAGE)
     .or(Changes::THEME)
-    .or(Changes::KEY);
+    .or(Changes::KEY)
+    .or(Changes::MOD_SETTINGS);
 
 pub struct Settings {
     unseen: crate::ui::section::Unseen,

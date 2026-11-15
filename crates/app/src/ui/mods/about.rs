@@ -700,6 +700,7 @@ impl DetailsView {
         shown.push(self.facts(theme, details, inner, window, cx));
         shown.push(self.notes(theme, details, window, cx));
         shown.extend(self.latest(theme, details, window, cx));
+        shown.extend(self.mod_settings(theme, details));
         shown
     }
 }
