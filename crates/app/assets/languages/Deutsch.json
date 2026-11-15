@@ -1663,5 +1663,9 @@
  "There is no Rentry.co page at that link": "Unter diesem Link gibt es keine Rentry.co-Seite",
  "There is no load order to share": "Es gibt keine Ladereihenfolge zum Teilen",
  "Waiting for Rentry.co…": "Warten auf Rentry.co…",
- "Start a load order from the game alone or with its expansions; one Undo brings the old one back": "Eine Ladereihenfolge nur mit dem Spiel oder mit seinen Erweiterungen beginnen; ein Rückgängig holt die alte zurück"
+ "Start a load order from the game alone or with its expansions; one Undo brings the old one back": "Eine Ladereihenfolge nur mit dem Spiel oder mit seinen Erweiterungen beginnen; ein Rückgängig holt die alte zurück",
+ "{} (likely to clash: a prefix may skip the original)": "{} (Kollision wahrscheinlich: ein Prefix kann das Original überspringen)",
+ "{} (likely to clash: both rewrite it)": "{} (Kollision wahrscheinlich: beide schreiben es um)",
+ "{} (may clash)": "{} (kann kollidieren)",
+ "{} (unlikely to clash: only adds after)": "{} (Kollision unwahrscheinlich: fügt nur danach hinzu)"
 }

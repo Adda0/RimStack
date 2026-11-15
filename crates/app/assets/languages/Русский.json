@@ -1663,5 +1663,9 @@
  "There is no Rentry.co page at that link": "По этой ссылке нет страницы Rentry.co",
  "There is no load order to share": "Нет порядка загрузки, которым можно поделиться",
  "Waiting for Rentry.co…": "Ожидание Rentry.co…",
- "Start a load order from the game alone or with its expansions; one Undo brings the old one back": "Начать порядок загрузки с одной игры или с её дополнениями; одна отмена вернёт прежний"
+ "Start a load order from the game alone or with its expansions; one Undo brings the old one back": "Начать порядок загрузки с одной игры или с её дополнениями; одна отмена вернёт прежний",
+ "{} (likely to clash: a prefix may skip the original)": "{} (likely to clash: a prefix may skip the original)",
+ "{} (likely to clash: both rewrite it)": "{} (likely to clash: both rewrite it)",
+ "{} (may clash)": "{} (may clash)",
+ "{} (unlikely to clash: only adds after)": "{} (unlikely to clash: only adds after)"
 }

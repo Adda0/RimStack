@@ -1663,5 +1663,9 @@
  "There is no Rentry.co page at that link": "이 링크에는 Rentry.co 페이지가 없습니다",
  "There is no load order to share": "공유할 로드 순서가 없습니다",
  "Waiting for Rentry.co…": "Rentry.co를 기다리는 중…",
- "Start a load order from the game alone or with its expansions; one Undo brings the old one back": "게임만으로 또는 확장팩과 함께 새 로드 순서를 시작합니다. 실행 취소 한 번으로 이전 순서로 돌아갑니다"
+ "Start a load order from the game alone or with its expansions; one Undo brings the old one back": "게임만으로 또는 확장팩과 함께 새 로드 순서를 시작합니다. 실행 취소 한 번으로 이전 순서로 돌아갑니다",
+ "{} (likely to clash: a prefix may skip the original)": "{} (likely to clash: a prefix may skip the original)",
+ "{} (likely to clash: both rewrite it)": "{} (likely to clash: both rewrite it)",
+ "{} (may clash)": "{} (may clash)",
+ "{} (unlikely to clash: only adds after)": "{} (unlikely to clash: only adds after)"
 }

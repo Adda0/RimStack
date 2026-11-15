@@ -5,6 +5,8 @@ use super::{
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Does {
     pub prefix: bool,
+    /// The prefix returns `bool`: a `false` from it skips the original.
+    pub skips: bool,
     pub postfix: bool,
     pub transpiler: bool,
     pub finalizer: bool,
@@ -14,6 +16,7 @@ impl Does {
     pub fn with(self, other: Does) -> Does {
         Does {
             prefix: self.prefix || other.prefix,
+            skips: self.skips || other.skips,
             postfix: self.postfix || other.postfix,
             transpiler: self.transpiler || other.transpiler,
             finalizer: self.finalizer || other.finalizer,
@@ -135,6 +138,7 @@ impl<'a> Assembly<'a> {
             let name = name.to_lowercase();
             Does {
                 prefix: name.contains("prefix"),
+                skips: false,
                 postfix: name.contains("postfix"),
                 transpiler: name.contains("transpiler"),
                 finalizer: name.contains("finalizer"),
@@ -245,6 +249,24 @@ impl<'a> Assembly<'a> {
                 _ => {}
             }
         }
+        // The method's return type is `bool`: ELEMENT_TYPE_BOOLEAN 0x02, the first byte
+        // after the calling convention and the compressed parameter count.
+        let returns_bool = |method: usize| {
+            let Some(signature) = self.blob(METHOD_DEF, method, 4) else {
+                return false;
+            };
+            let mut rest = &signature[1..];
+            if signature[0] & 0x10 != 0 {
+                let Some((_, used)) = compressed(rest) else {
+                    return false;
+                };
+                rest = &rest[used..];
+            }
+            let Some((_, used)) = compressed(rest) else {
+                return false;
+            };
+            rest.get(used) == Some(&0x02)
+        };
         let does = |method: usize, into: &mut Does| {
             let said = marked
                 .iter()
@@ -252,7 +274,10 @@ impl<'a> Assembly<'a> {
                 .map(|(_, a)| &a[7..]);
             for kind in said.chain(self.name(METHOD_DEF, method, 3)) {
                 match kind {
-                    "Prefix" => into.prefix = true,
+                    "Prefix" => {
+                        into.prefix = true;
+                        into.skips |= returns_bool(method);
+                    }
                     "Postfix" => into.postfix = true,
                     "Transpiler" => into.transpiler = true,
                     "Finalizer" => into.finalizer = true,
@@ -336,6 +361,7 @@ mod tests {
                 method: "Tick".into(),
                 does: Does {
                     prefix: true,
+                    skips: true,
                     transpiler: true,
                     ..Does::default()
                 },

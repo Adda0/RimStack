@@ -251,12 +251,14 @@ mod tests {
 
     const PREFIX: Does = Does {
         prefix: true,
+        skips: false,
         postfix: false,
         transpiler: false,
         finalizer: false,
     };
     const POSTFIX: Does = Does {
         prefix: false,
+        skips: false,
         postfix: true,
         transpiler: false,
         finalizer: false,
