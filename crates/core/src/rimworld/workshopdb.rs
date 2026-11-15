@@ -1,4 +1,5 @@
-//! Kept as `package id<tab>Workshop id<tab>name` lines, one per mod.
+//! Kept as `package id<tab>Workshop id<tab>name` lines, one per mod: the downloaded
+//! database in one file, the entries RimStack made itself in another beside it.
 
 use super::workshopindex::{self, Index};
 use crate::base::error::Error;
@@ -104,6 +105,21 @@ pub fn file_in(data_dir: &Path) -> PathBuf {
     data_dir.join("workshopNames.tsv")
 }
 
+/// Made from the installed mods and Steam; a download never writes it.
+pub fn own_file_in(data_dir: &Path) -> PathBuf {
+    data_dir.join("workshopNamesOwn.tsv")
+}
+
+/// Own entries win.
+pub fn merged(mut downloaded: Names, own: Names) -> Names {
+    downloaded.extend(own);
+    downloaded
+}
+
+pub fn read_with_own(downloaded: &Path, own: &Path) -> Names {
+    merged(read(downloaded), read(own))
+}
+
 pub fn store(names: &Names, to: &Path) -> Result<(), Error> {
     let mut lines: Vec<String> = names
         .iter()
@@ -205,6 +221,31 @@ mod tests {
         store(&names, &path).unwrap();
         names.get_mut("a.b").unwrap().name = "Tab here".into();
         assert_eq!(read(&path), names);
+    }
+
+    #[test]
+    fn own_entries_win_and_a_download_leaves_them() {
+        let dir = tempfile::tempdir().unwrap();
+        let (file, own_file) = (file_in(dir.path()), own_file_in(dir.path()));
+        let item = |workshop_id: &str, name: &str| Item {
+            workshop_id: workshop_id.into(),
+            name: name.into(),
+        };
+        let own = Names::from([
+            ("a.b".to_string(), item("222", "Renamed")),
+            ("mine.only".to_string(), item("444", "Mine")),
+        ]);
+        store(&own, &own_file).unwrap();
+        store(&parse(SAMPLE.as_bytes()).unwrap().0, &file).unwrap();
+        let names = read_with_own(&file, &own_file);
+        assert_eq!(names["a.b"].name, "Renamed");
+        assert_eq!(names["mine.only"], item("444", "Mine"));
+        assert_eq!(names["author.bigmod"].name, "Big Mod (Continued)");
+        store(&Names::from([("a.b".into(), item("222", "Fresh"))]), &file).unwrap();
+        let names = read_with_own(&file, &own_file);
+        assert_eq!(names.len(), 2);
+        assert_eq!(names["a.b"].name, "Renamed");
+        assert_eq!(read_with_own(&file, &dir.path().join("none")), read(&file));
     }
 
     #[test]

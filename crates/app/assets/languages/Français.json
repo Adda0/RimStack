@@ -1680,5 +1680,13 @@
  "the zip reaches outside its folder": "Le zip sort de son dossier",
  "the zip's name has no text": "Le nom du zip ne contient aucun texte",
  "{} is not a .zip": "« {} » n'est pas un fichier .zip",
- "{} is now with the local mods": "{} est désormais parmi les mods locaux"
+ "{} is now with the local mods": "{} est désormais parmi les mods locaux",
+ "Names every installed Workshop mod, and asks Steam again for the names of mods your lists name that are not installed": "Names every installed Workshop mod, and asks Steam again for the names of mods your lists name that are not installed",
+ "Names of {} installed mod refreshed.": "Noms de {} mod installée actualisés.",
+ "Names of {} installed mods refreshed.": "Noms de {} mods installées actualisés.",
+ "Names of {} mod re-read from Steam.": "Noms de {} mod relus depuis Steam.",
+ "Names of {} mods re-read from Steam.": "Noms de {} mods relus depuis Steam.",
+ "Nothing changed.": "Rien n'a changé.",
+ "Refresh": "Actualiser",
+ "Refreshing…": "Actualisation…"
 }

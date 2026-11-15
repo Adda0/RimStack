@@ -112,8 +112,26 @@ impl Settings {
                     .when_held(
                         database.updated > 0,
                         label(theme, theme.small(), c.ink2, day(database.updated)),
+                    )
+                    .when_held(
+                        id == "names",
+                        Btn::new(
+                            "names-refresh",
+                            match self.names_busy {
+                                true => put(&say!("Refreshing…")),
+                                false => put(&say!("Refresh")),
+                            },
+                        )
+                        .icon("refresh-cw")
+                        .enabled(!self.names_busy)
+                        .tip(put(&say!("Names every installed Workshop mod, and asks Steam again for the names of mods your lists name that are not installed")))
+                        .on_click(cx.listener(|s, _, _, cx| s.refresh_names(cx))),
                     ),
             ));
+            if let Some((said, failed)) = self.names_said.as_ref().filter(|_| id == "names") {
+                let tone = if *failed { c.err } else { c.ink2 };
+                rows.push(Row::Under(2, under(theme, tone, theme.body(), put(said))));
+            }
         }
         if let Some(problem) = &self.community_problem {
             rows.push(Row::Under(

@@ -64,6 +64,9 @@ pub struct Settings {
     community_busy: bool,
     community_current: bool,
     community_problem: Option<Sentence>,
+    names_busy: bool,
+    /// What the last Refresh of the Workshop names did, or why it failed.
+    names_said: Option<(Sentence, bool)>,
     release: Option<ReleaseSaid>,
     release_busy: bool,
     problem: Option<Sentence>,
@@ -131,6 +134,8 @@ impl Settings {
             community_busy: false,
             community_current: false,
             community_problem: None,
+            names_busy: false,
+            names_said: None,
             release: None,
             release_busy: false,
             problem: None,
@@ -398,6 +403,29 @@ impl Settings {
                 settings.community_current = done.is_ok();
                 settings.community_problem = done.err().map(|e| e.sentence().clone());
                 settings.community_busy = false;
+                cx.notify();
+            },
+        );
+        cx.notify();
+    }
+
+    fn refresh_names(&mut self, cx: &mut Context<Self>) {
+        if self.names_busy || self.demo {
+            return;
+        }
+        self.names_busy = true;
+        self.names_said = None;
+        let app = super::app(cx);
+        crate::jobs::run(
+            "workshop names refresh",
+            cx,
+            move || app.refresh_workshop_names(),
+            |settings, done, cx| {
+                settings.names_said = Some(match done {
+                    Ok(said) => (said, false),
+                    Err(why) => (why.sentence().clone(), true),
+                });
+                settings.names_busy = false;
                 cx.notify();
             },
         );
