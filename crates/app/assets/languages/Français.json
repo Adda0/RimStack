@@ -1668,5 +1668,8 @@
  "{} (likely to clash: both rewrite it)": "{} (conflit probable : les deux le réécrivent)",
  "{} (may clash)": "{} (peut entrer en conflit)",
  "{} (unlikely to clash: only adds after)": "{} (conflit improbable : ajoute seulement après)",
- "Added since the last launch without errors, these are tried first: {}": "Ajoutés depuis le dernier lancement sans erreurs, ils sont essayés en premier : {}"
+ "Added since the last launch without errors, these are tried first: {}": "Ajoutés depuis le dernier lancement sans erreurs, ils sont essayés en premier : {}",
+ "Local mods folder": "Dossier des mods locaux",
+ "Mod settings folder": "Dossier des réglages des mods",
+ "Saves folder": "Dossier des sauvegardes"
 }

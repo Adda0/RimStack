@@ -652,30 +652,10 @@ impl Shell {
                 )
             }),
         );
-        let opened = |path: Option<String>| -> Option<Run> {
-            let path = path.filter(|p| !p.is_empty())?;
-            Some(Rc::new(move |_, _, cx| {
-                cx.open_with_system(std::path::Path::new(&path))
-            }))
-        };
-        if let Some(folders) = &folders {
-            for (name, path) in [
-                (say!("RimWorld folder"), folders.game.clone()),
-                (say!("Workshop mods folder"), folders.workshop.clone()),
-                (
-                    say!("Config and saves folder"),
-                    folders.config_folder.clone(),
-                ),
-                (say!("Game log"), folders.game_log.clone()),
-                (
-                    say!("RimStack data folder"),
-                    Some(folders.data_folder.clone()),
-                ),
-            ] {
-                if let Some(run) = opened(path) {
-                    push(true, name, &open, none.clone(), run);
-                }
-            }
+        let shown_folders = if demo { Vec::new() } else { app.open_folders() };
+        for (name, path) in shown_folders {
+            let run: Run = Rc::new(move |_, _, cx| cx.open_with_system(&path));
+            push(true, name, &open, none.clone(), run);
         }
         push(
             true,

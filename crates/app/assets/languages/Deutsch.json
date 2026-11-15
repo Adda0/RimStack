@@ -1668,5 +1668,8 @@
  "{} (likely to clash: both rewrite it)": "{} (Kollision wahrscheinlich: beide schreiben es um)",
  "{} (may clash)": "{} (kann kollidieren)",
  "{} (unlikely to clash: only adds after)": "{} (Kollision unwahrscheinlich: fügt nur danach hinzu)",
- "Added since the last launch without errors, these are tried first: {}": "Seit dem letzten Start ohne Fehler hinzugefügt, werden diese zuerst ausprobiert: {}"
+ "Added since the last launch without errors, these are tried first: {}": "Seit dem letzten Start ohne Fehler hinzugefügt, werden diese zuerst ausprobiert: {}",
+ "Local mods folder": "Lokaler Mod-Ordner",
+ "Mod settings folder": "Ordner der Mod-Einstellungen",
+ "Saves folder": "Spielstand-Ordner"
 }

@@ -128,6 +128,36 @@ impl App {
         Ok(())
     }
 
+    /// The game's folders and RimStack's own that are there now.
+    pub fn open_folders(&self) -> Vec<(Sentence, PathBuf)> {
+        let paths = self.paths();
+        let config = paths.config.clone();
+        let found = [
+            (say!("RimWorld folder"), paths.game.clone()),
+            (say!("Local mods folder"), paths.local_mods()),
+            (say!("Workshop mods folder"), paths.workshop.clone()),
+            (say!("Config and saves folder"), config.clone()),
+            (
+                say!("Mod settings folder"),
+                config.as_ref().map(|c| c.join("Config")),
+            ),
+            (
+                say!("Saves folder"),
+                config.as_ref().map(|c| c.join("Saves")),
+            ),
+            (say!("Game log"), self.game_log()),
+            (
+                say!("RimStack data folder"),
+                Some(self.data_dir().to_path_buf()),
+            ),
+        ];
+        found
+            .into_iter()
+            .filter_map(|(name, path)| Some((name, path?)))
+            .filter(|(_, path)| path.exists())
+            .collect()
+    }
+
     pub fn settings_report(&self) -> SettingsReport {
         let paths = self.paths();
         let shown = |p: &Option<PathBuf>| p.as_ref().map(|p| p.to_string_lossy().into_owned());
