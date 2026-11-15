@@ -74,6 +74,18 @@ fn groups_mods_under_headers_in_load_order() {
 }
 
 #[test]
+fn a_drop_below_a_filtered_list_goes_after_the_last_mod_it_shows() {
+    let mut list = sample();
+    assert_eq!(list.end_place(), 6);
+    list.set_filter("hugs");
+    assert_eq!(list.end_place(), 4);
+    list.set_filter("ludeon");
+    assert_eq!(list.end_place(), 3);
+    list.set_filter("nothing like it");
+    assert_eq!(list.end_place(), 6);
+}
+
+#[test]
 fn flat_list_has_no_headers_filters_and_appends() {
     let mut mods = sample().mods().to_vec();
     mods.swap(0, 5);

@@ -658,7 +658,7 @@ impl Mods {
                 single: state.selection.len() == 1,
                 previewing: state.order.previewing(),
                 picking: self.chosen_reads.picking.is_some(),
-                count: state.count(side),
+                count: state.order.list(side).end_place(),
             };
             next.push((side, shown));
         }
