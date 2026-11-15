@@ -1730,5 +1730,11 @@
  "Scrollbars": "Scrollbars",
  "Shown": "Shown",
  "Shown: a list's scrollbar stays in view while the list is longer than its pane. When scrolling: it shows only while scrolling or pointed at.": "Shown: a list's scrollbar stays in view while the list is longer than its pane. When scrolling: it shows only while scrolling or pointed at.",
- "When scrolling": "When scrolling"
+ "When scrolling": "When scrolling",
+ "A group is a tag the mod is listed under, beside the other mods with it. Choose one in use, start a new one, or delete one for every mod in it.": "A group is a tag the mod is listed under, beside the other mods with it. Choose one in use, start a new one, or delete one for every mod in it.",
+ "Delete the group": "Delete the group",
+ "Delete the group {}": "Delete the group {}",
+ "Delete the group {}…": "Delete the group {}…",
+ "{} mod is in it. It keeps its place in the load order and loses only this tag.": "{} mod is in it. It keeps its place in the load order and loses only this tag.",
+ "{} mods are in it. They keep their places in the load order and lose only this tag.": "{} mods are in it. They keep their places in the load order and lose only this tag."
 }

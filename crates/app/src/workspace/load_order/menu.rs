@@ -75,6 +75,10 @@ pub enum Action {
         active: bool,
         row: usize,
     },
+    /// Takes the tag off every mod grouped under it.
+    DeleteSub {
+        tag: String,
+    },
 }
 
 #[derive(Serialize)]
@@ -431,6 +435,18 @@ impl LoadOrder {
         ]
     }
 
+    /// The row menu's filing entries, for the About tab's Change button.
+    pub fn group_menu(&mut self, app: &App, id: ModId) -> Vec<Entry> {
+        let subject = Subject::held(self.details(app, id));
+        let at = Clicked {
+            active: false,
+            index: 0,
+            id: Some(id),
+            selected: &[],
+        };
+        Self::filing(&at, &subject)
+    }
+
     fn filing(at: &Clicked, subject: &Subject) -> Vec<Entry> {
         let (Some(id), Some(choices)) = (at.id, &subject.group_choices) else {
             return Vec::new();
@@ -458,6 +474,15 @@ impl LoadOrder {
                 "",
                 action,
             ));
+            let tag = subject.sub.clone();
+            group.push(
+                Entry::item(
+                    say!("Delete the group {}…", tag),
+                    "trash-2",
+                    Action::DeleteSub { tag },
+                )
+                .danger(),
+            );
         }
         group
     }

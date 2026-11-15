@@ -13,7 +13,7 @@ use gpui::AnimationExt;
 use gpui::InteractiveElement as _;
 use gpui::{
     AnyElement, Context, FontWeight, IntoElement, ParentElement, Pixels, Styled, Window, div,
-    prelude::FluentBuilder, px,
+    point, prelude::FluentBuilder, px,
 };
 use rimstack_core::base::sentence::Sentence;
 use rimstack_core::{say, say_n};
@@ -545,6 +545,7 @@ impl DetailsView {
                     .into_any_element(),
             );
         }
+        let mods = self.mods.clone();
         lines.push(
             div()
                 .flex()
@@ -552,17 +553,29 @@ impl DetailsView {
                 .gap(theme::GAP)
                 .child(defined(theme, put(&say!("Group"))).w(label_width))
                 .child(
-                    div().flex_1().min_w_0().child(
-                        Field {
-                            id: "group-field",
-                            text: &self.group,
-                            icon: "",
-                            placeholder: put(&say!("A tag to group under")),
-                            found: None,
-                            keys: None,
-                        }
-                        .render(theme, window, cx),
-                    ),
+                    div()
+                        .flex_1()
+                        .min_w_0()
+                        .overflow_hidden()
+                        .whitespace_nowrap()
+                        .text_ellipsis()
+                        .sized_text(theme, theme.body())
+                        .text_color(match details.sub.is_empty() {
+                            true => c.ink3,
+                            false => c.ink,
+                        })
+                        .child(match details.sub.is_empty() {
+                            true => put(&say!("None")),
+                            false => details.sub.clone(),
+                        }),
+                )
+                .child(
+                    Btn::new("group-under", put(&say!("Change")))
+                        .tip(put(&say!("A group is a tag the mod is listed under, beside the other mods with it. Choose one in use, start a new one, or delete one for every mod in it.")))
+                        .opens(move |below, window, cx| {
+                            let at = point(below.left(), below.bottom() + px(2.));
+                            let _ = mods.update(cx, |mods, cx| mods.group_choices(at, window, cx));
+                        }),
                 )
                 .into_any_element(),
         );

@@ -1730,5 +1730,11 @@
  "Scrollbars": "Barres de défilement",
  "Shown": "Toujours visibles",
  "Shown: a list's scrollbar stays in view while the list is longer than its pane. When scrolling: it shows only while scrolling or pointed at.": "Toujours visibles : la barre d'une liste reste en vue tant que la liste dépasse son panneau. Au défilement : elle n'apparaît qu'en défilant ou en la pointant.",
- "When scrolling": "Au défilement"
+ "When scrolling": "Au défilement",
+ "A group is a tag the mod is listed under, beside the other mods with it. Choose one in use, start a new one, or delete one for every mod in it.": "Un groupe est une étiquette sous laquelle le mod est rangé, à côté des autres mods qui l'ont. Choisissez-en un déjà utilisé, créez-en un nouveau ou supprimez-en un pour tous ses mods.",
+ "Delete the group": "Supprimer le groupe",
+ "Delete the group {}": "Supprimer le groupe {}",
+ "Delete the group {}…": "Supprimer le groupe {}…",
+ "{} mod is in it. It keeps its place in the load order and loses only this tag.": "{} mod en fait partie. Il garde sa place dans l'ordre de chargement et perd seulement cette étiquette.",
+ "{} mods are in it. They keep their places in the load order and lose only this tag.": "{} mods en font partie. Ils gardent leur place dans l'ordre de chargement et perdent seulement cette étiquette."
 }

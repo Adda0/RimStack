@@ -74,7 +74,6 @@ pub struct DetailsView {
     pub summary_open: bool,
     pub mods: gpui::WeakEntity<super::Mods>,
     pub(super) tags: gpui::Entity<crate::ui::text_field::TextField>,
-    pub(super) group: gpui::Entity<crate::ui::text_field::TextField>,
     pub(super) note: gpui::Entity<crate::ui::text_field::TextField>,
     pub(super) small_picture: bool,
     paging: crate::ui::page::Paging,
@@ -88,24 +87,16 @@ impl DetailsView {
         use crate::ui::text_field::{Edited, Entered, TextField};
         use gpui::AppContext;
         let size = cx.global::<Theme>().body();
-        let field = |cx: &mut Context<Self>| cx.new(|cx| TextField::new(size, cx).kept_on_escape());
-        let (tags, group) = (field(cx), field(cx));
-        let note = cx.new(|cx| TextField::new(size, cx).several_lines(2));
-        for noted in [&tags, &note] {
-            cx.subscribe(noted, |view, _, _: &Edited, cx| view.draft_note(cx))
+        let (tags, note) = (
+            cx.new(|cx| TextField::new(size, cx).kept_on_escape()),
+            cx.new(|cx| TextField::new(size, cx).several_lines(2)),
+        );
+        for field in [&tags, &note] {
+            cx.subscribe(field, |view, _, _: &Edited, cx| view.draft_note(cx))
                 .detach();
-            cx.subscribe(noted, |view, _, _: &Entered, cx| view.keep_drafts(cx))
+            cx.subscribe(field, |view, _, _: &Entered, cx| view.keep_drafts(cx))
                 .detach();
         }
-        cx.subscribe(&group, |view, field, _: &Edited, cx| {
-            if field.read(cx).is_focused_now() {
-                let name = field.read(cx).text().to_string();
-                let _ = view.mods.update(cx, |mods, cx| mods.draft_group(name, cx));
-            }
-        })
-        .detach();
-        cx.subscribe(&group, |view, _, _: &Entered, cx| view.keep_drafts(cx))
-            .detach();
         Self {
             description: crate::ui::rich::Selection::new(cx),
             shown: Default::default(),
@@ -114,7 +105,6 @@ impl DetailsView {
             summary_open: false,
             mods,
             tags,
-            group,
             note,
             small_picture: false,
             pictures: Default::default(),
@@ -149,11 +139,7 @@ impl DetailsView {
         let Some(details) = self.shown.details.clone() else {
             return;
         };
-        for (field, text) in [
-            (&self.tags, &details.tags),
-            (&self.group, &details.sub),
-            (&self.note, &details.note),
-        ] {
+        for (field, text) in [(&self.tags, &details.tags), (&self.note, &details.note)] {
             let typing = field.read(cx).is_focused_now();
             if !typing && field.read(cx).text() != text.as_str() {
                 let text = text.clone();

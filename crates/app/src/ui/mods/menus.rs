@@ -119,7 +119,7 @@ impl Mods {
         menu::open_at(at, entries, window, cx);
     }
 
-    fn open_entries(
+    pub(super) fn open_entries(
         &mut self,
         entries: Vec<Entry>,
         at: Point<Pixels>,
@@ -194,6 +194,7 @@ impl Mods {
             Action::Bin { name, path, mod_id } => self.ask_bin(name, path, *mod_id, window, cx),
             Action::ToggleSub { active, row } => self.toggle_sub(Side::of(*active), *row, cx),
             Action::RemoveSub { active, row } => self.remove_sub(Side::of(*active), *row, cx),
+            Action::DeleteSub { tag } => self.ask_delete_group(tag, window, cx),
         }
     }
 
@@ -299,6 +300,44 @@ impl Mods {
         app.remove_tag(&ids, &tag);
         self.edit_list(cx, |list, _| list.order.sync(&app));
         self.show(cx);
+    }
+
+    /// Asks first: says how many mods are in the group before the tag comes off each.
+    pub(super) fn ask_delete_group(
+        &mut self,
+        tag: &str,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let app = crate::ui::app(cx);
+        let count = app.group_size(tag);
+        let me = cx.entity().downgrade();
+        let tag = tag.to_string();
+        prompt::ask(
+            Question {
+                title: put(&say!("Delete the group {}", tag.clone())),
+                lines: vec![Line::Text(put(&say_n!(
+                    count,
+                    "{} mod is in it. It keeps its place in the load order and loses only this tag.",
+                    "{} mods are in it. They keep their places in the load order and lose only this tag."
+                )))],
+                label: put(&say!("Delete the group")),
+                danger: true,
+                run: Box::new(move |_, cx| {
+                    let _ = me.update(cx, |mods, cx| mods.delete_group(&tag, cx));
+                }),
+            },
+            window,
+            cx,
+        );
+    }
+
+    fn delete_group(&mut self, tag: &str, cx: &mut Context<Self>) {
+        let app = crate::ui::app(cx);
+        if app.delete_group(tag) {
+            self.edit_list(cx, |list, _| list.order.sync(&app));
+            self.show(cx);
+        }
     }
 
     fn copy_to_local(&mut self, ids: Vec<ModId>, cx: &mut Context<Self>) {

@@ -1730,5 +1730,11 @@
  "Scrollbars": "Paski przewijania",
  "Shown": "Zawsze",
  "Shown: a list's scrollbar stays in view while the list is longer than its pane. When scrolling: it shows only while scrolling or pointed at.": "Zawsze: pasek przewijania listy jest widoczny, gdy lista jest dłuższa niż panel. Przy przewijaniu: pokazuje się tylko podczas przewijania lub wskazywania.",
- "When scrolling": "Przy przewijaniu"
+ "When scrolling": "Przy przewijaniu",
+ "A group is a tag the mod is listed under, beside the other mods with it. Choose one in use, start a new one, or delete one for every mod in it.": "Grupa to tag, pod którym mod jest wymieniony obok innych modów z tym tagiem. Wybierz używaną, utwórz nową albo usuń grupę dla wszystkich jej modów.",
+ "Delete the group": "Usuń grupę",
+ "Delete the group {}": "Usuń grupę {}",
+ "Delete the group {}…": "Usuń grupę {}…",
+ "{} mod is in it. It keeps its place in the load order and loses only this tag.": "Jest w niej {} mod. Zachowuje miejsce w kolejności ładowania i traci tylko ten tag.",
+ "{} mods are in it. They keep their places in the load order and lose only this tag.": "Jest w niej {} modów. Zachowują miejsca w kolejności ładowania i tracą tylko ten tag."
 }

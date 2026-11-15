@@ -147,6 +147,19 @@ impl Notes {
         some.map(|(k, n)| (k.as_str(), n.ignored.as_slice()))
     }
 
+    /// Folded package ids of the mods grouped under `name`, in any case: whose first tag it is.
+    pub fn in_group(&self, name: &str) -> Vec<String> {
+        let name = name.trim();
+        if name.is_empty() {
+            return Vec::new();
+        }
+        self.by_id
+            .iter()
+            .filter(|(_, n)| n.group().eq_ignore_ascii_case(name))
+            .map(|(k, _)| k.clone())
+            .collect()
+    }
+
     pub fn len(&self) -> usize {
         self.by_id.len()
     }
@@ -167,6 +180,25 @@ mod tests {
             ["medieval", "QoL", "keep"]
         );
         assert!(tags_in(" , ").is_empty());
+    }
+
+    #[test]
+    fn a_group_holds_the_mods_whose_first_tag_it_is_in_any_case() {
+        let mut notes = Notes::default();
+        for (id, tags) in [
+            ("A.a", "Medieval, qol"),
+            ("b.b", "qol, medieval"),
+            ("c.c", "MEDIEVAL"),
+        ] {
+            let note = Note {
+                tags: tags_in(tags),
+                ..Note::default()
+            };
+            notes.set(id, note);
+        }
+        assert_eq!(notes.in_group("medieval "), ["a.a", "c.c"]);
+        assert_eq!(notes.in_group("qol"), ["b.b"]);
+        assert!(notes.in_group(" ").is_empty());
     }
 
     #[test]

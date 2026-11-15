@@ -84,6 +84,17 @@ impl App {
         self.change_notes(ids, Changes::NOTES, |note| note.remove_tag(tag));
     }
 
+    /// How many mods sit under the group `name`.
+    pub fn group_size(&self, name: &str) -> usize {
+        self.notes().reading().in_group(name).len()
+    }
+
+    /// Takes the tag `name` off every mod grouped under it; they stay where they are.
+    pub fn delete_group(&self, name: &str) -> bool {
+        let keys = self.notes().reading().in_group(name);
+        self.change_notes_of(&keys, Changes::NOTES, |note| note.remove_tag(name))
+    }
+
     /// An empty or unknown label leaves it to RimStack.
     pub fn set_category(&self, id: ModId, label: &str) {
         let known = Category::from_label(label)

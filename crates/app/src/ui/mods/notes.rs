@@ -23,7 +23,6 @@ pub struct Drafts {
     pause: crate::jobs::Lane,
     fade: crate::jobs::Lane,
     note: Option<(ModId, String, String)>,
-    group: Option<(ModId, String)>,
 }
 
 impl Mods {
@@ -93,13 +92,6 @@ impl Mods {
         }
     }
 
-    pub(super) fn draft_group(&mut self, name: String, cx: &mut Context<Self>) {
-        if let Some(id) = self.selected_id(cx) {
-            self.chosen_reads.drafts.group = Some((id, name));
-            self.wait_for_drafts(cx);
-        }
-    }
-
     fn wait_for_drafts(&mut self, cx: &mut Context<Self>) {
         self.chosen_reads
             .drafts
@@ -109,19 +101,11 @@ impl Mods {
 
     pub(super) fn keep_drafts(&mut self, cx: &mut Context<Self>) {
         self.chosen_reads.drafts.pause.cancel();
-        let (note, group) = (
-            self.chosen_reads.drafts.note.take(),
-            self.chosen_reads.drafts.group.take(),
-        );
+        let Some((id, tags, note)) = self.chosen_reads.drafts.note.take() else {
+            return;
+        };
         let app = super::super::app(cx);
-        let mut changed = false;
-        if let Some((id, tags, note)) = note {
-            changed |= app.set_note(id, &tags, &note);
-        }
-        if let Some((id, name)) = group {
-            changed |= app.set_group(&[id], &name);
-        }
-        if !changed {
+        if !app.set_note(id, &tags, &note) {
             return;
         }
         self.edit_list(cx, |list, _| list.order.sync(&app));
@@ -131,6 +115,24 @@ impl Mods {
             mods.chosen_reads.notes_saved = false;
             mods.sync_details(cx);
         });
+    }
+
+    /// The groups beside the mod, a new one, out of its group, and its group deleted for
+    /// every mod in it: the row menu's filing entries.
+    pub(super) fn group_choices(
+        &mut self,
+        at: Point<Pixels>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let Some(id) = self.selected_id(cx) else {
+            return;
+        };
+        let app = super::super::app(cx);
+        let entries = self
+            .list
+            .update(cx, |list, _| list.order.group_menu(&app, id));
+        self.open_entries(entries, at, window, cx);
     }
 
     pub(super) fn category_choices(

@@ -1730,5 +1730,11 @@
  "Scrollbars": "Barras de desplazamiento",
  "Shown": "Visibles",
  "Shown: a list's scrollbar stays in view while the list is longer than its pane. When scrolling: it shows only while scrolling or pointed at.": "Visibles: la barra de una lista permanece a la vista mientras la lista es más larga que su panel. Al desplazarse: solo aparece al desplazarse o al apuntarla.",
- "When scrolling": "Al desplazarse"
+ "When scrolling": "Al desplazarse",
+ "A group is a tag the mod is listed under, beside the other mods with it. Choose one in use, start a new one, or delete one for every mod in it.": "Un grupo es una etiqueta bajo la que aparece el mod, junto a los otros mods que la tienen. Elige uno en uso, empieza uno nuevo o elimina uno para todos sus mods.",
+ "Delete the group": "Eliminar el grupo",
+ "Delete the group {}": "Eliminar el grupo {}",
+ "Delete the group {}…": "Eliminar el grupo {}…",
+ "{} mod is in it. It keeps its place in the load order and loses only this tag.": "Hay {} mod en él. Conserva su lugar en el orden de carga y solo pierde esta etiqueta.",
+ "{} mods are in it. They keep their places in the load order and lose only this tag.": "Hay {} mods en él. Conservan su lugar en el orden de carga y solo pierden esta etiqueta."
 }

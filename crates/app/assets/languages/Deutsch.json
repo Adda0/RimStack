@@ -1730,5 +1730,11 @@
  "Scrollbars": "Balken im Rollen",
  "Shown": "Immer",
  "Shown: a list's scrollbar stays in view while the list is longer than its pane. When scrolling: it shows only while scrolling or pointed at.": "Immer: Der Balken einer Liste bleibt sichtbar, solange die Liste länger als ihr Fenster ist. Beim Rollen: Er zeigt sich nur beim Rollen oder Zeigen darauf.",
- "When scrolling": "Beim Rollen"
+ "When scrolling": "Beim Rollen",
+ "A group is a tag the mod is listed under, beside the other mods with it. Choose one in use, start a new one, or delete one for every mod in it.": "Eine Gruppe ist ein Tag, unter dem der Mod neben den anderen Mods mit diesem Tag steht. Wähle eine vorhandene, beginne eine neue oder lösche eine für alle Mods darin.",
+ "Delete the group": "Gruppe löschen",
+ "Delete the group {}": "Gruppe {} löschen",
+ "Delete the group {}…": "Gruppe {} löschen …",
+ "{} mod is in it. It keeps its place in the load order and loses only this tag.": "{} Mod ist darin. Er behält seinen Platz in der Ladereihenfolge und verliert nur dieses Tag.",
+ "{} mods are in it. They keep their places in the load order and lose only this tag.": "{} Mods sind darin. Sie behalten ihre Plätze in der Ladereihenfolge und verlieren nur dieses Tag."
 }
