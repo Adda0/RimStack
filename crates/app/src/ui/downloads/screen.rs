@@ -358,13 +358,29 @@ impl Downloads {
             missing.sort();
             missing.dedup();
             let mut actions: (Vec<AnyElement>, Pixels) = (Vec::new(), Pixels::ZERO);
+            if !missing.is_empty() {
+                let said = put(&say!("Look up"));
+                actions.1 += btn_width(window, theme, &said, true, false);
+                let asked = missing.join(" ");
+                actions.0.push(
+                    Btn::new("look-up-missing", said)
+                        .icon("search")
+                        .enabled(!self.queue_busy)
+                        .tip(put(&say!("Puts every missing mod that has a Workshop page in Look up, to subscribe to them in Steam or download them.")))
+                        .on_click(cx.listener(move |d, _, _, cx| {
+                            d.pasted.update(cx, |field, cx| field.set_text(&asked, cx));
+                            d.look_up(cx);
+                        }))
+                        .into_any_element(),
+                );
+            }
             if self.steamcmd && !missing.is_empty() {
                 let said = put(&say_n!(
                     missing.len(),
                     "Download {} with SteamCMD",
                     "Download all {} with SteamCMD"
                 ));
-                actions.1 += btn_width(window, theme, &said, true, false);
+                actions.1 += theme::GAP_SMALL + btn_width(window, theme, &said, true, false);
                 let ids = missing.clone();
                 actions.0.push(
                     Btn::new("download-missing", said)

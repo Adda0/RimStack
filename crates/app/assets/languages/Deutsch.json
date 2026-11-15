@@ -1701,5 +1701,6 @@
  "{} mods swapped for their replacements": "{} Mods gegen ihren Ersatz getauscht",
  "Download all {} with SteamCMD": "Alle {} mit SteamCMD herunterladen",
  "Download {} with SteamCMD": "{} mit SteamCMD herunterladen",
+ "Puts every missing mod that has a Workshop page in Look up, to subscribe to them in Steam or download them.": "Puts every missing mod that has a Workshop page in Look up, to subscribe to them in Steam or download them.",
  "SteamCMD downloads each missing mod that has a Workshop page into the game's Mods folder, without subscribing.": "SteamCMD lädt jeden fehlenden Mod, der eine Workshop-Seite hat, in den Mods-Ordner des Spiels herunter, ohne ihn zu abonnieren."
 }
