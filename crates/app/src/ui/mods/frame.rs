@@ -42,6 +42,7 @@ impl Render for Mods {
             true => self.hint(&theme, window, cx),
             false => None,
         };
+        let scrim = theme.colours.scrim;
         div()
             .flex()
             .flex_col()
@@ -75,6 +76,13 @@ impl Render for Mods {
             .on_action(cx.listener(|mods, _: &Save, _, cx| {
                 if mods.list.read(cx).standing.dirty {
                     mods.save(None, cx);
+                }
+            }))
+            // A file from outside; mods dragged between the lists are rows' own drops.
+            .drag_over::<gpui::ExternalPaths>(move |s, _, _, _| s.bg(scrim))
+            .on_drop(cx.listener(|mods, dropped: &gpui::ExternalPaths, _, cx| {
+                if let Some(path) = dropped.paths().first() {
+                    mods.install_zip(path.clone(), cx);
                 }
             }))
             .when_some(self.comparing.clone(), |d, view| {

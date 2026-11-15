@@ -10,3 +10,4 @@ pub mod rentry;
 pub mod replacements;
 pub mod rimsort_steamcmd;
 pub mod sweep;
+pub mod zip_install;

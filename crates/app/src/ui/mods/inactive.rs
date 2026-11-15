@@ -29,8 +29,10 @@ impl Mods {
             + fresh.as_deref().map_or(px(0.), |said| {
                 chip_width(window, theme, said, false) + theme::GAP
             });
+        let zip = (!drawer).then(|| btn_width(window, theme, "", true, false) + theme::GAP);
         let acts = btn_width(window, theme, &order, true, true)
             + theme::GAP
+            + zip.unwrap_or_default()
             + btn_width(window, theme, &hide, false, false);
         let room = width - theme::GAP_CARD - theme::GAP_LARGE;
         let stacked = named + acts + theme::GAP > room;
@@ -49,6 +51,15 @@ impl Mods {
                         let _ = me.update(cx, |mods, cx| mods.inactive_order_menu(below, window, cx));
                     });
                 super::columns::placed(button, self.layout.menu_buttons.order.clone())
+            })
+            .when(!drawer, |d| {
+                d.child(
+                    Btn::new("install-zip", "")
+                        .icon("download")
+                        .tip(put(&say!("Install a mod from a .zip on this computer")))
+                        .spoken(put(&say!("Install from zip…")))
+                        .on_click(cx.listener(|mods, _, window, cx| mods.pick_zip(window, cx))),
+                )
             })
             .child(match drawer {
                 true => Btn::new("pin-inactive", hide)

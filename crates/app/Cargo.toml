@@ -67,5 +67,6 @@ embed-resource = "3"
 [dev-dependencies]
 tempfile = "3"
 image = { version = "0.25", default-features = false, features = ["png"] }
+zip = { version = "9.0.5", default-features = false, features = ["deflate"] }
 gpui = { package = "gpui-fast", version = "=0.1.14", features = ["test-support"] }
 gpui_platform = { package = "gpui-fast-platform", version = "=0.1.14", features = ["wayland", "x11", "test-support"] }

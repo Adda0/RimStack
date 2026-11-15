@@ -39,6 +39,8 @@ regex = "1"
 dunce = "1"
 # Dates in the diagnostics; already built for the app (MIT/Apache-2.0).
 chrono = { version = "0.4", default-features = false, features = ["alloc"] }
+# Install a mod from a downloaded .zip; deflate only, what mod archives use (MIT).
+zip = { version = "9.0.5", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]
 tempfile = "3"

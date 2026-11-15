@@ -28,6 +28,7 @@ mod sort_moves;
 mod state;
 mod tabs;
 mod unread;
+mod zip;
 
 use super::text_field::TextField;
 use super::theme::Theme;

@@ -1672,5 +1672,13 @@
  "Local mods folder": "Pasta de mods locais",
  "Mod settings folder": "Pasta de configurações dos mods",
  "Saves folder": "Pasta de jogos salvos",
- "The Mods folder inside the RimWorld folder: mods copied in by hand, and those downloaded here.": "A pasta Mods dentro da pasta do RimWorld: os mods copiados à mão e os baixados aqui."
+ "The Mods folder inside the RimWorld folder: mods copied in by hand, and those downloaded here.": "A pasta Mods dentro da pasta do RimWorld: os mods copiados à mão e os baixados aqui.",
+ "Install a mod from a .zip on this computer": "Instalar um mod de um .zip neste computador",
+ "Install from zip…": "Instalar de um zip…",
+ "RimWorld is running. Close the game before installing a mod.": "O RimWorld está em execução. Feche o jogo antes de instalar um mod.",
+ "the zip holds no About/About.xml": "O zip não contém About/About.xml",
+ "the zip reaches outside its folder": "O zip sai da sua própria pasta",
+ "the zip's name has no text": "O nome do zip não tem texto",
+ "{} is not a .zip": "“{}” não é um ficheiro .zip",
+ "{} is now with the local mods": "{} está agora com os mods locais"
 }
