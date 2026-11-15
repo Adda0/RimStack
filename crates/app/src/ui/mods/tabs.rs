@@ -103,6 +103,39 @@ impl DetailsView {
             String::new(),
             &details.requires,
         ));
+        shown.extend(names(
+            theme,
+            put(&say!("Needed by")),
+            String::new(),
+            &details.needed_by,
+        ));
+        if !details.off_with.is_empty() {
+            let ids = details.off_with.clone();
+            shown.push(
+                div()
+                    .flex()
+                    .pb(theme::GAP_SMALL)
+                    .child(
+                        Btn::new(
+                            "off-with",
+                            put(&say_n!(
+                                ids.len() - 1,
+                                "Switch off, with the {} mod needing it",
+                                "Switch off, with the {} mods needing it"
+                            )),
+                        )
+                        .on_click(self.on_mods(move |mods, cx| {
+                            mods.take_ids(
+                                crate::workspace::load_order::Side::Active,
+                                &ids,
+                                None,
+                                cx,
+                            )
+                        })),
+                    )
+                    .into_any_element(),
+            );
+        }
         if active {
             shown.push(group_title(theme, put(&say!("Own rules"))));
             for (at, rule) in details.your_rules.iter().enumerate() {

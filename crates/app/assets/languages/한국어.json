@@ -1719,5 +1719,8 @@
  "Settings of {} mod that is gone, left behind:": "Settings of {} mod that is gone, left behind:",
  "Settings of {} mods that are gone, left behind:": "Settings of {} mods that are gone, left behind:",
  "That mod is no longer where it was read; read the folders again": "That mod is no longer where it was read; read the folders again",
- "This mod has no settings files": "This mod has no settings files"
+ "This mod has no settings files": "This mod has no settings files",
+ "Switch off, with the {} mod needing it": "Switch off, with the {} mod needing it",
+ "Switch off, with the {} mods needing it": "Switch off, with the {} mods needing it",
+ "switched off": "switched off"
 }

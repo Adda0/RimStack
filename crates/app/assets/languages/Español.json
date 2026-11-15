@@ -1719,5 +1719,8 @@
  "Settings of {} mod that is gone, left behind:": "Ajustes de {} mod que ya no está, dejados atrás:",
  "Settings of {} mods that are gone, left behind:": "Ajustes de {} mods que ya no están, dejados atrás:",
  "That mod is no longer where it was read; read the folders again": "Ese mod ya no está donde se leyó; vuelve a leer las carpetas",
- "This mod has no settings files": "Este mod no tiene archivos de configuración"
+ "This mod has no settings files": "Este mod no tiene archivos de configuración",
+ "Switch off, with the {} mod needing it": "Desactivar, junto con {} mod que lo necesita",
+ "Switch off, with the {} mods needing it": "Desactivar, junto con {} mods que lo necesitan",
+ "switched off": "switched off"
 }

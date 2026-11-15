@@ -53,7 +53,7 @@ impl Bisect {
     /// All `false` when the suspects need each other and cannot be told apart.
     pub fn off(&self) -> Vec<bool> {
         let count = self.original.len();
-        let needing = needing(&self.requires, count);
+        let needing = crate::mods::library::needing(&self.requires, count);
         let mut suspect = vec![false; count];
         self.suspects.iter().for_each(|at| suspect[*at] = true);
         // What taking `at` off takes with it beyond `off`: itself and every mod needing it.
@@ -150,40 +150,13 @@ impl Bisect {
     }
 }
 
-/// For each of the first `count` mods, those of them that need it directly.
-fn needing(requires: &[Vec<usize>], count: usize) -> Vec<Vec<usize>> {
-    let mut needing = vec![Vec::new(); count];
-    for (at, needs) in requires.iter().enumerate().take(count) {
-        for &need in needs {
-            if let Some(by) = needing.get_mut(need) {
-                by.push(at);
-            }
-        }
-    }
-    needing
-}
-
 pub fn start(library: &Library, mods: &[Mod], recent: &HashSet<String>) -> Bisect {
-    let abouts = library.abouts(mods);
-    let position = crate::mods::rules::positions(&abouts);
     let installed = |m: &Mod| library.get(m.installed?);
     let fixed: Vec<bool> = mods
         .iter()
         .map(|m| installed(m).is_some_and(|i| i.source == Source::Official))
         .collect();
-    let requires = abouts
-        .iter()
-        .map(|about| {
-            let needed = about.map(|a| a.dependencies.for_version(&library.game_version));
-            let keys = needed.unwrap_or_default().iter();
-            keys.filter_map(|id| {
-                position
-                    .get(&crate::rimworld::id::split_steam(id).0)
-                    .copied()
-            })
-            .collect()
-        })
-        .collect();
+    let requires = library.requires_within(mods);
     let first: Vec<bool> = mods
         .iter()
         .map(|m| recent.contains(&crate::rimworld::id::split_steam(&m.id).0))

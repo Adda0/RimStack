@@ -86,7 +86,13 @@ impl Mods {
         self.done_said(said, cx);
     }
 
-    fn take_ids(&mut self, from: Side, ids: &[ModId], to: Option<usize>, cx: &mut Context<Self>) {
+    pub(super) fn take_ids(
+        &mut self,
+        from: Side,
+        ids: &[ModId],
+        to: Option<usize>,
+        cx: &mut Context<Self>,
+    ) {
         if ids.is_empty() {
             return;
         }
