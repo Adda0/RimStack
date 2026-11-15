@@ -4,7 +4,7 @@ use rimstack_core::base::error::Error;
 use rimstack_core::base::locks::Shared;
 use rimstack_core::base::sentence::Sentence;
 use rimstack_core::kept::settings::Switch;
-use rimstack_core::kept::updates::{self, LastCheck, Remote};
+use rimstack_core::kept::updates::{LastCheck, Remote};
 use rimstack_core::mods::library::{Installed, Library, ModId};
 use rimstack_core::rimworld::paths::Source;
 use rimstack_core::rimworld::workshop::{self, Version};
@@ -303,10 +303,7 @@ impl App {
 
     fn asked_of_git<'a>(&self, library: &'a Library) -> Vec<(ModId, &'a Installed)> {
         let git_for_workshop = self.settings().switch(Switch::GitForWorkshop);
-        library
-            .ids()
-            .filter(|(_, m)| updates::asks_git(m.source, m.git, git_for_workshop))
-            .collect()
+        downloads::checkouts(library, git_for_workshop).collect()
     }
 
     fn checkouts_asked(&self, library: &Library) -> BTreeMap<String, Remote> {
