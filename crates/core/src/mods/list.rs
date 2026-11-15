@@ -117,6 +117,8 @@ pub struct Mod {
     pub chosen: bool,
     /// The mod that has to load after it and keeps it in an earlier category than `filed`.
     pub held_by: String,
+    /// Its folders hold only translations, of a keyed strings Languages folder.
+    pub translation: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

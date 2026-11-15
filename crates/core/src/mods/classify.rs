@@ -156,6 +156,7 @@ mod tests {
             patches,
             assemblies,
             textures,
+            languages: false,
         };
         assert_eq!(classify(CODE, &none, alone), Category::Content);
         assert_eq!(

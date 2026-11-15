@@ -425,7 +425,7 @@ fn patched(aim: &crate::rimworld::code::Aim) -> String {
     format!("{}.{}", aim.target, aim.method).to_lowercase()
 }
 
-fn row(m: &Installed, id: String, category: Category, installed: ModId) -> Mod {
+fn row(m: &Installed, id: String, category: Category, installed: ModId, game_version: &str) -> Mod {
     let about = m.about.as_ref().ok();
     Mod {
         id,
@@ -445,6 +445,7 @@ fn row(m: &Installed, id: String, category: Category, installed: ModId) -> Mod {
         filed: category,
         chosen: false,
         held_by: String::new(),
+        translation: m.translates(game_version).is_some(),
         name: m.display_name().to_string(),
         author: about.map(|a| a.authors.join(", ")).unwrap_or_default(),
         version: about
@@ -526,6 +527,7 @@ impl Library {
                         written.clone(),
                         self.categories[i],
                         self.id_at(i),
+                        &self.game_version,
                     ));
                 }
                 Resolved::Missing(written) => {
@@ -548,6 +550,7 @@ impl Library {
                         filed: Category::Content,
                         chosen: false,
                         held_by: String::new(),
+                        translation: false,
                         name: written.to_string(),
                         author: String::new(),
                         version: String::new(),
@@ -566,6 +569,7 @@ impl Library {
                     self.written_id(i),
                     self.categories[i],
                     self.id_at(i),
+                    &self.game_version,
                 ));
             }
         }

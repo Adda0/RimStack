@@ -366,6 +366,7 @@ impl DetailsView {
         let c = &theme.colours;
         let labels = [
             say!("Contains"),
+            say!("Translates"),
             say!("Code"),
             say!("Load time"),
             say!("Package id"),
@@ -394,6 +395,11 @@ impl DetailsView {
         .join("; ");
         let facts = [
             ("fact-contains", say!("Contains"), contains),
+            (
+                "fact-translates",
+                say!("Translates"),
+                details.translates.as_ref().map(put).unwrap_or_default(),
+            ),
             ("fact-code", say!("Code"), put(&details.code)),
             ("fact-load", say!("Load time"), details.load_time.clone()),
             (

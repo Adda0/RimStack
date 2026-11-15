@@ -1722,5 +1722,7 @@
  "This mod has no settings files": "Ten mod nie ma plików ustawień",
  "Switch off, with the {} mod needing it": "Wyłącz, razem z {} modem, który go wymaga",
  "Switch off, with the {} mods needing it": "Wyłącz, razem z {} modami, które go wymagają",
- "switched off": "switched off"
+ "switched off": "switched off",
+ "Translates": "Tłumaczy",
+ "translates another mod": "tłumaczy inny mod"
 }

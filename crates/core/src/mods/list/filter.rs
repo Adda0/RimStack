@@ -18,6 +18,7 @@ pub(super) struct Filter {
     workshop: bool,
     git: bool,
     pub(super) leftover: bool,
+    translation: bool,
     code: bool,
     patches: Vec<String>,
     has: Vec<Has>,
@@ -56,6 +57,7 @@ impl Filter {
             Some(("is", "workshop")) => self.workshop = true,
             Some(("is", "git")) => self.git = true,
             Some(("is", "leftover")) => self.leftover = true,
+            Some(("is", "translation")) => self.translation = true,
             Some(("is", "active")) => self.ask(Side::Active),
             Some(("is", "inactive")) => self.ask(Side::Inactive),
             Some(("has", "code")) => self.code = true,
@@ -147,6 +149,7 @@ impl Filter {
             && (!self.git || m.git)
             && (!self.leftover || m.leftover)
             && (!self.code || m.code)
+            && (!self.translation || m.translation)
             && self
                 .patches
                 .iter()

@@ -1722,5 +1722,7 @@
  "This mod has no settings files": "Ce mod n'a pas de fichiers de paramètres",
  "Switch off, with the {} mod needing it": "Désactiver, avec {} mod qui en a besoin",
  "Switch off, with the {} mods needing it": "Désactiver, avec {} mods qui en ont besoin",
- "switched off": "switched off"
+ "switched off": "switched off",
+ "Translates": "Traduit",
+ "translates another mod": "traduit un autre mod"
 }

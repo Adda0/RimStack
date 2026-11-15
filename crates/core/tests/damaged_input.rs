@@ -162,6 +162,7 @@ fn a_mod(name: &str, category: Category) -> Mod {
         filed: category,
         chosen: false,
         held_by: String::new(),
+        translation: false,
     }
 }
 
