@@ -84,6 +84,7 @@ const TERMS: &[(&str, About)] = &[
     ("tag:", |_| say!("has this tag")),
     ("version:", |_| say!("the newest game version it lists")),
     ("author:", |_| say!("by this author")),
+    ("needs:", |_| say!("lists this DLC as a dependency")),
 ];
 
 const MOST_TAGS: usize = 12;
@@ -120,6 +121,13 @@ pub fn offers<'a>(
             "author",
             value,
             mods.flat_map(|m| m.author.split(',')),
+            fresh,
+        ),
+        Some(("needs", value)) => value_offers(
+            sign,
+            "needs",
+            value,
+            mods.flat_map(|m| m.needs_dlcs.iter().map(String::as_str)),
             fresh,
         ),
         Some(("patches", value)) => value_offers(
@@ -481,6 +489,33 @@ mod tests {
         assert_eq!(terms("!defines:oo", ""), ["!defines:Wood"]);
         assert_eq!(terms("patchesdef:", ""), ["patchesdef:Steel"]);
         assert!(terms("defines:", "defines:steel defines:wood").is_empty());
+    }
+
+    #[test]
+    fn needs_values_are_the_dlcs_mods_depend_on_most_used_first() {
+        let own = |dlcs: &&[&str]| Mod {
+            needs_dlcs: dlcs.iter().map(|d| d.to_string()).collect(),
+            ..blank()
+        };
+        let biotech = "ludeon.rimworld.biotech";
+        let royalty = "ludeon.rimworld.royalty";
+        let each: [&[&str]; 3] = [&[royalty], &[], &[biotech, royalty, ""]];
+        let mods: Vec<Mod> = each.iter().map(own).collect();
+        let found = offers("needs:", "", &Counted::default(), &mods, &HashMap::new());
+        let all: Vec<(String, String)> = found
+            .offers
+            .into_iter()
+            .map(|o| (o.term, o.about.to_string()))
+            .collect();
+        assert_eq!(
+            all,
+            [
+                (format!("needs:{royalty}"), "2 mods".into()),
+                (format!("needs:{biotech}"), "1 mod".into()),
+            ]
+        );
+        let found = offers("needs:roy", "", &Counted::default(), &mods, &HashMap::new());
+        assert_eq!(found.offers.len(), 1);
     }
 
     #[test]

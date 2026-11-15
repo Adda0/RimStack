@@ -1736,5 +1736,8 @@
  "Delete the group {}": "Usuń grupę {}",
  "Delete the group {}…": "Usuń grupę {}…",
  "{} mod is in it. It keeps its place in the load order and loses only this tag.": "Jest w niej {} mod. Zachowuje miejsce w kolejności ładowania i traci tylko ten tag.",
- "{} mods are in it. They keep their places in the load order and lose only this tag.": "Jest w niej {} modów. Zachowują miejsca w kolejności ładowania i tracą tylko ten tag."
+ "{} mods are in it. They keep their places in the load order and lose only this tag.": "Jest w niej {} modów. Zachowują miejsca w kolejności ładowania i tracą tylko ten tag.",
+ "Missing the {} DLC": "Brakuje DLC {}",
+ "Needs the {} DLC, which is not installed.": "Wymaga DLC {}, które nie jest zainstalowane.",
+ "lists this DLC as a dependency": "wymienia to DLC jako zależność"
 }

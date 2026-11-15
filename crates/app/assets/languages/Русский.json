@@ -1736,5 +1736,8 @@
  "Delete the group {}": "Delete the group {}",
  "Delete the group {}…": "Delete the group {}…",
  "{} mod is in it. It keeps its place in the load order and loses only this tag.": "{} mod is in it. It keeps its place in the load order and loses only this tag.",
- "{} mods are in it. They keep their places in the load order and lose only this tag.": "{} mods are in it. They keep their places in the load order and lose only this tag."
+ "{} mods are in it. They keep their places in the load order and lose only this tag.": "{} mods are in it. They keep their places in the load order and lose only this tag.",
+ "Missing the {} DLC": "Missing the {} DLC",
+ "Needs the {} DLC, which is not installed.": "Needs the {} DLC, which is not installed.",
+ "lists this DLC as a dependency": "lists this DLC as a dependency"
 }

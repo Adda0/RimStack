@@ -21,6 +21,7 @@ pub(super) struct Filter {
     translation: bool,
     code: bool,
     patches: Vec<String>,
+    needs: Vec<String>,
     has: Vec<Has>,
     defines: Vec<String>,
     patches_def: Vec<String>,
@@ -64,6 +65,7 @@ impl Filter {
             Some(("patches", method)) if !method.is_empty() => {
                 self.patches.push(method.to_string())
             }
+            Some(("needs", dlc)) if !dlc.is_empty() => self.needs.push(dlc.to_string()),
             Some(("has", what)) if Has::named(what).is_some() => self.has.extend(Has::named(what)),
             Some(("defines", name)) if !name.is_empty() => self.defines.push(name.to_string()),
             Some(("patchesdef", name)) if !name.is_empty() => {
@@ -154,6 +156,10 @@ impl Filter {
                 .patches
                 .iter()
                 .all(|p| m.patched.iter().any(|at| at.contains(p)))
+            && self
+                .needs
+                .iter()
+                .all(|dlc| m.needs_dlcs.iter().any(|own| own.contains(dlc)))
     }
 }
 

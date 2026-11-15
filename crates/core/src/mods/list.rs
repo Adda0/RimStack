@@ -119,6 +119,8 @@ pub struct Mod {
     pub held_by: String,
     /// Its folders hold only translations, of a keyed strings Languages folder.
     pub translation: bool,
+    /// Folded package ids of the official DLCs it lists as dependencies.
+    pub needs_dlcs: Vec<String>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

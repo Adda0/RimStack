@@ -64,6 +64,7 @@ pub fn generate(count: usize) -> Vec<Mod> {
                 filed: category,
                 chosen: false,
                 held_by: String::new(),
+                needs_dlcs: Vec::new(),
                 translation: false,
                 name: format!(
                     "{} {} {}",

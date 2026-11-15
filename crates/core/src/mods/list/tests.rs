@@ -23,6 +23,7 @@ pub(super) fn m(name: &str, author: &str, category: Category) -> Mod {
         filed: category,
         chosen: false,
         held_by: String::new(),
+        needs_dlcs: Vec::new(),
         translation: false,
         name: name.into(),
         author: author.into(),
@@ -321,6 +322,28 @@ fn typed_filter_terms_narrow_by_author_tag_source_and_code() {
     assert!(shown(&list).is_empty());
     list.set_filter("  ");
     assert_eq!(shown(&list).len(), 6);
+}
+
+#[test]
+fn a_needs_term_shows_the_mods_depending_on_that_dlc() {
+    let mut mods = sample().mods().to_vec();
+    mods[1].needs_dlcs = vec!["ludeon.rimworld.biotech".into()];
+    mods[5].needs_dlcs = vec!["ludeon.rimworld.royalty".into()];
+    let names = [mods[1].name.clone(), mods[5].name.clone()];
+    let mut list = GroupedList::flat(mods);
+    let shown = |list: &GroupedList| -> Vec<String> {
+        let name = |r: &Row| match r {
+            Row::Mod { index } => Some(list.mods()[*index].name.clone()),
+            _ => None,
+        };
+        list.rows().iter().filter_map(name).collect()
+    };
+    list.set_filter("needs:Biotech");
+    assert_eq!(shown(&list), names[..1]);
+    list.set_filter("needs:ludeon.rimworld");
+    assert_eq!(shown(&list), names);
+    list.set_filter("!needs:royalty");
+    assert_eq!(shown(&list).len(), 5);
 }
 
 #[test]

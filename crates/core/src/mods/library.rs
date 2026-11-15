@@ -438,6 +438,22 @@ fn patched(aim: &crate::rimworld::code::Aim) -> String {
     format!("{}.{}", aim.target, aim.method).to_lowercase()
 }
 
+/// Folded package ids of the official DLCs it depends on, for any game version, sorted.
+fn official_dlcs(about: Option<&About>) -> Vec<String> {
+    let Some(about) = about else {
+        return Vec::new();
+    };
+    let deps = &about.dependencies;
+    let mut dlcs: Vec<String> = (deps.base.iter())
+        .chain(deps.by_version.values().flatten())
+        .map(|dep| id::fold(&id::split_steam(dep).0))
+        .filter(|folded| crate::rimworld::official::dlc_name(folded).is_some())
+        .collect();
+    dlcs.sort();
+    dlcs.dedup();
+    dlcs
+}
+
 fn row(m: &Installed, id: String, category: Category, installed: ModId, game_version: &str) -> Mod {
     let about = m.about.as_ref().ok();
     Mod {
@@ -459,6 +475,7 @@ fn row(m: &Installed, id: String, category: Category, installed: ModId, game_ver
         chosen: false,
         held_by: String::new(),
         translation: m.translates(game_version).is_some(),
+        needs_dlcs: official_dlcs(about),
         name: m.display_name().to_string(),
         author: about.map(|a| a.authors.join(", ")).unwrap_or_default(),
         version: about
@@ -563,6 +580,7 @@ impl Library {
                         filed: Category::Content,
                         chosen: false,
                         held_by: String::new(),
+                        needs_dlcs: Vec::new(),
                         translation: false,
                         name: written.to_string(),
                         author: String::new(),

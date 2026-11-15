@@ -231,12 +231,22 @@ pub fn troubles(
                 )),
             ),
             Problem::Requires { id, name: None } => {
-                let (name, fix) = missing(id);
-                (
-                    say!("Needs {}, which is not installed.", name),
-                    say!("Missing {}", name),
-                    fix,
-                )
+                let folded = crate::rimworld::id::fold(&crate::rimworld::id::split_steam(id).0);
+                match crate::rimworld::official::dlc_name(&folded) {
+                    Some(dlc) => (
+                        say!("Needs the {} DLC, which is not installed.", dlc),
+                        say!("Missing the {} DLC", dlc),
+                        Fix::None,
+                    ),
+                    None => {
+                        let (name, fix) = missing(id);
+                        (
+                            say!("Needs {}, which is not installed.", name),
+                            say!("Missing {}", name),
+                            fix,
+                        )
+                    }
+                }
             }
             Problem::Incompatible { with } => (
                 say!("Cannot be used together with {}.", mods[*with].name),
@@ -902,6 +912,70 @@ mod tests {
         assert_eq!(
             rule(&yours, mods).to_string(),
             "your rule puts Fine before Old"
+        );
+    }
+
+    #[test]
+    fn a_dlc_not_installed_is_said_as_such_with_no_fix_and_one_inactive_can_be_activated() {
+        let tmp = tempfile::tempdir().unwrap();
+        let add = |root: &str, folder: &str, about: &str| {
+            let at = tmp.path().join(root).join(folder).join("About");
+            fs::create_dir_all(&at).unwrap();
+            fs::write(at.join("About.xml"), about).unwrap();
+        };
+        add(
+            "Data",
+            "Royalty",
+            "<ModMetaData><packageId>Ludeon.RimWorld.Royalty</packageId><name>Royalty</name></ModMetaData>",
+        );
+        add(
+            "Mods",
+            "genes",
+            "<ModMetaData><packageId>a.genes</packageId><name>Genes</name><supportedVersions><li>1.6</li></supportedVersions><modDependencies><li><packageId>ludeon.rimworld.biotech</packageId></li><li><packageId>ludeon.rimworld.royalty</packageId></li></modDependencies></ModMetaData>",
+        );
+        let roots =
+            [("Data", Source::Official), ("Mods", Source::Local)].map(|(folder, source)| ModRoot {
+                path: tmp.path().join(folder),
+                source,
+            });
+        let library = build(scan(&roots), &["a.genes".to_string()], "1.6");
+        let found = troubles(
+            &library,
+            &library.active,
+            Versions::CheckedBut(&HashSet::new()),
+            &Names::new(),
+        );
+        let said: Vec<(bool, String, String, &Fix, &str)> = found[0]
+            .iter()
+            .filter(|t| t.key.starts_with("needs:"))
+            .map(|t| {
+                let (words, short) = (t.words.to_string(), t.short.to_string());
+                (t.error, words, short, &t.fix, t.key.as_str())
+            })
+            .collect();
+        assert_eq!(
+            said,
+            [
+                (
+                    true,
+                    "Needs the Biotech DLC, which is not installed.".to_string(),
+                    "Missing the Biotech DLC".to_string(),
+                    &Fix::None,
+                    "needs:ludeon.rimworld.biotech"
+                ),
+                (
+                    true,
+                    "Needs Royalty, which is installed but inactive.".to_string(),
+                    "Needs Royalty".to_string(),
+                    &Fix::Activate("ludeon.rimworld.royalty".to_string()),
+                    "needs:ludeon.rimworld.royalty"
+                ),
+            ]
+        );
+        let needs = &library.active[0].needs_dlcs;
+        assert_eq!(
+            needs,
+            &["ludeon.rimworld.biotech", "ludeon.rimworld.royalty"]
         );
     }
 }

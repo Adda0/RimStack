@@ -12,6 +12,18 @@ pub struct Official {
     pub package_id: String,
 }
 
+/// The name of an official expansion by its folded package id, installed or not.
+pub fn dlc_name(folded_id: &str) -> Option<&'static str> {
+    match folded_id {
+        "ludeon.rimworld.royalty" => Some("Royalty"),
+        "ludeon.rimworld.ideology" => Some("Ideology"),
+        "ludeon.rimworld.biotech" => Some("Biotech"),
+        "ludeon.rimworld.anomaly" => Some("Anomaly"),
+        "ludeon.rimworld.odyssey" => Some("Odyssey"),
+        _ => None,
+    }
+}
+
 /// Sorted with the game first, then the expansions by folder name.
 pub fn installed(game: &Path) -> Vec<Official> {
     let mut found: Vec<(bool, String, Official)> = std::fs::read_dir(game.join("Data"))

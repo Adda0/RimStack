@@ -243,6 +243,7 @@ mod tests {
             filed: Category::Content,
             chosen: false,
             held_by: String::new(),
+            needs_dlcs: Vec::new(),
             translation: false,
         };
         names.iter().enumerate().map(one).collect()
