@@ -1698,5 +1698,8 @@
  "Use {} replacement": "Utiliser {} remplaçant",
  "Use {} replacements": "Utiliser {} remplaçants",
  "{} mod swapped for its replacement": "{} mod remplacé par son remplaçant",
- "{} mods swapped for their replacements": "{} mods remplacés par leurs remplaçants"
+ "{} mods swapped for their replacements": "{} mods remplacés par leurs remplaçants",
+ "Download all {} with SteamCMD": "Télécharger les {} avec SteamCMD",
+ "Download {} with SteamCMD": "Télécharger {} avec SteamCMD",
+ "SteamCMD downloads each missing mod that has a Workshop page into the game's Mods folder, without subscribing.": "SteamCMD télécharge chaque mod manquant qui a une page Workshop dans le dossier Mods du jeu, sans abonnement."
 }

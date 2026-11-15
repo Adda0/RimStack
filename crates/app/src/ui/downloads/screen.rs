@@ -350,11 +350,37 @@ impl Downloads {
                     .enumerate()
                     .map(|(at, row)| self.checkout_row(theme, ("failed", at), width, row, cx)),
             );
+            let mut missing: Vec<String> = needed
+                .iter()
+                .filter(|said| said.fix.action == "subscribe")
+                .map(|said| said.fix.target.clone())
+                .collect();
+            missing.sort();
+            missing.dedup();
+            let mut actions: (Vec<AnyElement>, Pixels) = (Vec::new(), Pixels::ZERO);
+            if self.steamcmd && !missing.is_empty() {
+                let said = put(&say_n!(
+                    missing.len(),
+                    "Download {} with SteamCMD",
+                    "Download all {} with SteamCMD"
+                ));
+                actions.1 += btn_width(window, theme, &said, true, false);
+                let ids = missing.clone();
+                actions.0.push(
+                    Btn::new("download-missing", said)
+                        .icon("download")
+                        .enabled(!self.tasks.running)
+                        .tip(put(&say!("SteamCMD downloads each missing mod that has a Workshop page into the game's Mods folder, without subscribing.")))
+                        .on_click(cx.listener(move |d, _, _, cx| d.download_missing(ids.clone(), cx)))
+                        .into_any_element(),
+                );
+            }
             let card = Card::new("needs-you", put(&say!("Needs you")))
                 .tone(c.warn)
                 .note(count(needs))
+                .actions(actions.0, actions.1)
                 .body(body);
-            cards.push(card.render(theme, None).into_any_element());
+            cards.push(card.render(theme, Some((width, window))).into_any_element());
         }
         if !side {
             cards.push(self.add_mods(theme, width, window, cx).into_any_element());

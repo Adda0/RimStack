@@ -1698,5 +1698,8 @@
  "Use {} replacement": "Użyj {} zastępstwa",
  "Use {} replacements": "Użyj {} zastępstw|Użyj {} zastępstw",
  "{} mod swapped for its replacement": "{} mod zamieniony na swoje zastępstwo",
- "{} mods swapped for their replacements": "{} mody zamienione na swoje zastępstwa|{} modów zamienionych na swoje zastępstwa"
+ "{} mods swapped for their replacements": "{} mody zamienione na swoje zastępstwa|{} modów zamienionych na swoje zastępstwa",
+ "Download all {} with SteamCMD": "Pobierz wszystkie {} przez SteamCMD",
+ "Download {} with SteamCMD": "Pobierz {} przez SteamCMD",
+ "SteamCMD downloads each missing mod that has a Workshop page into the game's Mods folder, without subscribing.": "SteamCMD pobiera każdy brakujący mod ze stroną Warsztatu do folderu Mods gry, bez subskrypcji."
 }

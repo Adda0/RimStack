@@ -171,6 +171,20 @@ impl App {
         })
     }
 
+    /// The missing mods the load order needs, by Workshop id, into the game's Mods folder at
+    /// once, without passing through the download list.
+    pub fn download_missing(&self, ids: &[String]) -> Done {
+        let outcomes = match self.fetch_into_local(ids) {
+            Ok(outcomes) => outcomes,
+            Err(problem) => return Done::told(Err(problem)),
+        };
+        self.apply_downloads(&outcomes);
+        let n = outcomes.len();
+        super::copies::done_of(&outcomes, say!("{} downloaded", n), |failed, first| {
+            said!("{} of {} not downloaded: {}", failed, n, first.within())
+        })
+    }
+
     fn nothing_to_ask() -> Error {
         Error::refused(said!(
             "Steam cannot be asked about anything on the list; each row says why"

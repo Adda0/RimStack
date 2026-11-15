@@ -295,6 +295,19 @@ impl Downloads {
         }
     }
 
+    pub fn download_missing(&mut self, ids: Vec<String>, cx: &mut Context<Self>) {
+        if ids.is_empty() {
+            return;
+        }
+        let app = crate::ui::app(cx);
+        self.task(
+            say!("Downloading {} with SteamCMD…", ids.len()),
+            None,
+            move || app.download_missing(&ids),
+            cx,
+        );
+    }
+
     pub fn unsubscribe(&mut self, mod_id: ModId, cx: &mut Context<Self>) {
         let app = crate::ui::app(cx);
         self.task(
