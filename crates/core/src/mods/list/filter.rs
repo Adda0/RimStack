@@ -27,6 +27,8 @@ pub(super) struct Filter {
     patches_def: Vec<String>,
     flags: u16,
     only: Option<Side>,
+    /// `!is:active` or `!is:inactive` asked for the side; the other side stays shut.
+    negated: bool,
     both: bool,
     left_out: Vec<Filter>,
 }
@@ -36,8 +38,8 @@ impl Filter {
         let mut filter = Self::default();
         for term in text.to_lowercase().split_whitespace() {
             match term.strip_prefix('!').filter(|rest| !rest.is_empty()) {
-                Some("is:active") => filter.ask(Side::Inactive),
-                Some("is:inactive") => filter.ask(Side::Active),
+                Some("is:active") => filter.ask_not(Side::Inactive),
+                Some("is:inactive") => filter.ask_not(Side::Active),
                 Some(rest) => {
                     let mut left_out = Self::default();
                     left_out.take(rest);
@@ -90,8 +92,19 @@ impl Filter {
         self.only = Some(side);
     }
 
+    fn ask_not(&mut self, side: Side) {
+        self.negated = true;
+        self.ask(side);
+    }
+
     pub(super) fn shuts(&self, side: Option<Side>) -> bool {
         self.both || side.zip(self.only).is_some_and(|(side, only)| side != only)
+    }
+
+    /// The filter names the other side positively: this side ignores the whole filter,
+    /// so a mod found there can be dragged to a seen place here.
+    pub(super) fn shows_all_for(&self, side: Option<Side>) -> bool {
+        !self.both && !self.negated && self.shuts(side)
     }
 
     pub(super) fn is_empty(&self) -> bool {

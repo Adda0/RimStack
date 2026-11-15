@@ -85,6 +85,9 @@ impl Mods {
         } = list.standing.clone();
         let title = put(&say!("Active"));
         let counted = count(list.count(Side::Active));
+        let unfiltered = list
+            .beyond_filter(Side::Active)
+            .then(|| put(&say!("Not filtered")));
         let files_read = list.files_read;
         let sort = match (files_read, list.sort_pending) {
             (false, _) => put(&say!("Reading files…")),
@@ -102,6 +105,9 @@ impl Mods {
             + theme::GAP_LARGE
             + measure(window, theme, &title, theme.heading(), FontWeight::BOLD)
             + measure(window, theme, &counted, theme.body(), FontWeight::NORMAL)
+            + unfiltered.as_deref().map_or(px(0.), |said| {
+                measure(window, theme, said, theme.small(), FontWeight::NORMAL) + theme::GAP
+            })
             + full(&sort)
             + full(&save)
             + theme::GAP * 4.;
@@ -189,6 +195,9 @@ impl Mods {
             .pr(theme::GAP_LARGE)
             .child(label(theme, theme.heading(), c.ink, title).font_weight(FontWeight::BOLD))
             .child(label(theme, theme.body(), c.ink3, counted))
+            .when_some(unfiltered, |d, said| {
+                d.child(label(theme, theme.small(), c.ink3, said))
+            })
             .when(warnings_shown > 0 && !tight, |d| {
                 d.child(
                     Chip::new(warned)

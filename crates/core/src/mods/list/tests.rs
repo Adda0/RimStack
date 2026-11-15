@@ -400,31 +400,49 @@ fn dimmed() -> GroupedList {
 }
 
 #[test]
-fn a_side_term_leaves_the_other_list_out_and_both_leave_both() {
-    let mut active = dimmed();
-    let mut inactive = dimmed();
-    let count = |list: &GroupedList| list.matching();
-    let out = |list: &GroupedList| list.left_out().is_some();
+fn a_side_term_filters_its_own_list_and_leaves_the_other_whole() {
+    let mut active = sample();
+    let mut inactive = sample();
+    let state = |list: &GroupedList| {
+        let out = list.left_out().is_some();
+        (list.matching(), list.beyond_filter(), out, shown(list))
+    };
 
     active.set_filter_on(Side::Active, "is:active");
     inactive.set_filter_on(Side::Inactive, "is:active");
-    assert_eq!((count(&active), count(&inactive)), (6, 0));
-    assert_eq!((out(&active), out(&inactive)), (false, true));
-    assert_eq!(shown(&inactive), 6);
+    assert_eq!(state(&active), (6, false, false, 6));
+    assert_eq!(state(&inactive), (6, true, false, 6));
 
     active.set_filter_on(Side::Active, "is:inactive royalty");
     inactive.set_filter_on(Side::Inactive, "is:inactive royalty");
-    assert_eq!((count(&active), count(&inactive)), (0, 1));
-    assert_eq!((shown(&active), shown(&inactive)), (6, 1));
+    assert_eq!(state(&active), (6, true, false, 6));
+    assert_eq!(state(&inactive), (1, false, false, 1));
+
+    active.set_filter("is:inactive");
+    assert_eq!(state(&active), (6, false, false, 6));
+}
+
+#[test]
+fn a_banged_side_term_or_both_sides_still_leave_the_other_list_out() {
+    let mut active = dimmed();
+    let mut inactive = dimmed();
+    let state = |list: &GroupedList| (list.matching(), list.beyond_filter(), list.left_out());
+
+    active.set_filter_on(Side::Active, "!is:active");
+    inactive.set_filter_on(Side::Inactive, "!is:active");
+    assert_eq!(state(&active), (0, false, Some(LeftOut::Dimmed)));
+    assert_eq!(state(&inactive), (6, false, None));
+    assert_eq!(shown(&active), 6);
+
+    active.set_filter_on(Side::Active, "is:active !is:inactive");
+    inactive.set_filter_on(Side::Inactive, "is:active !is:inactive");
+    assert_eq!(state(&active), (6, false, None));
+    assert_eq!(state(&inactive), (0, false, Some(LeftOut::Dimmed)));
 
     active.set_filter_on(Side::Active, "is:active is:inactive");
     inactive.set_filter_on(Side::Inactive, "is:inactive is:active");
-    assert_eq!((count(&active), count(&inactive)), (0, 0));
-    assert!(out(&active) && out(&inactive));
-
-    active.set_filter("is:inactive");
-    assert_eq!(count(&active), 6);
-    assert!(!out(&active));
+    assert_eq!(state(&active), (0, false, Some(LeftOut::Dimmed)));
+    assert_eq!(state(&inactive), (0, false, Some(LeftOut::Dimmed)));
 }
 
 #[test]

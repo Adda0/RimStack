@@ -17,6 +17,9 @@ impl Mods {
     ) -> gpui::Div {
         let title = put(&say!("Inactive"));
         let counted = count(self.list.read(cx).count(Side::Inactive));
+        let unfiltered = (self.list.read(cx))
+            .beyond_filter(Side::Inactive)
+            .then(|| put(&say!("Not filtered")));
         let order = put(&self.orders.inactive_said);
         let hide = match drawer {
             true => put(&say!("Pin")),
@@ -26,6 +29,9 @@ impl Mods {
         let named = measure(window, theme, &title, theme.heading(), FontWeight::BOLD)
             + theme::GAP * 2.
             + measure(window, theme, &counted, theme.body(), FontWeight::NORMAL)
+            + unfiltered.as_deref().map_or(px(0.), |said| {
+                measure(window, theme, said, theme.small(), FontWeight::NORMAL) + theme::GAP
+            })
             + fresh.as_deref().map_or(px(0.), |said| {
                 chip_width(window, theme, said, false) + theme::GAP
             });
@@ -146,6 +152,9 @@ impl Mods {
                                     .font_weight(FontWeight::BOLD),
                             )
                             .child(label(theme, theme.body(), c.ink3, counted))
+                            .when_some(unfiltered, |d, said| {
+                                d.child(label(theme, theme.small(), c.ink3, said))
+                            })
                             .when_some(fresh, |d, said| {
                                 d.child(
                                     Chip::new(said)

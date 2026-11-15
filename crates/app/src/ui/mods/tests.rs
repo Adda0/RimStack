@@ -65,6 +65,32 @@ fn typing_in_the_filter_narrows_both_lists_and_clearing_it_shows_all(
 }
 
 #[gpui::test]
+fn a_side_term_leaves_the_other_list_whole_and_says_it_is_not_filtered(
+    cx: &mut gpui::TestAppContext,
+) {
+    let _root = demo(cx);
+    let (mods, cx) = cx.add_window_view(|_, cx| Mods::new(true, cx));
+    let state = |mods: &gpui::Entity<Mods>, cx: &mut gpui::VisualTestContext| {
+        mods.read_with(cx, |mods, cx| {
+            let list = mods.list.read(cx);
+            let side = |side| (list.matching(side), list.beyond_filter(side));
+            (side(Side::Active), side(Side::Inactive))
+        })
+    };
+    let all = state(&mods, cx);
+    cx.update(|window, cx| {
+        let focus = mods.read(cx).focus.clone();
+        window.focus(&focus, cx);
+    });
+    cx.simulate_keystrokes("ctrl-f");
+    cx.simulate_input("is:inactive");
+    let ((active, beyond), (_, inactive_beyond)) = state(&mods, cx);
+    assert_eq!((active, beyond, inactive_beyond), (all.0.0, true, false));
+    cx.simulate_keystrokes("escape");
+    assert_eq!(state(&mods, cx), all);
+}
+
+#[gpui::test]
 fn the_arrows_choose_an_offer_and_enter_takes_it(cx: &mut gpui::TestAppContext) {
     let _root = demo(cx);
     let (mods, cx) = cx.add_window_view(|_, cx| Mods::new(true, cx));

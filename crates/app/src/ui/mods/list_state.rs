@@ -51,6 +51,11 @@ impl ListState {
         self.order.list(side).matching()
     }
 
+    /// The filter names the other side, so this list shows all its mods.
+    pub fn beyond_filter(&self, side: Side) -> bool {
+        self.order.list(side).beyond_filter()
+    }
+
     pub fn selected_id(&self) -> Option<ModId> {
         self.selection.first().copied()
     }

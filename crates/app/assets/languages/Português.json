@@ -1750,5 +1750,8 @@
  "Writes the active mods as a CSV file, the columns of RimSort's export": "Escreve os mods ativos num ficheiro CSV, as colunas da exportação do RimSort",
  "malformed JSON: {}": "JSON mal formado: {}",
  "no mod list found": "nenhuma lista de mods encontrada",
- "{} active mods as CSV in {}": "{} active mods as CSV in {}"
+ "{} active mods as CSV in {}": "{} active mods as CSV in {}",
+ "Not filtered": "Sem filtro",
+ "filters the inactive list; the load order shows all its mods": "filters the inactive list; the load order shows all its mods",
+ "filters the load order; the inactive list shows all its mods": "filters the load order; the inactive list shows all its mods"
 }

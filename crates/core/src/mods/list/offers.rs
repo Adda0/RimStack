@@ -54,10 +54,10 @@ const TERMS: &[(&str, About)] = &[
         n => say!("{} with an update", n),
     }),
     ("is:active", |_| {
-        say!("the load order only; the inactive list is dimmed or hidden")
+        say!("filters the load order; the inactive list shows all its mods")
     }),
     ("is:inactive", |_| {
-        say!("the inactive list only; the load order is dimmed or hidden")
+        say!("filters the inactive list; the load order shows all its mods")
     }),
     ("is:workshop", |_| say!("from the Workshop")),
     ("is:local", |_| say!("in the game's Mods folder")),

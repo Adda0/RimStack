@@ -572,7 +572,15 @@ impl GroupedList {
         self.mods.iter().filter(|m| !m.leftover).count()
     }
 
+    /// The filter only applies to the other side; everything here shows, unfiltered.
+    pub fn beyond_filter(&self) -> bool {
+        self.filter.shows_all_for(self.side)
+    }
+
     fn matches(&self, index: usize) -> bool {
+        if self.beyond_filter() {
+            return !self.mods[index].leftover;
+        }
         if !self.listed(index) {
             return false;
         }
