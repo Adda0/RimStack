@@ -92,6 +92,19 @@ fn a_row_shows_what_its_list_is_ordered_by() {
 }
 
 #[test]
+fn an_inactive_mod_ordered_by_game_version_shows_the_newest_it_supports() {
+    let (tmp, app) = installed();
+    roads_made_for_an_older_game(&tmp);
+    let order = LoadOrder::read(&app, true, Some((SortKey::Game, true)));
+    let rows = order.rows(&app, Side::Inactive).into_iter();
+    let shown: Vec<String> = rows
+        .filter(|r| !r.is_header)
+        .map(|r| r.ordered_by.to_string())
+        .collect();
+    assert_eq!(shown, ["1.5"]);
+}
+
+#[test]
 fn workshop_mods_go_by_the_time_and_size_steam_records() {
     let (tmp, _) = installed();
     let root = tmp.path();

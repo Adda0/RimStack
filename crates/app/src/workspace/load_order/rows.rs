@@ -198,7 +198,8 @@ impl LoadOrder {
             SortKey::PackageId => plain(&m.id),
             SortKey::Author => plain(&m.author),
             SortKey::Version => plain(&m.version),
-            SortKey::Group | SortKey::Name | SortKey::Load | SortKey::Game => Sentence::default(),
+            SortKey::Game => plain(&m.latest_game),
+            SortKey::Group | SortKey::Name | SortKey::Load => Sentence::default(),
         }
     }
 }
