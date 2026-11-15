@@ -103,12 +103,6 @@ impl DetailsView {
             String::new(),
             &details.requires,
         ));
-        shown.extend(names(
-            theme,
-            put(&say!("Needed by")),
-            String::new(),
-            &details.needed_by,
-        ));
         if !details.off_with.is_empty() {
             let ids = details.off_with.clone();
             shown.push(
@@ -309,6 +303,44 @@ impl DetailsView {
         }
         let _ = cx;
         shown
+    }
+
+    /// The active mods whose About.xml needs this one on this game version; each selects it.
+    pub(super) fn needed_by(&self, theme: &Theme, details: &Details) -> Vec<AnyElement> {
+        let c = &theme.colours;
+        if details.needed_by.is_empty() {
+            return vec![
+                div()
+                    .pt(theme::GAP_LARGE)
+                    .sized_text(theme, theme.body())
+                    .text_color(c.ink3)
+                    .child(put(&say!("Nothing needs it.")))
+                    .into_any_element(),
+            ];
+        }
+        let buttons = details
+            .needed_by
+            .iter()
+            .enumerate()
+            .filter_map(|(at, one)| {
+                let id = one.mod_id?;
+                Some(
+                    Btn::new(("needed-by", at), one.name.clone())
+                        .on_click(move |_, _, cx| {
+                            crate::ui::navigate::go(crate::ui::navigate::Go::ShowMod(id), cx)
+                        })
+                        .into_any_element(),
+                )
+            });
+        vec![
+            div()
+                .flex()
+                .flex_wrap()
+                .pt(theme::GAP_LARGE)
+                .gap(theme::GAP_SMALL)
+                .children(buttons)
+                .into_any_element(),
+        ]
     }
 
     pub(super) fn files(

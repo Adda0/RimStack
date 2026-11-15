@@ -1724,5 +1724,7 @@
  "Switch off, with the {} mods needing it": "Switch off, with the {} mods needing it",
  "switched off": "switched off",
  "Translates": "Translates",
- "translates another mod": "translates another mod"
+ "translates another mod": "translates another mod",
+ "Needed by ({})": "Needed by ({})",
+ "Nothing needs it.": "Nothing needs it."
 }

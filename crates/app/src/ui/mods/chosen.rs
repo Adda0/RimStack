@@ -263,11 +263,12 @@ impl gpui::Render for DetailsView {
     }
 }
 
-fn tabs() -> [String; 3] {
+fn tabs(needing: usize) -> [String; 4] {
     [
         put(&say!("About")),
         put(&say!("Load order")),
         put(&say!("Files")),
+        put(&say!("Needed by ({})", needing)),
     ]
 }
 
@@ -431,7 +432,7 @@ impl DetailsView {
         };
         let narrow = inner < full(&toggle) + full(&open) + full(&page) + theme::GAP_SMALL * 2.;
         let tab = self.tab;
-        let names_of_tabs = tabs();
+        let names_of_tabs = tabs(details.needed_by.len());
         let all_words = names_of_tabs.iter().fold(px(0.), |all, name| {
             all + measure(window, theme, name, theme.small(), theme.semibold)
         });
@@ -604,10 +605,14 @@ impl DetailsView {
                 .flex()
                 .flex_col()
                 .children(self.placed(theme, details, inner, cx)),
-            _ => div()
+            2 => div()
                 .flex()
                 .flex_col()
                 .children(self.files(theme, details, inner, window, cx)),
+            _ => div()
+                .flex()
+                .flex_col()
+                .children(self.needed_by(theme, details)),
         };
         div().flex().flex_col().w_full().child(header).child(body)
     }

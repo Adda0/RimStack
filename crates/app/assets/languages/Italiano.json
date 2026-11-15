@@ -1724,5 +1724,7 @@
  "Switch off, with the {} mods needing it": "Disattiva, insieme a {} mod che lo richiedono",
  "switched off": "switched off",
  "Translates": "Traduce",
- "translates another mod": "traduce un altro mod"
+ "translates another mod": "traduce un altro mod",
+ "Needed by ({})": "Richiesto da ({})",
+ "Nothing needs it.": "Niente lo richiede."
 }
