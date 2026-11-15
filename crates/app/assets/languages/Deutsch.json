@@ -1690,5 +1690,13 @@
  "Refresh": "Aktualisieren",
  "Refreshing…": "Wird aktualisiert…",
  "Copies this rule in the community rules format, to send upstream.": "Kopiert diese Regel im Format der Community-Regeln, um sie an das Projekt zu senden.",
- "Copy in the community rules format": "Im Format der Community-Regeln kopieren"
+ "Copy in the community rules format": "Im Format der Community-Regeln kopieren",
+ "Each active mod whose replacement is installed gives its place in the load order to it. Nothing reaches the game before Save, and Undo takes it back.": "Jede aktive Mod, deren Ersatz installiert ist, überlässt ihm ihren Platz in der Ladereihenfolge. Nichts erreicht das Spiel vor dem Sichern, und Rückgängig nimmt es zurück.",
+ "Look up {} replacement": "{} Ersatz nachschlagen",
+ "Look up {} replacements": "{} Ersatzmods nachschlagen",
+ "Puts the replacements that are not installed in Look up, to subscribe to them in Steam or download them.": "Legt die nicht installierten Ersatzmods in Nachschlagen, um sie in Steam zu abonnieren oder herunterzuladen.",
+ "Use {} replacement": "{} Ersatz verwenden",
+ "Use {} replacements": "{} Ersatzmods verwenden",
+ "{} mod swapped for its replacement": "{} Mod gegen ihren Ersatz getauscht",
+ "{} mods swapped for their replacements": "{} Mods gegen ihren Ersatz getauscht"
 }

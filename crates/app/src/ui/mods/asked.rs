@@ -58,6 +58,26 @@ impl Mods {
         }
     }
 
+    /// Each active mod whose replacement is installed gives its place to it: one change, unsaved.
+    pub fn use_replacements(&mut self, cx: &mut Context<Self>) {
+        let app = crate::ui::app(cx);
+        let Some((ids, count)) = app.with_replacements() else {
+            return;
+        };
+        let before = app.snapshot("@list", app.session().current());
+        self.edit_list(cx, |list, _| list.order.use_list(&app, ids));
+        self.changed(cx);
+        let said = rimstack_core::say_n!(
+            count,
+            "{} mod swapped for its replacement",
+            "{} mods swapped for their replacements"
+        );
+        if !self.demo {
+            app.note_change(said.clone(), before.as_deref());
+        }
+        self.done_said(said, cx);
+    }
+
     pub fn set_hunting(&mut self, hunting: bool, cx: &mut Context<Self>) {
         self.hunting = hunting;
         self.sync_details(cx);

@@ -210,6 +210,11 @@ impl Shell {
                 self.go(Section::Mods, cx);
             }
             Go::FindBroken => self.start_hunt(cx),
+            Go::SwapReplacements => {
+                self.sections
+                    .mods
+                    .update(cx, |mods, cx| mods.use_replacements(cx));
+            }
             Go::Browse(text) => {
                 let (text, workshop) = (text.clone(), self.workshop(cx));
                 workshop.update(cx, |workshop, cx| workshop.browse(text, cx));

@@ -1690,5 +1690,13 @@
  "Refresh": "Actualizar",
  "Refreshing…": "Actualizando…",
  "Copies this rule in the community rules format, to send upstream.": "Copia esta regla en el formato de las reglas de la comunidad, para enviarla al proyecto.",
- "Copy in the community rules format": "Copiar en el formato de las reglas de la comunidad"
+ "Copy in the community rules format": "Copiar en el formato de las reglas de la comunidad",
+ "Each active mod whose replacement is installed gives its place in the load order to it. Nothing reaches the game before Save, and Undo takes it back.": "Cada mod activo cuyo sustituto está instalado le cede su lugar en el orden de carga. Nada llega al juego antes de Guardar, y Deshacer lo revierte.",
+ "Look up {} replacement": "Buscar {} sustituto",
+ "Look up {} replacements": "Buscar {} sustitutos",
+ "Puts the replacements that are not installed in Look up, to subscribe to them in Steam or download them.": "Pone en Buscar los sustitutos que no están instalados, para suscribirte a ellos en Steam o descargarlos.",
+ "Use {} replacement": "Usar {} sustituto",
+ "Use {} replacements": "Usar {} sustitutos",
+ "{} mod swapped for its replacement": "{} mod cambiado por su sustituto",
+ "{} mods swapped for their replacements": "{} mods cambiados por sus sustitutos"
 }

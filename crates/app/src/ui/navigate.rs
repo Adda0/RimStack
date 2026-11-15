@@ -17,6 +17,8 @@ pub enum Go {
     Distrust(ModId),
     SearchedInMods,
     FindBroken,
+    /// Each active mod with an installed replacement gives its place to it, as one change.
+    SwapReplacements,
     Browse(String),
     Subscribe(String),
     Redownload(ModId),

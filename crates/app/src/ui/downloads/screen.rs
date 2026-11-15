@@ -501,22 +501,75 @@ impl Downloads {
             "{} mods have a replacement"
         ));
         let again = put(&say!("{} ignored", ignored));
-        let actions = match ignored > 0 {
-            true => (
-                vec![
-                    Chip::new(again.clone())
-                        .icon("eye-off")
-                        .tip(put(&say!("Suggest them again")))
-                        .on_click(
-                            "suggest-again",
-                            cx.listener(|d, _, _, cx| d.ignore_replacement(None, cx)),
-                        )
-                        .into_any_element(),
-                ],
-                chip_width(window, theme, &again, true),
-            ),
-            false => (Vec::new(), Pixels::ZERO),
+        let mut actions: (Vec<AnyElement>, Pixels) = (Vec::new(), Pixels::ZERO);
+        let mut act = |element: AnyElement, width: Pixels| {
+            if !actions.0.is_empty() {
+                actions.1 += theme::GAP_SMALL;
+            }
+            actions.0.push(element);
+            actions.1 += width;
         };
+        let swappable = self
+            .replacements
+            .iter()
+            .filter(|old| old.active && old.have_new)
+            .count();
+        if swappable > 0 {
+            let said = put(&say_n!(
+                swappable,
+                "Use {} replacement",
+                "Use {} replacements"
+            ));
+            let width = btn_width(window, theme, &said, true, false);
+            act(
+                Btn::new("use-replacements", said)
+                    .icon("corner-down-right")
+                    .tip(put(&say!("Each active mod whose replacement is installed gives its place in the load order to it. Nothing reaches the game before Save, and Undo takes it back.")))
+                    .on_click(|_, _, cx| crate::ui::navigate::go(crate::ui::navigate::Go::SwapReplacements, cx))
+                    .into_any_element(),
+                width,
+            );
+        }
+        let lacking: Vec<String> = self
+            .replacements
+            .iter()
+            .filter(|old| !old.have_new)
+            .map(|old| old.new_id.clone())
+            .collect();
+        if !lacking.is_empty() {
+            let said = put(&say_n!(
+                lacking.len(),
+                "Look up {} replacement",
+                "Look up {} replacements"
+            ));
+            let width = btn_width(window, theme, &said, true, false);
+            let asked = lacking.join(" ");
+            act(
+                Btn::new("look-up-replacements", said)
+                    .icon("search")
+                    .enabled(!self.queue_busy)
+                    .tip(put(&say!("Puts the replacements that are not installed in Look up, to subscribe to them in Steam or download them.")))
+                    .on_click(cx.listener(move |d, _, _, cx| {
+                        d.pasted.update(cx, |field, cx| field.set_text(&asked, cx));
+                        d.look_up(cx);
+                    }))
+                    .into_any_element(),
+                width,
+            );
+        }
+        if ignored > 0 {
+            act(
+                Chip::new(again.clone())
+                    .icon("eye-off")
+                    .tip(put(&say!("Suggest them again")))
+                    .on_click(
+                        "suggest-again",
+                        cx.listener(|d, _, _, cx| d.ignore_replacement(None, cx)),
+                    )
+                    .into_any_element(),
+                chip_width(window, theme, &again, true),
+            );
+        }
         let rows = self.replacements.iter().enumerate().map(|(at, old)| {
             let mod_id = old.mod_id;
             let page = crate::ui::workshop_page(&old.new_id);

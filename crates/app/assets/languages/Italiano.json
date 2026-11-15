@@ -1690,5 +1690,13 @@
  "Refresh": "Aggiorna",
  "Refreshing…": "Aggiornamento…",
  "Copies this rule in the community rules format, to send upstream.": "Copia questa regola nel formato delle regole della comunità, per inviarla a monte.",
- "Copy in the community rules format": "Copia nel formato delle regole della comunità"
+ "Copy in the community rules format": "Copia nel formato delle regole della comunità",
+ "Each active mod whose replacement is installed gives its place in the load order to it. Nothing reaches the game before Save, and Undo takes it back.": "Ogni mod attiva il cui sostituto è installato gli cede il suo posto nell'ordine di caricamento. Nulla raggiunge il gioco prima di Salva, e Annulla lo riporta indietro.",
+ "Look up {} replacement": "Cerca {} sostituto",
+ "Look up {} replacements": "Cerca {} sostituti",
+ "Puts the replacements that are not installed in Look up, to subscribe to them in Steam or download them.": "Mette in Cerca i sostituti non installati, per iscriversi in Steam o scaricarli.",
+ "Use {} replacement": "Usa {} sostituto",
+ "Use {} replacements": "Usa {} sostituti",
+ "{} mod swapped for its replacement": "{} mod sostituita dal suo sostituto",
+ "{} mods swapped for their replacements": "{} mod sostituite dai loro sostituti"
 }
