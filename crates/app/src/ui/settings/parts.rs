@@ -53,6 +53,25 @@ impl Settings {
             window,
             cx,
         )));
+        let local = report.local_mods.clone();
+        let room = self.held_room(theme, window);
+        rows.push(Row::Line(
+            Line::new(0, "local-mods", put(&say!("Local mods")))
+                .tip(put(&say!(
+                    "The Mods folder inside the RimWorld folder: mods copied in by hand, and those downloaded here."
+                )))
+                .held(path(
+                    "local-mods-path",
+                    local.clone().unwrap_or_else(|| put(&say!("Not found"))),
+                    if local.is_some() { c.ink } else { c.err },
+                    room,
+                    local
+                        .is_some()
+                        .then(|| ("folder-open", put(&say!("Open folder")))),
+                    theme,
+                    window,
+                )),
+        ));
         rows.push(Row::Line(self.folder(
             1,
             put(&say!("Config and saves")),

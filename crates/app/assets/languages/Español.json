@@ -1671,5 +1671,6 @@
  "Added since the last launch without errors, these are tried first: {}": "Añadidos desde el último inicio sin errores, estos se prueban primero: {}",
  "Local mods folder": "Carpeta de mods locales",
  "Mod settings folder": "Carpeta de ajustes de mods",
- "Saves folder": "Carpeta de partidas guardadas"
+ "Saves folder": "Carpeta de partidas guardadas",
+ "The Mods folder inside the RimWorld folder: mods copied in by hand, and those downloaded here.": "La carpeta Mods dentro de la carpeta de RimWorld: los mods copiados a mano y los descargados aquí."
 }
