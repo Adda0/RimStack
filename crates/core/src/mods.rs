@@ -20,6 +20,7 @@ pub mod packed;
 pub mod rules;
 pub mod session;
 pub mod share;
+pub mod share_file;
 pub mod sort;
 pub mod sort_reasons;
 pub mod spare;

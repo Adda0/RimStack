@@ -290,6 +290,11 @@ impl App {
         &self.data_dir
     }
 
+    /// Where a user's own files go; the file dialogs open here.
+    pub fn home_dir(&self) -> &Path {
+        &self.home
+    }
+
     /// `$XDG_CONFIG_HOME/RimStack` on Linux; the system's place elsewhere.
     pub fn settings_file(&self) -> PathBuf {
         self.settings_dir.join("settings.json")

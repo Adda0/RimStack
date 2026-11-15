@@ -9,6 +9,7 @@ use rimstack_core::rimworld::modsconfig;
 use rimstack_core::say;
 use rimstack_core::sources::rentry;
 use serde::Serialize;
+use std::path::{Path, PathBuf};
 
 const CORE: &str = "ludeon.rimworld";
 
@@ -143,6 +144,51 @@ impl App {
 
     pub fn saved_lists(&self) -> Vec<lists::Saved> {
         lists::all(&self.lists_dir())
+    }
+
+    /// `active` as RimSort's CSV export, at `path` with `.csv` added when it names no
+    /// extension; the file written and how many mods are in it.
+    pub fn export_csv(&self, active: &[ModId], path: &Path) -> Result<(PathBuf, usize), Error> {
+        use rimstack_core::mods::share_file::{self, Row};
+        use rimstack_core::rimworld::paths::Source;
+        let loaded = self.library();
+        let Ok((library, _)) = &*loaded else {
+            return Err(Error::refused(say!("The mods are not read yet.")));
+        };
+        let steam = self.steam_record();
+        let rows: Vec<Row> = active
+            .iter()
+            .filter_map(|&id| {
+                let installed = library.get(id)?;
+                let about = installed.about.as_ref().ok();
+                Some(Row {
+                    name: installed.display_name().to_string(),
+                    author: about.map(|a| a.authors.join(", ")).unwrap_or_default(),
+                    package_id: about.map(|a| a.package_id.clone()).unwrap_or_default(),
+                    file_id: match installed.source {
+                        Source::Workshop => installed.folder.clone(),
+                        _ => String::new(),
+                    },
+                    supported: about
+                        .map(|a| a.supported_versions.clone())
+                        .unwrap_or_default(),
+                    downloaded: installed
+                        .created
+                        .filter(|_| installed.source != Source::Official),
+                    updated: steam.times.get(&installed.folder).copied(),
+                    source: installed.source_label().to_string(),
+                    path: installed.path.to_string_lossy().into_owned(),
+                    url: about.and_then(|a| a.url.clone()).unwrap_or_default(),
+                })
+            })
+            .collect();
+        let mut path = path.to_path_buf();
+        if path.extension().is_none() {
+            path.set_extension("csv");
+        }
+        let written = rows.len();
+        rimstack_core::base::atomic_file::write(&path, share_file::csv(&rows))?;
+        Ok((path, written))
     }
 
     /// Newest first.
@@ -318,5 +364,37 @@ mod tests {
         );
         assert_eq!(app.snapshot_named(&snapshot).unwrap(), ["a.b"]);
         assert_eq!(app.original_list(), None);
+    }
+
+    #[test]
+    fn the_active_mods_are_written_as_rimsorts_csv() {
+        let (tmp, app) = installed();
+        let loaded = app.library();
+        let (library, _) = loaded.as_ref().as_ref().unwrap();
+        let active: Vec<ModId> = library
+            .arrange(&["ludeon.rimworld".to_string()])
+            .active
+            .iter()
+            .filter_map(|m| m.installed)
+            .collect();
+        let asked = tmp.path().join("home/modlist");
+        let (written, count) = app.export_csv(&active, &asked).unwrap();
+        assert_eq!(written, asked.with_extension("csv"));
+        assert_eq!(count, 1);
+        let text = std::fs::read_to_string(&written).unwrap();
+        let mut lines = text.split("\r\n");
+        assert_eq!(
+            lines.next().unwrap().strip_prefix('\u{feff}').unwrap(),
+            "Name,Author,Package ID,Published File Id,Supported Versions,Mod Downloaded,Updated on Workshop,Source,Path,Workshop Page"
+        );
+        let path = tmp.path().join("game/Data/Core");
+        assert_eq!(
+            lines.next().unwrap(),
+            format!(
+                "Ludeon.RimWorld,,Ludeon.RimWorld,,,,,Ludeon,{},",
+                path.display()
+            )
+        );
+        assert_eq!(lines.next(), Some(""));
     }
 }

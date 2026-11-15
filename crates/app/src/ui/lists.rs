@@ -162,6 +162,88 @@ impl Lists {
         self.close(window, cx);
     }
 
+    /// Asks where the CSV goes, offering `modlist.csv` in the user's own folder, and writes it.
+    fn export_csv(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let home = super::app(cx).home_dir().to_path_buf();
+        let chosen = cx.prompt_for_new_path(&home, Some("modlist.csv"));
+        self.close(window, cx);
+        cx.spawn_in(window, async move |lists, cx| {
+            let Ok(Ok(Some(path))) = chosen.await else {
+                return;
+            };
+            let _ = lists.update(cx, |lists, cx| lists.write_csv(path, cx));
+        })
+        .detach();
+    }
+
+    fn write_csv(&mut self, path: std::path::PathBuf, cx: &mut Context<Self>) {
+        let (app, active) = (super::app(cx), (*super::order::read(cx).active).clone());
+        crate::jobs::run(
+            "csv export",
+            cx,
+            move || app.export_csv(&active, &path),
+            |_, done, cx| match done {
+                Ok((at, count)) => {
+                    let note = say_n!(
+                        count,
+                        "The active mod as CSV in {}",
+                        "{} active mods as CSV in {}",
+                        at.display()
+                    );
+                    notices::say(put(&note), notices::Tone::Ok, cx);
+                }
+                Err(problem) => {
+                    notices::say(crate::words::said_of(&problem), notices::Tone::Err, cx)
+                }
+            },
+        );
+    }
+
+    /// Asks for a RimSort, RimPy or text list file and makes it the load order.
+    fn use_file(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let chosen = cx.prompt_for_paths(gpui::PathPromptOptions {
+            files: true,
+            directories: false,
+            multiple: false,
+            prompt: Some(put(&say!("Choose the list file…")).into()),
+        });
+        self.close(window, cx);
+        cx.spawn_in(window, async move |lists, cx| {
+            let Ok(Ok(Some(paths))) = chosen.await else {
+                return;
+            };
+            let Some(path) = paths.into_iter().next() else {
+                return;
+            };
+            let _ = lists.update(cx, |lists, cx| lists.read_file(path, cx));
+        })
+        .detach();
+    }
+
+    /// Kept off the window's thread, whatever kind of list file it is.
+    fn read_file(&mut self, path: std::path::PathBuf, cx: &mut Context<Self>) {
+        crate::jobs::run(
+            "list file",
+            cx,
+            move || rimstack_core::mods::share_file::file(&path),
+            |lists, read, cx| match read {
+                Ok(ids) if ids.is_empty() => {
+                    lists.problem = put(&say!("No mod found in that file"));
+                    cx.notify();
+                }
+                Ok(ids) => {
+                    super::navigate::go(super::navigate::Go::TakeList(ids), cx);
+                    lists.go_by("", cx);
+                    lists.open = None;
+                }
+                Err(problem) => {
+                    lists.problem = crate::words::said_of(&problem);
+                    cx.notify();
+                }
+            },
+        );
+    }
+
     /// Kept off the window's thread; `typed`: the name field is emptied once it is.
     fn keep(&mut self, name: &str, typed: bool, cx: &mut Context<Self>) {
         let (app, name) = (super::app(cx), name.trim().to_string());
@@ -528,6 +610,32 @@ impl Lists {
         if !self.clipboard_problem.is_empty() {
             shown.push(wrapped(self.clipboard_problem.clone(), c.err));
         }
+        if !self.problem.is_empty() {
+            shown.push(wrapped(self.problem.clone(), c.err));
+        }
+        shown.push(
+            Self::title(theme, put(&say!("Files")))
+                .pt(theme::GAP_SMALL)
+                .into_any_element(),
+        );
+        shown.push(
+            div()
+                .flex()
+                .flex_wrap()
+                .gap(theme::GAP_SMALL)
+                .child(
+                    Btn::new("export-csv", put(&say!("Export as CSV")))
+                        .icon("download")
+                        .tip(put(&say!("Writes the active mods as a CSV file, the columns of RimSort's export")))
+                        .on_click(cx.listener(|lists, _, window, cx| lists.export_csv(window, cx))),
+                )
+                .child(
+                    Btn::new("use-file", put(&say!("Use a list from a file")))
+                        .tip(put(&say!("A RimSort or RimPy mod list, a save's list, or a text list becomes the load order. Save writes it.")))
+                        .on_click(cx.listener(|lists, _, window, cx| lists.use_file(window, cx))),
+                )
+                .into_any_element(),
+        );
         shown
     }
 

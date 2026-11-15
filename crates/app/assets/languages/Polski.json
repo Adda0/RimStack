@@ -1739,5 +1739,16 @@
  "{} mods are in it. They keep their places in the load order and lose only this tag.": "Jest w niej {} modów. Zachowują miejsca w kolejności ładowania i tracą tylko ten tag.",
  "Missing the {} DLC": "Brakuje DLC {}",
  "Needs the {} DLC, which is not installed.": "Wymaga DLC {}, które nie jest zainstalowane.",
- "lists this DLC as a dependency": "wymienia to DLC jako zależność"
+ "lists this DLC as a dependency": "wymienia to DLC jako zależność",
+ "A RimSort or RimPy mod list, a save's list, or a text list becomes the load order. Save writes it.": "A RimSort or RimPy mod list, a save's list, or a text list becomes the load order. Save writes it.",
+ "Choose the list file…": "Choose the list file…",
+ "Export as CSV": "Eksportuj jako CSV",
+ "No mod found in that file": "No mod found in that file",
+ "The active mod as CSV in {}": "The active mod as CSV in {}",
+ "The mods are not read yet.": "Mody nie zostały jeszcze wczytane.",
+ "Use a list from a file": "Użyj listy z pliku",
+ "Writes the active mods as a CSV file, the columns of RimSort's export": "Zapisuje aktywne mody jako plik CSV, kolumny eksportu RimSort",
+ "malformed JSON: {}": "nieprawidłowy JSON: {}",
+ "no mod list found": "nie znaleziono listy modów",
+ "{} active mods as CSV in {}": "{} active mods as CSV in {}"
 }
