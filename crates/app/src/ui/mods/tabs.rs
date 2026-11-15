@@ -107,6 +107,7 @@ impl DetailsView {
             shown.push(group_title(theme, put(&say!("Own rules"))));
             for (at, rule) in details.your_rules.iter().enumerate() {
                 let (first, then) = (rule.first, rule.then);
+                let entry = rule.community.clone();
                 shown.push(
                     div()
                         .flex()
@@ -123,6 +124,18 @@ impl DetailsView {
                                 .sized_text(theme, theme.body())
                                 .text_color(c.ink)
                                 .child(put(&rule.said)),
+                        )
+                        .child(
+                            Btn::new(("copy-rule", at), "")
+                                .icon("copy")
+                                .tip(put(&say!(
+                                    "Copies this rule in the community rules format, to send upstream."
+                                )))
+                                .on_click(move |_, _, cx| {
+                                    cx.write_to_clipboard(gpui::ClipboardItem::new_string(
+                                        entry.clone(),
+                                    ))
+                                }),
                         )
                         .child(
                             Btn::new(("remove-rule", at), "")
@@ -206,7 +219,7 @@ impl DetailsView {
         ));
         if !details.detected.is_empty() {
             shown.push(group_title(theme, put(&say!("Detected from files"))));
-            for found in &details.detected {
+            for (at, found) in details.detected.iter().enumerate() {
                 let why = match found.code {
                     true => put(&found.why),
                     false => put(&say!(
@@ -234,6 +247,25 @@ impl DetailsView {
                                 .text_color(c.ink3)
                                 .child(breakable(&why)),
                         )
+                        .when(found.code, |d| {
+                            let entry = found.community.clone();
+                            d.child(
+                                div().flex().pt(theme::GAP_SMALL).child(
+                                    Btn::new(
+                                        ("copy-detected", at),
+                                        put(&say!("Copy in the community rules format")),
+                                    )
+                                    .icon("copy")
+                                    .on_click(
+                                        move |_, _, cx| {
+                                            cx.write_to_clipboard(gpui::ClipboardItem::new_string(
+                                                entry.clone(),
+                                            ))
+                                        },
+                                    ),
+                                ),
+                            )
+                        })
                         .into_any_element(),
                 );
             }

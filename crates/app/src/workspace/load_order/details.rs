@@ -74,6 +74,8 @@ pub struct Detected {
     pub name: String,
     pub why: Sentence,
     pub code: bool,
+    /// The rule as a `communityRules.json` entry, to send upstream; shown for `code`.
+    pub community: String,
 }
 
 #[derive(Serialize, PartialEq)]
@@ -450,6 +452,12 @@ impl LoadOrder {
                 name: mods[d.first].name.clone(),
                 why: d.why.clone(),
                 code: d.code,
+                community: rimstack_core::mods::community::entry_for(
+                    &mods[d.then].id,
+                    &mods[d.first].id,
+                    &mods[d.first].name,
+                    &d.why.put(&rimstack_core::base::sentence::English),
+                ),
             })
             .collect()
     }

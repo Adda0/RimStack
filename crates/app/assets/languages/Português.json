@@ -1688,5 +1688,7 @@
  "Names of {} mods re-read from Steam.": "Nomes de {} mods relidos do Steam.",
  "Nothing changed.": "Nada mudou.",
  "Refresh": "Atualizar",
- "Refreshing…": "A atualizar…"
+ "Refreshing…": "A atualizar…",
+ "Copies this rule in the community rules format, to send upstream.": "Copia esta regra no formato das regras da comunidade, para enviá-la ao projeto.",
+ "Copy in the community rules format": "Copiar no formato das regras da comunidade"
 }
