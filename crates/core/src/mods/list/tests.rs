@@ -589,6 +589,22 @@ fn mods_go_by_package_id_and_by_size() {
 }
 
 #[test]
+fn mods_go_by_the_newest_game_version_they_support_by_number() {
+    let mut mods = vec![
+        m("Older", "", Category::Content),
+        m("Newer", "", Category::Content),
+        m("NoVersion", "", Category::Content),
+    ];
+    mods[0].latest_game = "1.6".into();
+    mods[1].latest_game = "1.10".into();
+    let mut list = GroupedList::new(mods);
+    list.arrange(Some((SortKey::Game, true)));
+    assert_eq!(names(&list), ["Newer", "Older", "NoVersion"]);
+    list.arrange(Some((SortKey::Game, false)));
+    assert_eq!(names(&list), ["Older", "Newer", "NoVersion"]);
+}
+
+#[test]
 fn headings_can_be_turned_on_and_off() {
     let mut list = GroupedList::flat(sample().mods().to_vec());
     assert!(!list.is_grouped());

@@ -75,6 +75,7 @@ fn label(key: Option<SortKey>, side: Side) -> Sentence {
         Some(SortKey::Activated) => say!("Activated"),
         Some(SortKey::Size) => say!("Size"),
         Some(SortKey::Load) => say!("Load"),
+        Some(SortKey::Game) => say!("Game"),
     }
 }
 
@@ -155,6 +156,10 @@ impl LoadOrder {
             (
                 "version",
                 widest(mods.iter().map(|m| m.version.clone()).collect()),
+            ),
+            (
+                "game",
+                widest(mods.iter().map(|m| m.latest_game.clone()).collect()),
             ),
             (
                 "load",

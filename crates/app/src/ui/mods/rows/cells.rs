@@ -319,6 +319,7 @@ pub(super) fn cells(theme: &Theme, row: &RowView, fitted: Fitted, shown: Shown<'
         match key {
             "author" => row.author.clone().into(),
             "version" => row.version.clone().into(),
+            "game" => row.game.clone().into(),
             "load" => row.load_time.clone().into(),
             "updated" => put(&row.updated_ago).into(),
             "downloaded" => put(&row.downloaded_ago).into(),

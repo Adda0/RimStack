@@ -135,10 +135,12 @@ pub enum SortKey {
     Activated,
     Size,
     Load,
+    /// By the numbers of `Mod::latest_game`, so 1.10 comes after 1.9.
+    Game,
 }
 
 impl SortKey {
-    pub const ALL: [SortKey; 10] = [
+    pub const ALL: [SortKey; 11] = [
         SortKey::Group,
         SortKey::Name,
         SortKey::Author,
@@ -149,6 +151,7 @@ impl SortKey {
         SortKey::Activated,
         SortKey::Size,
         SortKey::Load,
+        SortKey::Game,
     ];
 
     /// Kept in the settings and handed to the window: never reworded.
@@ -164,6 +167,7 @@ impl SortKey {
             SortKey::Activated => "activated",
             SortKey::Size => "size",
             SortKey::Load => "load",
+            SortKey::Game => "game",
         }
     }
 
@@ -179,7 +183,11 @@ impl SortKey {
     pub fn starts_descending(self) -> bool {
         matches!(
             self,
-            SortKey::Updated | SortKey::Downloaded | SortKey::Activated | SortKey::Size
+            SortKey::Updated
+                | SortKey::Downloaded
+                | SortKey::Activated
+                | SortKey::Size
+                | SortKey::Game
         )
     }
 }
@@ -188,6 +196,7 @@ impl SortKey {
 enum SortValue {
     Text(String),
     Number(u64),
+    Numbers(Vec<u64>),
 }
 
 type SortedBy = (Option<SortValue>, String);
@@ -213,6 +222,8 @@ fn sort_value(m: &Mod, key: SortKey) -> Option<SortValue> {
         SortKey::Activated => m.activated.map(SortValue::Number),
         SortKey::Size => m.size.map(SortValue::Number),
         SortKey::Load => m.load_micros.map(|micros| SortValue::Number(micros.into())),
+        SortKey::Game => (!m.latest_game.is_empty())
+            .then(|| SortValue::Numbers(crate::base::versions::numbers(&m.latest_game))),
     }
 }
 

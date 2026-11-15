@@ -46,6 +46,8 @@ pub struct RowView {
     pub name: Sentence,
     pub author: String,
     pub version: String,
+    /// The mod's game version from About.xml; shown in the Game column.
+    pub game: String,
     /// 0 for a heading.
     pub number: usize,
     pub count: usize,
@@ -103,6 +105,7 @@ impl RowView {
             name: Sentence::Plain(name.to_string()),
             author: String::new(),
             version: String::new(),
+            game: String::new(),
             number: 0,
             count: 0,
             collapsed: false,
@@ -195,7 +198,7 @@ impl LoadOrder {
             SortKey::PackageId => plain(&m.id),
             SortKey::Author => plain(&m.author),
             SortKey::Version => plain(&m.version),
-            SortKey::Group | SortKey::Name | SortKey::Load => Sentence::default(),
+            SortKey::Group | SortKey::Name | SortKey::Load | SortKey::Game => Sentence::default(),
         }
     }
 }
@@ -339,6 +342,7 @@ impl LoadOrder {
             name,
             author: m.author.clone(),
             version: m.version.clone(),
+            game: m.latest_game.clone(),
             number: index + 1,
             count: 0,
             collapsed: false,

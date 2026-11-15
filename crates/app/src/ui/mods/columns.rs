@@ -139,9 +139,10 @@ pub(super) fn edge(
     )
 }
 
-const ALL: [&str; 7] = [
+const ALL: [&str; 8] = [
     "author",
     "version",
+    "game",
     "load",
     "updated",
     "downloaded",
@@ -173,6 +174,7 @@ pub(super) fn column_name(key: &str) -> Sentence {
         "updated" => say!("Updated"),
         "downloaded" => say!("Downloaded"),
         "activated" => say!("Activated"),
+        "game" => say!("Game"),
         _ => say!("Size"),
     }
 }
@@ -215,7 +217,7 @@ pub(super) fn columns(
         measure(window, theme, &text, size, FontWeight::NORMAL)
     };
     let natural = |key: &str| match key {
-        "author" | "version" => heading(key).max(widest(key, theme.body())),
+        "author" | "version" | "game" => heading(key).max(widest(key, theme.body())),
         "load" => heading(key).max(widest(key, theme.small())),
         "size" => heading(key).max(measure(
             window,
@@ -645,6 +647,7 @@ pub(super) fn heading_reach(side: Side, column: &'static str) -> &'static str {
         (Side::Inactive, "version") => "inactive-version",
         (Side::Inactive, "updated") => "inactive-updated",
         (Side::Inactive, "downloaded") => "inactive-downloaded",
+        (Side::Inactive, "game") => "inactive-game",
         (Side::Inactive, _) => "inactive-size",
     }
 }
