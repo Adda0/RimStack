@@ -11,11 +11,16 @@ fn without_game_tags(text: &str) -> String {
     while let Some(open) = rest.find('<') {
         out += &rest[..open];
         let inside = &rest[open + 1..];
-        let named = inside.starts_with(|c: char| c.is_ascii_alphabetic() || c == '/');
-        let Some(close) = inside.find('>').filter(|_| named) else {
+        if !inside.starts_with(|c: char| c.is_ascii_alphabetic() || c == '/') {
             out.push('<');
             rest = inside;
             continue;
+        }
+        // No `>` is left for any later `<` either.
+        let Some(close) = inside.find('>') else {
+            out.push('<');
+            rest = inside;
+            break;
         };
         let tag = inside[..close].to_lowercase();
         if matches!(tag.as_str(), "b" | "/b" | "i" | "/i") {
@@ -24,6 +29,38 @@ fn without_game_tags(text: &str) -> String {
         rest = &inside[close + 1..];
     }
     out + rest
+}
+
+/// The next `needle` in what is left of `text`, looked for again only once the reading passes
+/// it: looking from each of many openings would take quadratic time.
+struct Ahead<'t> {
+    text: &'t str,
+    needle: &'static str,
+    /// From the start of `text`; `Some(None)` when there is none left.
+    found: Option<Option<usize>>,
+}
+
+impl<'t> Ahead<'t> {
+    fn new(text: &'t str, needle: &'static str) -> Self {
+        Self {
+            text,
+            needle,
+            found: None,
+        }
+    }
+
+    /// Where in `rest`, a tail of `text`.
+    fn within(&mut self, rest: &str) -> Option<usize> {
+        let from = self.text.len() - rest.len();
+        let at = match self.found {
+            Some(Some(at)) if at >= from => Some(at),
+            Some(None) => None,
+            _ => *self
+                .found
+                .insert(rest.find(self.needle).map(|at| from + at)),
+        };
+        at.map(|at| at - from)
+    }
 }
 
 fn safe_link(url: &str) -> bool {
@@ -39,7 +76,12 @@ fn read_tag(reader: &mut Reader, tag: &str, in_link: &mut bool) -> bool {
         Some(name) => (true, name),
         None => (false, tag),
     };
-    let (name, value) = name.split_once('=').unwrap_or((name, ""));
+    // No name is longer than `spoiler`: what runs on without an `=` is no tag, however long.
+    let (name, value) = match name.bytes().take(9).position(|b| b == b'=') {
+        Some(at) => (&name[..at], &name[at + 1..]),
+        None if name.len() > 8 => return false,
+        None => (name, ""),
+    };
     let name = name.to_lowercase();
     let paired = match name.as_str() {
         "b" => Some(Tag::Bold),
@@ -80,16 +122,20 @@ pub fn blocks(text: &str) -> Vec<Block> {
     let mut reader = Reader::default();
     let mut rest = text.trim();
     let mut in_link = false;
+    let mut tag_end = Ahead::new(rest, "]");
+    let mut picture_end = Ahead::new(rest, "[/img]");
     while let Some(open) = rest.find('[') {
         reader.text(&rest[..open]);
         rest = &rest[open..];
-        let Some(close) = rest.find(']') else {
+        let Some(close) = tag_end.within(rest) else {
             break;
         };
         let tag = &rest[1..close];
         let after = &rest[close + 1..];
         if tag.eq_ignore_ascii_case("img") {
-            rest = after.find("[/img]").map_or(after, |end| &after[end + 6..]);
+            rest = picture_end
+                .within(after)
+                .map_or(after, |end| &after[end + 6..]);
         } else if tag.eq_ignore_ascii_case("url") {
             let end = after.find("[/url]").unwrap_or(after.len());
             let url = &after[..end];
