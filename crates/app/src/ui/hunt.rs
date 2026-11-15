@@ -145,7 +145,15 @@ impl Shell {
             ));
             let then = put(&say!("Save, play, then say how it went."));
             let range = 0..head.len();
-            (format!("{head} {rest} {then}"), vec![(range, bold)])
+            let mut said = format!("{head} {rest} {then}");
+            if !hunt.first.is_empty() {
+                let first = put(&say!(
+                    "Added since the last launch without errors, these are tried first: {}",
+                    hunt.first.join(", ")
+                ));
+                said = format!("{said} {first}");
+            }
+            (said, vec![(range, bold)])
         };
         let dirty = super::around::around(cx).read(cx).dirty;
         let asking = hunt.asking;

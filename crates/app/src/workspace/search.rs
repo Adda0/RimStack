@@ -17,6 +17,8 @@ pub struct Hunt {
     pub suspects: usize,
     pub list: Vec<String>,
     pub everything: usize,
+    /// Added since the last launch without errors, and so tried first; empty for none.
+    pub first: Vec<String>,
 }
 
 impl App {
@@ -55,6 +57,7 @@ impl App {
             suspects: search.suspects.len(),
             list: search.list(),
             everything: search.original.len(),
+            first: search.seeded().iter().map(|id| name(id)).collect(),
         }
     }
 
@@ -88,7 +91,13 @@ impl App {
         let Ok((library, _)) = &*loaded else {
             return Hunt::default();
         };
-        let search = bisect::start(library, &library.arrange(&list).active);
+        let record = rimstack_core::kept::launches::read(&self.launches_file());
+        let identity = |written: &str| written.to_string();
+        let recent: std::collections::HashSet<String> =
+            rimstack_core::kept::launches::since_clean(&record, &list, &identity)
+                .map(|since| since.added.into_iter().collect())
+                .unwrap_or_default();
+        let search = bisect::start(library, &library.arrange(&list).active, &recent);
         self.keep_search(&search);
         self.shown(Some(&search))
     }

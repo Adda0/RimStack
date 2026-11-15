@@ -1667,5 +1667,6 @@
  "{} (likely to clash: a prefix may skip the original)": "{} (conflicto probable: un prefijo puede omitir el original)",
  "{} (likely to clash: both rewrite it)": "{} (conflicto probable: ambos lo reescriben)",
  "{} (may clash)": "{} (puede entrar en conflicto)",
- "{} (unlikely to clash: only adds after)": "{} (conflicto improbable: solo añade después)"
+ "{} (unlikely to clash: only adds after)": "{} (conflicto improbable: solo añade después)",
+ "Added since the last launch without errors, these are tried first: {}": "Añadidos desde el último inicio sin errores, estos se prueban primero: {}"
 }

@@ -66,6 +66,7 @@
  "Add with what it requires": "Add with what it requires",
  "Added": "Added",
  "Added by you": "Added by you",
+ "Added since the last launch without errors, these are tried first: {}": "Added since the last launch without errors, these are tried first: {}",
  "Added {} mod to the list": "Added {} mod to the list",
  "Added {} mods to the list": "Added {} mods to the list",
  "Adds a rule of your own: this mod loads after the other.": "Adds a rule of your own: this mod loads after the other.",

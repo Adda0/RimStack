@@ -1667,5 +1667,6 @@
  "{} (likely to clash: a prefix may skip the original)": "{} (likely to clash: a prefix may skip the original)",
  "{} (likely to clash: both rewrite it)": "{} (likely to clash: both rewrite it)",
  "{} (may clash)": "{} (may clash)",
- "{} (unlikely to clash: only adds after)": "{} (unlikely to clash: only adds after)"
+ "{} (unlikely to clash: only adds after)": "{} (unlikely to clash: only adds after)",
+ "Added since the last launch without errors, these are tried first: {}": "Added since the last launch without errors, these are tried first: {}"
 }
