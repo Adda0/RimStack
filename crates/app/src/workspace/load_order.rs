@@ -169,7 +169,9 @@ impl LoadOrder {
         order.active = GroupedList::flat(mods);
         order.active.set_grouped(headings);
         order.inactive = GroupedList::new(now.inactive);
-        order.inactive.arrange(inactive_by);
+        order
+            .inactive
+            .arrange(inactive_by, Some(&library.game_version));
         order.follow_left_out(app);
         order.status = [
             match library.missing {
@@ -366,7 +368,8 @@ impl LoadOrder {
         self.active.set_grouped(self.headings);
         self.active.set_mods(mods);
         self.inactive.set_mods(now.inactive);
-        self.inactive.arrange(self.inactive_by);
+        self.inactive
+            .arrange(self.inactive_by, Some(&library.game_version));
         self.reading = Some(loaded.clone());
         self.settle(app);
     }
@@ -395,7 +398,12 @@ impl LoadOrder {
 
     pub fn set_inactive_by(&mut self, app: &App, order: Option<(SortKey, bool)>) {
         self.inactive_by = order;
-        self.inactive.arrange(order);
+        let loaded = app.library();
+        if let Ok((library, _)) = &*loaded {
+            self.inactive.arrange(order, Some(&library.game_version));
+        } else {
+            self.inactive.arrange(order, None);
+        }
         self.settle(app);
     }
 

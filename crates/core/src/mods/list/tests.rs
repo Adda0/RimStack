@@ -527,7 +527,7 @@ fn in_search_keeps_the_mods_flagged_by_a_search_and_none_when_there_were_none() 
 #[test]
 fn a_list_can_be_arranged_by_name_or_by_category() {
     let mut list = sample();
-    list.arrange(Some((SortKey::Name, false)));
+    list.arrange(Some((SortKey::Name, false)), None);
     let names: Vec<&str> = list.mods().iter().map(|m| m.name.as_str()).collect();
     assert_eq!(
         names,
@@ -541,7 +541,7 @@ fn a_list_can_be_arranged_by_name_or_by_category() {
         ]
     );
     assert!(!list.is_grouped() && list.rows().len() == 6);
-    list.arrange(None);
+    list.arrange(None, None);
     assert_eq!(list.mods()[0].name, "Harmony");
     assert!(list.is_grouped());
 }
@@ -562,12 +562,12 @@ fn a_mod_without_the_value_comes_last_either_way_and_a_tie_goes_by_name() {
     mods[2].updated = Some(900);
     mods[3].updated = Some(900);
     let mut list = GroupedList::new(mods);
-    list.arrange(Some((SortKey::Updated, true)));
+    list.arrange(Some((SortKey::Updated, true)), None);
     assert_eq!(names(&list), ["Also new", "new", "Old", "Local"]);
     assert!(!list.is_grouped());
-    list.arrange(Some((SortKey::Updated, false)));
+    list.arrange(Some((SortKey::Updated, false)), None);
     assert_eq!(names(&list), ["Old", "Also new", "new", "Local"]);
-    list.arrange(Some((SortKey::Author, true)));
+    list.arrange(Some((SortKey::Author, true)), None);
     assert_eq!(names(&list), ["Also new", "Old", "new", "Local"]);
 }
 
@@ -582,9 +582,9 @@ fn mods_go_by_package_id_and_by_size() {
     mods[0].size = Some(10);
     mods[1].size = Some(2_000);
     let mut list = GroupedList::new(mods);
-    list.arrange(Some((SortKey::PackageId, false)));
+    list.arrange(Some((SortKey::PackageId, false)), None);
     assert_eq!(names(&list), ["Zeta", "Alpha"]);
-    list.arrange(Some((SortKey::Size, true)));
+    list.arrange(Some((SortKey::Size, true)), None);
     assert_eq!(names(&list), ["Alpha", "Zeta"]);
 }
 
@@ -598,10 +598,44 @@ fn mods_go_by_the_newest_game_version_they_support_by_number() {
     mods[0].latest_game = "1.6".into();
     mods[1].latest_game = "1.10".into();
     let mut list = GroupedList::new(mods);
-    list.arrange(Some((SortKey::Game, true)));
+    list.arrange(Some((SortKey::Game, true)), None);
     assert_eq!(names(&list), ["Newer", "Older", "NoVersion"]);
-    list.arrange(Some((SortKey::Game, false)));
+    list.arrange(Some((SortKey::Game, false)), None);
     assert_eq!(names(&list), ["Older", "Newer", "NoVersion"]);
+}
+
+#[test]
+fn newer_game_version_is_clamped_inside_the_game_sort_key() {
+    let mut mods = vec![
+        m("MadeFor1.7", "", Category::Content),
+        m("MadeFor1.6", "", Category::Content),
+    ];
+    mods[0].latest_game = "1.7".into();
+    mods[1].latest_game = "1.6".into();
+    let mut list = GroupedList::new(mods);
+    // Without clamping: 1.7 > 1.6
+    list.arrange(Some((SortKey::Game, true)), None);
+    assert_eq!(names(&list), ["MadeFor1.7", "MadeFor1.6"]);
+    // With clamping to 1.6: 1.7 becomes 1.6, both are 1.6, so sorted by name
+    list.arrange(Some((SortKey::Game, true)), Some("1.6"));
+    assert_eq!(names(&list), ["MadeFor1.6", "MadeFor1.7"]);
+}
+
+#[test]
+fn a_newer_game_version_mod_still_filters_on_version_field() {
+    // This test verifies that clamping only affects the sort key, not the field.
+    // A mod with latest_game=1.7 should still be filterable by version:1.7
+    // even if sorted as version 1.6 when arranged with that installed version.
+    let mut mods = vec![
+        m("MadeFor1.7", "", Category::Content),
+        m("MadeFor1.5", "", Category::Content),
+    ];
+    mods[0].latest_game = "1.7".into();
+    mods[1].latest_game = "1.5".into();
+    let list = GroupedList::new(mods);
+    // The mod fields are unchanged even if arranged with clamping
+    assert_eq!(list.mods()[0].latest_game, "1.7");
+    assert_eq!(list.mods()[1].latest_game, "1.5");
 }
 
 #[test]

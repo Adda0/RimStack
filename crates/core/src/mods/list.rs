@@ -201,15 +201,26 @@ enum SortValue {
 
 type SortedBy = (Option<SortValue>, String);
 
-fn sorted_by(m: &Mod, key: SortKey) -> SortedBy {
+/// Clamp a game version string to not exceed the installed version.
+fn clamp_to_version(mod_version: &str, installed_version: &str) -> String {
+    let mod_nums = crate::base::versions::numbers(mod_version);
+    let installed_nums = crate::base::versions::numbers(installed_version);
+    if mod_nums > installed_nums {
+        installed_version.to_string()
+    } else {
+        mod_version.to_string()
+    }
+}
+
+fn sorted_by(m: &Mod, key: SortKey, game_version: Option<&str>) -> SortedBy {
     let tie = match key {
         SortKey::Name => String::new(),
         _ => m.name.to_lowercase(),
     };
-    (sort_value(m, key), tie)
+    (sort_value(m, key, game_version), tie)
 }
 
-fn sort_value(m: &Mod, key: SortKey) -> Option<SortValue> {
+fn sort_value(m: &Mod, key: SortKey, game_version: Option<&str>) -> Option<SortValue> {
     let text = |t: &str| (!t.is_empty()).then(|| SortValue::Text(t.to_lowercase()));
     match key {
         SortKey::Group => text(&m.sub),
@@ -222,8 +233,14 @@ fn sort_value(m: &Mod, key: SortKey) -> Option<SortValue> {
         SortKey::Activated => m.activated.map(SortValue::Number),
         SortKey::Size => m.size.map(SortValue::Number),
         SortKey::Load => m.load_micros.map(|micros| SortValue::Number(micros.into())),
-        SortKey::Game => (!m.latest_game.is_empty())
-            .then(|| SortValue::Numbers(crate::base::versions::numbers(&m.latest_game))),
+        SortKey::Game => {
+            let game = if let Some(ver) = game_version {
+                clamp_to_version(&m.latest_game, ver)
+            } else {
+                m.latest_game.clone()
+            };
+            (!game.is_empty()).then(|| SortValue::Numbers(crate::base::versions::numbers(&game)))
+        }
     }
 }
 
@@ -282,6 +299,8 @@ pub struct GroupedList {
     facts: Arc<HashMap<ModId, Arc<Facts>>>,
     /// While held, the rows are made again only once, when let go.
     held: bool,
+    /// Game version for clamping when sorting by Game key.
+    game_version: Option<String>,
 }
 
 fn haystack(m: &Mod) -> String {
@@ -346,6 +365,7 @@ impl GroupedList {
             rows: Vec::new(),
             facts: Arc::default(),
             held: false,
+            game_version: None,
         };
         list.rebuild();
         list
@@ -393,11 +413,15 @@ impl GroupedList {
         self.flags.iter().filter(|flags| *flags & mark != 0).count()
     }
 
-    /// `None` puts it in category order, under headings.
-    pub fn arrange(&mut self, order: Option<(SortKey, bool)>) {
+    /// `None` puts it in category order, under headings. Clamps game version for Game sort key
+    /// to not exceed the installed version, leaving the `latest_game` field unchanged.
+    pub fn arrange(&mut self, order: Option<(SortKey, bool)>, game_version: Option<&str>) {
+        self.game_version = game_version.map(|s| s.to_string());
         let mut mods = std::mem::take(&mut self.mods);
         match order {
-            Some((key, descending)) => mods = sorted(mods, |m| sorted_by(m, key), descending),
+            Some((key, descending)) => {
+                mods = sorted(mods, |m| sorted_by(m, key, game_version), descending)
+            }
             None => mods.sort_by_cached_key(|m| (m.category, m.name.to_lowercase())),
         }
         self.grouped = order.is_none();
@@ -634,7 +658,11 @@ impl GroupedList {
         }
         if let Some((key, descending)) = self.shown_by {
             let shown: Vec<usize> = (0..self.mods.len()).filter(|&i| self.shows(i)).collect();
-            let shown = sorted(shown, |&i| sorted_by(&self.mods[i], key), descending);
+            let shown = sorted(
+                shown,
+                |&i| sorted_by(&self.mods[i], key, self.game_version.as_deref()),
+                descending,
+            );
             self.rows = shown.into_iter().map(|index| Row::Mod { index }).collect();
             return;
         }

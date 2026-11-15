@@ -43,7 +43,13 @@ impl LoadOrder {
             (Side::Active, None) => self.settle_one(app, at),
             (Side::Inactive, None) => {
                 let order = self.inactive_by;
-                self.inactive.arrange(order);
+                let loaded = self.reading(app);
+                let game_version = if let Ok((lib, _)) = loaded.as_ref() {
+                    Some(lib.game_version.as_str())
+                } else {
+                    None
+                };
+                self.inactive.arrange(order, game_version);
             }
         }
     }
