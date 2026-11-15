@@ -6,3 +6,5 @@ docs/
 .claude/
 .idea/
 prototypes/
+result
+.direnv/
