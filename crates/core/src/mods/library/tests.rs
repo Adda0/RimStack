@@ -501,6 +501,42 @@ fn rows_point_back_at_their_mod_and_requirements_are_named() {
 }
 
 #[test]
+fn a_mods_own_version_and_the_newest_game_it_supports_are_told_apart() {
+    let tmp = tempfile::tempdir().unwrap();
+    let local = tmp.path().join("Mods");
+    add_mod(
+        &local,
+        "both",
+        "<ModMetaData><packageId>Test.Both</packageId><name>Both</name>\
+         <modVersion>2.3.1</modVersion><supportedVersions><li>1.5</li><li>1.10</li></supportedVersions></ModMetaData>",
+        &[],
+    );
+    add_mod(
+        &local,
+        "silent",
+        "<ModMetaData><packageId>Test.Silent</packageId><name>Silent</name>\
+         <supportedVersions><li>1.4</li></supportedVersions></ModMetaData>",
+        &[],
+    );
+    let roots = vec![ModRoot {
+        path: local,
+        source: Source::Local,
+    }];
+    let library = build(scan(&roots), &[], "1.6");
+    fn columns<'a>(library: &'a Library, id: &str) -> (&'a str, &'a str) {
+        let m = library
+            .inactive
+            .iter()
+            .chain(library.active.iter())
+            .find(|m| m.id == id)
+            .unwrap();
+        (m.version.as_str(), m.latest_game.as_str())
+    }
+    assert_eq!(columns(&library, "test.both"), ("2.3.1", "1.10"));
+    assert_eq!(columns(&library, "test.silent"), ("", "1.4"));
+}
+
+#[test]
 fn loading_without_a_game_says_what_to_set() {
     let nothing_found = load(&Paths::default()).unwrap_err();
     assert_eq!(nothing_found.kind(), crate::base::error::Kind::Refused);

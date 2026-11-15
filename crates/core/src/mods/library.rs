@@ -479,11 +479,7 @@ fn row(m: &Installed, id: String, category: Category, installed: ModId, game_ver
         name: m.display_name().to_string(),
         author: about.map(|a| a.authors.join(", ")).unwrap_or_default(),
         version: about
-            .and_then(|a| {
-                a.mod_version
-                    .clone()
-                    .or(a.supported_versions.last().cloned())
-            })
+            .and_then(|a| a.mod_version.clone())
             .unwrap_or_default(),
         latest_game: about
             .and_then(|a| latest(&a.supported_versions))
