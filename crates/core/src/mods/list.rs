@@ -363,6 +363,11 @@ impl GroupedList {
         &self.mods
     }
 
+    /// The files read of each installed mod, by its id.
+    pub fn facts(&self) -> &HashMap<ModId, Arc<Facts>> {
+        &self.facts
+    }
+
     /// Changing the order forgets it.
     pub fn set_flags(&mut self, flags: Vec<u16>) {
         self.flags = flags;

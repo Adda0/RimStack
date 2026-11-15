@@ -2,9 +2,12 @@ use super::Mod;
 use super::filter::tagged;
 use crate::base::sentence::Sentence;
 use crate::base::versions::numbers;
+use crate::mods::facts::Facts;
+use crate::mods::library::ModId;
 use crate::{say, say_n};
 use serde::Serialize;
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
+use std::sync::Arc;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Offer {
@@ -86,13 +89,14 @@ const TERMS: &[(&str, About)] = &[
 const MOST_TAGS: usize = 12;
 
 /// What the filter offers for `typed`, the word being written, beside `text`, the whole filter;
-/// `mods` gives the tags and game versions offered. A term already in `text` is not offered
-/// again.
+/// `mods` gives the tags and game versions offered, `facts` the def names of those read. A term
+/// already in `text` is not offered again.
 pub fn offers<'a>(
     typed: &str,
     text: &str,
     counted: &Counted,
     mods: impl IntoIterator<Item = &'a Mod>,
+    facts: &HashMap<ModId, Arc<Facts>>,
 ) -> Offers {
     let typed = typed.to_lowercase();
     let taken: HashSet<String> = text.split_whitespace().map(str::to_lowercase).collect();
@@ -125,6 +129,11 @@ pub fn offers<'a>(
             mods.flat_map(|m| m.patched.iter().map(String::as_str)),
             fresh,
         ),
+        Some((key @ ("defines" | "patchesdef"), value)) => {
+            let read = mods.filter_map(|m| facts.get(&m.installed?));
+            let names = read.flat_map(|facts| def_names(key, facts));
+            value_offers(sign, key, value, names, fresh)
+        }
         _ => term_offers(sign, counted, fits),
     };
     let widest = offers
@@ -257,6 +266,19 @@ fn value_offers<'a>(
         .collect()
 }
 
+/// Each name once per mod, so a def is counted by the mods naming it.
+fn def_names<'a>(key: &str, facts: &'a Facts) -> HashSet<&'a str> {
+    let scanned = &facts.scanned;
+    match key {
+        "defines" => scanned.defines.iter().map(String::as_str).collect(),
+        _ => scanned
+            .patched
+            .iter()
+            .map(|(name, _)| name.as_str())
+            .collect(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::super::Category;
@@ -264,7 +286,7 @@ mod tests {
     use super::*;
 
     fn terms(typed: &str, text: &str, mods: &[Mod]) -> Vec<String> {
-        let found = offers(typed, text, &Counted::default(), mods);
+        let found = offers(typed, text, &Counted::default(), mods, &HashMap::new());
         found.offers.into_iter().map(|offer| offer.term).collect()
     }
 
@@ -349,10 +371,10 @@ mod tests {
     #[test]
     fn a_tag_counts_every_mod_its_term_matches() {
         let tags = tagged(&[&["HUD"], &["hud", "HUDs"], &["Huds"]]);
-        let found = offers("tag:hud", "", &Counted::default(), &tags);
+        let found = offers("tag:hud", "", &Counted::default(), &tags, &HashMap::new());
         let about: Vec<String> = found.offers.iter().map(|o| o.about.to_string()).collect();
         assert_eq!(about, ["2 mods"]);
-        let found = offers("tag:", "", &Counted::default(), &tags);
+        let found = offers("tag:", "", &Counted::default(), &tags, &HashMap::new());
         let all: Vec<(String, String)> = found
             .offers
             .into_iter()
@@ -375,12 +397,26 @@ mod tests {
                 ..blank()
             })
             .collect();
-        let found = offers("tag:", "", &Counted::default(), &many);
+        let found = offers("tag:", "", &Counted::default(), &many, &HashMap::new());
         assert_eq!(found.offers.len(), MOST_TAGS);
-        let widest = offers("has:", "", &Counted::default(), std::iter::empty()).widest;
+        let widest = offers(
+            "has:",
+            "",
+            &Counted::default(),
+            std::iter::empty(),
+            &HashMap::new(),
+        )
+        .widest;
         assert_eq!(widest, "has:languages");
         assert_eq!(
-            offers("zzz", "", &Counted::default(), std::iter::empty()).widest,
+            offers(
+                "zzz",
+                "",
+                &Counted::default(),
+                std::iter::empty(),
+                &HashMap::new()
+            )
+            .widest,
             ""
         );
     }
@@ -418,9 +454,39 @@ mod tests {
     }
 
     #[test]
+    fn def_names_read_are_offered_after_defines_and_patchesdef_most_used_first() {
+        let read = |defines: &[&str], patched: &[&str]| {
+            let mut facts = Facts::default();
+            facts.scanned.defines = defines.iter().map(|d| d.to_string()).collect();
+            facts.scanned.patched = (patched.iter())
+                .map(|d| (d.to_string(), std::path::PathBuf::new()))
+                .collect();
+            Arc::new(facts)
+        };
+        let mods: Vec<Mod> = (0..3)
+            .map(|n| Mod {
+                installed: Some(ModId::new(0, n)),
+                ..blank()
+            })
+            .collect();
+        let facts = HashMap::from([
+            (ModId::new(0, 0), read(&["Wood", "Steel"], &["Steel"])),
+            (ModId::new(0, 1), read(&["Steel"], &[])),
+        ]);
+        let terms = |typed: &str, text: &str| -> Vec<String> {
+            let found = offers(typed, text, &Counted::default(), &mods, &facts);
+            found.offers.into_iter().map(|offer| offer.term).collect()
+        };
+        assert_eq!(terms("defines:", ""), ["defines:Steel", "defines:Wood"]);
+        assert_eq!(terms("!defines:oo", ""), ["!defines:Wood"]);
+        assert_eq!(terms("patchesdef:", ""), ["patchesdef:Steel"]);
+        assert!(terms("defines:", "defines:steel defines:wood").is_empty());
+    }
+
+    #[test]
     fn versions_are_offered_newest_first_with_their_mods() {
         let mods = made_for(&["1.6", "1.10", "1.6", "", "1.5"]);
-        let found = offers("version:", "", &Counted::default(), &mods);
+        let found = offers("version:", "", &Counted::default(), &mods, &HashMap::new());
         let all: Vec<(String, String)> = found
             .offers
             .into_iter()

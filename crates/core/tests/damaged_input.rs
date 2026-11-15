@@ -221,7 +221,13 @@ fn the_filter_box_takes_any_text() {
         let mut written = a_mod("Written", Category::Content);
         written.tags = made.split(',').map(String::from).collect();
         written.latest_game = made.to_string();
-        let _ = offers::offers(typed, made, &offers::Counted::default(), [&written]);
+        let _ = offers::offers(
+            typed,
+            made,
+            &offers::Counted::default(),
+            [&written],
+            &Default::default(),
+        );
     });
     assert!(failed.is_empty(), "panicked on {:?}", failed.first());
 }
