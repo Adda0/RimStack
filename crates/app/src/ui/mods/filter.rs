@@ -22,6 +22,8 @@ pub struct Filter {
     terms: Vec<String>,
     /// The offers under the filter put away until it is typed in or clicked again.
     offers_shut: bool,
+    /// The offer the arrows chose, which Enter takes.
+    chosen: usize,
 }
 
 pub struct Changed(pub String);
@@ -43,6 +45,7 @@ impl Filter {
             mirror,
             terms: Vec::new(),
             offers_shut: false,
+            chosen: 0,
         }
     }
 
@@ -52,6 +55,17 @@ impl Filter {
 
     pub fn offers_shut(&self) -> bool {
         self.offers_shut
+    }
+
+    pub fn chosen(&self) -> usize {
+        self.chosen
+    }
+
+    /// Moves the chosen offer among `count`, kept within them.
+    pub fn step(&mut self, by: isize, count: usize, cx: &mut Context<Self>) {
+        let last = count.saturating_sub(1);
+        self.chosen = self.chosen.saturating_add_signed(by).min(last);
+        cx.notify();
     }
 
     pub fn shut_offers(&mut self, shut: bool, cx: &mut Context<Self>) {
@@ -108,6 +122,7 @@ impl Filter {
             }
         }
         self.offers_shut = false;
+        self.chosen = 0;
         cx.emit(Changed(self.text(cx)));
         cx.notify();
     }
@@ -163,7 +178,7 @@ impl Mods {
         self.filtering.update(cx, |filter, cx| filter.clear(cx));
     }
 
-    fn offers(&self, field: &Entity<TextField>, cx: &gpui::App) -> Offers {
+    pub(super) fn offers(&self, field: &Entity<TextField>, cx: &gpui::App) -> Offers {
         let typed = field.read(cx).text().to_string();
         let partial = typed.rsplit(' ').next().unwrap_or_default().to_string();
         let order = &self.list.read(cx).order;
@@ -191,7 +206,11 @@ impl Mods {
         let focused = field.read(cx).is_focused(window);
         let focus = field.focus_handle(cx);
         let filtering = self.filtering.read(cx);
-        let (terms, offers_shut) = (filtering.terms().to_vec(), filtering.offers_shut());
+        let (terms, offers_shut, chosen) = (
+            filtering.terms().to_vec(),
+            filtering.offers_shut(),
+            filtering.chosen(),
+        );
         let empty = typed.is_empty() && terms.is_empty();
         let found = (!empty).then(|| put(&self.list.read(cx).order.filter_summary()));
         let keys = put(&say!("Ctrl + F"));
@@ -249,6 +268,7 @@ impl Mods {
             .ceil()
             .min(wide / 2.);
             let held = field.clone();
+            let chosen = chosen.min(offered.offers.len() - 1);
             let rows = offered.offers.into_iter().enumerate().map(|(at, offer)| {
                 let (term, about) = (offer.term.clone(), put(&offer.about));
                 let held = held.clone();
@@ -287,6 +307,7 @@ impl Mods {
                             .text_color(c.ink2)
                             .child(about),
                     )
+                    .when(at == chosen, |d| d.bg(c.chip))
                     .on_click(cx.listener(move |mods, _, window, cx| {
                         let (term, field) = (term.clone(), held.clone());
                         mods.filtering
@@ -325,6 +346,7 @@ impl Mods {
             ))
         });
         let held = field.clone();
+        let (enter_field, keys_field) = (field.clone(), field.clone());
         div()
             .id(id)
             .relative()
@@ -342,6 +364,37 @@ impl Mods {
             .cursor_text()
             .capture_action(cx.listener(|mods, _: &text_field::Escape, _, cx| {
                 mods.clear_filter(cx);
+                cx.stop_propagation();
+            }))
+            .capture_action(cx.listener(move |mods, _: &text_field::Enter, window, cx| {
+                let offers = match mods.filtering.read(cx).offers_shut() {
+                    true => Offers::default(),
+                    false => mods.offers(&enter_field, cx),
+                };
+                let chosen = mods.filtering.read(cx).chosen();
+                let Some(offer) = offers.offers.get(chosen).cloned() else {
+                    cx.propagate();
+                    return;
+                };
+                mods.filtering.update(cx, |filter, cx| {
+                    filter.take_offer(offer.term, enter_field.clone(), cx)
+                });
+                let focus = enter_field.focus_handle(cx);
+                window.focus(&focus, cx);
+                cx.stop_propagation();
+            }))
+            .on_key_down(cx.listener(move |mods, event: &gpui::KeyDownEvent, _, cx| {
+                let by = match event.keystroke.key.as_str() {
+                    "down" => 1,
+                    "up" => -1,
+                    _ => return,
+                };
+                if mods.filtering.read(cx).offers_shut() {
+                    return;
+                }
+                let count = mods.offers(&keys_field, cx).offers.len();
+                mods.filtering
+                    .update(cx, |filter, cx| filter.step(by, count, cx));
                 cx.stop_propagation();
             }))
             .capture_action(cx.listener(move |mods, _: &text_field::Backspace, _, cx| {

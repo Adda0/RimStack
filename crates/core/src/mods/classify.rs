@@ -9,6 +9,14 @@ pub struct Kinds {
     pub patches: bool,
     pub assemblies: bool,
     pub textures: bool,
+    pub languages: bool,
+}
+
+impl Kinds {
+    /// Only a Languages folder, no other content.
+    pub fn only_languages(self) -> bool {
+        self.languages && !self.defs && !self.patches && !self.assemblies && !self.textures
+    }
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -57,6 +65,7 @@ mod tests {
         patches: false,
         assemblies: true,
         textures: false,
+        languages: false,
     };
 
     fn draws() -> Facts {

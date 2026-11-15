@@ -64,6 +64,37 @@ fn typing_in_the_filter_narrows_both_lists_and_clearing_it_shows_all(
     assert_eq!(back, all);
 }
 
+#[gpui::test]
+fn the_arrows_choose_an_offer_and_enter_takes_it(cx: &mut gpui::TestAppContext) {
+    let _root = demo(cx);
+    let (mods, cx) = cx.add_window_view(|_, cx| Mods::new(true, cx));
+    let all = mods.read_with(cx, |mods, cx| mods.list.read(cx).matching(Side::Active));
+    cx.update(|window, cx| {
+        let focus = mods.read(cx).focus.clone();
+        window.focus(&focus, cx);
+    });
+    cx.simulate_keystrokes("ctrl-f");
+    cx.simulate_input("author:");
+    let offers = mods.read_with(cx, |mods, cx| {
+        let field = mods.filtering.read(cx).field.clone();
+        mods.offers(&field, cx)
+            .offers
+            .into_iter()
+            .map(|offer| offer.term)
+            .collect::<Vec<String>>()
+    });
+    assert!(offers.len() > 1, "{offers:?}");
+    cx.simulate_keystrokes("down enter");
+    let (taken, narrowed) = mods.read_with(cx, |mods, cx| {
+        (
+            mods.filter_text(cx),
+            mods.list.read(cx).matching(Side::Active),
+        )
+    });
+    assert_eq!(taken, offers[1]);
+    assert!(narrowed > 0 && narrowed < all, "{narrowed} of {all}");
+}
+
 fn first_heading(cx: &mut gpui::VisualTestContext) -> gpui::Point<gpui::Pixels> {
     use crate::ui::theme::{self, Theme};
     let theme = cx.update(|_, cx| cx.global::<Theme>().clone());

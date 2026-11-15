@@ -81,6 +81,26 @@ impl Installed {
         Sentence::listed(words)
     }
 
+    /// The package id, as written, of what a mod holding only translations translates: a mod
+    /// it depends on or loads after, else an expansion it names, else the game. RimSort reads
+    /// Steam's Translation tag and the dependencies; the tag is not on disk, a lone Languages
+    /// folder is.
+    pub fn translates(&self, game_version: &str) -> Option<&str> {
+        if !self.kinds.only_languages() {
+            return None;
+        }
+        let about = self.about.as_ref().ok()?;
+        let named = || {
+            (about.dependencies.for_version(game_version).iter())
+                .chain(about.load_after.for_version(game_version))
+                .chain(&about.force_load_after)
+                .map(String::as_str)
+        };
+        let official = |id: &str| id::fold(id).starts_with("ludeon.rimworld");
+        let named_mod = named().find(|id| !official(id));
+        Some(named_mod.or(named().next()).unwrap_or("Ludeon.RimWorld"))
+    }
+
     pub fn display_name(&self) -> &str {
         match &self.about {
             Ok(About {
@@ -105,8 +125,10 @@ fn content_folders(mod_root: &Path) -> Vec<(String, PathBuf)> {
             }
             let name = entry.file_name().to_string_lossy().to_lowercase();
             match name.as_str() {
-                "defs" | "patches" | "assemblies" | "textures" => found.push((name, entry.path())),
-                "about" | "source" | "languages" | "sounds" | ".git" => {}
+                "defs" | "patches" | "assemblies" | "textures" | "languages" => {
+                    found.push((name, entry.path()))
+                }
+                "about" | "source" | "sounds" | ".git" => {}
                 _ => pending.push(entry.path()),
             }
         }
@@ -121,6 +143,7 @@ fn kinds(mod_root: &Path) -> Kinds {
             "defs" => found.defs = true,
             "patches" => found.patches = true,
             "assemblies" => found.assemblies = true,
+            "languages" => found.languages = true,
             _ => found.textures = true,
         }
     }
@@ -315,18 +338,25 @@ impl Library {
             .dependencies
             .for_version(&self.game_version)
             .iter()
-            .map(|dep| {
-                let key = id::fold(dep);
-                match self
-                    .installed
-                    .iter()
-                    .find(|x| x.key().as_deref() == Some(&key))
-                {
-                    Some(found) => (found.display_name().to_string(), true),
-                    None => (dep.clone(), false),
-                }
-            })
+            .map(|dep| self.named(dep))
             .collect()
+    }
+
+    /// What `m` translates, named as `requirements` names.
+    pub fn translated(&self, m: &Installed) -> Option<(String, bool)> {
+        m.translates(&self.game_version).map(|id| self.named(id))
+    }
+
+    fn named(&self, package_id: &str) -> (String, bool) {
+        let key = id::fold(package_id);
+        match self
+            .installed
+            .iter()
+            .find(|x| x.key().as_deref() == Some(&key))
+        {
+            Some(found) => (found.display_name().to_string(), true),
+            None => (package_id.to_string(), false),
+        }
     }
 
     /// The installed mods requiring `m` on this game version: name and library id.

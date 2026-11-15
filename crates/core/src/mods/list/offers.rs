@@ -99,6 +99,9 @@ pub fn offers<'a>(
         let term = term.to_lowercase();
         term.starts_with(&typed) && term != typed && !taken.contains(&term)
     };
+    // A value is offered for what it holds, not only for its start, so it is left out only
+    // once it is in the filter.
+    let fresh = |term: &str| !taken.contains(&term.to_lowercase());
     let (sign, bare) = match typed.strip_prefix('!') {
         Some(rest) => ("!", rest),
         None => ("", typed.as_str()),
@@ -107,6 +110,20 @@ pub fn offers<'a>(
     let offers = match bare.split_once(':') {
         Some(("tag", _)) => tag_offers(sign, mods.map(|m| m.tags.as_slice()), fits),
         Some(("version", _)) => version_offers(sign, mods, fits),
+        Some(("author", value)) => value_offers(
+            sign,
+            "author",
+            value,
+            mods.flat_map(|m| m.author.split(',')),
+            fresh,
+        ),
+        Some(("patches", value)) => value_offers(
+            sign,
+            "patches",
+            value,
+            mods.flat_map(|m| m.patched.iter().map(String::as_str)),
+            fresh,
+        ),
         _ => term_offers(sign, counted, fits),
     };
     let widest = offers
@@ -197,6 +214,45 @@ fn tag_offers<'a>(
         .into_iter()
         .take(MOST_TAGS)
         .map(|(mods, _, term)| counted_offer(term, mods))
+        .collect()
+}
+
+/// The values the mods hold after `author:` and `patches:`, offered for what is typed where
+/// the term holds it, the most used first, with a space typed as `_`.
+fn value_offers<'a>(
+    sign: &str,
+    key: &str,
+    typed: &str,
+    values: impl IntoIterator<Item = &'a str>,
+    fresh: impl Fn(&str) -> bool,
+) -> Vec<Offer> {
+    let typed = typed.to_lowercase();
+    let mut counted: Vec<(String, usize)> = Vec::new();
+    for value in values {
+        let value = value.trim().replace(' ', "_");
+        let lower = value.to_lowercase();
+        if !lower.contains(&typed) || lower == typed {
+            continue;
+        }
+        match counted
+            .iter_mut()
+            .find(|(seen, _)| seen.eq_ignore_ascii_case(&value))
+        {
+            Some((_, uses)) => *uses += 1,
+            None => counted.push((value, 1)),
+        }
+    }
+    // Those starting with what is typed before those holding it, then the most used.
+    counted.sort_by_cached_key(|(value, uses)| {
+        let lower = value.to_lowercase();
+        (!lower.starts_with(&typed), std::cmp::Reverse(*uses), lower)
+    });
+    counted
+        .into_iter()
+        .map(|(value, uses)| (format!("{sign}{key}:{value}"), uses))
+        .filter(|(term, _)| fresh(term))
+        .take(MOST_TAGS)
+        .map(|(term, uses)| counted_offer(term, uses))
         .collect()
 }
 
@@ -326,6 +382,38 @@ mod tests {
             offers("zzz", "", &Counted::default(), std::iter::empty()).widest,
             ""
         );
+    }
+
+    #[test]
+    fn author_and_patch_values_are_offered_most_used_first_with_spaces_as_underscores() {
+        let mods = vec![
+            Mod {
+                author: "Oskar Potocki, Sarg".into(),
+                ..blank()
+            },
+            Mod {
+                author: "oskar potocki".into(),
+                ..blank()
+            },
+            Mod {
+                author: "Mlie".into(),
+                patched: ["harmony.patchall".to_string()].into(),
+                ..blank()
+            },
+        ];
+        assert_eq!(
+            terms("author:", "", &mods),
+            ["author:Oskar_Potocki", "author:Mlie", "author:Sarg"]
+        );
+        assert_eq!(terms("author:arg", "", &mods), ["author:Sarg"]);
+        assert_eq!(terms("author:oskar_p", "", &mods), ["author:Oskar_Potocki"]);
+        assert!(terms("author:oskar_potocki", "", &mods).is_empty());
+        assert_eq!(terms("!author:m", "", &mods), ["!author:Mlie"]);
+        assert_eq!(
+            terms("patches:patch", "", &mods),
+            ["patches:harmony.patchall"]
+        );
+        assert!(terms("patches:patch", "patches:harmony.patchall", &mods).is_empty());
     }
 
     #[test]

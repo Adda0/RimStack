@@ -3,7 +3,8 @@ use crate::mods::facts::{Facts, Has};
 
 /// `wanted` is lower case.
 pub(super) fn tagged(tags: &[String], wanted: &str) -> bool {
-    tags.iter().any(|t| t.to_lowercase().starts_with(wanted))
+    tags.iter()
+        .any(|t| t.to_lowercase().replace(' ', "_").starts_with(wanted))
 }
 
 /// A term after a `!` leaves out what it would match; `!is:active` asks for the other list.
@@ -132,7 +133,8 @@ impl Filter {
         if self.reads_own_facts() && !facts.is_some_and(read) {
             return false;
         }
-        let author = || m.author.to_lowercase();
+        // A space, which would end the term, is typed as `_`.
+        let author = || m.author.to_lowercase().replace(' ', "_");
         self.words.iter().all(|w| haystack.contains(w))
             && self.authors.iter().all(|a| author().contains(a))
             && self.tags.iter().all(|wanted| tagged(&m.tags, wanted))
