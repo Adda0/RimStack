@@ -610,3 +610,50 @@ fn alt_moves_the_selected_mods_together_and_enter_takes_them_across() {
         "and they leave the active list"
     );
 }
+
+#[test]
+fn menu_key_and_shift_f10_open_the_selected_mods_menu() {
+    let (_tmp, mut cx, mods) = opened();
+    let window = cx.update(|cx| cx.windows()[0]);
+    let keys = |keys: &'static str, cx: &mut HeadlessAppContext| {
+        cx.update_window(window, |_, window, cx| {
+            let parsed = gpui::Keystroke::parse(keys).unwrap();
+            window.dispatch_keystroke(parsed, cx);
+        })
+        .unwrap();
+        cx.run_until_parked();
+    };
+    let entries = |cx: &mut HeadlessAppContext| cx.update(|cx| crate::ui::menu::texts(cx));
+    cx.update_window(window, |_, window, cx| {
+        let handle = mods.read(cx).list(Side::Active).read(cx).focus_handle();
+        window.focus(&handle, cx);
+    })
+    .unwrap();
+    cx.run_until_parked();
+    keys("menu", &mut cx);
+    assert!(
+        entries(&mut cx).is_empty(),
+        "the Menu key opens nothing with no mod chosen"
+    );
+    keys("end", &mut cx);
+    keys("menu", &mut cx);
+    let said = crate::words::put(&rimstack_core::say!("Copy name"));
+    assert!(
+        entries(&mut cx).contains(&said),
+        "the Menu key opens the chosen mod's menu, Copy name among its entries"
+    );
+    keys("escape", &mut cx);
+    for _ in 0..12 {
+        cx.advance_clock(Duration::from_millis(16));
+        cx.run_until_parked();
+    }
+    assert!(
+        entries(&mut cx).is_empty(),
+        "Escape closes it, so the entries go"
+    );
+    keys("shift-f10", &mut cx);
+    assert!(
+        entries(&mut cx).contains(&said),
+        "Shift + F10 opens the menu again"
+    );
+}

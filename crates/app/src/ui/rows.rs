@@ -116,7 +116,14 @@ impl Scroll {
         (self.total, self.shown) = (total, shown);
         self.top = self.top.clamp(px(0.), self.most());
         self.goal = self.goal.clamp(px(0.), self.most());
+        self.settle();
+    }
+
+    /// Brings the row asked for into view now, as the next fit would, for a menu that opens at
+    /// where the row will be drawn.
+    pub(crate) fn settle(&mut self) {
         if let Some((top, bottom, middle)) = self.asked.take() {
+            let shown = self.shown;
             let to = match middle {
                 true => top - (shown - (bottom - top)) / 2.,
                 false if top < self.top => top,

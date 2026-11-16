@@ -63,7 +63,7 @@ pub struct ModList {
     /// How far down the window the pointer is while over the list, and where the list's top was
     /// drawn: which row it is on is read from them as the list scrolls under it.
     pointer: Option<Pixels>,
-    drawn_top: Rc<std::cell::Cell<Pixels>>,
+    drawn: Rc<std::cell::Cell<gpui::Bounds<Pixels>>>,
     /// The mods sliding to the places they were moved to, and how many rows each comes from;
     /// a new slide is a new turn, which starts each row's animation again.
     slides: Rc<std::collections::HashMap<ModId, i32>>,
@@ -136,7 +136,7 @@ impl ModList {
             dragged_at: None,
             pulling: None,
             pointer: None,
-            drawn_top: Rc::default(),
+            drawn: Rc::default(),
             slides: Rc::default(),
             slide_turn: 0,
             slide_end: None,
@@ -185,6 +185,21 @@ impl ModList {
         }
     }
 
+    /// Scrolls row `at` into view now and says where its menu opens: a little in from its left,
+    /// at its bottom, as the QML opened it.
+    pub fn row_point(&mut self, at: usize, cx: &mut Context<Self>) -> Option<gpui::Point<Pixels>> {
+        let bottom = *self.tops.get(at + 1)?;
+        self.contain(at, cx);
+        self.scroll.borrow_mut().settle();
+        let drawn = self.drawn.get();
+        let inset = cx.global::<crate::ui::theme::Theme>().sized(60.);
+        let top = self.scroll.borrow().top();
+        Some(gpui::point(
+            drawn.left() + inset,
+            drawn.top() + bottom - top,
+        ))
+    }
+
     pub fn focus_handle(&self) -> gpui::FocusHandle {
         self.focus.clone()
     }
@@ -226,11 +241,11 @@ impl ModList {
 
     #[cfg(test)]
     pub fn drawn_at(&self, at: usize) -> Pixels {
-        self.drawn_top.get() + self.tops[at] - self.scroll.borrow().top()
+        self.drawn.get().top() + self.tops[at] - self.scroll.borrow().top()
     }
 
     fn pointed_row(&self, pointer: Option<Pixels>) -> Option<usize> {
-        let at = pointer? - self.drawn_top.get() + self.scroll.borrow().top();
+        let at = pointer? - self.drawn.get().top() + self.scroll.borrow().top();
         let (first, end) = (*self.tops.first()?, *self.tops.last()?);
         (at >= first && at < end).then(|| {
             self.tops
@@ -327,7 +342,7 @@ impl Render for ModList {
         let (made, list_id) = (self.made.clone(), cx.entity_id());
         let pointed = self.pointed_row(self.pointer);
         let (slides, slide_turn) = (self.slides.clone(), self.slide_turn);
-        let drawn_top = self.drawn_top.clone();
+        let drawn = self.drawn.clone();
         let drawn_theme = theme.clone();
         let room = bar_room(&theme);
         let line = theme.sized(40.);
@@ -472,12 +487,9 @@ impl Render for ModList {
             .size_full()
             .when(self.shown.dimmed, |d| d.opacity(0.5))
             .child(
-                gpui::canvas(
-                    move |bounds, _, _| drawn_top.set(bounds.top()),
-                    |_, _, _, _| {},
-                )
-                .absolute()
-                .inset_0(),
+                gpui::canvas(move |bounds, _, _| drawn.set(bounds), |_, _, _, _| {})
+                    .absolute()
+                    .inset_0(),
             )
             .on_mouse_move(cx.listener(|list, event: &gpui::MouseMoveEvent, _, cx| {
                 list.point(Some(event.position.y), cx)

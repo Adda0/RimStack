@@ -561,6 +561,25 @@ pub(crate) fn shown(cx: &App) -> Option<Entity<Menu>> {
     cx.try_global::<Shown>().map(|shown| shown.0.clone())
 }
 
+/// The captions of the entries drawn, the test's window into what a menu offers.
+#[cfg(all(test, target_os = "linux"))]
+pub(crate) fn texts(cx: &App) -> Vec<String> {
+    cx.try_global::<Shown>()
+        .map(|shown| {
+            shown
+                .0
+                .read(cx)
+                .entries
+                .iter()
+                .filter_map(|entry| match entry {
+                    Entry::Item(item) => Some(item.text.to_string()),
+                    _ => None,
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 #[cfg(all(test, target_os = "linux"))]
 pub(crate) fn redraw(cx: &mut App) {
     if let Some(menu) = cx.try_global::<Shown>().map(|shown| shown.0.clone()) {

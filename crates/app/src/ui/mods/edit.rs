@@ -462,6 +462,33 @@ impl Mods {
         }
     }
 
+    /// Opens the chosen mods' menu at the row of the first one, scrolled into view, so every
+    /// entry of it is in reach of the keyboard: what the Menu key and Shift + F10 do.
+    fn chosen_menu(&mut self, side: Side, window: &mut Window, cx: &mut Context<Self>) {
+        let state = self.list.read(cx);
+        let chosen = state
+            .selected_id()
+            .filter(|_| state.selected_active == (side == Side::Active));
+        let Some(id) = chosen else {
+            return;
+        };
+        let listed = self
+            .shown(side)
+            .rows
+            .iter()
+            .position(|r| r.mod_id == Some(id) && !r.is_header);
+        let Some(at) = listed else {
+            return;
+        };
+        let index = self.shown(side).rows[at].mod_index;
+        let point = self
+            .list(side)
+            .update(cx, |list, cx| list.row_point(at, cx));
+        if let Some(point) = point {
+            self.row_menu(side, index, Some(id), point, window, cx);
+        }
+    }
+
     /// Moves where the arrows go on from without choosing it.
     fn put_cursor(&mut self, side: Side, id: ModId, cx: &mut Context<Self>) {
         let on_side = side == Side::Active;
@@ -474,8 +501,8 @@ impl Mods {
     }
 
     /// The arrows step through the list and Alt moves the chosen mods, Alt + Home and Alt + End
-    /// to the edge of their category; Enter moves them across; Ctrl + A chooses every mod and
-    /// Ctrl + I the others.
+    /// to the edge of their category; Enter moves them across; the Menu key and Shift + F10
+    /// open their menu; Ctrl + A chooses every mod and Ctrl + I the others.
     pub(super) fn list_key(
         &mut self,
         side: Side,
@@ -540,6 +567,7 @@ impl Mods {
                 }
             }
             "enter" => self.activate_selected(side, cx),
+            "menu" | "f10" if keys.key == "menu" || shift => self.chosen_menu(side, window, cx),
             "a" if command => self.select_all(side, cx),
             "i" if command => self.invert_selection(side == Side::Active, cx),
             "t" | "n" if bare && self.details.is_some() => {
