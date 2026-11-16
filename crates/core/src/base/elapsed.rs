@@ -10,20 +10,20 @@ pub fn ago(seconds: u64) -> Sentence {
         return Sentence::named("just now");
     }
     if minutes < 60 {
-        return say_n!(minutes as usize, "{} minute ago", "{} minutes ago", minutes);
+        return say_n!(minutes as usize, "{} minute ago", "{} minutes ago");
     }
     if hours < 48 {
-        return say_n!(hours as usize, "{} hour ago", "{} hours ago", hours);
+        return say_n!(hours as usize, "{} hour ago", "{} hours ago");
     }
     if days < 60 {
-        return say_n!(days as usize, "{} day ago", "{} days ago", days);
+        return say_n!(days as usize, "{} day ago", "{} days ago");
     }
     if days < 730 {
         let months = days / 30;
-        return say_n!(months as usize, "{} month ago", "{} months ago", months);
+        return say_n!(months as usize, "{} month ago", "{} months ago");
     }
     let years = days / 365;
-    say_n!(years as usize, "{} year ago", "{} years ago", years)
+    say_n!(years as usize, "{} year ago", "{} years ago")
 }
 
 #[cfg(test)]

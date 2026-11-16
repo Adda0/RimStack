@@ -267,7 +267,6 @@ pub fn troubles(found: &Found) -> Vec<Trouble> {
                 n,
                 "{} XML file will not load, so the game skips what it holds: {}",
                 "{} XML files will not load, so the game skips what they hold: {}",
-                n,
                 first_few(&files)
             ),
             short: say!("XML that will not load"),
@@ -283,7 +282,6 @@ pub fn troubles(found: &Found) -> Vec<Trouble> {
                 n,
                 "{} patch aims at a def no active mod defines, so the game reports it failed: {}",
                 "{} patches aim at defs no active mod defines, so the game reports them failed: {}",
-                n,
                 first_few(&found.misses)
             ),
             short: say!("Patches miss their defs"),
@@ -302,7 +300,6 @@ pub fn leaves_out(found: &Found) -> Option<Sentence> {
             n,
             "Holds patches or defs for {} mod that is not installed, which the game leaves out: {}",
             "Holds patches or defs for {} mods that are not installed, which the game leaves out: {}",
-            n,
             first_few(&found.absent)
         )
     })
@@ -410,9 +407,19 @@ mod tests {
                 "some.missing"
             ]
         );
-        let keys: Vec<String> = troubles(&found[1]).into_iter().map(|t| t.key).collect();
+        let said = troubles(&found[1]);
+        let keys: Vec<String> = said.iter().map(|t| t.key.clone()).collect();
         assert_eq!(keys, ["xml-broken", "xml-misses"]);
-        assert!(leaves_out(&found[1]).is_some());
+        // Each names what it counts, not the count again.
+        assert!(said[0].words.to_string().ends_with(": Defs/broken.xml:4"));
+        assert!(
+            said[1]
+                .words
+                .to_string()
+                .contains(&found[1].misses[0].clone())
+        );
+        let left_out = leaves_out(&found[1]).unwrap().to_string();
+        assert!(left_out.contains(&found[1].absent[0].clone()), "{left_out}");
     }
 
     #[test]

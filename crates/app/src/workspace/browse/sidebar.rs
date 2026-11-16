@@ -232,8 +232,7 @@ impl Sidebar {
             found: say_n!(
                 total,
                 "{} result matching your filters",
-                "{} results matching your filters",
-                total
+                "{} results matching your filters"
             ),
             counted: counts.is_some(),
             searched,

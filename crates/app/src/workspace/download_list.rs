@@ -226,8 +226,7 @@ impl App {
                 say_n!(
                     added.len(),
                     "Added {} mod to the list",
-                    "Added {} mods to the list",
-                    added.len()
+                    "Added {} mods to the list"
                 )
             }),
             refusal: refused.map(|why| match why {
@@ -238,8 +237,7 @@ impl App {
                 say_n!(
                     unknown.len(),
                     "{} requirement is not in the database, so it is not added",
-                    "{} requirements are not in the database, so they are not added",
-                    unknown.len()
+                    "{} requirements are not in the database, so they are not added"
                 )
             }),
             added,

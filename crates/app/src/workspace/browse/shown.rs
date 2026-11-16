@@ -194,8 +194,7 @@ impl Shown {
             rimstack_core::say_n!(
                 unknown_requirements.len(),
                 "{} requirement is not in the database, so it is not added",
-                "{} requirements are not in the database, so they are not added",
-                unknown_requirements.len()
+                "{} requirements are not in the database, so they are not added"
             )
         });
         row.stars = stars_of(details.and_then(|d| d.votes));
