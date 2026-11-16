@@ -2002,5 +2002,10 @@
  "LoadFolders.xml names {} folders in other letter case than on disk, so on this system the game loads nothing from them: {}": "LoadFolders.xml names {} folders in other letter case than on disk, so on this system the game loads nothing from them: {}",
  "Names no game version in About.xml under supportedVersions: the game logs it as an error and marks the mod as made for another version.": "Não indica nenhuma versão do jogo no About.xml em supportedVersions: o jogo regista-o como erro e marca o mod como feito para outra versão.",
  "No supported versions": "Sem versões suportadas",
- "{} (on disk {})": "{} (no disco {})"
+ "{} (on disk {})": "{} (no disco {})",
+ "A letter": "Uma letra",
+ "Enter, Space": "Enter, Espaço",
+ "Move through a menu": "Percorrer um menu",
+ "The ends or a page on, in a menu, a choice or a slider": "Aos extremos ou uma página adiante, em um menu, uma escolha ou um controle deslizante",
+ "The next menu entry starting with it": "Para a próxima entrada de menu que começa com ela"
 }

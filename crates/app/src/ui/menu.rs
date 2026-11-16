@@ -324,6 +324,26 @@ impl Menu {
         }
     }
 
+    /// How far a page of the page keys reaches, in entries: the window's height over an entry.
+    fn page(&self, theme: &Theme, window: &Window) -> isize {
+        let row = theme.tag() + theme::GAP_TINY + theme::GAP_SMALL;
+        (window.viewport_size().height / row).max(1.) as isize
+    }
+
+    /// The next entry on whose words `letter` starts, or where the keys were.
+    fn jump(&mut self, letter: char, cx: &App) {
+        let was = self.chosen;
+        for _ in 0..self.entries.len() {
+            self.step(1, cx);
+            if matches!(&self.entries[self.chosen.unwrap()], Entry::Item(item)
+                if item.text.to_lowercase().starts_with(letter))
+            {
+                return;
+            }
+        }
+        self.chosen = was;
+    }
+
     fn entry(
         &self,
         at: usize,
@@ -594,9 +614,17 @@ impl Render for Menu {
                 menu.close(window, cx);
             }))
             .on_key_down(cx.listener(|menu, event: &KeyDownEvent, window, cx| {
-                // Escape and Enter in the search field come as its actions instead.
+                // Escape, Enter, Space and letters in the search field go to the field.
                 let typing = (menu.search.as_ref()).is_some_and(|f| f.read(cx).is_focused(window));
-                match event.keystroke.key.as_str() {
+                let key = event.keystroke.key.as_str();
+                let page = menu.page(&cx.global::<Theme>().clone(), window);
+                // The ends, a page, or the next entry starting with the letter typed.
+                let letter = match (key.len(), event.keystroke.key_char.clone()) {
+                    // A single-character key: a letter (or a digit, which finds nothing).
+                    (1, Some(typed)) if !typing => typed.to_lowercase().chars().next(),
+                    _ => None,
+                };
+                match key {
                     "escape" if !typing => menu.close(window, cx),
                     "down" => {
                         menu.step(1, cx);
@@ -606,12 +634,35 @@ impl Render for Menu {
                         menu.step(-1, cx);
                         cx.notify();
                     }
-                    "enter" if !typing => {
+                    "enter" | "space" if !typing => {
                         if let Some(at) = menu.chosen {
                             menu.choose(at, window, cx);
                         }
                     }
-                    _ => {}
+                    "home" if !typing => {
+                        menu.chosen = None;
+                        menu.step(1, cx);
+                        cx.notify();
+                    }
+                    "end" if !typing => {
+                        menu.chosen = None;
+                        menu.step(-1, cx);
+                        cx.notify();
+                    }
+                    "pageup" => {
+                        menu.step(-page, cx);
+                        cx.notify();
+                    }
+                    "pagedown" => {
+                        menu.step(page, cx);
+                        cx.notify();
+                    }
+                    _ => {
+                        if let Some(letter) = letter {
+                            menu.jump(letter, cx);
+                            cx.notify();
+                        }
+                    }
                 }
             }))
             .on_mouse_down(
@@ -630,6 +681,12 @@ impl Render for Menu {
                     .child(super::motion::pop_in(list, self.turn)),
             ))
     }
+}
+
+#[cfg(all(test, target_os = "linux"))]
+pub(crate) fn chosen(cx: &App) -> Option<usize> {
+    cx.try_global::<Shown>()
+        .and_then(|shown| shown.0.read(cx).chosen)
 }
 
 /// Where the menu last shown was opened, for a menu that opens another where it stands.

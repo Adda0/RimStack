@@ -302,11 +302,18 @@ impl RenderOnce for Slide {
             })
             .when_some(self.moved, |d, moved| {
                 d.on_key_down(move |event: &KeyDownEvent, window, cx| {
+                    // Home and End to the ends; the page keys a quarter of the way, on a step.
+                    let quarter = (to - from) / 4.;
                     let next = match event.keystroke.key.as_str() {
                         "left" => (value - step).max(from),
                         "right" => (value + step).min(to),
+                        "home" => from,
+                        "end" => to,
+                        "pageup" => (value - quarter).max(from),
+                        "pagedown" => (value + quarter).min(to),
                         _ => return,
                     };
+                    let next = (((next - from) / step).round() * step + from).clamp(from, to);
                     moved(next, window, cx);
                 })
             });
@@ -513,8 +520,13 @@ impl RenderOnce for Choice {
                     let next = match event.keystroke.key.as_str() {
                         "left" | "up" if current > 0 => current - 1,
                         "right" | "down" if current < last => current + 1,
+                        "home" => 0,
+                        "end" => last,
                         _ => return,
                     };
+                    if next == current {
+                        return;
+                    }
                     motion::pressed(&choice_id);
                     picked(next, window, cx);
                 })

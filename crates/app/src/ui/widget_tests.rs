@@ -1,5 +1,5 @@
 use super::button::Btn;
-use super::controls::{Choice, Toggle};
+use super::controls::{Choice, Slide, Toggle};
 use super::menu::Menu;
 use super::{Options, focus, install, menu, notices};
 use crate::App;
@@ -16,6 +16,7 @@ struct Bench {
     second: usize,
     on: bool,
     picked: usize,
+    slid: f32,
     chosen: Option<&'static str>,
     menu: Option<Entity<menu::Menu>>,
     notices: Option<Entity<notices::Notices>>,
@@ -26,6 +27,7 @@ impl Render for Bench {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let me = cx.entity().downgrade();
         let pick = me.clone();
+        let slide = me.clone();
         div()
             .size_full()
             .when_some(self.focus.clone(), |d, focus| d.track_focus(&focus))
@@ -50,6 +52,14 @@ impl Render for Bench {
                 .on_pick(move |at, _, cx| {
                     let _ = pick.update(cx, |b, cx| {
                         b.picked = at;
+                        cx.notify();
+                    });
+                }),
+            )
+            .child(
+                Slide::new("slide", (0., 1., 0.1), self.slid).on_move(move |at, _, cx| {
+                    let _ = slide.update(cx, |b, cx| {
+                        b.slid = at;
                         cx.notify();
                     });
                 }),
@@ -168,6 +178,122 @@ fn a_button_pointed_at_fades_to_its_hover_colour_and_rests(cx: &mut TestAppConte
         frames_asked(cx) == 0
     });
     assert!(settled.is_some(), "the fade comes to rest");
+}
+
+#[gpui::test]
+fn a_menu_takes_the_ends_the_page_keys_space_and_letters(cx: &mut TestAppContext) {
+    let (_root, bench, cx) = bench(cx);
+    let entries = || {
+        let entry = |said: &'static str| -> menu::Entry {
+            let bench = bench.downgrade();
+            menu::Entry::item(said, move |_, cx| {
+                let _ = bench.update(cx, |b, _| b.chosen = Some(said));
+            })
+            .into()
+        };
+        vec![
+            entry("Alpha"),
+            entry("Beta"),
+            menu::Entry::Line,
+            entry("Bravo"),
+            entry("Gamma"),
+            entry("Delta"),
+        ]
+    };
+    cx.update(|window, cx| {
+        menu::open_at(
+            gpui::point(gpui::px(10.), gpui::px(10.)),
+            entries(),
+            window,
+            cx,
+        )
+    });
+    // End to the last entry, Home to the first, a letter to the next entry starting with it
+    // (wrapping past the end), the page keys as far as a page.
+    let at = |cx: &mut VisualTestContext| cx.update(|_, cx| menu::chosen(cx));
+    press(cx, "end");
+    assert_eq!(at(cx), Some(5), "End reaches Delta");
+    press(cx, "home");
+    assert_eq!(at(cx), Some(0), "Home reaches Alpha");
+    press(cx, "b");
+    assert_eq!(at(cx), Some(1), "a letter reaches Beta");
+    press(cx, "b");
+    assert_eq!(at(cx), Some(3), "and the next one starting with it, Bravo");
+    press(cx, "b");
+    assert_eq!(at(cx), Some(1), "wrapping to Beta again");
+    press(cx, "pagedown");
+    assert_eq!(at(cx), Some(3), "Page Down moves a page along");
+    press(cx, "pageup");
+    assert_eq!(at(cx), Some(1), "Page Up moves a page back");
+    press(cx, "enter");
+    assert_eq!(
+        bench.read_with(cx, |b, _| b.chosen),
+        Some("Beta"),
+        "Enter takes the entry the keys are on"
+    );
+    let open = |cx: &mut VisualTestContext| cx.update(|_, cx| menu::drawn(cx));
+    let closed = (0..60).find(|_| {
+        cx.executor().advance_clock(Duration::from_millis(16));
+        !open(cx)
+    });
+    assert!(closed.is_some(), "and the menu closes");
+    cx.update(|window, cx| {
+        menu::open_at(
+            gpui::point(gpui::px(10.), gpui::px(10.)),
+            entries(),
+            window,
+            cx,
+        )
+    });
+    press(cx, "down down space");
+    assert_eq!(
+        bench.read_with(cx, |b, _| b.chosen),
+        Some("Beta"),
+        "Space takes the entry too"
+    );
+}
+
+#[gpui::test]
+fn a_slider_takes_the_ends_and_the_page_keys_and_a_choice_the_ends(cx: &mut TestAppContext) {
+    let (_root, bench, cx) = bench(cx);
+    // Tab past the buttons, the toggle and the choice to the slider.
+    press(cx, "tab tab tab tab tab");
+    press(cx, "end");
+    assert_eq!(
+        bench.read_with(cx, |b, _| b.slid),
+        1.,
+        "End reaches the top"
+    );
+    press(cx, "home");
+    assert_eq!(
+        bench.read_with(cx, |b, _| b.slid),
+        0.,
+        "Home reaches the bottom"
+    );
+    press(cx, "pageup");
+    assert_eq!(
+        bench.read_with(cx, |b, _| b.slid),
+        0.,
+        "Page Up at the bottom stays"
+    );
+    press(cx, "pagedown");
+    assert_eq!(
+        bench.read_with(cx, |b, _| b.slid),
+        0.3,
+        "Page Down moves a quarter of the way, on a step"
+    );
+    press(cx, "shift-tab end");
+    assert_eq!(
+        bench.read_with(cx, |b, _| b.picked),
+        2,
+        "End takes the choice's last option"
+    );
+    press(cx, "home");
+    assert_eq!(
+        bench.read_with(cx, |b, _| b.picked),
+        0,
+        "Home takes the choice's first option"
+    );
 }
 
 #[gpui::test]

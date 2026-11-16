@@ -174,8 +174,17 @@ fn groups() -> Vec<(Sentence, Vec<(Sentence, Sentence)>)> {
             say!("Dialogs and menus"),
             vec![
                 (
-                    say!("Enter"),
+                    say!("Enter, Space"),
                     say!("Press the focused button or menu entry; a dialog opens on its main one"),
+                ),
+                (say!("Up, Down"), say!("Move through a menu")),
+                (
+                    say!("Home, End, Page Up, Page Down"),
+                    say!("The ends or a page on, in a menu, a choice or a slider"),
+                ),
+                (
+                    say!("A letter"),
+                    say!("The next menu entry starting with it"),
                 ),
                 (
                     say!("Ctrl + C"),
