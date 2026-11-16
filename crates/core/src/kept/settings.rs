@@ -117,7 +117,7 @@ const SWITCH: Holds = Holds::Choice(&["on", "off"]);
 pub const UPDATE_EVERY: [&str; 6] = ["1", "5", "10", "15", "30", "60"];
 const UPDATE_EVERY_AT_FIRST: u64 = 10;
 
-const KNOWN: [(&str, Holds); 23] = [
+const KNOWN: [(&str, Holds); 24] = [
     // The setup in use: decided and written by a switch, never typed.
     ("instance", Holds::Text),
     ("game", Holds::Text),
@@ -137,6 +137,8 @@ const KNOWN: [(&str, Holds); 23] = [
     ("databasesOff", Holds::List),
     ("replacementsIgnored", Holds::List),
     ("textureSkip", Holds::List),
+    // Kinds of warning (`TroubleKind::key`) the Problems panel lists and the mod list leaves unmarked.
+    ("panelOnly", Holds::List),
     ("updates", Holds::Choice(&["stable", "nightly"])),
     ("updateEvery", Holds::Choice(&UPDATE_EVERY)),
     ("rulesRepo", Holds::Text),

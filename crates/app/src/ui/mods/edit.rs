@@ -640,12 +640,7 @@ impl Mods {
         if state.selected_id() != Some(id) {
             return None;
         }
-        let marked: Vec<bool> = state
-            .order
-            .troubles()
-            .iter()
-            .map(|t| !t.is_empty())
-            .collect();
+        let marked: Vec<bool> = state.order.marked().collect();
         Some(rimstack_core::mods::checks::place_among(&marked, index).0).filter(|place| *place > 0)
     }
 
@@ -654,8 +649,8 @@ impl Mods {
         let state = self.list.read(cx);
         let list = state.order.list(Side::Active);
         let rows = list.rows();
-        let troubles = state.order.troubles();
-        let troubled = |index: usize| troubles.get(index).is_some_and(|t| !t.is_empty());
+        let marked: Vec<bool> = state.order.marked().collect();
+        let troubled = |index: usize| marked.get(index).copied().unwrap_or(false);
         let count = rows.len() as isize;
         if count == 0 {
             return;
@@ -703,6 +698,19 @@ impl Mods {
                 cx,
             );
         }
+    }
+}
+
+impl Mods {
+    /// `on` marks a kind of warning in the mod list again; off leaves it to the Problems panel.
+    pub(super) fn show_in_list(&mut self, kind: &str, on: bool, cx: &mut Context<Self>) {
+        let app = super::super::app(cx);
+        if let Err(problem) = app.show_in_list(kind, on) {
+            notices::say(crate::words::said_of(&problem), notices::Tone::Err, cx);
+            return;
+        }
+        self.edit_list(cx, |list, _| list.order.recheck(&app));
+        self.show(cx);
     }
 }
 

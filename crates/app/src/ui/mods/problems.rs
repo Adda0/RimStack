@@ -30,7 +30,7 @@ impl DetailsView {
             }
         };
         let none = overview.troubles.is_empty();
-        let (errors, warnings) = (overview.error_count, self.shown.warnings);
+        let (errors, warnings) = (overview.error_count, overview.warned);
         let summary = match none {
             true => put(&say!("None")),
             false => put(&say!("{} with errors, {} with warnings", errors, warnings)),
@@ -39,6 +39,26 @@ impl DetailsView {
         let groups = overview.trouble_groups.iter().enumerate().map(|(at, group)| {
             let tone = if group.error { c.err } else { c.warn };
             let mut body: Vec<AnyElement> = Vec::new();
+            // Errors always stay marked in the mod list: the game trips on them.
+            if !group.error {
+                let kind = group.kind;
+                let mods = mods.clone();
+                body.push(
+                    div()
+                        .flex()
+                        .items_center()
+                        .gap(theme::GAP)
+                        .child(
+                            crate::ui::controls::Toggle::new(("problems-listed", at), group.listed, put(&say!("Mark in the mod list")))
+                                .silent()
+                                .on_flip(move |on, _, cx| {
+                                    let _ = mods.update(cx, |mods, cx| mods.show_in_list(kind, on, cx));
+                                }),
+                        )
+                        .child(label(theme, theme.body(), c.ink2, put(&say!("Mark in the mod list"))))
+                        .into_any_element(),
+                );
+            }
             if group.trusted > 1 {
                 let version = version.clone();
                 body.push(

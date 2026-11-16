@@ -2082,5 +2082,6 @@
  "{} hidden item not checked yet": "{} ukryty element jeszcze niesprawdzony",
  "{} hidden items not checked yet": "{} ukryte elementy jeszcze niesprawdzone|{} ukrytych elementów jeszcze niesprawdzonych",
  "Dlls other active mods also ship": "Pliki dll dostarczane też przez inne aktywne mody",
- "Gone from the Workshop": "Zniknęły z Warsztatu"
+ "Gone from the Workshop": "Zniknęły z Warsztatu",
+ "Mark in the mod list": "Oznaczaj na liście modów"
 }

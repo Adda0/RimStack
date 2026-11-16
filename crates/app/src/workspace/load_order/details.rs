@@ -221,7 +221,11 @@ pub struct Textures {
 #[derive(Serialize, PartialEq)]
 pub struct ProblemGroup {
     pub name: &'static str,
+    /// `TroubleKind::key`.
+    pub kind: &'static str,
     pub error: bool,
+    /// Whether the mod list marks this kind too, or leaves it to the Problems panel.
+    pub listed: bool,
     pub trusted: usize,
     pub shared: bool,
     pub lines: Vec<ProblemSaid>,
@@ -239,8 +243,13 @@ pub struct Overview {
     pub to_get: Vec<ProblemSaid>,
     pub trouble_groups: Vec<ProblemGroup>,
     pub needed: Vec<String>,
+    /// In the mod list: the kinds kept to the Problems panel are not counted.
     pub version_only: usize,
     pub other_warnings: usize,
+    /// Game version warnings, the mod list's or not: what "Ignore all" sets aside.
+    pub trustable: usize,
+    /// Mods with a warning, the kinds kept to the Problems panel among them.
+    pub warned: usize,
     pub slowest: Vec<Slow>,
     pub load_times: bool,
     pub load_times_how: Sentence,
@@ -710,9 +719,12 @@ impl LoadOrder {
                 .into_iter()
                 .map(|(kind, lines)| {
                     let trusted = lines.iter().filter(|t| t.trust).count();
+                    let error = lines.first().is_some_and(|t| t.error);
                     ProblemGroup {
                         name: kind.heading(),
-                        error: lines.first().is_some_and(|t| t.error),
+                        kind: kind.key(),
+                        error,
+                        listed: error || self.lists(kind),
                         trusted,
                         shared: trusted > 1 && trusted == lines.len(),
                         lines,
@@ -741,7 +753,13 @@ impl LoadOrder {
             })
             .collect();
         let community = app.community();
-        let tally = describe::tally(&self.troubles);
+        let tally = describe::tally(self.listed());
+        let trustable = (self.troubles.iter().flatten())
+            .filter(|t| t.fix == describe::Fix::Trust)
+            .count();
+        let warned = (self.troubles.iter())
+            .filter(|own| own.iter().any(|t| !t.error))
+            .count();
         let load_times = mods.iter().any(|m| m.load_micros.is_some());
         let errors = || troubles.iter().filter(|t| t.error);
         let (error_count, first_errors): (usize, Vec<ProblemSaid>) = (
@@ -764,6 +782,8 @@ impl LoadOrder {
             needed: tally.needed,
             version_only: tally.version_only,
             other_warnings: tally.other_warnings,
+            warned,
+            trustable,
             slowest: details::slowest(mods, 5),
             load_times,
             load_times_how: if load_times {

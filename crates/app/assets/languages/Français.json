@@ -2082,5 +2082,6 @@
  "{} hidden item not checked yet": "{} élément masqué pas encore vérifié",
  "{} hidden items not checked yet": "{} éléments masqués pas encore vérifiés",
  "Dlls other active mods also ship": "Des dll que livrent aussi d'autres mods actifs",
- "Gone from the Workshop": "Disparus du Workshop"
+ "Gone from the Workshop": "Disparus du Workshop",
+ "Mark in the mod list": "Signaler dans la liste des mods"
 }

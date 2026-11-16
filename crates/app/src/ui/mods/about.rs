@@ -82,7 +82,7 @@ impl DetailsView {
                 )
             })
             .collect();
-        let alike = self.shown.overview.as_ref().map_or(0, |o| o.version_only);
+        let alike = self.shown.overview.as_ref().map_or(0, |o| o.trustable);
         if alike > 1 && details.offer_trust && !self.shown.previewing {
             let version = self.shown.game_version.clone();
             lines.push(

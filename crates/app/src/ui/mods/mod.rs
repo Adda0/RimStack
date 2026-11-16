@@ -409,7 +409,7 @@ impl Mods {
             overview: list.overview.clone(),
             details: self.details.clone(),
             warnings: list.order.errors_and_warnings().1,
-            troubled: list.order.troubles().iter().any(|t| !t.is_empty()),
+            troubled: list.order.marked().any(|marked| marked),
             dirty,
             unsaved,
             conflicts: self.reads.conflicts,

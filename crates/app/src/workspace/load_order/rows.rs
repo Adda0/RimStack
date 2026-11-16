@@ -4,7 +4,7 @@ use super::{LoadOrder, Side, side_index};
 use crate::App;
 use rimstack_core::base::sentence::Sentence;
 use rimstack_core::base::{elapsed, sizes};
-use rimstack_core::mods::describe::{Fix, Trouble};
+use rimstack_core::mods::describe::{Fix, Trouble, TroubleKind};
 use rimstack_core::mods::library::{Installed, Library, ModId};
 use rimstack_core::mods::list::{Category, Mod, Row, SortKey};
 use rimstack_core::rimworld::paths::Source;
@@ -316,11 +316,15 @@ impl LoadOrder {
             _ => 0.0,
         };
         // A game version is shown as `made_for`.
-        let shown = || own.iter().filter(|t| t.fix != Fix::Trust);
+        let shown = || {
+            own.iter()
+                .filter(|t| t.fix != Fix::Trust && self.in_list(t))
+        };
         let first = shown().find(|t| t.error).or(shown().next());
         let made_for = self.outdated[side_index(side)]
             .get(index)
-            .and_then(Option::as_ref);
+            .and_then(Option::as_ref)
+            .filter(|_| self.lists(TroubleKind::GameVersion));
         let preview = side == Side::Active;
         let name = match m.installed {
             Some(_) => Sentence::Plain(m.name.clone()),

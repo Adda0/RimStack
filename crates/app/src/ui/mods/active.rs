@@ -60,12 +60,7 @@ impl Mods {
         let c = &theme.colours;
         let list = self.list.read(cx);
         let (errors, warnings) = list.order.errors_and_warnings();
-        let problems = list
-            .order
-            .troubles()
-            .iter()
-            .filter(|t| !t.is_empty())
-            .count();
+        let problems = list.order.marked().filter(|marked| *marked).count();
         let previewing = list.order.previewing();
         let (version_only, other_warnings) = list
             .overview
@@ -421,13 +416,8 @@ impl Mods {
             }
         };
         let mut entries: Vec<Entry> = Vec::new();
-        let problems = self
-            .list
-            .read(cx)
-            .order
-            .troubles()
-            .iter()
-            .filter(|t| !t.is_empty())
+        let problems = (self.list.read(cx).order.marked())
+            .filter(|marked| *marked)
             .count();
         if problems > 0 {
             entries.push(
