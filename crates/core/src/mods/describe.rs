@@ -233,6 +233,24 @@ pub fn incomplete(
             .is_some_and(|keys| keys.contains("no-workshop-id"))
 }
 
+/// About.xml listing no game version: the game logs it and its mod list marks the mod as made for
+/// another version. Official content lists none and is not asked to.
+pub fn unversioned(library: &Library, m: &Mod) -> Option<Trouble> {
+    let about = library.get(m.installed?)?.about.as_ref().ok()?;
+    if official(library, m) || !about.supported_versions.is_empty() {
+        return None;
+    }
+    Some(Trouble {
+        error: false,
+        words: say!(
+            "Names no game version in About.xml under supportedVersions: the game logs it as an error and marks the mod as made for another version."
+        ),
+        short: say!("No supported versions"),
+        fix: Fix::None,
+        key: "no-versions".to_string(),
+    })
+}
+
 pub fn troubles(
     library: &Library,
     mods: &[Mod],
@@ -361,6 +379,7 @@ pub fn troubles(
         if let Some(lack) = lacking(library, m) {
             own.push(lack);
         }
+        own.extend(unversioned(library, m));
     }
     all
 }
@@ -646,11 +665,11 @@ mod tests {
         let abouts = [
             (
                 "switch",
-                "<ModMetaData><packageId>a.switch</packageId><name>Switch</name><modDependencies><li><packageId>a.frame</packageId></li></modDependencies><loadAfter><li>A.Frame</li></loadAfter></ModMetaData>",
+                "<ModMetaData><packageId>a.switch</packageId><name>Switch</name><supportedVersions><li>1.6</li></supportedVersions><modDependencies><li><packageId>a.frame</packageId></li></modDependencies><loadAfter><li>A.Frame</li></loadAfter></ModMetaData>",
             ),
             (
                 "frame",
-                "<ModMetaData><packageId>a.frame</packageId><name>Frame</name></ModMetaData>",
+                "<ModMetaData><packageId>a.frame</packageId><name>Frame</name><supportedVersions><li>1.6</li></supportedVersions></ModMetaData>",
             ),
         ];
         for (folder, about) in abouts {
@@ -692,6 +711,43 @@ mod tests {
         );
         assert!(wrong[1].is_empty());
         assert!(check(["a.frame", "a.switch"]).iter().all(Vec::is_empty));
+    }
+
+    #[test]
+    fn a_mod_listing_no_game_version_is_warned_once_not_as_made_for_another() {
+        let tmp = tempfile::tempdir().unwrap();
+        let root = tmp.path().join("Mods");
+        let abouts = [
+            (
+                "bare",
+                "<ModMetaData><packageId>a.bare</packageId><name>Bare</name><supportedVersions/></ModMetaData>",
+            ),
+            (
+                "none",
+                "<ModMetaData><packageId>a.none</packageId><name>None</name></ModMetaData>",
+            ),
+        ];
+        for (folder, about) in abouts {
+            fs::create_dir_all(root.join(folder).join("About")).unwrap();
+            fs::write(root.join(folder).join("About/About.xml"), about).unwrap();
+            fs::write(root.join(folder).join("About/PublishedFileId.txt"), "1000").unwrap();
+        }
+        let roots = [ModRoot {
+            path: root,
+            source: Source::Local,
+        }];
+        let active = ["a.bare".to_string(), "a.none".to_string()];
+        let library = build(scan(&roots), &active, "1.6");
+        let found = troubles(
+            &library,
+            &library.active,
+            Versions::CheckedBut(&HashSet::new()),
+            &Names::new(),
+        );
+        for own in &found {
+            let keys: Vec<&str> = own.iter().map(|t| t.key.as_str()).collect();
+            assert_eq!(keys, ["no-versions"], "{own:?}");
+        }
     }
 
     #[test]

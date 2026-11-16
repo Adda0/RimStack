@@ -716,6 +716,7 @@ impl App {
         use rayon::prelude::*;
         use rimstack_core::kept::mod_facts::ModFacts;
         use rimstack_core::mods::conflicts;
+        use rimstack_core::rimworld::loadfolders;
         let generation = self.conflicts_generation();
         let run = self.begin_facts_run();
         let loaded = self.library();
@@ -726,15 +727,14 @@ impl App {
             .iter()
             .filter_map(|&i| library.get(i)?.key())
             .collect();
+        let mut miscased = HashMap::new();
         let jobs: Vec<super::mod_facts::Job> = members
             .iter()
             .map(|&i| {
                 let root = library.get(i).map(|m| m.path.clone()).unwrap_or_default();
-                let loaded = rimstack_core::rimworld::loadfolders::folders(
-                    &root,
-                    &library.game_version,
-                    &|m| active.contains(m),
-                );
+                let (loaded, wrong_case) =
+                    loadfolders::checked(&root, &library.game_version, &|m| active.contains(m));
+                miscased.insert(i, wrong_case);
                 super::mod_facts::Job {
                     root,
                     loaded,
@@ -838,6 +838,7 @@ impl App {
             xml_found: members.iter().copied().zip(xml).collect(),
             removal,
             assemblies: members.iter().copied().zip(assemblies).collect(),
+            miscased,
             members: members.clone(),
         };
         if !self.keep_facts(run, &loaded, members.iter().copied().zip(facts)) {

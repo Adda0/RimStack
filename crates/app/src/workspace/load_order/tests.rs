@@ -581,6 +581,7 @@ fn nothing_found() -> crate::workspace::Conflicts {
         xml_found: Default::default(),
         removal: Default::default(),
         assemblies: Default::default(),
+        miscased: Default::default(),
     }
 }
 
@@ -731,6 +732,27 @@ fn keys(order: &LoadOrder, side: Side) -> Vec<String> {
         .iter()
         .map(|m| m.id.clone())
         .collect()
+}
+
+#[test]
+fn a_load_folder_named_in_other_letter_case_is_warned_about_where_case_counts() {
+    let (tmp, app) = installed();
+    std::fs::create_dir_all(tmp.path().join("game/Mods/roads/Common")).unwrap();
+    std::fs::write(
+        tmp.path().join("game/Mods/roads/LoadFolders.xml"),
+        "<loadFolders><v1.6><li>/</li><li>common</li></v1.6></loadFolders>",
+    )
+    .unwrap();
+    let mut order = LoadOrder::read(&app, true, None);
+    order.take(&app, Side::Inactive, 0, None);
+    let members = order.files_to_read(&app).unwrap();
+    app.read_active_files(members);
+    order.recheck(&app);
+    let told = order.troubles()[1]
+        .iter()
+        .any(|t| t.key == "loadfolders-case");
+    let case_counts = !tmp.path().join("game/Mods/roads/common").is_dir();
+    assert_eq!(told, case_counts, "{:?}", order.troubles()[1]);
 }
 
 #[test]

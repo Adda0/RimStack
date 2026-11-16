@@ -1996,5 +1996,11 @@
  "{} dll another active mod also ships, differently; the game loads only the first copy: {}": "{} dll another active mod also ships, differently; the game loads only the first copy: {}",
  "{} dlls other active mods also ship, differently; the game loads only the first copy: {}": "{} dlls other active mods also ship, differently; the game loads only the first copy: {}",
  "{}, also in {}, which loads first: the game uses that copy": "{}, anche in {}, che si carica prima: il gioco usa quella copia",
- "{}, also in {}: this mod loads first, so the game uses this copy": "{}, anche in {}: questa mod si carica prima, quindi il gioco usa questa copia"
+ "{}, also in {}: this mod loads first, so the game uses this copy": "{}, anche in {}: questa mod si carica prima, quindi il gioco usa questa copia",
+ "LoadFolders.xml letter case": "Maiuscole in LoadFolders.xml",
+ "LoadFolders.xml names {} folder in other letter case than on disk, so on this system the game loads nothing from it: {}": "LoadFolders.xml names {} folder in other letter case than on disk, so on this system the game loads nothing from it: {}",
+ "LoadFolders.xml names {} folders in other letter case than on disk, so on this system the game loads nothing from them: {}": "LoadFolders.xml names {} folders in other letter case than on disk, so on this system the game loads nothing from them: {}",
+ "Names no game version in About.xml under supportedVersions: the game logs it as an error and marks the mod as made for another version.": "Non nomina alcuna versione del gioco in About.xml sotto supportedVersions: il gioco lo registra come errore e segna la mod come fatta per un'altra versione.",
+ "No supported versions": "Nessuna versione supportata",
+ "{} (on disk {})": "{} (sul disco {})"
 }
