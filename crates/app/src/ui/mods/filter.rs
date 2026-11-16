@@ -187,6 +187,7 @@ impl Mods {
             errors,
             warnings,
             conflicts: self.reads.conflicts,
+            defclashes: order.list(Side::Active).flagged(flag::DEFCLASH),
             updated: order.list(Side::Active).flagged(flag::UPDATED),
         };
         order.filter_offers(&partial, &self.filter_text(cx), &counted)

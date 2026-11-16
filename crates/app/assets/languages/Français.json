@@ -1769,5 +1769,10 @@
  "smaller than this many megabytes": "plus petit que ce nombre de mégaoctets",
  "Names no Workshop item: it has no About/PublishedFileId.txt, so a check cannot tell its updates.": "Ne nomme aucun élément de l'Atelier : il n'a pas de About/PublishedFileId.txt, donc aucun contrôle ne peut connaître ses mises à jour.",
  "No Workshop id": "Pas d'identifiant d'Atelier",
- "missing a property, like a named Workshop item": "auxquels il manque une propriété, comme un élément de l'Atelier nommé"
+ "missing a property, like a named Workshop item": "auxquels il manque une propriété, comme un élément de l'Atelier nommé",
+ "Def conflicts": "Conflits de définitions",
+ "Two active mods define the same def. The mod loading later wins: the game quietly keeps its def.": "Deux mods actifs définissent la même def. Le mod chargé après gagne : le jeu garde discrètement sa def.",
+ "{} and {} more": "{} et {} de plus",
+ "{} mod defining a def an active one also defines": "{} mod définit une def qu'un mod actif définit aussi",
+ "{} mods defining a def an active one also defines": "{} mods définissent une def qu'un mod actif définit aussi"
 }

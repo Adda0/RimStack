@@ -27,6 +27,7 @@ pub struct Counted {
     pub errors: usize,
     pub warnings: usize,
     pub conflicts: usize,
+    pub defclashes: usize,
     /// Active mods with an update; 0 before Steam is asked too.
     pub updated: usize,
 }
@@ -41,6 +42,13 @@ const TERMS: &[(&str, About)] = &[
             c.conflicts,
             "{} mod sharing textures",
             "{} mods sharing textures"
+        )
+    }),
+    ("is:defclash", |c| {
+        say_n!(
+            c.defclashes,
+            "{} mod defining a def an active one also defines",
+            "{} mods defining a def an active one also defines"
         )
     }),
     ("is:changed", |_| {
@@ -307,7 +315,7 @@ fn value_offers<'a>(
 fn def_names<'a>(key: &str, facts: &'a Facts) -> HashSet<&'a str> {
     let scanned = &facts.scanned;
     match key {
-        "defines" => scanned.defines.iter().map(String::as_str).collect(),
+        "defines" => scanned.defines.iter().map(|d| d.name.as_str()).collect(),
         _ => scanned
             .patched
             .iter()
@@ -505,7 +513,12 @@ mod tests {
     fn def_names_read_are_offered_after_defines_and_patchesdef_most_used_first() {
         let read = |defines: &[&str], patched: &[&str]| {
             let mut facts = Facts::default();
-            facts.scanned.defines = defines.iter().map(|d| d.to_string()).collect();
+            facts.scanned.defines = (defines.iter())
+                .map(|d| crate::mods::defs::Def {
+                    kind: "ThingDef".into(),
+                    name: d.to_string(),
+                })
+                .collect();
             facts.scanned.patched = (patched.iter())
                 .map(|d| (d.to_string(), std::path::PathBuf::new()))
                 .collect();

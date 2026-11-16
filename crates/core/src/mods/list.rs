@@ -352,6 +352,8 @@ pub mod flag {
     pub const UNUSED: u16 = 1024;
     /// Missing a property RimSort looks for: an About.xml that reads, a named Workshop item.
     pub const INCOMPLETE: u16 = 2048;
+    /// Defines a def another active mod defines too.
+    pub const DEFCLASH: u16 = 4096;
 }
 
 impl GroupedList {

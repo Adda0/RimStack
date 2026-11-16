@@ -232,6 +232,97 @@ impl DetailsView {
         )
     }
 
+    fn def_clashes(
+        &self,
+        theme: &Theme,
+        details: &Details,
+        cx: &mut Context<Self>,
+    ) -> Option<AnyElement> {
+        let c = &theme.colours;
+        let all: Vec<_> = details
+            .defs_replaced_by
+            .iter()
+            .map(|clash| (true, clash))
+            .chain(details.defs_replaces.iter().map(|clash| (false, clash)))
+            .collect();
+        if all.is_empty() {
+            return None;
+        }
+        let count = all.len();
+        let lines = all.into_iter().enumerate().map(|(at, (loses, clash))| {
+            let other = clash.mod_id;
+            let chip = match loses {
+                true => Chip::new(put(&say!("loses {}", clash.defs)))
+                    .tone(c.warn)
+                    .icon("arrow-down"),
+                false => Chip::new(put(&say!("wins {}", clash.defs)))
+                    .tone(c.ok)
+                    .icon("arrow-up"),
+            };
+            let row = div()
+                .flex()
+                .items_center()
+                .gap(theme::GAP_SMALL)
+                .child(chip)
+                .child(
+                    div()
+                        .flex_1()
+                        .min_w_0()
+                        .overflow_hidden()
+                        .whitespace_nowrap()
+                        .text_ellipsis()
+                        .sized_text(theme, theme.body())
+                        .text_color(c.ink)
+                        .child(clash.name.clone()),
+                );
+            div()
+                .flex()
+                .flex_col()
+                .gap(theme::GAP_TINY)
+                .child(row)
+                .child(
+                    div()
+                        .spaced_text(theme, theme.small(), 1.3)
+                        .text_color(c.ink3)
+                        .child(put(&clash.some)),
+                )
+                .when(loses, |d| {
+                    d.child(
+                        div().flex().gap(theme::GAP_SMALL).child(
+                            Btn::new(("win-all", at), put(&say!("Win all")))
+                                .enabled(!self.shown.previewing)
+                                .tip(put(&say!(
+                                    "Adds a rule of your own: this mod loads after the other."
+                                )))
+                                .on_click(self.on_mods(move |mods, cx| mods.win_over(other, cx))),
+                        ),
+                    )
+                })
+                .into_any_element()
+        });
+        let mut body: Vec<AnyElement> = vec![
+            div()
+                .spaced_text(theme, theme.body(), 1.3)
+                .text_color(c.ink2)
+                .child(put(&say!(
+                    "Two active mods define the same def. The mod loading later wins: the game quietly keeps its def."
+                )))
+                .into_any_element(),
+        ];
+        body.extend(lines.collect::<Vec<AnyElement>>());
+        let (folded, fold) = self.fold("about-defclashes", false, cx);
+        Some(
+            Card::new("about-defclashes", put(&say!("Def conflicts")))
+                .tone(c.warn)
+                .note(count.to_string())
+                .spacing(theme::GAP)
+                .folds(folded, fold)
+                .body(body)
+                .render(theme, None)
+                .into_any_element(),
+        )
+    }
+
     fn replaced(&self, theme: &Theme, details: &Details) -> Option<AnyElement> {
         let c = &theme.colours;
         let by = details.replaced_by.clone()?;
@@ -779,6 +870,7 @@ impl DetailsView {
             );
         }
         shown.extend(self.clashes(theme, details, cx));
+        shown.extend(self.def_clashes(theme, details, cx));
         shown.extend(self.replaced(theme, details));
         shown.extend(self.copies(theme, details));
         shown.push(self.facts(theme, details, inner, window, cx));

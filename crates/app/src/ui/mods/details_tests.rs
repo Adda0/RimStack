@@ -183,3 +183,61 @@ fn tags_given_to_any_mod_are_offered_while_tagging_and_not_the_one_typed_or_take
         "the tags already typed are not offered again"
     );
 }
+
+fn shared_defs(root: &std::path::Path) {
+    for n in ["004", "007"] {
+        let folder = root.join(format!("fx/game/Mods/fixture-{n}/Defs"));
+        std::fs::create_dir_all(&folder).unwrap();
+        std::fs::write(
+            folder.join("Shared.xml"),
+            "<Defs><ThingDef><defName>Shared_Thing</defName></ThingDef></Defs>",
+        )
+        .unwrap();
+    }
+}
+
+#[test]
+fn two_mods_defining_the_same_def_are_said_to_clash_the_later_winning() {
+    let (_tmp, mut cx, mods) = opened_with(shared_defs);
+    cx.update(|cx| {
+        mods.update(cx, |mods, cx| {
+            let order = &mods.list.read(cx).order;
+            let list = order.list(Side::Active);
+            let mut found: Vec<ModId> = Vec::new();
+            let mut names: Vec<String> = Vec::new();
+            for m in list.mods() {
+                if m.name != "Fixture Mod 004" && m.name != "Fixture Mod 007" {
+                    continue;
+                }
+                let Some(installed) = m.installed else {
+                    continue;
+                };
+                found.push(installed);
+                names.push(m.name.clone());
+            }
+            assert_eq!(names, ["Fixture Mod 007", "Fixture Mod 004"]);
+            let (earlier, later) = (found[0], found[1]);
+            mods.choose(Side::Active, earlier, cx);
+            let details = mods.details.as_ref().unwrap();
+            assert_eq!(details.defs_replaced_by.len(), 1);
+            assert_eq!(details.defs_replaced_by[0].mod_id, later);
+            assert_eq!(details.defs_replaced_by[0].defs, 1);
+            assert_eq!(
+                details.defs_replaced_by[0].some.to_string(),
+                "Shared_Thing (ThingDef)"
+            );
+            assert!(details.defs_replaces.is_empty());
+            mods.choose(Side::Active, later, cx);
+            let details = mods.details.as_ref().unwrap();
+            assert_eq!(details.defs_replaces.len(), 1);
+            assert!(details.defs_replaced_by.is_empty());
+            let flagged = mods
+                .list
+                .read(cx)
+                .order
+                .list(Side::Active)
+                .flagged(rimstack_core::mods::list::flag::DEFCLASH);
+            assert_eq!(flagged, 2);
+        })
+    });
+}

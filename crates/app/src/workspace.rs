@@ -58,6 +58,7 @@ pub struct Conflicts {
     pub members: Vec<library::ModId>,
     /// Indexed by place in `members`.
     pub overlaps: rimstack_core::mods::conflicts::Overlaps,
+    pub def_collisions: Vec<rimstack_core::mods::defs::Collision>,
     pub scanned: HashMap<library::ModId, rimstack_core::mods::infer::Scanned>,
 }
 

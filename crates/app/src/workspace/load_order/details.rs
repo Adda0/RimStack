@@ -158,6 +158,8 @@ pub struct Details {
     pub loses_to: Vec<Clash>,
     pub wins_over: Vec<Clash>,
     pub conflict_marks: std::collections::BTreeMap<ModId, rimstack_core::mods::details::Mark>,
+    pub defs_replaced_by: Vec<rimstack_core::mods::defs::DefClash>,
+    pub defs_replaces: Vec<rimstack_core::mods::defs::DefClash>,
     pub loads_after: Vec<Named>,
     pub loads_before: Vec<Named>,
     pub required_above: usize,
@@ -407,6 +409,9 @@ impl LoadOrder {
             said.loses_to = clashes.loses;
             said.wins_over = clashes.wins;
             said.conflict_marks = clashes.marks;
+            let defs = self.def_clashes(app, id);
+            said.defs_replaced_by = defs.replaced_by;
+            said.defs_replaces = defs.replaces;
             said.placement = near.bottom.then(|| say!("The community rules keep this mod near the bottom of the list, below everything that does not have to follow it."));
         } else if let Some((_, listed)) = listed
             && let Some(lack) = describe::lacking(library, listed)
@@ -529,6 +534,18 @@ impl LoadOrder {
             Some((at, self.active.mods()[at].name.clone()))
         };
         details::clashes(&known.members, &known.overlaps, id, &listed)
+    }
+
+    fn def_clashes(&self, app: &App, id: ModId) -> rimstack_core::mods::defs::DefClashes {
+        let known = app.conflicts().reading();
+        let Some(known) = known.as_ref() else {
+            return Default::default();
+        };
+        let listed = |id: ModId| {
+            let at = self.active.position_of(id)?;
+            Some((at, self.active.mods()[at].name.clone()))
+        };
+        rimstack_core::mods::defs::of_mod(&known.members, &known.def_collisions, id, &listed)
     }
 
     pub fn overview(&self, app: &App) -> Overview {

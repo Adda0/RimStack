@@ -99,6 +99,7 @@ impl Filter {
             Some(("in", "search")) => self.flags |= flag::IN_SEARCH,
             Some(("is", "unused")) => self.flags |= flag::UNUSED,
             Some(("is", "incomplete")) => self.flags |= flag::INCOMPLETE,
+            Some(("is", "defclash")) => self.flags |= flag::DEFCLASH,
             _ => self.words.push(term.to_string()),
         }
     }

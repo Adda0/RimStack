@@ -107,8 +107,10 @@ impl Facts {
     }
 
     pub fn defines(&self, def_name: &str) -> bool {
-        let same = |name: &String| name.eq_ignore_ascii_case(def_name);
-        self.scanned.defines.iter().any(same)
+        self.scanned
+            .defines
+            .iter()
+            .any(|d| d.name.eq_ignore_ascii_case(def_name))
     }
 
     pub fn patches_def(&self, def_name: &str) -> bool {
