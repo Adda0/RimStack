@@ -4,7 +4,7 @@
 
 use crate::base::sentence::Sentence;
 use crate::mods::defs::{Def, first_few};
-use crate::mods::describe::{Fix, Trouble};
+use crate::mods::describe::{Fix, Trouble, TroubleKind};
 use crate::mods::infer::Scanned;
 use crate::{say, say_n};
 use roxmltree::{Document, Node, ParsingOptions};
@@ -276,6 +276,7 @@ pub fn troubles(found: &Found) -> Vec<Trouble> {
             short: say!("XML that will not load"),
             fix: Fix::None,
             key: "xml-broken".to_string(),
+            kind: TroubleKind::XmlBroken,
         });
     }
     if !found.misses.is_empty() {
@@ -291,6 +292,7 @@ pub fn troubles(found: &Found) -> Vec<Trouble> {
             short: say!("Patches miss their defs"),
             fix: Fix::None,
             key: "xml-misses".to_string(),
+            kind: TroubleKind::PatchMisses,
         });
     }
     said

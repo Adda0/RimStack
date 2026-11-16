@@ -2080,5 +2080,7 @@
  "gone from the Workshop, or made private": "disparu du Workshop ou passé en privé",
  "Steam hides removed, private and unlisted items alike, so each one's Workshop page is looked at, a few per check: Steam refuses many at once. The next check goes on with these.": "Steam masque de la même façon les éléments retirés, privés et non répertoriés : la page Workshop de chacun est donc consultée, quelques-unes par vérification, car Steam en refuse beaucoup à la fois. La prochaine vérification reprend avec ceux-ci.",
  "{} hidden item not checked yet": "{} élément masqué pas encore vérifié",
- "{} hidden items not checked yet": "{} éléments masqués pas encore vérifiés"
+ "{} hidden items not checked yet": "{} éléments masqués pas encore vérifiés",
+ "Dlls other active mods also ship": "Des dll que livrent aussi d'autres mods actifs",
+ "Gone from the Workshop": "Disparus du Workshop"
 }

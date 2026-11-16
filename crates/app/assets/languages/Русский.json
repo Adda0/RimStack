@@ -2080,5 +2080,7 @@
  "gone from the Workshop, or made private": "gone from the Workshop, or made private",
  "Steam hides removed, private and unlisted items alike, so each one's Workshop page is looked at, a few per check: Steam refuses many at once. The next check goes on with these.": "Steam hides removed, private and unlisted items alike, so each one's Workshop page is looked at, a few per check: Steam refuses many at once. The next check goes on with these.",
  "{} hidden item not checked yet": "{} hidden item not checked yet",
- "{} hidden items not checked yet": "{} hidden items not checked yet|{} hidden items not checked yet"
+ "{} hidden items not checked yet": "{} hidden items not checked yet|{} hidden items not checked yet",
+ "Dlls other active mods also ship": "Dlls other active mods also ship",
+ "Gone from the Workshop": "Gone from the Workshop"
 }

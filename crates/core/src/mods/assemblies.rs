@@ -6,7 +6,7 @@
 //! copies say nothing: the same file twice behaves as the one copy loaded.
 
 use crate::base::sentence::Sentence;
-use crate::mods::describe::{Fix, Trouble};
+use crate::mods::describe::{Fix, Trouble, TroubleKind};
 use crate::mods::infer::{Dll, Scanned};
 use crate::say;
 use crate::say_n;
@@ -132,6 +132,7 @@ pub fn troubles(found: &Found) -> Vec<Trouble> {
             short: say!("Ships its own 0Harmony.dll"),
             fix: Fix::None,
             key: "assembly-harmony".to_string(),
+            kind: TroubleKind::OwnHarmony,
         });
     }
     if !found.clashes.is_empty() {
@@ -167,6 +168,7 @@ pub fn troubles(found: &Found) -> Vec<Trouble> {
             short: say!("A dll two active mods ship"),
             fix: Fix::None,
             key: "assembly-clash".to_string(),
+            kind: TroubleKind::DllClash,
         });
     }
     said

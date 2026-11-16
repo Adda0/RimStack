@@ -2080,5 +2080,7 @@
  "gone from the Workshop, or made private": "desaparecido do Workshop ou tornado privado",
  "Steam hides removed, private and unlisted items alike, so each one's Workshop page is looked at, a few per check: Steam refuses many at once. The next check goes on with these.": "O Steam esconde da mesma forma itens removidos, privados e não listados, por isso a página do Workshop de cada um é consultada, algumas por verificação: o Steam recusa muitas de uma vez. A próxima verificação continua com estes.",
  "{} hidden item not checked yet": "{} item oculto ainda não verificado",
- "{} hidden items not checked yet": "{} itens ocultos ainda não verificados"
+ "{} hidden items not checked yet": "{} itens ocultos ainda não verificados",
+ "Dlls other active mods also ship": "Dlls que outros mods ativos também trazem",
+ "Gone from the Workshop": "Desaparecidos do Workshop"
 }

@@ -2,7 +2,7 @@ use super::{LoadOrder, Side, rules};
 use crate::App;
 use rimstack_core::base::locks::Shared;
 use rimstack_core::base::sentence::Sentence;
-use rimstack_core::mods::describe::{self, Trouble};
+use rimstack_core::mods::describe::{self, Trouble, TroubleKind};
 use rimstack_core::mods::details::{self, Clash, Named, OwnRule, Slow};
 use rimstack_core::mods::library::ModId;
 use rimstack_core::mods::list::{Category, Mod};
@@ -41,6 +41,8 @@ pub struct ProblemSaid {
     pub mod_id: Option<ModId>,
     #[serde(skip)]
     pub trust: bool,
+    #[serde(skip)]
+    kind: TroubleKind,
     pub name: String,
     pub error: bool,
     pub group: &'static str,
@@ -57,9 +59,10 @@ impl ProblemSaid {
         Self {
             mod_id: m.installed,
             trust: trouble.fix == rimstack_core::mods::describe::Fix::Trust,
+            kind: trouble.kind,
             name: m.name.clone(),
             error: trouble.error,
-            group: trouble.fix.group(),
+            group: trouble.kind.heading(),
             words: trouble.words.clone(),
             short: trouble.short.clone(),
             fix: FixSaid::of(&trouble.fix),
@@ -703,12 +706,12 @@ impl LoadOrder {
             })
             .collect();
         let mut trouble_groups: Vec<ProblemGroup> =
-            rimstack_core::base::grouped::by_key(each.flat_map(said), |t| t.group)
+            rimstack_core::base::grouped::by_key(each.flat_map(said), |t| t.kind)
                 .into_iter()
-                .map(|(name, lines)| {
+                .map(|(kind, lines)| {
                     let trusted = lines.iter().filter(|t| t.trust).count();
                     ProblemGroup {
-                        name,
+                        name: kind.heading(),
                         error: lines.first().is_some_and(|t| t.error),
                         trusted,
                         shared: trusted > 1 && trusted == lines.len(),
