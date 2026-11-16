@@ -231,6 +231,12 @@ impl Mods {
             Action::DeleteSub { tag } => self.ask_delete_group(tag, window, cx),
             Action::CopyTags { tags } => self.copy_tags(tags.clone(), cx),
             Action::PasteTags { ids, add } => self.paste_tags(ids.clone(), *add, cx),
+            Action::UnsubscribeMany { ids, megabytes } => {
+                self.ask_bulk_unsubscribe(ids.clone(), *megabytes, window, cx)
+            }
+            Action::BinMany { ids, megabytes } => {
+                self.ask_bulk_bin(ids.clone(), *megabytes, window, cx)
+            }
         }
     }
 
@@ -563,6 +569,92 @@ impl Mods {
             },
             window,
             cx,
+        );
+    }
+
+    fn ask_bulk_unsubscribe(
+        &mut self,
+        ids: Vec<ModId>,
+        megabytes: u64,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let count = ids.len();
+        prompt::ask(
+            Question {
+                title: put(&say_n!(
+                    count,
+                    "Unsubscribe {} Workshop mod",
+                    "Unsubscribe {} Workshop mods"
+                )),
+                lines: vec![
+                    Line::Text(put(&say!(
+                        "Steam, which must be running, unsubscribes every one and deletes its folder"
+                    ))),
+                    Line::Text(put(&say!("Together {} MB on disk", megabytes))),
+                ],
+                label: put(&say!("Unsubscribe")),
+                danger: true,
+                run: Box::new(move |_, cx| {
+                    crate::ui::navigate::go(crate::ui::navigate::Go::UnsubscribeMany(ids), cx);
+                }),
+            },
+            window,
+            cx,
+        );
+    }
+
+    fn ask_bulk_bin(
+        &mut self,
+        ids: Vec<ModId>,
+        megabytes: u64,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let count = ids.len();
+        let me = cx.entity().downgrade();
+        prompt::ask(
+            Question {
+                title: put(&say_n!(
+                    count,
+                    "Move {} mod to the bin",
+                    "Move {} mods to the bin"
+                )),
+                lines: vec![
+                    Line::Text(put(&say!("Together {} MB on disk", megabytes))),
+                    Line::Text(put(&say!("The game's own mods and mods in use stay"))),
+                ],
+                label: put(&say!("Move to the bin")),
+                danger: true,
+                run: Box::new(move |_, cx| {
+                    let _ = me.update(cx, |mods, cx| {
+                        mods.bin_many(ids, cx);
+                    });
+                }),
+            },
+            window,
+            cx,
+        );
+    }
+
+    fn bin_many(&mut self, ids: Vec<ModId>, cx: &mut Context<Self>) {
+        let app = crate::ui::app(cx);
+        crate::jobs::run(
+            "delete selected mods",
+            cx,
+            move || {
+                let problems = app.bin_mods(&ids);
+                if problems.len() < ids.len() {
+                    app.rescan_soon();
+                }
+                problems
+            },
+            |mods, problems, cx| {
+                if let Some(problem) = problems.first() {
+                    mods.status.upkeep_problem = crate::words::said_of(problem);
+                }
+                cx.notify();
+            },
         );
     }
 

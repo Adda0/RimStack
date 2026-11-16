@@ -29,6 +29,7 @@ pub mod load_order;
 pub mod logs;
 mod mod_facts;
 pub mod notes;
+mod played;
 mod prefs;
 mod records;
 pub mod saves;
@@ -155,6 +156,8 @@ pub struct App {
     facts_runs: AtomicU64,
     facts_counted: std::sync::atomic::AtomicUsize,
     behind: RwLock<Option<HashSet<String>>>,
+    /// Mods a save, a saved list or the order history names; `None` for not read yet.
+    played: Arc<RwLock<Option<Arc<HashSet<String>>>>>,
     /// Why the community data last failed to download; `None` once one succeeds.
     community_problem: RwLock<Option<rimstack_core::base::sentence::Sentence>>,
     list_on_disk: Mutex<(u64, bool)>,
@@ -248,6 +251,7 @@ impl App {
             facts_runs: AtomicU64::new(0),
             facts_counted: Default::default(),
             behind: RwLock::new(None),
+            played: Arc::new(RwLock::new(None)),
             community_problem: RwLock::new(None),
             list_on_disk: Mutex::new((0, false)),
             git: OnceLock::new(),
@@ -263,6 +267,10 @@ impl App {
     }
 
     pub fn publish(&self, changes: crate::changes::Changes) {
+        use crate::changes::Changes;
+        if changes.contains(Changes::SAVES | Changes::LISTS) {
+            self.forget_played();
+        }
         self.bus.publish(changes);
     }
 

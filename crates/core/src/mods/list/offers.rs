@@ -79,6 +79,9 @@ const TERMS: &[(&str, About)] = &[
     ("is:recent", |_| say!("updated by Steam in the last week")),
     ("is:duplicate", |_| say!("installed more than once")),
     ("is:unused", |_| say!("a library no active mod needs")),
+    ("is:unplayed", |_| {
+        say!("inactive, in no save, saved list or remembered order")
+    }),
     ("is:incomplete", |_| {
         say!("missing a property, like a named Workshop item")
     }),

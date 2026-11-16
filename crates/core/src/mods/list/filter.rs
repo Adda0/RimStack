@@ -100,6 +100,7 @@ impl Filter {
             Some(("is", "unused")) => self.flags |= flag::UNUSED,
             Some(("is", "incomplete")) => self.flags |= flag::INCOMPLETE,
             Some(("is", "defclash")) => self.flags |= flag::DEFCLASH,
+            Some(("is", "unplayed")) => self.flags |= flag::UNPLAYED,
             _ => self.words.push(term.to_string()),
         }
     }

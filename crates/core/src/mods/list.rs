@@ -354,6 +354,8 @@ pub mod flag {
     pub const INCOMPLETE: u16 = 2048;
     /// Defines a def another active mod defines too.
     pub const DEFCLASH: u16 = 4096;
+    /// Off, and named by no save, no saved list and no kept order: a cleanup candidate.
+    pub const UNPLAYED: u16 = 8192;
 }
 
 impl GroupedList {

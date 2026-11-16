@@ -25,6 +25,7 @@ pub enum Go {
     Subscribe(String),
     Redownload(ModId),
     Unsubscribe(ModId),
+    UnsubscribeMany(Vec<ModId>),
     UpdateFromGit(ModId),
     Problem(
         super::problem::Act,

@@ -61,12 +61,16 @@ impl App {
         };
         let (name_kept, list) = (name.clone(), list.to_vec());
         let (named, bus) = (self.snapshots_named.clone(), self.bus.clone());
+        let played = self.played.clone();
         self.in_order(move || {
             if let Err(problem) = lists::save(&dir, &name_kept, &list) {
                 rimstack_core::problem!("{problem}");
             }
             named.held().remove(&name_kept);
             lists::prune(&dir, SNAPSHOTS_KEPT);
+            *played
+                .write()
+                .unwrap_or_else(|poisoned| poisoned.into_inner()) = None;
             bus.publish(Changes::LISTS);
         });
         Some(name)

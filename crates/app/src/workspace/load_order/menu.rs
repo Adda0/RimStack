@@ -55,6 +55,14 @@ pub enum Action {
     Unsubscribe {
         mod_id: ModId,
     },
+    UnsubscribeMany {
+        ids: Vec<ModId>,
+        megabytes: u64,
+    },
+    BinMany {
+        ids: Vec<ModId>,
+        megabytes: u64,
+    },
     UpdateFromGit {
         mod_id: ModId,
     },
@@ -361,7 +369,12 @@ impl LoadOrder {
         }
         groups.push(Self::filing(at, &subject));
         groups.push(Self::colouring(at, &subject));
-        groups.push(Self::last(at, &subject, many, &warned));
+        let cleanup = if many {
+            self.cleanup(app, at.selected)
+        } else {
+            Default::default()
+        };
+        groups.push(Self::last(at, &subject, many, &warned, &cleanup));
         separated(groups)
     }
 
@@ -708,7 +721,13 @@ impl LoadOrder {
         group
     }
 
-    fn last(at: &Clicked, subject: &Subject, many: bool, warned: &[ModId]) -> Vec<Entry> {
+    fn last(
+        at: &Clicked,
+        subject: &Subject,
+        many: bool,
+        warned: &[ModId],
+        cleanup: &crate::workspace::upkeep::Cleanup,
+    ) -> Vec<Entry> {
         let mut group = Vec::new();
         let trust = |ids: Vec<ModId>, yes| Action::Trust { ids, yes };
         let one = at.id.into_iter().collect::<Vec<_>>();
@@ -756,6 +775,36 @@ impl LoadOrder {
                 let (text, icon) = kind.entry();
                 group.push(Entry::item(text, icon, action).danger());
             }
+        }
+        if cleanup.unsubscribe > 0 {
+            group.push(
+                Entry::item(
+                    say_n!(
+                        cleanup.unsubscribe,
+                        "Unsubscribe {} Workshop mod…",
+                        "Unsubscribe {} Workshop mods…"
+                    ),
+                    "minus",
+                    Action::UnsubscribeMany {
+                        ids: at.selected.to_vec(),
+                        megabytes: cleanup.unsubscribe_bytes / 1_048_576,
+                    },
+                )
+                .danger(),
+            );
+        }
+        if cleanup.bin > 0 {
+            group.push(
+                Entry::item(
+                    say_n!(cleanup.bin, "Delete {} mod…", "Delete {} mods…"),
+                    "trash-2",
+                    Action::BinMany {
+                        ids: at.selected.to_vec(),
+                        megabytes: cleanup.bin_bytes / 1_048_576,
+                    },
+                )
+                .danger(),
+            );
         }
         group
     }
@@ -894,6 +943,38 @@ mod tests {
             .find(|e| matches!(e.action, Some(Action::Unsubscribe { .. })))
             .unwrap();
         assert!(unsubscribe.danger);
+    }
+
+    #[test]
+    fn several_chosen_offer_bulk_cleanup_with_their_total_size() {
+        let (tmp, app) = installed();
+        mod_at(tmp.path(), "game/Mods/hats", "Ann.Hats");
+        app.rescan();
+        let mut order = LoadOrder::read(&app, true, None);
+        let ids: Vec<ModId> = order
+            .list(Side::Inactive)
+            .mods()
+            .iter()
+            .filter_map(|m| m.installed)
+            .take(2)
+            .collect();
+        let at = Clicked {
+            active: false,
+            index: 0,
+            id: ids.first().copied(),
+            selected: &ids,
+        };
+        let entries = order.row_menu(&app, &at);
+        let bin = entries
+            .iter()
+            .find(|entry| matches!(entry.action, Some(Action::BinMany { .. })))
+            .unwrap();
+        assert!(bin.danger);
+        assert!(bin.text.as_ref().unwrap().to_string().contains("2 mods"));
+        assert!(
+            matches!(bin.action, Some(Action::BinMany { megabytes: 0, .. })),
+            "the small folders round down to zero MB, not a missing total"
+        );
     }
 
     #[test]

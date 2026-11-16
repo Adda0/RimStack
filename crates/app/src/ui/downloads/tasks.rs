@@ -318,6 +318,16 @@ impl Downloads {
         );
     }
 
+    pub fn unsubscribe_many(&mut self, ids: Vec<ModId>, cx: &mut Context<Self>) {
+        let app = crate::ui::app(cx);
+        self.task(
+            say!("Asking Steam…"),
+            None,
+            move || app.unsubscribe_many(&ids),
+            cx,
+        );
+    }
+
     pub fn subscribe(&mut self, workshop_id: String, cx: &mut Context<Self>) {
         self.ask_steam(SteamAsk::Subscribe, vec![workshop_id], cx);
     }

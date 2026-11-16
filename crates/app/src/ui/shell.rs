@@ -238,12 +238,17 @@ impl Shell {
                 let (text, workshop) = (text.clone(), self.workshop(cx));
                 workshop.update(cx, |workshop, cx| workshop.browse(text, cx));
             }
-            Go::Subscribe(_) | Go::Redownload(_) | Go::Unsubscribe(_) | Go::UpdateFromGit(_) => {
+            Go::Subscribe(_)
+            | Go::Redownload(_)
+            | Go::Unsubscribe(_)
+            | Go::UnsubscribeMany(_)
+            | Go::UpdateFromGit(_) => {
                 let downloads = self.downloads(cx);
                 downloads.update(cx, |downloads, cx| match to {
                     Go::Subscribe(id) => downloads.subscribe(id.clone(), cx),
                     Go::Redownload(id) => downloads.redownload(*id, cx),
                     Go::Unsubscribe(id) => downloads.unsubscribe(*id, cx),
+                    Go::UnsubscribeMany(ids) => downloads.unsubscribe_many(ids.clone(), cx),
                     Go::UpdateFromGit(id) => downloads.update_from_git(*id, cx),
                     _ => {}
                 });

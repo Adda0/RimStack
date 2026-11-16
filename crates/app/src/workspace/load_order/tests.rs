@@ -1012,3 +1012,68 @@ fn a_local_copy_has_the_page_of_the_workshop_item_it_is_known_by() {
         "https://steamcommunity.com/sharedfiles/filedetails/?id=777"
     );
 }
+
+#[test]
+fn an_inactive_mod_in_no_save_no_list_and_no_kept_order_is_unplayed() {
+    let (tmp, app) = installed();
+    let add = |folder: &str, id: &str| {
+        let about = tmp.path().join("game/Mods").join(folder).join("About");
+        std::fs::create_dir_all(&about).unwrap();
+        std::fs::write(
+            about.join("About.xml"),
+            format!("<ModMetaData><packageId>{id}</packageId><name>{id}</name></ModMetaData>"),
+        )
+        .unwrap();
+    };
+    for (folder, id) in [("b", "a.b"), ("c", "a.c"), ("d", "a.d")] {
+        add(folder, id);
+    }
+    std::fs::write(
+        tmp.path().join("config/Config/ModsConfig.xml"),
+        "<ModsConfigData><activeMods><li>ludeon.rimworld</li></activeMods></ModsConfigData>",
+    )
+    .unwrap();
+    std::fs::create_dir_all(tmp.path().join("config/Saves")).unwrap();
+    std::fs::write(
+        tmp.path().join("config/Saves/old.rws"),
+        "<savegame><meta><modIds><li>ludeon.rimworld</li><li>a.b_steam</li></modIds></meta></savegame>",
+    )
+    .unwrap();
+    // A save names a.b (the game folds the _steam suffix away), a kept list a.c, a snapshot a.d.
+    app.snapshot("history", &["a.d".to_string()]).unwrap();
+    app.keep_list("mine", Some(vec!["a.c".to_string()]))
+        .unwrap();
+    app.rescan();
+    let mut order = LoadOrder::read(&app, true, None);
+    let unused = |order: &LoadOrder| order.list(Side::Inactive).matching();
+    order.set_filter("is:unplayed");
+    assert_eq!(unused(&order), 1, "only the unused fixture mod is unplayed");
+    app.delete_list("mine");
+    order.sync(&app);
+    order.set_filter("is:unplayed");
+    assert_eq!(unused(&order), 2);
+}
+
+#[test]
+fn cleanup_names_which_selected_mods_steam_and_the_bin_take_and_their_sizes() {
+    let (tmp, app) = installed();
+    // A Workshop copy goes to Steam; the local fixture mod goes to the bin.
+    std::fs::create_dir_all(tmp.path().join("workshop/42/About")).unwrap();
+    std::fs::write(
+        tmp.path().join("workshop/42/About/About.xml"),
+        "<ModMetaData><packageId>Ann.Hats</packageId></ModMetaData>",
+    )
+    .unwrap();
+    std::fs::write(tmp.path().join("workshop/42/file.pdb"), "x").unwrap();
+    app.rescan();
+    let order = LoadOrder::read(&app, true, None);
+    let chosen: Vec<_> = order
+        .list(Side::Inactive)
+        .mods()
+        .iter()
+        .filter_map(|m| m.installed)
+        .collect();
+    let cleanup = order.cleanup(&app, &chosen);
+    assert_eq!((cleanup.unsubscribe, cleanup.bin), (1, 1), "{cleanup:?}");
+    assert!(cleanup.unsubscribe_bytes > 0 && cleanup.bin_bytes > 0);
+}

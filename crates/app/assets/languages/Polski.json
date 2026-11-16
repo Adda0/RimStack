@@ -1974,5 +1974,17 @@
  "the merged rules are not UTF-8: {}": "scalone reguły nie są UTF-8: {}",
  "the merged rules cannot be written: {}": "scalonych reguł nie można zapisać: {}",
  "the repository named no default branch: {}": "repozytorium nie wskazało domyślnej gałęzi: {}",
- "the token's account could not be read: {}": "konta tokena nie można odczytać: {}"
+ "the token's account could not be read: {}": "konta tokena nie można odczytać: {}",
+ "Delete {} mods…": "Usuń {} mody…|Usuń {} modów…",
+ "Delete {} mod…": "Usuń {} mod…",
+ "Move {} mod to the bin": "Przenieś {} mod do kosza",
+ "Move {} mods to the bin": "Przenieś {} mody do kosza|Przenieś {} modów do kosza",
+ "Steam, which must be running, unsubscribes every one and deletes its folder": "Steam, który musi działać, anuluje subskrypcję każdego i usuwa jego folder",
+ "The game's own mods and mods in use stay": "Własne mody gry i mody w użyciu zostają",
+ "Together {} MB on disk": "Razem {} MB na dysku",
+ "Unsubscribe {} Workshop mod": "Anuluj subskrypcję {} moda z Warsztatu",
+ "Unsubscribe {} Workshop mods": "Anuluj subskrypcję {} modów z Warsztatu",
+ "Unsubscribe {} Workshop mods…": "Anuluj subskrypcję {} modów z Warsztatu…",
+ "Unsubscribe {} Workshop mod…": "Anuluj subskrypcję {} moda z Warsztatu…",
+ "inactive, in no save, saved list or remembered order": "nieaktywny, w żadnym zapisie, zapisanej liście ani zapamiętanej kolejności"
 }

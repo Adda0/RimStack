@@ -1974,5 +1974,17 @@
  "the merged rules are not UTF-8: {}": "les règles fusionnées ne sont pas en UTF-8 : {}",
  "the merged rules cannot be written: {}": "les règles fusionnées ne peuvent pas être écrites : {}",
  "the repository named no default branch: {}": "le dépôt n'a pas indiqué de branche par défaut : {}",
- "the token's account could not be read: {}": "le compte du jeton n'a pas pu être lu : {}"
+ "the token's account could not be read: {}": "le compte du jeton n'a pas pu être lu : {}",
+ "Delete {} mods…": "Supprimer {} mods…",
+ "Delete {} mod…": "Supprimer {} mod…",
+ "Move {} mod to the bin": "Mettre {} mod à la corbeille",
+ "Move {} mods to the bin": "Mettre {} mods à la corbeille",
+ "Steam, which must be running, unsubscribes every one and deletes its folder": "Steam, qui doit être lancé, désabonne chacun et supprime son dossier",
+ "The game's own mods and mods in use stay": "Les mods du jeu et ceux en cours d'utilisation restent",
+ "Together {} MB on disk": "Au total, {} Mo sur le disque",
+ "Unsubscribe {} Workshop mod": "Se désabonner de {} mod du Workshop",
+ "Unsubscribe {} Workshop mods": "Se désabonner de {} mods du Workshop",
+ "Unsubscribe {} Workshop mods…": "Se désabonner de {} mods du Workshop…",
+ "Unsubscribe {} Workshop mod…": "Se désabonner de {} mod du Workshop…",
+ "inactive, in no save, saved list or remembered order": "inactif, dans aucune sauvegarde, aucune liste enregistrée ni aucun ordre conservé"
 }

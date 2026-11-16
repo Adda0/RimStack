@@ -10,6 +10,14 @@ use rimstack_core::{said, say, say_n};
 use serde::Serialize;
 use std::path::{Path, PathBuf};
 
+#[derive(Debug, Default)]
+pub struct Cleanup {
+    pub unsubscribe: usize,
+    pub unsubscribe_bytes: u64,
+    pub bin: usize,
+    pub bin_bytes: u64,
+}
+
 impl App {
     fn installed_mod<T>(&self, id: ModId, with: impl FnOnce(&Installed) -> T) -> Result<T, Error> {
         let loaded = self.library();
@@ -20,6 +28,12 @@ impl App {
             ))
         })?;
         Ok(with(found))
+    }
+
+    pub fn bin_mods(&self, ids: &[ModId]) -> Vec<Error> {
+        ids.iter()
+            .filter_map(|&id| self.bin_mod(id).err())
+            .collect()
     }
 
     pub fn bin_mod(&self, id: ModId) -> Result<(), Error> {
@@ -48,6 +62,12 @@ impl App {
     }
 
     /// Only the DDS files RimStack made: the game goes back to loading the PNGs.
+    /// Every Workshop mod of a selection, in one Steam ask.
+    pub fn unsubscribe_many(&self, ids: &[ModId]) -> super::fetch::Done {
+        let workshop: Vec<String> = ids.iter().filter_map(|&id| self.workshop_id(id)).collect();
+        self.ask_steam(super::fetch::SteamAsk::Unsubscribe, &workshop)
+    }
+
     pub fn remove_dds(&self, id: ModId) -> Result<usize, Error> {
         let folder = self.installed_mod(id, |m| m.path.clone())?;
         let file = self.texture_manifest_file();
@@ -80,7 +100,7 @@ impl App {
 
     /// The game's own mods and those in the load order being edited are refused, but for a
     /// local copy whose Workshop subscription then takes its place.
-    fn bin_target(&self, id: ModId) -> Result<PathBuf, Error> {
+    pub fn bin_target(&self, id: ModId) -> Result<PathBuf, Error> {
         let active = self.session().current().to_vec();
         let loaded = self.library();
         let (library, _) = loaded.as_ref().as_ref().map_err(Clone::clone)?;
