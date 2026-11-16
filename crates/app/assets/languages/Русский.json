@@ -1800,5 +1800,13 @@
  "{} of the lockfile's mods is not installed here.": "{} of the lockfile's mods is not installed here.",
  "{} runs here but is not in the lockfile.": "{} runs here but is not in the lockfile.",
  "{} tells no version here, {} in the lockfile.": "{} tells no version here, {} in the lockfile.",
- "{} was updated since the lockfile was made.": "{} was updated since the lockfile was made."
+ "{} was updated since the lockfile was made.": "{} was updated since the lockfile was made.",
+ "Holds patches or defs for {} mod that is not installed, which the game leaves out: {}": "Holds patches or defs for {} mod that is not installed, which the game leaves out: {}",
+ "Holds patches or defs for {} mods that are not installed, which the game leaves out: {}": "Holds patches or defs for {} mods that are not installed, which the game leaves out: {}|Holds patches or defs for {} mods that are not installed, which the game leaves out: {}",
+ "Patches miss their defs": "Patches miss their defs",
+ "XML that will not load": "XML that will not load",
+ "{} XML file will not load, so the game skips what it holds: {}": "{} XML file will not load, so the game skips what it holds: {}",
+ "{} XML files will not load, so the game skips what they hold: {}": "{} XML files will not load, so the game skips what they hold: {}",
+ "{} patch aims at a def no active mod defines, so the game reports it failed: {}": "{} patch aims at a def no active mod defines, so the game reports it failed: {}",
+ "{} patches aim at defs no active mod defines, so the game reports them failed: {}": "{} patches aim at defs no active mod defines, so the game reports them failed: {}"
 }

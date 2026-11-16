@@ -687,10 +687,30 @@ impl App {
             .collect();
         let defines: Vec<&HashSet<rimstack_core::mods::defs::Def>> =
             scanned.iter().map(|(_, s)| &s.defines).collect();
+        let names: HashSet<String> = (library.ids())
+            .map(|(_, m)| m.display_name().to_string())
+            .collect();
+        let active_names: HashSet<&str> = (members.iter())
+            .filter_map(|&i| library.get(i))
+            .map(|m| m.display_name())
+            .collect();
+        let roots: Vec<_> = (members.iter())
+            .map(|&i| library.get(i).map(|m| m.path.clone()).unwrap_or_default())
+            .collect();
+        let borrowed: Vec<&rimstack_core::mods::infer::Scanned> =
+            scanned.iter().map(|(_, s)| s).collect();
+        let xml = rimstack_core::mods::xmlcheck::check(
+            &borrowed,
+            &roots,
+            &active_names,
+            &|name| names.contains(name),
+            &|folded| library.name_of(folded).is_some(),
+        );
         let found = super::Conflicts {
             overlaps: conflicts::overlaps(&provided),
             def_collisions: rimstack_core::mods::defs::collisions(&defines),
             scanned: scanned.into_iter().collect(),
+            xml_found: members.iter().copied().zip(xml).collect(),
             members: members.clone(),
         };
         if !self.keep_facts(run, &loaded, members.iter().copied().zip(facts)) {

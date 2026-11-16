@@ -160,6 +160,8 @@ pub struct Details {
     pub conflict_marks: std::collections::BTreeMap<ModId, rimstack_core::mods::details::Mark>,
     pub defs_replaced_by: Vec<rimstack_core::mods::defs::DefClash>,
     pub defs_replaces: Vec<rimstack_core::mods::defs::DefClash>,
+    /// The mods not installed that its patches or defs are for; a note, not a problem.
+    pub xml_leaves_out: Option<Sentence>,
     pub loads_after: Vec<Named>,
     pub loads_before: Vec<Named>,
     pub required_above: usize,
@@ -412,6 +414,12 @@ impl LoadOrder {
             let defs = self.def_clashes(app, id);
             said.defs_replaced_by = defs.replaced_by;
             said.defs_replaces = defs.replaces;
+            said.xml_leaves_out = app
+                .conflicts()
+                .reading()
+                .as_ref()
+                .and_then(|known| known.xml_found.get(&id))
+                .and_then(rimstack_core::mods::xmlcheck::leaves_out);
             said.placement = near.bottom.then(|| say!("The community rules keep this mod near the bottom of the list, below everything that does not have to follow it."));
         } else if let Some((_, listed)) = listed
             && let Some(lack) = describe::lacking(library, listed)

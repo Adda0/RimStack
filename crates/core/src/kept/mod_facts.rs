@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 use std::path::Path;
 use std::sync::Arc;
 
-pub const FORMAT: u32 = 2;
+pub const FORMAT: u32 = 3;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Record<T> {

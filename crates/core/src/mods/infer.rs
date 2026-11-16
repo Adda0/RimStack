@@ -2,6 +2,7 @@
 
 use crate::base::sentence::Sentence;
 use crate::mods::defs::Def;
+use crate::mods::xmlcheck;
 use crate::say;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -18,6 +19,8 @@ pub struct Scanned {
     pub uses: Vec<(String, PathBuf)>,
     pub types: HashSet<String>,
     pub patches: Vec<(String, PathBuf)>,
+    /// The files' XML as the game would read it; `Scanned::default`'s helpers leave it empty.
+    pub xml: xmlcheck::Read,
 }
 
 use crate::base::path_text::has_extension;
@@ -181,10 +184,11 @@ pub fn scan_xml(load_folders: &[PathBuf]) -> Scanned {
             xml_files(&defs, &mut files);
         }
         for file in files.drain(..) {
-            let Ok(text) = std::fs::read_to_string(&file) else {
+            let Ok(read) = std::fs::read_to_string(&file) else {
                 continue;
             };
-            let text = uncommented(&text);
+            xmlcheck::read_defs(&read, &file, &mut found.xml);
+            let text = uncommented(&read);
             found.defines.extend(defs_of(&text));
             // `ParentName=` also ends in `Name=`; only a bare ` Name=` is a base.
             found.bases.extend(
@@ -201,10 +205,11 @@ pub fn scan_xml(load_folders: &[PathBuf]) -> Scanned {
             xml_files(&patches, &mut files);
         }
         for file in files.drain(..) {
-            let Ok(text) = std::fs::read_to_string(&file) else {
+            let Ok(read) = std::fs::read_to_string(&file) else {
                 continue;
             };
-            let text = uncommented(&text);
+            xmlcheck::read_patches(&read, &file, &mut found.xml);
+            let text = uncommented(&read);
             // Selections are written inside <xpath>, with entities for quotes.
             for xpath in between(&text, "<xpath>", "</xpath>") {
                 let xpath = xpath.replace("&quot;", "\"").replace("&apos;", "'");

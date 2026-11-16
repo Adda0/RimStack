@@ -61,6 +61,7 @@ impl DetailsView {
         let shown = !details.problems.is_empty()
             || details.unreadable.is_some()
             || details.version_ok
+            || details.xml_leaves_out.is_some()
             || ignored > 0;
         if !shown {
             return None;
@@ -100,6 +101,9 @@ impl DetailsView {
                 c.err,
                 put(&say!("Unreadable: {}", unreadable.inside())),
             ));
+        }
+        if let Some(leaves_out) = &details.xml_leaves_out {
+            lines.push(Self::words(theme, c.ink2, put(leaves_out)));
         }
         if details.version_ok {
             let made_for = details.made_for.clone().unwrap_or_default();

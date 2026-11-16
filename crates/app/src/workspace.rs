@@ -60,6 +60,8 @@ pub struct Conflicts {
     pub overlaps: rimstack_core::mods::conflicts::Overlaps,
     pub def_collisions: Vec<rimstack_core::mods::defs::Collision>,
     pub scanned: HashMap<library::ModId, rimstack_core::mods::infer::Scanned>,
+    /// What each mod's XML needs that is missing, judged against them all.
+    pub xml_found: HashMap<library::ModId, rimstack_core::mods::xmlcheck::Found>,
 }
 
 pub type Loaded = Result<(library::Library, Duration), rimstack_core::base::error::Error>;
