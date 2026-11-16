@@ -44,12 +44,16 @@ pub struct Read {
 }
 
 fn parsed(text: &str) -> Result<Document<'_>, u32> {
+    let text = text.trim_start_matches('\u{feff}');
+    if crate::base::xml::nests_too_deeply(text) {
+        // Refused before parse: a deep tree would take the process down. Row 1 is the file.
+        return Err(1);
+    }
     let options = ParsingOptions {
         allow_dtd: true,
         ..ParsingOptions::default()
     };
-    Document::parse_with_options(text.trim_start_matches('\u{feff}'), options)
-        .map_err(|e| e.pos().row)
+    Document::parse_with_options(text, options).map_err(|e| e.pos().row)
 }
 
 fn asked(doc: &Document, file: &Path, into: &mut Read) {
@@ -408,18 +412,34 @@ mod tests {
             ]
         );
         let said = troubles(&found[1]);
-        let keys: Vec<String> = said.iter().map(|t| t.key.clone()).collect();
+        let keys: Vec<&str> = said.iter().map(|t| t.key.as_str()).collect();
         assert_eq!(keys, ["xml-broken", "xml-misses"]);
         // Each names what it counts, not the count again.
         assert!(said[0].words.to_string().ends_with(": Defs/broken.xml:4"));
-        assert!(
-            said[1]
-                .words
-                .to_string()
-                .contains(&found[1].misses[0].clone())
-        );
+        assert!(said[1].words.to_string().contains(&found[1].misses[0]));
         let left_out = leaves_out(&found[1]).unwrap().to_string();
-        assert!(left_out.contains(&found[1].absent[0].clone()), "{left_out}");
+        assert!(left_out.contains(&found[1].absent[0]), "{left_out}");
+    }
+
+    #[test]
+    fn a_mod_nested_too_deeply_is_reported_not_aborted() {
+        let deep = format!("<Defs>{}</Defs>", "<a>".repeat(64));
+        let (_g, game) = a_mod(&[("Defs/things.xml", GAME)]);
+        let (_m, mine) = a_mod(&[("Defs/deep.xml", &deep)]);
+        let game_scan = scan(std::slice::from_ref(&game), &HashSet::new());
+        let mine_scan = scan(std::slice::from_ref(&mine), &HashSet::new());
+        let read = [game_scan, mine_scan];
+        let borrowed: Vec<&Scanned> = read.iter().collect();
+        let active: HashSet<&str> = ["Core", "Mine"].into();
+        let found = check(
+            &borrowed,
+            &[game, mine],
+            &active,
+            &|name| name == "Core" || name == "Mine",
+            &|_| false,
+        );
+        assert!(found[0].is_empty(), "{:?}", found[0]);
+        assert_eq!(found[1].broken, [("Defs/deep.xml".to_string(), 1)]);
     }
 
     #[test]
