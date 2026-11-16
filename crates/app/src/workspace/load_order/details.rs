@@ -47,6 +47,7 @@ pub struct ProblemSaid {
     pub error: bool,
     pub group: &'static str,
     pub words: Sentence,
+    pub items: Vec<Sentence>,
     pub short: Sentence,
     pub fix: FixSaid,
     /// With `ignore`, what `App::ignore_problem` is given; empty when it cannot be ignored.
@@ -64,11 +65,50 @@ impl ProblemSaid {
             error: trouble.error,
             group: trouble.kind.heading(),
             words: trouble.words.clone(),
+            items: trouble.items.clone(),
             short: trouble.short.clone(),
             fix: FixSaid::of(&trouble.fix),
             package_id: m.id.clone(),
             ignore: trouble.key.clone(),
         }
+    }
+
+    /// The problem as text to paste into a report: its mod with the package id, each item a
+    /// "- " line.
+    pub fn as_text(&self) -> String {
+        let named = match (self.name.is_empty(), self.package_id.is_empty()) {
+            (true, _) => String::new(),
+            (false, true) => format!("{}: ", self.name),
+            (false, false) => format!("{} [{}]: ", self.name, self.package_id),
+        };
+        let items = self
+            .items
+            .iter()
+            .map(|item| format!("- {}", crate::words::put(item)));
+        std::iter::once(named + &crate::words::put(&self.words))
+            .chain(items)
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+}
+
+impl ProblemGroup {
+    /// The heading with all of its problems; a list ends at a blank line, so the next mod is
+    /// not read as part of its last item.
+    pub fn as_text(&self) -> String {
+        let each = self
+            .lines
+            .iter()
+            .map(|problem| match problem.items.is_empty() {
+                true => problem.as_text(),
+                false => problem.as_text() + "\n",
+            });
+        let heading = crate::words::put(&Sentence::said(self.name, Vec::new()));
+        let text = std::iter::once(heading)
+            .chain(each)
+            .collect::<Vec<_>>()
+            .join("\n");
+        text.trim().to_string()
     }
 }
 

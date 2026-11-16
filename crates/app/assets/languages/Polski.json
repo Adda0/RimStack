@@ -2083,5 +2083,15 @@
  "{} hidden items not checked yet": "{} ukryte elementy jeszcze niesprawdzone|{} ukrytych elementów jeszcze niesprawdzonych",
  "Dlls other active mods also ship": "Pliki dll dostarczane też przez inne aktywne mody",
  "Gone from the Workshop": "Zniknęły z Warsztatu",
- "Mark in the mod list": "Oznaczaj na liście modów"
+ "Mark in the mod list": "Oznaczaj na liście modów",
+ "Copies the problem as text, with its mod's package id, to report it": "Copies the problem as text, with its mod's package id, to report it",
+ "Copies these problems as text, each with its mod's package id, to report them": "Kopiuje te problemy jako tekst, każdy z identyfikatorem pakietu swojego moda, aby je zgłosić",
+ "LoadFolders.xml names {} folder in other letter case than on disk, so on this system the game loads nothing from it:": "LoadFolders.xml podaje {} folder z inną wielkością liter niż na dysku, więc w tym systemie gra nic z niego nie wczytuje:",
+ "LoadFolders.xml names {} folders in other letter case than on disk, so on this system the game loads nothing from them:": "LoadFolders.xml podaje {} foldery z inną wielkością liter niż na dysku, więc w tym systemie gra nic z nich nie wczytuje:|LoadFolders.xml podaje {} folderów z inną wielkością liter niż na dysku, więc w tym systemie gra nic z nich nie wczytuje:",
+ "{} XML file will not load, so the game skips what it holds:": "{} plik XML nie zostanie wczytany, więc gra pomija jego zawartość:",
+ "{} XML files will not load, so the game skips what they hold:": "{} pliki XML nie zostaną wczytane, więc gra pomija ich zawartość:|{} plików XML nie zostanie wczytanych, więc gra pomija ich zawartość:",
+ "{} dll another active mod also ships, differently; the game loads only the first copy:": "{} plik dll, który inny aktywny mod dostarcza w innej wersji; gra wczytuje tylko pierwszą kopię:",
+ "{} dlls other active mods also ship, differently; the game loads only the first copy:": "{} pliki dll, które inne aktywne mody dostarczają w innej wersji; gra wczytuje tylko pierwszą kopię:|{} plików dll, które inne aktywne mody dostarczają w innej wersji; gra wczytuje tylko pierwszą kopię:",
+ "{} patch aims at a def no active mod defines, so the game reports it failed:": "{} łatka celuje w def, którego żaden aktywny mod nie definiuje, więc gra zgłasza jej niepowodzenie:",
+ "{} patches aim at defs no active mod defines, so the game reports them failed:": "{} łatki celują w defy, których żaden aktywny mod nie definiuje, więc gra zgłasza ich niepowodzenie:|{} łatek celuje w defy, których żaden aktywny mod nie definiuje, więc gra zgłasza ich niepowodzenie:"
 }

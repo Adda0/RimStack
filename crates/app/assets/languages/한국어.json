@@ -2083,5 +2083,15 @@
  "{} hidden items not checked yet": "{} hidden items not checked yet",
  "Dlls other active mods also ship": "Dlls other active mods also ship",
  "Gone from the Workshop": "Gone from the Workshop",
- "Mark in the mod list": "Mark in the mod list"
+ "Mark in the mod list": "Mark in the mod list",
+ "Copies the problem as text, with its mod's package id, to report it": "Copies the problem as text, with its mod's package id, to report it",
+ "Copies these problems as text, each with its mod's package id, to report them": "Copies these problems as text, each with its mod's package id, to report them",
+ "LoadFolders.xml names {} folder in other letter case than on disk, so on this system the game loads nothing from it:": "LoadFolders.xml names {} folder in other letter case than on disk, so on this system the game loads nothing from it:",
+ "LoadFolders.xml names {} folders in other letter case than on disk, so on this system the game loads nothing from them:": "LoadFolders.xml names {} folders in other letter case than on disk, so on this system the game loads nothing from them:",
+ "{} XML file will not load, so the game skips what it holds:": "{} XML file will not load, so the game skips what it holds:",
+ "{} XML files will not load, so the game skips what they hold:": "{} XML files will not load, so the game skips what they hold:",
+ "{} dll another active mod also ships, differently; the game loads only the first copy:": "{} dll another active mod also ships, differently; the game loads only the first copy:",
+ "{} dlls other active mods also ship, differently; the game loads only the first copy:": "{} dlls other active mods also ship, differently; the game loads only the first copy:",
+ "{} patch aims at a def no active mod defines, so the game reports it failed:": "{} patch aims at a def no active mod defines, so the game reports it failed:",
+ "{} patches aim at defs no active mod defines, so the game reports them failed:": "{} patches aim at defs no active mod defines, so the game reports them failed:"
 }

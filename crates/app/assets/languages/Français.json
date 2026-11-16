@@ -2083,5 +2083,15 @@
  "{} hidden items not checked yet": "{} éléments masqués pas encore vérifiés",
  "Dlls other active mods also ship": "Des dll que livrent aussi d'autres mods actifs",
  "Gone from the Workshop": "Disparus du Workshop",
- "Mark in the mod list": "Signaler dans la liste des mods"
+ "Mark in the mod list": "Signaler dans la liste des mods",
+ "Copies the problem as text, with its mod's package id, to report it": "Copies the problem as text, with its mod's package id, to report it",
+ "Copies these problems as text, each with its mod's package id, to report them": "Copie ces problèmes en texte, chacun avec l'identifiant du paquet de son mod, pour les signaler",
+ "LoadFolders.xml names {} folder in other letter case than on disk, so on this system the game loads nothing from it:": "LoadFolders.xml nomme {} dossier avec une autre casse que sur le disque, donc sur ce système le jeu n'en charge rien :",
+ "LoadFolders.xml names {} folders in other letter case than on disk, so on this system the game loads nothing from them:": "LoadFolders.xml nomme {} dossiers avec une autre casse que sur le disque, donc sur ce système le jeu n'en charge rien :",
+ "{} XML file will not load, so the game skips what it holds:": "{} fichier XML ne se charge pas, le jeu ignore donc ce qu'il contient :",
+ "{} XML files will not load, so the game skips what they hold:": "{} fichiers XML ne se chargent pas, le jeu ignore donc ce qu'ils contiennent :",
+ "{} dll another active mod also ships, differently; the game loads only the first copy:": "{} dll qu'un autre mod actif livre aussi, différente ; le jeu ne charge que la première copie :",
+ "{} dlls other active mods also ship, differently; the game loads only the first copy:": "{} dll que d'autres mods actifs livrent aussi, différentes ; le jeu ne charge que la première copie :",
+ "{} patch aims at a def no active mod defines, so the game reports it failed:": "{} patch vise un def qu'aucun mod actif ne définit, le jeu signale donc son échec :",
+ "{} patches aim at defs no active mod defines, so the game reports them failed:": "{} patches visent des defs qu'aucun mod actif ne définit, le jeu signale donc leur échec :"
 }

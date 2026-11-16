@@ -193,6 +193,7 @@ pub fn troubles(
                     words: rimstack_core::say!(
                         "Removed from the Workshop or made private: Steam keeps no updates for it; keep a local copy"
                     ),
+                    items: Vec::new(),
                     short: rimstack_core::say!("gone from the Workshop"),
                     fix: describe::Fix::None,
                     key: String::new(),
@@ -268,6 +269,7 @@ pub fn order_troubles(
             vec![Trouble {
                 error: false,
                 words: say!("Should load {}.", words.inside()),
+                items: Vec::new(),
                 short: say!("Should load {}.", words.inside()),
                 fix: describe::Fix::Move(other, after),
                 key,

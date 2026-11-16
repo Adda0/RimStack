@@ -17,6 +17,14 @@ pub enum Act {
 
 pub type Acting = std::rc::Rc<dyn Fn(Act, &mut Window, &mut gpui::App)>;
 
+/// The items shown under a problem's words until "more" shows the rest.
+const MOST: usize = 8;
+
+thread_local! {
+    /// Problems whose items are all shown, by their text.
+    static OPEN: std::cell::RefCell<std::collections::HashSet<String>> = Default::default();
+}
+
 /// `room`: the line's width and the window, to know whether the fix fits beside the words;
 /// `acting`: what its buttons and its words do.
 pub fn problem(
@@ -45,7 +53,9 @@ pub fn problem(
             Pixels::ZERO
         } else {
             theme.icon() + theme.sized(14.) + theme::GAP_SMALL
-        };
+        } + theme.icon()
+            + theme.sized(14.)
+            + theme::GAP_SMALL;
         let twenty = measure(window, theme, "n", theme.body(), FontWeight::NORMAL) * 20.;
         width - actions - theme.icon() - theme::GAP * 2. < twenty
     });
@@ -58,12 +68,43 @@ pub fn problem(
         }
     };
     let shows = acting.is_some() && !said.name.is_empty() && said.mod_id.is_some();
+    let whole = said.as_text();
+    let open = OPEN.with_borrow(|open| open.contains(&whole));
+    let shown = match open {
+        true => said.items.len(),
+        false => said.items.len().min(MOST),
+    };
+    let items = said.items[..shown].iter().map(|item| {
+        div()
+            .flex()
+            .gap(theme::GAP_SMALL)
+            .pl(theme::GAP_SMALL)
+            .child(div().flex_none().child("•"))
+            .child(div().flex_1().min_w_0().child(put(item)))
+    });
+    let more = (said.items.len() > MOST).then(|| {
+        let label = match open {
+            true => put(&rimstack_core::say!("Show {}", MOST)),
+            false => put(&rimstack_core::say!("{} more", said.items.len() - MOST)),
+        };
+        let key = whole.clone();
+        Btn::new(("problem-more", at), label).on_click(move |_, window, _| {
+            OPEN.with_borrow_mut(|open| {
+                if !open.remove(&key) {
+                    open.insert(key.clone());
+                }
+            });
+            window.refresh();
+        })
+    });
     let words = div()
         .id(("problem-words", at))
         .when(shows, |d| d.cursor_pointer().on_click(press(Act::Show)))
         .spaced_text(theme, theme.body(), 1.25)
         .text_color(c.ink)
-        .child(StyledText::new(text).with_highlights([(0..said.name.len(), bold)]));
+        .child(StyledText::new(text).with_highlights([(0..said.name.len(), bold)]))
+        .children(items)
+        .children(more.map(|more| div().pt(theme::GAP_TINY).child(more)));
     let actions = div()
         .flex()
         .flex_none()
@@ -71,6 +112,17 @@ pub fn problem(
         .when_some(fix, |d, fix| {
             d.child(Btn::new(("fix", at), fix).on_click(press(Act::Fix)))
         })
+        .child(
+            Btn::new(("problem-copy", at), "")
+                .icon("copy")
+                .spoken(put(&rimstack_core::say!("Copy")))
+                .tip(put(&rimstack_core::say!(
+                    "Copies the problem as text, with its mod's package id, to report it"
+                )))
+                .on_click(move |_, _, cx| {
+                    cx.write_to_clipboard(gpui::ClipboardItem::new_string(whole.clone()))
+                }),
+        )
         .when(!said.ignore.is_empty(), |d| {
             d.child(
                 Btn::new(("ignore", at), "")

@@ -125,9 +125,16 @@ impl DetailsView {
                     problem(theme, at * 1000 + line, said, Some((width, window)), Some(acting(mods.clone(), said)))
                 }));
             }
+            let text = group.as_text();
+            let copy = Btn::new(("problems-copy", at), "")
+                .icon("copy")
+                .spoken(put(&say!("Copy")))
+                .tip(put(&say!("Copies these problems as text, each with its mod's package id, to report them")))
+                .on_click(move |_, _, cx| cx.write_to_clipboard(gpui::ClipboardItem::new_string(text.clone())));
             Card::new(("problems", at), put(&Sentence::said(group.name, Vec::new())))
                 .tone(tone)
                 .note(group.lines.len().to_string())
+                .actions(vec![copy.into_any_element()], theme.icon() + theme::GAP_SMALL * 2.)
                 .spacing(theme::GAP)
                 .body(body)
                 .render(theme, None)
