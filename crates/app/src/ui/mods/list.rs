@@ -33,6 +33,8 @@ pub struct Shown {
     pub single: bool,
     /// Where the arrows go on from, when that is not the one mod chosen.
     pub cursor: Option<ModId>,
+    /// The row of the chosen mod, or of the folded heading over it.
+    pub place: Option<usize>,
     pub previewing: bool,
     pub picking: bool,
     /// Its mods, headings and filter aside: where a drop past its last row lands.
@@ -424,6 +426,7 @@ impl Render for ModList {
                     .map(|at| {
                         let row = &shown.rows[at];
                         let chosen = row.mod_id.is_some_and(|id| shown.chosen.contains(&id));
+                        let holds = row.is_header && row.collapsed && shown.place == Some(at);
                         let drawn = rows::row(
                             window,
                             theme,
@@ -433,6 +436,7 @@ impl Render for ModList {
                             row,
                             made.columns.as_deref(),
                             chosen,
+                            holds,
                             &around,
                             mods.clone(),
                             &thumbs,

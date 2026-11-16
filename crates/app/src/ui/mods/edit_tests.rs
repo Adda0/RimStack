@@ -657,3 +657,65 @@ fn menu_key_and_shift_f10_open_the_selected_mods_menu() {
         "Shift + F10 opens the menu again"
     );
 }
+
+#[test]
+fn left_folds_the_chosen_mods_heading_and_the_arrows_stop_on_it() {
+    let (_tmp, mut cx, mods) = opened();
+    let window = cx.update(|cx| cx.windows()[0]);
+    let keys = |keys: &'static str, cx: &mut HeadlessAppContext| {
+        cx.update_window(window, |_, window, cx| {
+            let parsed = gpui::Keystroke::parse(keys).unwrap();
+            window.dispatch_keystroke(parsed, cx);
+        })
+        .unwrap();
+        cx.run_until_parked();
+    };
+    let shown = |cx: &mut HeadlessAppContext| {
+        cx.update(|cx| mods.read(cx).list(Side::Active).read(cx).shown().clone())
+    };
+    let chosen =
+        |cx: &mut HeadlessAppContext| cx.update(|cx| mods.read(cx).list.read(cx).selected_id());
+    cx.update_window(window, |_, window, cx| {
+        let handle = mods.read(cx).list(Side::Active).read(cx).focus_handle();
+        window.focus(&handle, cx);
+    })
+    .unwrap();
+    cx.run_until_parked();
+    keys("home", &mut cx);
+    let mod_id = chosen(&mut cx).expect("Home chooses the first mod");
+    let rows = shown(&mut cx).rows.len();
+    keys("left", &mut cx);
+    let folded = shown(&mut cx);
+    assert!(
+        folded.rows.len() < rows,
+        "Left folds the heading over the chosen mod, hiding the mods under it"
+    );
+    let place = folded.place.expect("the chosen mod's place");
+    assert!(
+        folded.rows[place].is_header && folded.rows[place].collapsed,
+        "its place is the folded heading"
+    );
+    keys("down", &mut cx);
+    assert_ne!(
+        chosen(&mut cx),
+        Some(mod_id),
+        "Down steps off the folded heading onto the next mod"
+    );
+    keys("up", &mut cx);
+    assert_eq!(
+        chosen(&mut cx),
+        Some(mod_id),
+        "Up steps onto the folded heading, which stands for the mod it hides"
+    );
+    assert_eq!(
+        shown(&mut cx).place,
+        Some(place),
+        "the heading stands for it in the same place"
+    );
+    keys("right", &mut cx);
+    assert_eq!(
+        shown(&mut cx).rows.len(),
+        rows,
+        "Right shows its mods again"
+    );
+}

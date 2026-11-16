@@ -198,6 +198,7 @@ impl Mods {
                 dimmed: false,
                 single: false,
                 cursor: None,
+                place: None,
                 previewing: false,
                 picking: false,
                 count: 0,
@@ -672,6 +673,12 @@ impl Mods {
                     == Some(rimstack_core::mods::list::LeftOut::Dimmed),
                 single: state.selection.len() == 1,
                 cursor: state.cursor.filter(|_| on_side),
+                place: match on_side {
+                    true => state
+                        .selected_id()
+                        .and_then(|id| state.order.list(side).place_of(id)),
+                    false => None,
+                },
                 previewing: state.order.previewing(),
                 picking: self.chosen_reads.picking.is_some(),
                 count: state.order.list(side).end_place(),

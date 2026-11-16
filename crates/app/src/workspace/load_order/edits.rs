@@ -202,6 +202,15 @@ impl LoadOrder {
         }
     }
 
+    /// False when nothing was folded or opened.
+    pub fn fold(&mut self, app: &App, side: Side, id: ModId, open: bool) -> bool {
+        let changed = self.list_mut(side).fold_around(id, open);
+        if changed {
+            self.settle(app);
+        }
+        changed
+    }
+
     pub fn toggle_sub(&mut self, app: &App, side: Side, row: usize) {
         if let Some(first) = self.sub_on(side, row) {
             self.list_mut(side).toggle_sub(first);

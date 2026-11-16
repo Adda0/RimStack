@@ -273,6 +273,7 @@ pub fn row(
     row: &RowView,
     columns: Option<&Columns>,
     chosen: bool,
+    holds: bool,
     around: &Around<'_>,
     mods: WeakEntity<Mods>,
     thumbs: &thumbs::Shared,
@@ -318,6 +319,8 @@ pub fn row(
     let previewing = around.previewing;
     let ground = if chosen {
         Some(c.chosen)
+    } else if holds {
+        Some(with_alpha(c.accent, 0.3))
     } else if mark.is_some() {
         Some(with_alpha(c.warn, 0.12))
     } else if row.moved_from.is_some() {
@@ -339,7 +342,7 @@ pub fn row(
             false => gpui::Role::ListItem,
         })
         .aria_label(put(&row.accessible_name))
-        .when(!is_header, |d| d.aria_selected(chosen))
+        .when(!is_header || holds, |d| d.aria_selected(chosen || holds))
         .relative()
         .w_full()
         .h(height(theme, row, side == Side::Active))

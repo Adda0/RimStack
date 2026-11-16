@@ -152,6 +152,10 @@ fn groups() -> Vec<(Sentence, Vec<(Sentence, Sentence)>)> {
                 (say!("Ctrl + I"), say!("Invert the selection")),
                 (Sentence::Plain("T".into()), say!("Type its tags")),
                 (Sentence::Plain("N".into()), say!("Type its note")),
+                (
+                    say!("Left, Right"),
+                    say!("Fold the heading the mod is under, or show its mods again"),
+                ),
                 (say!("Menu, Shift + F10"), say!("The mod's menu")),
             ],
         ),

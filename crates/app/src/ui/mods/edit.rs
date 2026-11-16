@@ -451,10 +451,11 @@ impl Mods {
         cx: &mut Context<Self>,
     ) {
         let rows = self.shown(side).rows.clone();
-        if let Some(at) = rows
+        let place = rows
             .iter()
             .position(|r| r.mod_id == Some(id) && !r.is_header)
-        {
+            .or_else(|| self.list.read(cx).order.list(side).place_of(id));
+        if let Some(at) = place {
             self.list(side).update(cx, |list, cx| match centre {
                 true => list.reveal(at, cx),
                 false => list.contain(at, cx),
@@ -462,8 +463,28 @@ impl Mods {
         }
     }
 
+    /// Folds the innermost open heading over the chosen mod, or opens the outermost folded
+    /// one: what Left and Right do, the heading standing for the mods it hides.
+    fn fold(&mut self, side: Side, open: bool, cx: &mut Context<Self>) {
+        let chosen = {
+            let state = self.list.read(cx);
+            state
+                .selected_id()
+                .filter(|_| state.selected_active == (side == Side::Active))
+        };
+        let Some(id) = chosen else {
+            return;
+        };
+        let app = super::super::app(cx);
+        if self.edit_list(cx, |list, _| list.order.fold(&app, side, id, open)) {
+            self.show(cx);
+            self.reveal_mod(side, id, false, cx);
+        }
+    }
+
     /// Opens the chosen mods' menu at the row of the first one, scrolled into view, so every
-    /// entry of it is in reach of the keyboard: what the Menu key and Shift + F10 do.
+    /// entry of it is in reach of the keyboard: what the Menu key and Shift + F10 do. A chosen
+    /// mod under a folded heading gives that heading's menu, as a right click on it would.
     fn chosen_menu(&mut self, side: Side, window: &mut Window, cx: &mut Context<Self>) {
         let state = self.list.read(cx);
         let chosen = state
@@ -472,20 +493,28 @@ impl Mods {
         let Some(id) = chosen else {
             return;
         };
-        let listed = self
-            .shown(side)
-            .rows
+        let rows = self.shown(side).rows.clone();
+        let listed = rows
             .iter()
             .position(|r| r.mod_id == Some(id) && !r.is_header);
-        let Some(at) = listed else {
+        let place = listed.or_else(|| self.list.read(cx).order.list(side).place_of(id));
+        let Some(at) = place else {
             return;
         };
-        let index = self.shown(side).rows[at].mod_index;
         let point = self
             .list(side)
             .update(cx, |list, cx| list.row_point(at, cx));
-        if let Some(point) = point {
-            self.row_menu(side, index, Some(id), point, window, cx);
+        let Some(point) = point else {
+            return;
+        };
+        let folded = rows.get(at).filter(|row| row.is_header && row.collapsed);
+        match folded {
+            Some(heading) if heading.is_sub => self.sub_menu(side, at, point, window, cx),
+            Some(heading) => self.category_menu(heading.category, point, window, cx),
+            None => {
+                let index = rows[at].mod_index;
+                self.row_menu(side, index, Some(id), point, window, cx);
+            }
         }
     }
 
@@ -535,9 +564,7 @@ impl Mods {
                 .filter(|_| state.selected_active == (side == Side::Active));
             state.order.list(side).step_from(from, by)
         };
-        let reached = target
-            .and_then(|row| self.shown(side).rows.get(row))
-            .and_then(|r| r.mod_id);
+        let reached = target.and_then(|row| self.list.read(cx).order.list(side).stop_on(row));
         match keys.key.as_str() {
             "home" | "end" if alt && side == Side::Active => {
                 let state = self.list.read(cx);
@@ -567,6 +594,7 @@ impl Mods {
                 }
             }
             "enter" => self.activate_selected(side, cx),
+            "left" | "right" => self.fold(side, keys.key == "right", cx),
             "menu" | "f10" if keys.key == "menu" || shift => self.chosen_menu(side, window, cx),
             "a" if command => self.select_all(side, cx),
             "i" if command => self.invert_selection(side == Side::Active, cx),
