@@ -882,6 +882,8 @@ impl DetailsView {
     ) -> Vec<AnyElement> {
         let mut shown = Vec::new();
         shown.extend(self.before_play(theme, details, inner, window));
+        shown.push(self.notes(theme, details, window, cx));
+        shown.push(self.facts(theme, details, inner, window, cx));
         if !details.description_blocks.is_empty() {
             let link: Link = Rc::new(|url, _, cx| cx.open_url(url));
             let text = self.description.holding(
@@ -909,8 +911,6 @@ impl DetailsView {
         shown.extend(self.def_clashes(theme, details, cx));
         shown.extend(self.replaced(theme, details));
         shown.extend(self.copies(theme, details));
-        shown.push(self.facts(theme, details, inner, window, cx));
-        shown.push(self.notes(theme, details, window, cx));
         shown.extend(self.latest(theme, details, window, cx));
         shown.extend(self.mod_settings(theme, details));
         shown
