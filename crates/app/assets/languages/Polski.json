@@ -2112,5 +2112,13 @@
  "{} are fine": "{} są w porządku|{} jest w porządku",
  "{} has a problem": "{} ma problem",
  "{} have problems": "{} mają problemy|{} ma problemów",
- "{} is fine": "{} jest w porządku"
+ "{} is fine": "{} jest w porządku",
+ "Without it": "Bez niego",
+ "names it as a dependency": "wymienia go jako zależność",
+ "{} active mod needs it": "{} aktywny mod go wymaga",
+ "{} active mod needs it: {}": "{} aktywny mod go wymaga: {}",
+ "{} active mod needs them: {}": "{} aktywny mod ich wymaga: {}",
+ "{} active mods need it": "{} aktywne mody go wymagają|{} aktywnych modów go wymaga",
+ "{} active mods need it: {}": "{} aktywne mody go wymagają: {}|{} aktywnych modów go wymaga: {}",
+ "{} active mods need them: {}": "{} aktywne mody ich wymagają: {}|{} aktywnych modów ich wymaga: {}"
 }

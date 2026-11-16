@@ -2112,5 +2112,13 @@
  "{} are fine": "{} are fine",
  "{} has a problem": "{} has a problem",
  "{} have problems": "{} have problems",
- "{} is fine": "{} is fine"
+ "{} is fine": "{} is fine",
+ "Without it": "Without it",
+ "names it as a dependency": "names it as a dependency",
+ "{} active mod needs it": "{} active mod needs it",
+ "{} active mod needs it: {}": "{} active mod needs it: {}",
+ "{} active mod needs them: {}": "{} active mod needs them: {}",
+ "{} active mods need it": "{} active mods need it",
+ "{} active mods need it: {}": "{} active mods need it: {}",
+ "{} active mods need them: {}": "{} active mods need them: {}"
 }

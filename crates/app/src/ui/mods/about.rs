@@ -572,6 +572,7 @@ impl DetailsView {
             say!("Contains"),
             say!("Translates"),
             say!("Mid-save removal"),
+            say!("Without it"),
             say!("Code"),
             say!("Load time"),
             say!("Package id"),
@@ -634,6 +635,50 @@ impl DetailsView {
                     .into_any_element()
             })
             .collect();
+        if let Some(without) = details
+            .without_it
+            .as_ref()
+            .filter(|_| !details.left_wanting.is_empty())
+        {
+            // The active mods left wanting if it went, each a button whose tip says why.
+            let chips = details
+                .left_wanting
+                .iter()
+                .enumerate()
+                .filter_map(|(at, wanting)| {
+                    let id = wanting.mod_id?;
+                    let note = put(&wanting.note);
+                    Some(
+                        Chip::new(wanting.name.clone())
+                            .pressable()
+                            .tip(note)
+                            .on_click(
+                                ("left-wanting", at),
+                                self.on_mods(move |mods, cx| {
+                                    mods.select(Some(id), true, cx);
+                                }),
+                            ),
+                    )
+                });
+            lines.push(
+                div()
+                    .flex()
+                    .gap(theme::GAP_TINY)
+                    .child(
+                        label(theme, theme.body(), c.ink2, put(&say!("Without it"))).w(label_width),
+                    )
+                    .child(
+                        div()
+                            .flex_1()
+                            .min_w_0()
+                            .flex_wrap()
+                            .gap(theme::GAP_TINY)
+                            .child(put(without))
+                            .children(chips),
+                    )
+                    .into_any_element(),
+            );
+        }
         if !details.package_id.is_empty() {
             let copied = details.package_id.clone();
             lines.push(

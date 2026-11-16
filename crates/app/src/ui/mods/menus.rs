@@ -548,14 +548,28 @@ impl Mods {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        let app = crate::ui::app(cx);
+        // Only taking the DDS textures RimStack made leaves no mod wanting.
+        let wanting = match kind {
+            BinKind::DdsOnly => None,
+            _ => {
+                let said = self
+                    .list
+                    .update(cx, |list, _| list.order.left_wanting_said(&app, &[id]));
+                (!said.is_empty()).then_some(Line::Text(put(&said)))
+            }
+        };
         let me = cx.entity().downgrade();
         prompt::ask(
             Question {
                 title: put(&kind.title(name)),
-                lines: vec![
+                lines: [
                     Line::Path(folder.to_string()),
                     Line::Text(put(&kind.note(made))),
-                ],
+                ]
+                .into_iter()
+                .chain(wanting)
+                .collect(),
                 label: put(&kind.label()),
                 danger: true,
                 run: Box::new(move |_, cx| {
@@ -592,6 +606,7 @@ impl Mods {
         cx: &mut Context<Self>,
     ) {
         let count = ids.len();
+        let wanting = self.left_wanting(&ids, cx);
         prompt::ask(
             Question {
                 title: put(&say_n!(
@@ -599,12 +614,15 @@ impl Mods {
                     "Unsubscribe {} Workshop mod",
                     "Unsubscribe {} Workshop mods"
                 )),
-                lines: vec![
+                lines: [
                     Line::Text(put(&say!(
                         "Steam, which must be running, unsubscribes every one and deletes its folder"
                     ))),
                     Line::Text(put(&say!("Together {} MB on disk", megabytes))),
-                ],
+                ]
+                .into_iter()
+                .chain(wanting)
+                .collect(),
                 label: put(&say!("Unsubscribe")),
                 danger: true,
                 run: Box::new(move |_, cx| {
@@ -624,6 +642,7 @@ impl Mods {
         cx: &mut Context<Self>,
     ) {
         let count = ids.len();
+        let wanting = self.left_wanting(&ids, cx);
         let me = cx.entity().downgrade();
         prompt::ask(
             Question {
@@ -632,10 +651,13 @@ impl Mods {
                     "Move {} mod to the bin",
                     "Move {} mods to the bin"
                 )),
-                lines: vec![
+                lines: [
                     Line::Text(put(&say!("Together {} MB on disk", megabytes))),
                     Line::Text(put(&say!("The game's own mods and mods in use stay"))),
-                ],
+                ]
+                .into_iter()
+                .chain(wanting)
+                .collect(),
                 label: put(&say!("Move to the bin")),
                 danger: true,
                 run: Box::new(move |_, cx| {
@@ -681,12 +703,15 @@ impl Mods {
         prompt::ask(
             Question {
                 title: put(&say!("Unsubscribe from {}", about.name.clone())),
-                lines: vec![
+                lines: [
                     Line::Text(put(&say!(
                         "Steam must be running. It unsubscribes and then deletes the mod's folder:"
                     ))),
                     Line::Path(about.path.clone()),
-                ],
+                ]
+                .into_iter()
+                .chain(self.left_wanting(&[id], cx))
+                .collect(),
                 label: put(&say!("Unsubscribe")),
                 danger: true,
                 run: Box::new(move |_, cx| {
@@ -696,6 +721,17 @@ impl Mods {
             window,
             cx,
         );
+    }
+}
+
+impl Mods {
+    /// "N active mods need it: …" for a confirmation before these leave, one line if any.
+    fn left_wanting(&mut self, ids: &[ModId], cx: &mut Context<Self>) -> Option<Line> {
+        let app = crate::ui::app(cx);
+        let said = self
+            .list
+            .update(cx, |list, _| list.order.left_wanting_said(&app, ids));
+        (!said.is_empty()).then_some(Line::Text(put(&said)))
     }
 }
 
