@@ -2,7 +2,7 @@ use super::step;
 
 use crate::ui::logs::Logs;
 use crate::ui::menu::{self, Entry};
-use crate::ui::rows::{bar, rows};
+use crate::ui::rows::{bar, page_of, rows};
 use crate::ui::theme::{self, Theme};
 use crate::ui::widgets::{TextSized, breakable, label, measure_in, with_alpha};
 use crate::words::put;
@@ -229,6 +229,7 @@ impl Logs {
             .position(|l| l + 1 == self.marked)
             .unwrap_or(0);
         let (keys_lines, keys_tops) = (self.lines.clone(), tops);
+        let line = theme.row();
         div()
             .id("log")
             .track_focus(&self.focus.log)
@@ -238,7 +239,8 @@ impl Logs {
             .flex_1()
             .min_h_0()
             .on_key_down(cx.listener(move |logs, event: &KeyDownEvent, _, cx| {
-                if let Some(to) = step(event, current, count) {
+                let page = page_of(&logs.log_scroll, line);
+                if let Some(to) = step(event, current, count, page) {
                     logs.marked = keys_lines[to] + 1;
                     logs.log_scroll
                         .borrow_mut()

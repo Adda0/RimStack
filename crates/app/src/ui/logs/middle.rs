@@ -132,6 +132,7 @@ impl Logs {
             },
         );
         let count = culprits.len();
+        let line = theme.sized(34.);
         div()
             .id("culprits")
             .track_focus(&self.focus.culprits)
@@ -148,7 +149,8 @@ impl Logs {
                         .unwrap_or_default();
                     return logs.open_culprit(&name, cx);
                 }
-                if let Some(to) = step(event, logs.culprit, count) {
+                let page = crate::ui::rows::page_of(&logs.culprits_scroll, line);
+                if let Some(to) = step(event, logs.culprit, count, page) {
                     logs.culprit = to;
                     logs.culprits_scroll
                         .borrow_mut()
@@ -200,7 +202,12 @@ impl Logs {
     }
 }
 
-pub(super) fn step(event: &KeyDownEvent, current: usize, count: usize) -> Option<usize> {
+pub(super) fn step(
+    event: &KeyDownEvent,
+    current: usize,
+    count: usize,
+    page: usize,
+) -> Option<usize> {
     if count == 0 {
         return None;
     }
@@ -209,6 +216,8 @@ pub(super) fn step(event: &KeyDownEvent, current: usize, count: usize) -> Option
         "down" => Some((current + 1).min(count - 1)),
         "home" => Some(0),
         "end" => Some(count - 1),
+        "pageup" => Some(current.saturating_sub(page)),
+        "pagedown" => Some((current + page).min(count - 1)),
         _ => None,
     }
 }

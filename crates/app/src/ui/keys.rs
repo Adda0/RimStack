@@ -83,6 +83,10 @@ fn groups() -> Vec<(Sentence, Vec<(Sentence, Sentence)>)> {
                     say!("Esc"),
                     say!("Close, cancel, discard a sort preview, clear the selection"),
                 ),
+                (
+                    say!("Home, End, Page Up, Page Down"),
+                    say!("To either end of a list, or a page further"),
+                ),
             ],
         ),
         (

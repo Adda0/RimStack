@@ -5,7 +5,7 @@ use super::Saves;
 
 use crate::ui::field::Field;
 
-use crate::ui::rows::{bar, rows};
+use crate::ui::rows::{bar, page_of, rows};
 use crate::ui::theme::{self, Theme};
 use crate::ui::widgets::{TextSized, label};
 use crate::words::put;
@@ -163,6 +163,7 @@ impl Saves {
             cx.entity_id(),
         );
         let theme_owned = theme.clone();
+        let line = theme.sized(40.);
         let (held, folder, filter) = (report.clone(), folder.clone(), filter.clone());
         let list = rows(
             "save-rows",
@@ -212,11 +213,14 @@ impl Saves {
             .flex_1()
             .min_h_0()
             .on_key_down(cx.listener(move |saves, event: &KeyDownEvent, _, cx| {
+                let page = page_of(&saves.scroll, line);
                 let to = match event.keystroke.key.as_str() {
                     "up" => saves.selected.saturating_sub(1),
                     "down" => (saves.selected + 1).min(count - 1),
                     "home" => 0,
                     "end" => count - 1,
+                    "pageup" => saves.selected.saturating_sub(page),
+                    "pagedown" => (saves.selected + page).min(count - 1),
                     "enter" => {
                         if let Some(Some(ids)) = usable.get(saves.selected) {
                             crate::ui::navigate::go(

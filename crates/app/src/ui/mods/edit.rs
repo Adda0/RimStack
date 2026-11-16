@@ -1,6 +1,7 @@
 use super::Mods;
 use crate::changes::Changes;
 use crate::ui::notices;
+use crate::ui::theme::Theme;
 use crate::words::put;
 use crate::workspace::load_order::Side;
 use gpui::{Context, KeyDownEvent, Window};
@@ -422,14 +423,25 @@ impl Mods {
         let keys = &event.keystroke;
         let bare = !keys.modifiers.modified();
         let (alt, command) = (keys.modifiers.alt, keys.modifiers.secondary(cx));
+        let page = crate::ui::rows::page_of(
+            &self.list(side).read(cx).scroll().clone(),
+            cx.global::<Theme>().row(),
+        ) as isize;
+        let whole = self.list.read(cx).order.list(side).rows().len() as isize;
         let by = match keys.key.as_str() {
             "up" => -1,
             "down" => 1,
+            "pageup" => -page,
+            "pagedown" => page,
+            "home" => -whole,
+            "end" => whole,
             _ => 0,
         };
         match keys.key.as_str() {
-            "up" | "down" if alt => self.nudge(side, by, cx),
-            "up" | "down" => {
+            "up" | "down" | "pageup" | "pagedown" | "home" | "end" if alt => {
+                self.nudge(side, by, cx)
+            }
+            "up" | "down" | "pageup" | "pagedown" | "home" | "end" => {
                 let current = self
                     .selected_id(cx)
                     .filter(|_| self.list.read(cx).selected_active == (side == Side::Active));

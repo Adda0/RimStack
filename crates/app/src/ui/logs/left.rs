@@ -1,5 +1,6 @@
 use super::Logs;
 use crate::ui::button::{Btn, Chip};
+use crate::ui::rows::page_of;
 use crate::ui::theme::{self, Theme};
 use crate::ui::widgets::{TextSized, chip_width, label, measure, with_alpha};
 use crate::words::put;
@@ -259,6 +260,7 @@ impl Logs {
             (None, None) if on_before && before.is_some() => 1,
             _ => 0,
         };
+        let line = theme.sized(34.);
         let logs_for_keys: Vec<Option<String>> =
             shown.iter().map(|l| l.launch.log.clone()).collect();
         div()
@@ -275,11 +277,14 @@ impl Logs {
             .border_r_1()
             .border_color(c.edge)
             .on_key_down(cx.listener(move |logs, event: &KeyDownEvent, _, cx| {
+                let page = page_of(&logs.launches_paging.scroll, line);
                 let to = match event.keystroke.key.as_str() {
                     "up" => current.saturating_sub(1),
                     "down" => (current + 1).min(count.saturating_sub(1)),
                     "home" => 0,
                     "end" => count.saturating_sub(1),
+                    "pageup" => current.saturating_sub(page),
+                    "pagedown" => (current + page).min(count.saturating_sub(1)),
                     _ => return,
                 };
                 match to.checked_sub(fixed) {

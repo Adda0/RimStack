@@ -297,3 +297,63 @@ fn a_game_folder_chosen_reads_the_mods_from_it() {
         assert_eq!(list.count(Side::Inactive), before - 1);
     });
 }
+
+#[test]
+fn home_end_and_the_page_keys_walk_the_list() {
+    let (_tmp, mut cx, mods) = opened();
+    let window = cx.update(|cx| cx.windows()[0]);
+    let chosen = |cx: &mut HeadlessAppContext| {
+        cx.update(|cx| {
+            let order = mods.read(cx).list.read(cx).order.list(Side::Active);
+            (0..order.rows().len())
+                .filter_map(|row| order.installed_on(row))
+                .collect::<Vec<_>>()
+        })
+    };
+    let selected =
+        |cx: &mut HeadlessAppContext| cx.update(|cx| mods.read(cx).list.read(cx).selected_id());
+    let keys = |keys: &'static str, cx: &mut HeadlessAppContext| {
+        cx.update_window(window, |_, window, cx| {
+            let parsed = gpui::Keystroke::parse(keys).unwrap();
+            window.dispatch_keystroke(parsed, cx);
+        })
+        .unwrap();
+        cx.run_until_parked();
+    };
+    cx.update_window(window, |_, window, cx| {
+        let handle = mods.read(cx).list(Side::Active).read(cx).focus_handle();
+        window.focus(&handle, cx);
+    })
+    .unwrap();
+    cx.run_until_parked();
+    let list = chosen(&mut cx);
+    let (first, last) = (*list.first().unwrap(), *list.last().unwrap());
+    keys("end", &mut cx);
+    assert_eq!(selected(&mut cx), Some(last), "End selects the last mod");
+    keys("home", &mut cx);
+    assert_eq!(selected(&mut cx), Some(first), "Home selects the first mod");
+    keys("down", &mut cx);
+    let second = selected(&mut cx);
+    keys("pageup", &mut cx);
+    assert_eq!(selected(&mut cx), Some(first), "Page Up stops at the first");
+    let page = cx.update(|cx| {
+        let scroll = mods.read(cx).list(Side::Active).read(cx).scroll().clone();
+        crate::ui::rows::page_of(&scroll, cx.global::<Theme>().row())
+    });
+    keys("pagedown", &mut cx);
+    let at = selected(&mut cx).unwrap();
+    let row = |id: ModId, cx: &mut HeadlessAppContext| {
+        cx.update(|cx| {
+            let order = mods.read(cx).list.read(cx).order.list(Side::Active);
+            order.position_of(id).and_then(|at| order.row_of(at))
+        })
+    };
+    let (from, to) = (
+        row(second.unwrap(), &mut cx).unwrap(),
+        row(at, &mut cx).unwrap(),
+    );
+    assert!(
+        to + 1 >= from + page,
+        "Page Down steps a page of rows: {from} -> {to}, a page being {page}"
+    );
+}

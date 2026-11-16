@@ -3,7 +3,7 @@ use crate::ui::button::Chip;
 
 use crate::ui::logs::Logs;
 
-use crate::ui::rows::{bar, rows};
+use crate::ui::rows::{bar, page_of, rows};
 use crate::ui::theme::{self, Theme};
 use crate::ui::widgets::{TextSized, label, with_alpha};
 use crate::words::{count, put};
@@ -135,6 +135,7 @@ impl Logs {
             },
         );
         let count = count_rows;
+        let line = theme.row();
         let keys_tops = tops;
         div()
             .id("errors")
@@ -145,7 +146,8 @@ impl Logs {
             .flex_1()
             .min_h_0()
             .on_key_down(cx.listener(move |logs, event: &KeyDownEvent, _, cx| {
-                if let Some(to) = step(event, logs.selected, count) {
+                let page = page_of(&logs.errors_scroll, line);
+                if let Some(to) = step(event, logs.selected, count, page) {
                     logs.selected = to;
                     logs.errors_scroll
                         .borrow_mut()

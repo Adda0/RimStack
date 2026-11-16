@@ -424,6 +424,7 @@ impl Textures {
             },
         );
         let count_rows = ids.len();
+        let line = row;
         div()
             .id("textures")
             .track_focus(&self.focus)
@@ -437,11 +438,14 @@ impl Textures {
                     return;
                 }
                 let now = current.unwrap_or(0);
+                let page = crate::ui::rows::page_of(&t.scroll, line);
                 let to = match event.keystroke.key.as_str() {
                     "up" => now.saturating_sub(1),
                     "down" => (now + 1).min(count_rows - 1),
                     "home" => 0,
                     "end" => count_rows - 1,
+                    "pageup" => now.saturating_sub(page),
+                    "pagedown" => (now + page).min(count_rows - 1),
                     _ => return,
                 };
                 t.selected = Some(ids[to]);

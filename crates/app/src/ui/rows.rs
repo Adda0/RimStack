@@ -136,6 +136,13 @@ impl Scroll {
     }
 }
 
+/// How far Page Up and Page Down step: a view full of rows, less one to land on.
+pub fn page_of(scroll: &Scrolling, line: Pixels) -> usize {
+    let shown = f32::from(scroll.borrow().shown());
+    let rows = (shown / f32::from(line).max(1.)).floor() as usize;
+    rows.saturating_sub(1).max(1)
+}
+
 type Draw = Box<dyn Fn(Range<usize>, Pixels, &mut Window, &mut Cx) -> Vec<AnyElement>>;
 
 /// `tops` holds each row's top and, last, the whole height.
