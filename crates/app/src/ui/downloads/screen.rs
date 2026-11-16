@@ -633,7 +633,7 @@ impl Downloads {
                                 .gap(theme::GAP)
                                 .child(
                                     text_fill(theme, theme.body(), c.ink2, old.name.clone())
-                                        .flex_initial(),
+                                        .flex_shrink(1.),
                                 )
                                 .when(!old.active, |d| d.child(Chip::new(put(&say!("inactive"))))),
                         )
@@ -646,7 +646,7 @@ impl Downloads {
                                 .child(
                                     text_fill(theme, theme.body(), c.ink, old.new_name.clone())
                                         .font_weight(theme.medium)
-                                        .flex_initial(),
+                                        .flex_shrink(1.),
                                 )
                                 .when(old.have_new, |d| {
                                     d.child(
@@ -704,15 +704,21 @@ pub(super) fn text_fill(
     colour: gpui::Hsla,
     text: String,
 ) -> gpui::Div {
-    div()
-        .flex_1()
+    // Keep the row's date and buttons by its name, not at a wide window's far edge.
+    let boxed = div()
+        .flex_initial()
         .min_w_0()
+        .max_w_full()
         .overflow_hidden()
         .whitespace_nowrap()
         .text_ellipsis()
         .sized_text(theme, size)
-        .text_color(colour)
-        .child(text)
+        .text_color(colour);
+    if cfg!(test) {
+        crate::ui::widgets::watched(boxed, text.clone().into(), text, true)
+    } else {
+        boxed.child(text)
+    }
 }
 
 fn busy_bar(theme: &Theme) -> impl IntoElement {

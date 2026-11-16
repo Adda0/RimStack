@@ -416,6 +416,7 @@ pub mod watch {
     use gpui::{Bounds, Pixels, SharedString, Window};
     use std::cell::RefCell;
 
+    #[derive(Debug)]
     pub struct Seen {
         pub text: SharedString,
         pub bounds: Bounds<Pixels>,

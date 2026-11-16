@@ -277,6 +277,30 @@ fn downloads_fits_the_first_window_with_its_side_pane_at_its_least() {
 
 #[cfg(target_os = "linux")]
 #[test]
+fn a_downloads_row_puts_its_date_and_buttons_by_its_name() {
+    let seen = drawn(
+        1.0,
+        &|_| size(crate::ui::WINDOW.0, crate::ui::WINDOW.1),
+        None,
+    );
+    let end = seen.len();
+    let at = seen
+        .iter()
+        .position(|one| one.text == "SteamCMD Fixture Epsilon")
+        .expect("the update row is drawn");
+    let row = &seen[at..end.min(at + 4)];
+    eprintln!("ROW {row:?}");
+    let name = &row[0];
+    let date = &row[1];
+    let show = &row[2];
+    let name_end = name.bounds.origin.x + name.bounds.size.width;
+    assert!((date.bounds.origin.x - name_end).abs() < px(40.));
+    assert!((show.bounds.origin.x - date.bounds.origin.x - date.bounds.size.width).abs() < px(40.));
+    assert!(date.bounds.origin.x - name_end < crate::ui::WINDOW.0 / 8.);
+}
+
+#[cfg(target_os = "linux")]
+#[test]
 fn the_side_pane_moves_by_its_keys_and_keeps_its_width() {
     let (_tmp, mut cx, shell, downloads) =
         opened(1.0, &|_| size(crate::ui::WINDOW.0, crate::ui::WINDOW.1));
