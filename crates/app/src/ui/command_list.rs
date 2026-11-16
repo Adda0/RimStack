@@ -397,6 +397,28 @@ impl Shell {
             Rc::new(|shell, _, cx| shell.lists.update(cx, |lists, cx| lists.use_copied(cx))),
         );
         push(
+            !demo,
+            say!("Write a lockfile"),
+            &order,
+            none.clone(),
+            Rc::new(|shell, window, cx| {
+                shell
+                    .lists
+                    .update(cx, |lists, cx| lists.write_a_lockfile(window, cx))
+            }),
+        );
+        push(
+            !demo,
+            say!("Check a lockfile"),
+            &order,
+            none.clone(),
+            Rc::new(|shell, window, cx| {
+                shell
+                    .lists
+                    .update(cx, |lists, cx| lists.check_a_lockfile(window, cx))
+            }),
+        );
+        push(
             true,
             say!("Copy the load order as text"),
             &order,

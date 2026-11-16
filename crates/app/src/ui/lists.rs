@@ -36,6 +36,7 @@ pub struct Lists {
     clipboard_problem: String,
     name: Entity<TextField>,
     open: Option<(Which, Bounds<Pixels>)>,
+    lock_report: Option<rimstack_core::mods::lock::Report>,
     turn: usize,
     /// Closed, and drawn only while it fades out.
     fading: Option<(Which, Bounds<Pixels>)>,
@@ -60,6 +61,7 @@ impl Lists {
             clipboard_problem: String::new(),
             name,
             open: None,
+            lock_report: None,
             turn: 0,
             fading: None,
             focus: cx.focus_handle(),
@@ -197,6 +199,80 @@ impl Lists {
                 }
             },
         );
+    }
+
+    /// Asks where the lockfile goes, then writes the load order and its versions there.
+    fn lock_write(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let home = super::app(cx).home_dir().to_path_buf();
+        let chosen = cx.prompt_for_new_path(&home, Some("loadorder.lock.json"));
+        self.close(window, cx);
+        cx.spawn_in(window, async move |lists, cx| {
+            let Ok(Ok(Some(path))) = chosen.await else {
+                return;
+            };
+            let _ = lists.update(cx, |lists, cx| lists.write_lock(path, cx));
+        })
+        .detach();
+    }
+
+    fn write_lock(&mut self, path: std::path::PathBuf, cx: &mut Context<Self>) {
+        let app = super::app(cx);
+        crate::jobs::run(
+            "lockfile",
+            cx,
+            move || app.write_lockfile(&path),
+            |_, done, cx| match done {
+                Ok(()) => notices::say(
+                    put(&say!("The load order written as a lockfile")),
+                    notices::Tone::Ok,
+                    cx,
+                ),
+                Err(problem) => {
+                    notices::say(crate::words::said_of(&problem), notices::Tone::Err, cx)
+                }
+            },
+        );
+    }
+
+    fn lock_read(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let chosen = cx.prompt_for_paths(gpui::PathPromptOptions {
+            files: true,
+            directories: false,
+            multiple: false,
+            prompt: Some(put(&say!("Choose the lockfile…")).into()),
+        });
+        self.close(window, cx);
+        cx.spawn_in(window, async move |lists, cx| {
+            let Ok(Ok(Some(paths))) = chosen.await else {
+                return;
+            };
+            let Some(path) = paths.into_iter().next() else {
+                return;
+            };
+            let _ = lists.update(cx, |lists, cx| lists.check_lock(path, cx));
+        })
+        .detach();
+    }
+
+    fn check_lock(&mut self, path: std::path::PathBuf, cx: &mut Context<Self>) {
+        let app = super::app(cx);
+        crate::jobs::run(
+            "lockfile check",
+            cx,
+            move || app.check_lockfile(&path),
+            |lists, checked, cx| match checked {
+                Ok(report) => lists.report_lock(report, cx),
+                Err(problem) => {
+                    lists.problem = crate::words::said_of(&problem);
+                    cx.notify();
+                }
+            },
+        );
+    }
+
+    fn report_lock(&mut self, report: rimstack_core::mods::lock::Report, cx: &mut Context<Self>) {
+        self.lock_report = Some(report);
+        cx.notify();
     }
 
     /// Asks for a RimSort, RimPy or text list file and makes it the load order.
@@ -345,6 +421,14 @@ impl Lists {
             },
         );
         cx.notify();
+    }
+
+    pub(crate) fn write_a_lockfile(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.lock_write(window, cx);
+    }
+
+    pub(crate) fn check_a_lockfile(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.lock_read(window, cx);
     }
 
     fn ask_share(&mut self, window: &mut Window, cx: &mut Context<Self>) {
@@ -636,6 +720,71 @@ impl Lists {
                 )
                 .into_any_element(),
         );
+        shown.push(
+            Self::title(theme, put(&say!("For a friend")))
+                .pt(theme::GAP_SMALL)
+                .into_any_element(),
+        );
+        shown.push(
+            div()
+                .flex()
+                .flex_wrap()
+                .gap(theme::GAP_SMALL)
+                .child(
+                    Btn::new("lock-write", put(&say!("Write a lockfile…")))
+                        .icon("send")
+                        .tip(put(&say!("The load order, with each mod's source and when the Workshop last published its version, as a small file to give a friend")))
+                        .on_click(cx.listener(|lists, _, window, cx| lists.lock_write(window, cx))),
+                )
+                .child(
+                    Btn::new("lock-read", put(&say!("Check a lockfile…")))
+                        .tip(put(&say!("Tells which of a friend's mods are missing, extra, in another order or another version here")))
+                        .on_click(cx.listener(|lists, _, window, cx| lists.lock_read(window, cx))),
+                )
+                .into_any_element(),
+        );
+
+        if let Some(report) = &self.lock_report {
+            if report.same {
+                shown.push(
+                    Self::title(theme, put(&say!("Lockfile of the load order")))
+                        .pt(theme::GAP_SMALL)
+                        .into_any_element(),
+                );
+                shown.push(
+                    label(
+                        theme,
+                        theme.body(),
+                        c.ink,
+                        put(&say!(
+                            "The load order is the lockfile's, every mod the same."
+                        )),
+                    )
+                    .into_any_element(),
+                );
+            } else {
+                for sentence in &report.said {
+                    shown.push(
+                        label(theme, theme.body(), c.ink2, sentence.to_string()).into_any_element(),
+                    );
+                }
+            }
+            if report.present && !report.ids.is_empty() {
+                let ids = report.ids.clone();
+                shown.push(
+                    Btn::new("apply-lock-file", put(&say!("Use this order")))
+                        .tip(put(&say!(
+                            "Makes the lockfile's order the load order. Save writes it."
+                        )))
+                        .on_click(cx.listener(move |lists, _, window, cx| {
+                            super::navigate::go(super::navigate::Go::TakeList(ids.clone()), cx);
+                            lists.close(window, cx);
+                        }))
+                        .into_any_element(),
+                );
+            }
+        }
+
         shown
     }
 

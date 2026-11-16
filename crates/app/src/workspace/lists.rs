@@ -191,6 +191,37 @@ impl App {
         Ok((path, written))
     }
 
+    /// Writes the load order as a lockfile: everything a friend needs to check they run the same.
+    pub fn write_lockfile(&self, file: &Path) -> Result<(), Error> {
+        let loaded = self.library();
+        let Ok((library, _)) = &*loaded else {
+            return Err(Error::refused(say!("The mods are not read yet.")));
+        };
+        let lock = rimstack_core::mods::lock::locked(
+            &library.game_version,
+            self.session().current(),
+            &library.installed,
+            &self.steam_record().times,
+        );
+        rimstack_core::mods::lock::write(file, &lock)
+    }
+
+    /// Checks the load order against a lockfile; `Err(a file that is not one)`.
+    pub fn check_lockfile(&self, file: &Path) -> Result<rimstack_core::mods::lock::Report, Error> {
+        let lock = rimstack_core::mods::lock::read(file)?;
+        let loaded = self.library();
+        let Ok((library, _)) = &*loaded else {
+            return Err(Error::refused(say!("The mods are not read yet.")));
+        };
+        Ok(rimstack_core::mods::lock::check(
+            &lock,
+            &library.game_version,
+            self.session().current(),
+            &library.installed,
+            &self.steam_record().times,
+        ))
+    }
+
     /// Newest first.
     pub fn recent_snapshots(&self) -> Vec<Snapshot> {
         let mut found = lists::all(&self.snapshots_dir());
@@ -296,6 +327,41 @@ impl App {
 mod tests {
     use super::*;
     use crate::workspace::tests::installed;
+
+    #[test]
+    fn a_lockfile_round_trips_and_a_differing_one_is_told() {
+        let (_tmp, app) = installed();
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("mine.lock.json");
+        app.write_lockfile(&file).unwrap();
+        let same = app.check_lockfile(&file).unwrap();
+        assert!(
+            same.same,
+            "{:?}",
+            same.said.iter().map(|s| s.to_string()).collect::<Vec<_>>()
+        );
+        assert!(same.present);
+        assert_eq!(same.ids, ["ludeon.rimworld"]);
+
+        let other = dir.path().join("other.lock.json");
+        std::fs::write(
+            &other,
+            r#"{"game":"1.5","dlcs":[],"mods":[{"packageId":"gone.mod","source":"local"}]}"#,
+        )
+        .unwrap();
+        let differing = app.check_lockfile(&other).unwrap();
+        let said: Vec<String> = differing.said.iter().map(|s| s.to_string()).collect();
+        assert!(
+            said.iter().any(|s| s.contains("made for RimWorld 1.5"))
+                && said.iter().any(|s| s.contains("not installed"))
+                && said.iter().any(|s| s.contains("not in the lockfile")),
+            "{said:?}"
+        );
+        assert!(!differing.present);
+
+        std::fs::write(&other, "no lockfile").unwrap();
+        assert!(app.check_lockfile(&other).is_err());
+    }
 
     #[test]
     fn a_snapshot_is_titled_by_its_kind_and_moment_whatever_version_named_it() {

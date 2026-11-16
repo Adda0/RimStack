@@ -16,6 +16,7 @@ pub mod hidden;
 pub mod infer;
 pub mod library;
 pub mod list;
+pub mod lock;
 pub mod ordering;
 pub mod packed;
 pub mod rules;
