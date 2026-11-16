@@ -39,7 +39,9 @@ pub(crate) fn drawing(types: &[Type], known: &HashSet<String>) -> HashSet<String
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
 pub enum When {
     Playing,
     Interface,
@@ -147,6 +149,14 @@ impl Game {
     /// `Contents/Resources/Data/Managed` of the Mac bundle, which is itself the
     /// game's folder when it holds the data (`paths::content_root`).
     pub fn find(game_dir: &Path) -> Option<Self> {
+        let dll = Self::locate(game_dir)?;
+        let mut game = Self::read(&std::fs::read(&dll).ok()?)?;
+        game.ships = beside(dll.parent()?);
+        Some(game)
+    }
+
+    /// The `Assembly-CSharp.dll` [`Game::find`] reads.
+    pub fn locate(game_dir: &Path) -> Option<PathBuf> {
         const MAC: [&str; 2] = ["Contents/MacOS", "Contents/Resources/Data/Managed"];
         let mut below: Vec<PathBuf> = std::fs::read_dir(game_dir)
             .ok()?
@@ -160,13 +170,10 @@ impl Game {
             .chain(MAC.map(|m| game_dir.join(m)))
             .chain(below)
             .collect();
-        let dll = places
+        places
             .iter()
             .map(|p| p.join("Assembly-CSharp.dll"))
-            .find(|f| f.is_file())?;
-        let mut game = Self::read(&std::fs::read(&dll).ok()?)?;
-        game.ships = beside(dll.parent()?);
-        Some(game)
+            .find(|f| f.is_file())
     }
 
     /// By lower-case name.
