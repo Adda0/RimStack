@@ -31,6 +31,8 @@ pub struct Shown {
     pub movable: bool,
     pub dimmed: bool,
     pub single: bool,
+    /// Where the arrows go on from, when that is not the one mod chosen.
+    pub cursor: Option<ModId>,
     pub previewing: bool,
     pub picking: bool,
     /// Its mods, headings and filter aside: where a drop past its last row lands.
@@ -329,6 +331,7 @@ impl Render for ModList {
         let drawn_theme = theme.clone();
         let room = bar_room(&theme);
         let line = theme.sized(40.);
+        let focused = self.focus.is_focused(window);
         let (x, reach) = {
             let sideways = self.sideways.read(cx);
             (sideways.x(), sideways.reach())
@@ -384,6 +387,8 @@ impl Render for ModList {
                     chosen_ids: &chosen_ids,
                     marks: &shown.marks,
                     single: shown.single,
+                    cursor: shown.cursor,
+                    focused,
                     buttons: !shown.previewing && !shown.picking,
                     previewing: shown.previewing,
                     headed: side == Side::Active

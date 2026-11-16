@@ -116,6 +116,9 @@ pub struct Around<'a> {
     pub chosen_ids: &'a [ModId],
     pub marks: &'a Marks,
     pub single: bool,
+    /// Where the arrows went, and whether this list has the keyboard: its outline shows then.
+    pub cursor: Option<ModId>,
+    pub focused: bool,
     pub buttons: bool,
     pub previewing: bool,
     pub headed: bool,
@@ -406,6 +409,25 @@ pub fn row(
                     let hover = with_alpha(c.hover, 0.04);
                     d.group_hover("mod-row", move |s| s.bg(hover))
                 }),
+        )
+        .when(
+            mod_id.is_some_and(|id| Some(id) == around.cursor)
+                && around.focused
+                && (around.chosen_ids.len() > 1 || !chosen),
+            |d| {
+                let colour = if chosen { c.on_selected } else { c.focus };
+                d.child(
+                    div()
+                        .absolute()
+                        .top_0()
+                        .bottom_0()
+                        .left(theme::GAP)
+                        .right(theme::GAP_SMALL)
+                        .rounded(theme::CORNER)
+                        .border_2()
+                        .border_color(colour),
+                )
+            },
         )
         .when(chosen, |d| {
             d.child(

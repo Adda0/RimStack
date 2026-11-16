@@ -14,6 +14,8 @@ pub struct ListState {
     /// `RowView::mod_id`s, the first chosen first.
     pub(super) selection: Vec<ModId>,
     pub(super) selected_active: bool,
+    /// The mod the arrows go on from: the one last chosen or reached with Ctrl.
+    pub(super) cursor: Option<ModId>,
     pub(super) standing: Standing,
     pub(super) overview: Option<Rc<Overview>>,
     pub(super) sort_pending: usize,
@@ -29,6 +31,7 @@ impl ListState {
             order,
             selection: Vec::new(),
             selected_active: true,
+            cursor: None,
             standing: Standing::default(),
             overview: None,
             sort_pending: 0,
@@ -62,6 +65,10 @@ impl ListState {
 
     pub fn selected_count(&self) -> usize {
         self.selection.len()
+    }
+
+    pub fn cursor(&self) -> Option<ModId> {
+        self.cursor
     }
 
     pub fn selected_on_active(&self) -> bool {

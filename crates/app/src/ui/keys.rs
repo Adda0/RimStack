@@ -105,10 +105,21 @@ fn groups() -> Vec<(Sentence, Vec<(Sentence, Sentence)>)> {
                 (say!("Enter"), say!("Activate or deactivate")),
                 (say!("Alt + Up, Alt + Down"), say!("Move the mod one place")),
                 (
-                    say!("Ctrl + click"),
+                    say!("Shift + click, Shift + Up, Shift + Down"),
+                    say!("Select through"),
+                ),
+                (
+                    say!("Ctrl + Up, Ctrl + Down"),
+                    say!("Go on without selecting"),
+                ),
+                (
+                    say!("Ctrl + click, Ctrl + Space"),
                     say!("Add or remove one from the selection"),
                 ),
-                (say!("Shift + click"), say!("Select through")),
+                (
+                    say!("Shift, Ctrl"),
+                    say!("The same with Home, End, Page Up and Page Down"),
+                ),
                 (say!("Ctrl + A"), say!("Select every mod shown")),
                 (say!("Ctrl + I"), say!("Invert the selection")),
                 (Sentence::Plain("T".into()), say!("Type its tags")),

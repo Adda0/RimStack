@@ -1810,5 +1810,11 @@
  "{} patch aims at a def no active mod defines, so the game reports it failed: {}": "{} patch aims at a def no active mod defines, so the game reports it failed: {}",
  "{} patches aim at defs no active mod defines, so the game reports them failed: {}": "{} patches aim at defs no active mod defines, so the game reports them failed: {}",
  "Home, End, Page Up, Page Down": "Pos1, Ende, Bild auf, Bild ab",
- "To either end of a list, or a page further": "An ein Ende einer Liste oder eine Seite weiter"
+ "To either end of a list, or a page further": "An ein Ende einer Liste oder eine Seite weiter",
+ "Ctrl + Up, Ctrl + Down": "Ctrl + Up, Ctrl + Down",
+ "Ctrl + click, Ctrl + Space": "Strg + Klick, Strg + Leertaste",
+ "Go on without selecting": "Weitergehen, ohne auszuwählen",
+ "Shift + click, Shift + Up, Shift + Down": "Umschalt + Klick, Umschalt + Oben, Umschalt + Unten",
+ "Shift, Ctrl": "Shift, Ctrl",
+ "The same with Home, End, Page Up and Page Down": "The same with Home, End, Page Up and Page Down"
 }

@@ -1810,5 +1810,11 @@
  "{} patch aims at a def no active mod defines, so the game reports it failed: {}": "{} patch aims at a def no active mod defines, so the game reports it failed: {}",
  "{} patches aim at defs no active mod defines, so the game reports them failed: {}": "{} patches aim at defs no active mod defines, so the game reports them failed: {}",
  "Home, End, Page Up, Page Down": "Home, Fine, Pag su, Pag giù",
- "To either end of a list, or a page further": "A un capo di un elenco, o una pagina più in là"
+ "To either end of a list, or a page further": "A un capo di un elenco, o una pagina più in là",
+ "Ctrl + Up, Ctrl + Down": "Ctrl + Up, Ctrl + Down",
+ "Ctrl + click, Ctrl + Space": "Ctrl + clic, Ctrl + Spazio",
+ "Go on without selecting": "Spostarsi senza selezionare",
+ "Shift + click, Shift + Up, Shift + Down": "Maiusc + clic, Maiusc + Su, Maiusc + Giù",
+ "Shift, Ctrl": "Shift, Ctrl",
+ "The same with Home, End, Page Up and Page Down": "The same with Home, End, Page Up and Page Down"
 }

@@ -324,7 +324,7 @@ impl Mods {
             Some(at) => drop(ids.remove(at)),
             None => ids.push(mod_id),
         }
-        self.keep_selection(ids, in_active, cx);
+        self.keep_selection_from(ids, in_active, Some(mod_id), cx);
     }
 
     pub(super) fn select_through(&mut self, to: ModId, in_active: bool, cx: &mut Context<Self>) {
@@ -339,7 +339,7 @@ impl Mods {
             return;
         };
         let ids = std::iter::once(first).chain(others).collect();
-        self.keep_selection(ids, in_active, cx);
+        self.keep_selection_from(ids, in_active, Some(to), cx);
     }
 
     pub(super) fn invert_selection(&mut self, in_active: bool, cx: &mut Context<Self>) {
@@ -350,13 +350,12 @@ impl Mods {
     }
 
     pub(super) fn select_all(&mut self, side: Side, cx: &mut Context<Self>) {
-        let ids = self
-            .shown(side)
-            .rows
-            .iter()
-            .filter(|r| !r.is_header)
-            .filter_map(|r| r.mod_id)
-            .collect();
+        let shown = self.list.read(cx).order.list(side).shown_installed();
+        let kept = self
+            .selected_id(cx)
+            .filter(|id| shown.contains(id))
+            .filter(|_| self.list.read(cx).selected_active == (side == Side::Active));
+        let ids = kept.into_iter().chain(shown).collect();
         self.keep_selection(ids, side == Side::Active, cx);
     }
 
@@ -367,6 +366,18 @@ impl Mods {
         in_active: bool,
         cx: &mut Context<Self>,
     ) {
+        let from = ids.first().copied();
+        self.keep_selection_from(ids, in_active, from, cx);
+    }
+
+    /// `cursor` is where the arrows go on from, not always the one chosen.
+    fn keep_selection_from(
+        &mut self,
+        ids: Vec<ModId>,
+        in_active: bool,
+        cursor: Option<ModId>,
+        cx: &mut Context<Self>,
+    ) {
         let mut ids = ids.into_iter();
         let first = ids.next();
         let mut others: Vec<ModId> = ids.filter(|id| Some(*id) != first).collect();
@@ -375,6 +386,7 @@ impl Mods {
         self.edit_list(cx, |list, _| {
             list.selection = first.into_iter().chain(others).collect();
             list.selected_active = in_active;
+            list.cursor = cursor;
         });
         self.describe(cx);
         self.sync_lists(cx);
@@ -399,6 +411,10 @@ impl Mods {
         let Some(id) = self.selected_id(cx) else {
             return;
         };
+        self.reveal_mod(side, id, centre, cx);
+    }
+
+    fn reveal_mod(&mut self, side: Side, id: ModId, centre: bool, cx: &mut Context<Self>) {
         let rows = self.shown(side).rows.clone();
         if let Some(at) = rows
             .iter()
@@ -409,6 +425,17 @@ impl Mods {
                 false => list.contain(at, cx),
             });
         }
+    }
+
+    /// Moves where the arrows go on from without choosing it.
+    fn put_cursor(&mut self, side: Side, id: ModId, cx: &mut Context<Self>) {
+        let on_side = side == Side::Active;
+        self.edit_list(cx, |list, _| {
+            list.selected_active = on_side;
+            list.cursor = Some(id);
+        });
+        self.sync_lists(cx);
+        cx.notify();
     }
 
     /// The arrows step through the list and Alt moves the chosen mod; Enter moves it across;
@@ -422,7 +449,8 @@ impl Mods {
     ) {
         let keys = &event.keystroke;
         let bare = !keys.modifiers.modified();
-        let (alt, command) = (keys.modifiers.alt, keys.modifiers.secondary(cx));
+        let (alt, shift) = (keys.modifiers.alt, keys.modifiers.shift);
+        let command = keys.modifiers.secondary(cx);
         let page = crate::ui::rows::page_of(
             &self.list(side).read(cx).scroll().clone(),
             cx.global::<Theme>().row(),
@@ -437,21 +465,35 @@ impl Mods {
             "end" => whole,
             _ => 0,
         };
+        let target = {
+            let state = self.list.read(cx);
+            let from = state
+                .cursor
+                .filter(|_| state.selected_active == (side == Side::Active));
+            state.order.list(side).step_from(from, by)
+        };
+        let reached = target
+            .and_then(|row| self.shown(side).rows.get(row))
+            .and_then(|r| r.mod_id);
         match keys.key.as_str() {
             "up" | "down" | "pageup" | "pagedown" | "home" | "end" if alt => {
                 self.nudge(side, by, cx)
             }
             "up" | "down" | "pageup" | "pagedown" | "home" | "end" => {
-                let current = self
-                    .selected_id(cx)
-                    .filter(|_| self.list.read(cx).selected_active == (side == Side::Active));
-                let row = self.list.read(cx).order.list(side).step_from(current, by);
-                let id = row
-                    .and_then(|row| self.shown(side).rows.get(row))
-                    .and_then(|r| r.mod_id);
-                if let Some(id) = id {
-                    self.select(Some(id), side == Side::Active, cx);
-                    self.reveal_selected(side, false, cx);
+                let Some(id) = reached else {
+                    return;
+                };
+                match (shift, command) {
+                    (true, _) => self.select_through(id, side == Side::Active, cx),
+                    (_, true) => self.put_cursor(side, id, cx),
+                    _ => self.select(Some(id), side == Side::Active, cx),
+                }
+                self.reveal_mod(side, id, false, cx);
+            }
+            "space" if command => {
+                let cursor = self.list.read(cx).cursor;
+                if let Some(id) = cursor {
+                    self.select_also(id, side == Side::Active, cx);
                 }
             }
             "enter" => self.activate_selected(side, cx),

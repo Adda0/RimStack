@@ -21,6 +21,13 @@ impl GroupedList {
         None
     }
 
+    /// Every installed mod with a row, top to bottom.
+    pub fn shown_installed(&self) -> Vec<ModId> {
+        (0..self.rows.len())
+            .filter_map(|row| self.installed_on(row))
+            .collect()
+    }
+
     pub fn installed_between(&self, a: usize, b: usize) -> Vec<ModId> {
         let rows = a.min(b)..=a.max(b);
         rows.filter_map(|row| self.installed_on(row)).collect()

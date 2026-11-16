@@ -357,3 +357,61 @@ fn home_end_and_the_page_keys_walk_the_list() {
         "Page Down steps a page of rows: {from} -> {to}, a page being {page}"
     );
 }
+
+#[test]
+fn shift_ctrl_and_ctrl_a_choose_from_the_keyboard() {
+    let (_tmp, mut cx, mods) = opened();
+    let window = cx.update(|cx| cx.windows()[0]);
+    let keys = |keys: &'static str, cx: &mut HeadlessAppContext| {
+        cx.update_window(window, |_, window, cx| {
+            let parsed = gpui::Keystroke::parse(keys).unwrap();
+            window.dispatch_keystroke(parsed, cx);
+        })
+        .unwrap();
+        cx.run_until_parked();
+    };
+    let chosen =
+        |cx: &mut HeadlessAppContext| cx.update(|cx| mods.read(cx).list.read(cx).selection.clone());
+    let first =
+        |cx: &mut HeadlessAppContext| cx.update(|cx| mods.read(cx).list.read(cx).selected_id());
+    let cursor = |cx: &mut HeadlessAppContext| cx.update(|cx| mods.read(cx).list.read(cx).cursor());
+    cx.update_window(window, |_, window, cx| {
+        let handle = mods.read(cx).list(Side::Active).read(cx).focus_handle();
+        window.focus(&handle, cx);
+    })
+    .unwrap();
+    cx.run_until_parked();
+    keys("home", &mut cx);
+    let top = first(&mut cx).unwrap();
+    keys("shift-down", &mut cx);
+    keys("shift-down", &mut cx);
+    assert_eq!(chosen(&mut cx).len(), 3, "Shift with Down selects through");
+    keys("shift-up", &mut cx);
+    assert_eq!(chosen(&mut cx).len(), 2, "Shift with Up takes one back");
+    assert_eq!(first(&mut cx), Some(top), "and the first mod stays the one");
+    keys("ctrl-down", &mut cx);
+    assert_eq!(chosen(&mut cx).len(), 2, "Ctrl with Down selects nothing");
+    let below = cursor(&mut cx).unwrap();
+    keys("ctrl-space", &mut cx);
+    assert_eq!(chosen(&mut cx).len(), 3, "Ctrl + Space adds the mod");
+    assert!(
+        chosen(&mut cx).contains(&below),
+        "the mod the cursor went to is chosen"
+    );
+    keys("ctrl-a", &mut cx);
+    let shown = cx.update(|cx| {
+        mods.read(cx)
+            .list
+            .read(cx)
+            .order
+            .list(Side::Active)
+            .shown_installed()
+            .len()
+    });
+    assert_eq!(
+        chosen(&mut cx).len(),
+        shown,
+        "Ctrl + A chooses every mod shown"
+    );
+    assert_eq!(first(&mut cx), Some(top), "keeping the first one chosen");
+}
