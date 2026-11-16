@@ -429,7 +429,8 @@ mod tests {
     fn another_manager_s_tags_notes_and_colours_are_added_to_what_is_here() {
         let (tmp, app) = installed();
         let id = roads(&app);
-        app.set_note(id, "travel", "far");
+        app.set_tags(&[id], "travel");
+        app.set_note_text(id, "far");
         let kept = |folder: std::path::PathBuf, tags: &[&str], note: &str, colour: &str| Kept {
             folder,
             tags: tags.iter().map(|t| t.to_string()).collect(),

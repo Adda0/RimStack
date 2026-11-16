@@ -333,7 +333,7 @@ impl LoadOrder {
         chosen.iter().filter(warned).copied().collect()
     }
 
-    pub fn row_menu(&mut self, app: &App, at: &Clicked, copied: &str) -> Vec<Entry> {
+    pub fn row_menu(&mut self, app: &App, at: &Clicked, _copied: &str) -> Vec<Entry> {
         let side = Side::of(at.active);
         let subject = match self.not_installed(app, side, at.index) {
             Some(gone) => Subject::gone(gone),
@@ -359,7 +359,7 @@ impl LoadOrder {
         if !subject.repository.is_empty() {
             groups.push(Self::git(at, &subject));
         }
-        groups.push(Self::filing(at, &subject, copied));
+        groups.push(Self::filing(at, &subject));
         groups.push(Self::colouring(at, &subject));
         groups.push(Self::last(at, &subject, many, &warned));
         separated(groups)
@@ -582,15 +582,16 @@ impl LoadOrder {
     /// The groups beside the mod, a new one, out of its group, and its group deleted for
     /// every mod in it: opened by the row menu's one filing entry and the About tab's
     /// Change button alike.
-    pub fn group_menu(&mut self, app: &App, id: ModId) -> Vec<Entry> {
+    pub fn group_menu(&mut self, app: &App, id: ModId, copied: &str) -> Vec<Entry> {
         let subject = Subject::held(self.details(app, id));
+        let chosen = [id];
         let at = Clicked {
             active: false,
             index: 0,
             id: Some(id),
-            selected: &[],
+            selected: &chosen,
         };
-        Self::group_entries(&at, &subject)
+        Self::group_entries(&at, &subject, copied)
     }
 
     fn group_entries(at: &Clicked, subject: &Subject, copied: &str) -> Vec<Entry> {
@@ -838,11 +839,25 @@ mod tests {
         let (_tmp, app) = installed();
         let mut order = LoadOrder::read(&app, true, None);
         let entries = menu(&mut order, &app, "ann.roads", &["ann.roads"]);
+        let mut wanted: Vec<String> = [
+            "Activate",
+            "-",
+            "Open folder",
+            "Copy name",
+            "Copy package id",
+            "-",
+            "Group under a tag",
+            "-",
+            "Colour",
+            "-",
+            "Move to the bin…",
+        ]
+        .iter()
+        .map(|text| text.to_string())
+        .collect();
+        wanted.extend(SWATCHES.iter().map(|(name, _, _)| name.to_string()));
+        wanted.push("No colour".to_string());
         wanted.extend([
-            "-".to_string(),
-            "Copy tags".to_string(),
-            "Paste tags".to_string(),
-            "Add copied tags".to_string(),
             "-".to_string(),
             "Move to the bin…".to_string(),
             "Delete its files, but keep the .dds textures…".to_string(),
@@ -909,7 +924,7 @@ mod tests {
         let mut order = LoadOrder::read(&app, true, None);
         let id = id_of(&order, "ann.roads").2;
         let _ = app.add_tags(&[id], "Maps, trade");
-        let entries = menu_with(&mut order, &app, "ann.roads", &["ann.roads"], "");
+        let entries = order.group_menu(&app, id, "");
         let entry = |text: &str| {
             entries
                 .iter()
@@ -923,7 +938,7 @@ mod tests {
         ));
         assert!(entry("Paste tags").unwrap().off);
         assert!(entry("Add copied tags").unwrap().off);
-        let entries = menu_with(&mut order, &app, "ann.roads", &["ann.roads"], "Maps, trade");
+        let entries = order.group_menu(&app, id, "Maps, trade");
         let paste = entries
             .iter()
             .find(|e| matches!(&e.action, Some(Action::PasteTags { add: false, .. })))
@@ -1017,10 +1032,13 @@ mod tests {
             "A new tag…".to_string(),
             "Remove the tag Stone".to_string(),
             "Delete the group Stone…".to_string(),
+            "Copy tags".to_string(),
+            "Paste tags".to_string(),
+            "Add copied tags".to_string(),
         ]);
-        assert_eq!(shown(&order.group_menu(&app, roads)), wanted);
+        assert_eq!(shown(&order.group_menu(&app, roads, "")), wanted);
         let picks = order
-            .group_menu(&app, roads)
+            .group_menu(&app, roads, "")
             .into_iter()
             .filter(|e| e.pick)
             .map(|e| e.text.unwrap().to_string())

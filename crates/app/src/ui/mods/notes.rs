@@ -243,9 +243,9 @@ impl Mods {
             return;
         };
         let app = super::super::app(cx);
-        let entries = self
-            .list
-            .update(cx, |list, _| list.order.group_menu(&app, id));
+        let entries = self.list.update(cx, |list, _| {
+            list.order.group_menu(&app, id, &self.copied_tags)
+        });
         self.open_entries(entries, at, window, cx);
     }
 

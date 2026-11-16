@@ -734,7 +734,20 @@ impl DetailsView {
             &self.tags,
             put(&say!("Add tags, separated by commas")),
         )
-        .capture_action(self.escape_to_list(cx))
+        .capture_action(
+            cx.listener(|view, _: &crate::ui::text_field::Escape, window, cx| {
+                // The first Escape closes the offers; the next goes back to the list, as the old
+                // Escape in the tag box did.
+                if view.tag_shut {
+                    let _ = view
+                        .mods
+                        .update(cx, |mods, cx| mods.keys_to_chosen_list(window, cx));
+                    cx.stop_propagation();
+                } else {
+                    cx.propagate();
+                }
+            }),
+        )
         .on_key_down(cx.listener(Self::tags_key));
         let had = details.tags.clone();
         let mut body = Vec::new();
@@ -798,7 +811,7 @@ impl DetailsView {
             .into_any_element()
     }
 
-    /// Esc in the tag or note box gives the keys back to the chosen mod's list, the text kept.
+    /// Escape from the tag or note box gives the keys back to the chosen mod's list.
     fn escape_to_list(
         &self,
         cx: &mut Context<Self>,

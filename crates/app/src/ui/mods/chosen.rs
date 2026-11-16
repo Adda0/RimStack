@@ -104,7 +104,6 @@ impl DetailsView {
                 cx.emit(OffersShut);
             })
         });
-        let tags = cx.new(|cx| TextField::new(size, cx).kept_on_escape());
         let note = cx.new(|cx| TextField::new(size, cx).several_lines(2));
         cx.subscribe(&note, |view, _, _: &Edited, cx| view.draft_note(cx))
             .detach();
@@ -262,12 +261,11 @@ impl DetailsView {
         let Some(details) = self.shown.details.clone() else {
             return;
         };
-        for (field, text) in [(&self.note, &details.note)] {
-            let typing = field.read(cx).is_focused_now();
-            if !typing && field.read(cx).text() != text.as_str() {
-                let text = text.clone();
-                field.update(cx, |field, cx| field.set_text_quietly(&text, cx));
-            }
+        let typing = self.note.read(cx).is_focused_now();
+        if !typing && self.note.read(cx).text() != details.note {
+            let text = details.note.clone();
+            self.note
+                .update(cx, |field, cx| field.set_text_quietly(&text, cx));
         }
     }
 

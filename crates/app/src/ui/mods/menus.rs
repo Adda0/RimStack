@@ -313,9 +313,9 @@ impl Mods {
     ) {
         let at = menu::shown_at(cx);
         let app = crate::ui::app(cx);
-        let entries = self
-            .list
-            .update(cx, |list, _| list.order.group_menu(&app, mod_id));
+        let entries = self.list.update(cx, |list, _| {
+            list.order.group_menu(&app, mod_id, &self.copied_tags)
+        });
         let Some(at) = at else { return };
         self.open_entries(entries, at, window, cx);
     }
