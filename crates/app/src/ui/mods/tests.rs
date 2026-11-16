@@ -294,6 +294,59 @@ fn the_thumb_drags_the_load_order(cx: &mut gpui::TestAppContext) {
 }
 
 #[gpui::test]
+fn the_inactive_order_menu_takes_the_keys(cx: &mut gpui::TestAppContext) {
+    use crate::ui::widget_tests::press;
+    let _root = demo(cx);
+    // The menu is drawn by the shell, so the keys reach it only there.
+    let options = Options {
+        demo: true,
+        ..Options::default()
+    };
+    let (shell, cx) =
+        cx.add_window_view(|window, cx| crate::ui::shell::Shell::new(&options, window, cx));
+    cx.run_until_parked();
+    let mods = shell.read_with(cx, |shell, _| shell.sections.mods.clone());
+    let orders = mods.read_with(cx, |mods, _| {
+        mods.orders
+            .inactive
+            .iter()
+            .map(|order| order.then.clone())
+            .collect::<Vec<_>>()
+    });
+    assert!(orders.len() > 1, "the demo has orders to pick");
+    let below = gpui::bounds(
+        gpui::point(gpui::px(600.), gpui::px(120.)),
+        gpui::size(gpui::px(120.), gpui::px(24.)),
+    );
+    // A key takes effect as the menu is drawn again, so each one is followed by a frame.
+    let key = |cx: &mut gpui::VisualTestContext, keys: &'static str| {
+        press(cx, keys);
+        cx.update(|window, cx| window.draw(cx).clear(cx));
+    };
+    mods.update_in(cx, |mods, window, cx| {
+        mods.inactive_order_menu(below, window, cx)
+    });
+    key(cx, "down");
+    key(cx, "down");
+    key(cx, "enter");
+    assert_eq!(
+        mods.read_with(cx, |mods, _| mods.view.inactive_order.clone()),
+        orders[1],
+        "Enter takes the order the keys are on"
+    );
+    mods.update_in(cx, |mods, window, cx| {
+        mods.inactive_order_menu(below, window, cx)
+    });
+    key(cx, "down");
+    key(cx, "escape");
+    assert_eq!(
+        mods.read_with(cx, |mods, _| mods.view.inactive_order.clone()),
+        orders[1],
+        "Escape leaves the order as it was"
+    );
+}
+
+#[gpui::test]
 #[ignore]
 fn scroll_cost_in_the_window(cx: &mut gpui::TestAppContext) {
     use gpui::{MouseMoveEvent, ScrollDelta, ScrollEvent, point};

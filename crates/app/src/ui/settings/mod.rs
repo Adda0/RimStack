@@ -87,6 +87,11 @@ pub struct Settings {
     said: Said,
     fonts_open: bool,
     fonts: Rc<Vec<SharedString>>,
+    /// The row the keys are on while the font picker is open, among the fonts the filter leaves.
+    font_chosen: Option<usize>,
+    /// Holds the keys while the font picker is open, so its own keys work while the filter's
+    /// letters keep typing: the filter stays filled, but the picker's div keeps the focus.
+    font_keys: gpui::FocusHandle,
     typing: HashMap<&'static str, Lane>,
     reading: Lane,
     unread: Changes,
@@ -155,7 +160,11 @@ impl Settings {
             settings.keep_github_token(cx)
         })
         .detach();
-        cx.observe(&fields.fonts, |_, _, cx| cx.notify()).detach();
+        cx.observe(&fields.fonts, |settings, _, cx| {
+            settings.font_chosen = None;
+            cx.notify();
+        })
+        .detach();
         let reduce = theme.appearance.reduce_motion;
         let mut settings = Self {
             unseen: Default::default(),
@@ -186,6 +195,8 @@ impl Settings {
             said: Said::default(),
             fonts_open: false,
             fonts: Rc::default(),
+            font_chosen: None,
+            font_keys: cx.focus_handle(),
             typing: HashMap::new(),
             reading: Lane::default(),
             unread: Changes::NONE,

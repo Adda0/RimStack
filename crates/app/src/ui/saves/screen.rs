@@ -3,6 +3,7 @@ mod side;
 
 use super::Saves;
 
+use crate::ui::controls::Choice;
 use crate::ui::field::Field;
 
 use crate::ui::rows::{bar, page_of, rows};
@@ -13,7 +14,8 @@ use crate::words::put;
 use crate::workspace::saves::{SaveShown, shown};
 use gpui::{
     AnyElement, Context, InteractiveElement, IntoElement, KeyDownEvent, ParentElement, Pixels,
-    Render, Role, StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder, px,
+    Render, Role, SharedString, StatefulInteractiveElement, Styled, Window, div,
+    prelude::FluentBuilder, px,
 };
 
 use rimstack_core::say;
@@ -43,45 +45,27 @@ impl Saves {
         let mut folders = vec![String::new()];
         folders.extend(report.folders.iter().cloned());
         let current = report.current_folder.clone().unwrap_or_default();
-        let tabs = (report.folders.len() > 1).then(|| {
-            div()
-                .ml(theme::GAP)
-                .p(px(2.))
-                .rounded(theme::CORNER_LARGE)
-                .bg(c.seg)
-                .flex()
-                .gap(theme::GAP_LINE)
-                .children(folders.into_iter().enumerate().map(|(at, folder)| {
-                    let on = folder == self.folder;
-                    let said = match folder.is_empty() {
-                        true => put(&say!("All")),
-                        false if folder == current => format!("{folder} ●"),
-                        false => folder.clone(),
-                    };
-                    div()
-                        .id(("saves-folder", at))
-                        .role(Role::Tab)
-                        .aria_label(if folder.is_empty() {
-                            put(&say!("All folders"))
-                        } else {
-                            folder.clone()
-                        })
-                        .flex()
-                        .items_center()
-                        .h(theme.sized(24.))
-                        .px(theme::GAP_MEDIUM)
-                        .rounded(theme::CORNER)
-                        .when(on, |d| d.bg(c.ctl_hi))
-                        .cursor_pointer()
-                        .child(
-                            label(theme, theme.small(), if on { c.ink } else { c.ink2 }, said)
-                                .font_weight(theme.medium),
-                        )
-                        .on_click(cx.listener(move |saves, _, _, cx| {
-                            saves.folder = folder.clone();
-                            saves.selected = 0;
-                            cx.notify();
-                        }))
+        let tabs = (folders.len() > 2).then(|| {
+            let options: Vec<SharedString> = folders
+                .iter()
+                .map(|folder| match folder.is_empty() {
+                    true => SharedString::from(put(&say!("All"))),
+                    false if folder == &current => SharedString::from(format!("{folder} ●")),
+                    false => folder.clone().into(),
+                })
+                .collect();
+            let at = folders
+                .iter()
+                .position(|folder| folder == &self.folder)
+                .unwrap_or(0);
+            Choice::new("saves-folder", options, at)
+                .title(put(&say!("Folder")))
+                .on_pick(crate::ui::act(cx, move |saves, at: usize, _, cx| {
+                    if let Some(folder) = folders.get(at) {
+                        saves.folder = folder.clone();
+                        saves.selected = 0;
+                        cx.notify();
+                    }
                 }))
         });
         div()

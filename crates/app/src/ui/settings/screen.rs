@@ -149,6 +149,7 @@ impl Settings {
                 .menu()
                 .on_click(cx.listener(|s, _, window, cx| {
                     s.fonts_open = !s.fonts_open;
+                    s.font_chosen = None;
                     if s.fonts_open {
                         let names = window.text_system().all_font_names();
                         let fonts = crate::workspace::font_choices(names);
@@ -157,8 +158,7 @@ impl Settings {
                             .fonts
                             .update(cx, |field, cx| field.set_text("", cx));
                         *s.font_scroll.borrow_mut() = Scroll::default();
-                        let focus = gpui::Focusable::focus_handle(s.fields.fonts.read(cx), cx);
-                        window.focus(&focus, cx);
+                        window.focus(&s.font_keys, cx);
                     }
                     cx.notify();
                 }));
@@ -176,6 +176,8 @@ impl Settings {
                 .map(|at| height * at as f32)
                 .collect::<Vec<_>>()
                 .into();
+            let chosen_at = self.font_chosen.filter(|at| *at < shown.len());
+            let keyed_shown = shown.clone();
             let me = cx.entity().downgrade();
             let (system_family, ink, chosen, on_selected) =
                 (theme.family.clone(), c.ink, c.chosen, c.on_selected);
@@ -210,6 +212,9 @@ impl Settings {
                                 .px(theme::GAP)
                                 .rounded(theme::CORNER)
                                 .text_color(ink)
+                                .when(chosen_at == Some(at), |s| {
+                                    s.bg(chosen).text_color(on_selected)
+                                })
                                 .hover(move |s| s.bg(chosen).text_color(on_selected))
                                 .child(
                                     div()
@@ -238,6 +243,7 @@ impl Settings {
                 found: None,
                 keys: None,
             };
+            let keys = self.font_keys.clone();
             div()
                 .id("font-picker")
                 .occlude()
@@ -251,14 +257,65 @@ impl Settings {
                 .rounded(theme::CORNER_LARGE)
                 .bg(c.bar)
                 .border_1()
-                .border_color(c.line)
+                .track_focus(&keys)
                 .on_mouse_down_out(cx.listener(|s, _, _, cx| {
                     s.fonts_open = false;
                     cx.notify();
                 }))
-                .on_key_down(cx.listener(|s, event: &gpui::KeyDownEvent, _, cx| {
-                    if event.keystroke.key == "escape" {
-                        s.fonts_open = false;
+                .on_key_down(cx.listener(move |s, event: &gpui::KeyDownEvent, _, cx| {
+                    let count = keyed_shown.len();
+                    let to = match event.keystroke.key.as_str() {
+                        "escape" => {
+                            s.fonts_open = false;
+                            cx.notify();
+                            return;
+                        }
+                        "down" => match s.font_chosen {
+                            Some(at) => (at + 1).min(count.saturating_sub(1)),
+                            None => 0,
+                        },
+                        "up" => match s.font_chosen {
+                            Some(at) => at.saturating_sub(1),
+                            None => count.saturating_sub(1),
+                        },
+                        "home" => 0,
+                        "end" => count.saturating_sub(1),
+                        "pageup" | "pagedown" => {
+                            let page =
+                                (s.font_scroll.borrow().shown() / height).floor().max(1.) as usize;
+                            match (event.keystroke.key.as_str(), s.font_chosen) {
+                                ("pageup", Some(at)) => at.saturating_sub(page),
+                                ("pagedown", Some(at)) => (at + page).min(count.saturating_sub(1)),
+                                ("pageup", None) => count.saturating_sub(1),
+                                _ => 0,
+                            }
+                        }
+                        "enter" => {
+                            if let Some(at) = s.font_chosen.filter(|at| *at < count) {
+                                let name = keyed_shown[at].to_string();
+                                s.use_font(&name, cx);
+                            }
+                            return;
+                        }
+                        // A letter reaches the filter: it is set, and the list narrows to it.
+                        _ => {
+                            let Some(typed) = event.keystroke.key_char.clone() else {
+                                return;
+                            };
+                            let wanted = format!("{}{typed}", s.fields.fonts.read(cx).text());
+                            s.fields
+                                .fonts
+                                .update(cx, |field, cx| field.set_text(&wanted, cx));
+                            s.font_chosen = None;
+                            cx.notify();
+                            return;
+                        }
+                    };
+                    if to < count {
+                        s.font_chosen = Some(to);
+                        s.font_scroll
+                            .borrow_mut()
+                            .contain(height * to as f32, height * (to + 1) as f32);
                         cx.notify();
                     }
                 }))

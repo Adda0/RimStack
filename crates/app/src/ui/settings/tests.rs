@@ -97,6 +97,60 @@ fn a_theme_chosen_is_kept_in_rimstack_conf_and_shown_at_once(cx: &mut TestAppCon
     );
 }
 
+#[gpui::test]
+fn the_font_picker_takes_the_keys_and_enter_picks(cx: &mut TestAppContext) {
+    let (root, settings, cx) = settings(cx, 1);
+    // The picker opens with a list to walk; the headless text system has no fonts of its own,
+    // so a few stand in for them.
+    let seeded = ["", "Alpha Sans", "Beta Sans", "Gamma Sans"];
+    cx.update(|window, cx| {
+        settings.update(cx, |s, cx| {
+            s.fonts = std::rc::Rc::new(seeded.iter().map(|s| (*s).into()).collect());
+            s.fonts_open = true;
+            s.font_chosen = None;
+            cx.notify();
+        });
+        let keys = settings.read(cx).font_keys.clone();
+        window.focus(&keys, cx);
+    });
+    cx.run_until_parked();
+    let count = settings.read_with(cx, |s, _| s.fonts.len());
+    assert_eq!(count, seeded.len(), "fonts were listed");
+    cx.simulate_keystrokes("down down");
+    assert_eq!(
+        settings.read_with(cx, |s, _| s.font_chosen),
+        Some(1),
+        "the arrows move the chosen row"
+    );
+    cx.simulate_keystrokes("end");
+    assert_eq!(
+        settings.read_with(cx, |s, _| s.font_chosen),
+        Some(count - 1),
+        "End reaches the last font"
+    );
+    cx.simulate_keystrokes("up");
+    assert_eq!(
+        settings.read_with(cx, |s, _| s.font_chosen),
+        Some(count - 2),
+        "Up steps back"
+    );
+    cx.simulate_keystrokes("home");
+    assert_eq!(
+        settings.read_with(cx, |s, _| s.font_chosen),
+        Some(0),
+        "Home reaches the first font"
+    );
+    cx.simulate_keystrokes("down enter");
+    cx.run_until_parked();
+    assert!(
+        !settings.read_with(cx, |s, _| s.fonts_open),
+        "Enter picks and closes the picker"
+    );
+    let kept =
+        std::fs::read_to_string(root.path().join("settings/RimStack/settings.json")).unwrap();
+    assert!(kept.contains(r#""font": "Alpha Sans""#), "{kept}");
+}
+
 type Shape<'a> = &'a dyn Fn(&Theme) -> Size<Pixels>;
 
 fn drawn(part: usize) -> impl Fn(f32, Shape<'_>) -> Vec<Seen> {

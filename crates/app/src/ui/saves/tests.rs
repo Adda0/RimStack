@@ -85,6 +85,57 @@ fn the_made_up_saves_are_read_and_a_save_list_is_kept_by_its_name() {
     assert!(kept > 0, "the list is written among the kept lists");
 }
 
+#[test]
+fn the_rimsaves_folders_are_a_choice_the_keys_move() {
+    let (_tmp, mut cx, shell, saves) =
+        opened(1.0, &|_| size(crate::ui::WINDOW.0, crate::ui::WINDOW.1));
+    // Three folders, the third current: the choice appears among the tab stops.
+    cx.update(|cx| {
+        saves.update(cx, |s, cx| {
+            let mut report = (*s.report).clone();
+            report.folders = vec!["Default".into(), "Ships".into(), "Vaults".into()];
+            report.current_folder = Some("Vaults".into());
+            s.report = std::rc::Rc::new(report);
+            cx.notify();
+        })
+    });
+    cx.run_until_parked();
+    // Draw once so the choice's tab stop exists, then reach it by Tab: only the choice
+    // moves `folder` when the keys reach it.
+    cx.update_window(shell.into(), |_, window, cx| window.draw(cx).clear(cx))
+        .unwrap();
+    let folder_of = |cx: &mut HeadlessAppContext| cx.update(|cx| saves.read(cx).folder.clone());
+    let key = |cx: &mut HeadlessAppContext, key: &'static str| {
+        cx.update_window(shell.into(), |_, window, cx| {
+            window.dispatch_keystroke(gpui::Keystroke::parse(key).unwrap(), cx);
+        })
+        .unwrap();
+    };
+    // The first stop's card keeps Tab to itself, so step out of it once.
+    cx.update_window(shell.into(), |_, window, cx| window.focus_next(cx))
+        .unwrap();
+    for _ in 0..25 {
+        cx.update_window(shell.into(), |_, window, cx| {
+            window.dispatch_keystroke(gpui::Keystroke::parse("tab").unwrap(), cx);
+        })
+        .unwrap();
+        let before = folder_of(&mut cx);
+        key(&mut cx, "right");
+        if folder_of(&mut cx) != before {
+            break;
+        }
+    }
+    assert_eq!(
+        folder_of(&mut cx),
+        "Default",
+        "Right steps the folder choice from all saves"
+    );
+    key(&mut cx, "end");
+    assert_eq!(folder_of(&mut cx), "Vaults", "End reaches the last folder");
+    key(&mut cx, "home");
+    assert_eq!(folder_of(&mut cx), "", "Home reaches all saves");
+}
+
 fn drawn(text_scale: f32, window: Shape<'_>) -> Vec<Seen> {
     let (_tmp, mut cx, shell, saves) = opened(text_scale, window);
     watch::start();

@@ -6,7 +6,7 @@ use rimstack_core::{say, say_n};
 use serde::Serialize;
 use std::path::PathBuf;
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct SavesReport {
     /// Newest first.
     pub rows: Vec<saves::Row>,
