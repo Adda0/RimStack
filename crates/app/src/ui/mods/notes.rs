@@ -1,12 +1,13 @@
 use super::Mods;
 use crate::App;
 use crate::ui::menu::{self, Entry};
+use crate::ui::notices;
 use crate::words::put;
 use crate::workspace::load_order::{LoadOrder, Side};
 use gpui::{Context, Pixels, Point, Window};
 use rimstack_core::base::sentence::Sentence;
 use rimstack_core::mods::library::ModId;
-use rimstack_core::say;
+use rimstack_core::{say, say_n};
 use std::time::Duration;
 
 const PAUSE: Duration = Duration::from_millis(600);
@@ -111,7 +112,7 @@ impl Mods {
             return;
         };
         let app = super::super::app(cx);
-        if !app.add_tags(id, &text) {
+        if !app.add_tags(&[id], &text) {
             return;
         }
         self.edit_list(cx, |list, _| list.order.sync(&app));
@@ -120,6 +121,62 @@ impl Mods {
         cx.defer(move |cx| {
             let _ = me.update(cx, |mods, cx| mods.show(cx));
         });
+    }
+
+    /// The mod's tags kept for pasting onto other mods, and on the clipboard as the Add tags
+    /// box takes them; nothing copied from a mod without tags.
+    pub(super) fn copy_tags(&mut self, tags: String, cx: &mut Context<Self>) {
+        if tags.is_empty() {
+            return;
+        }
+        self.copied_tags = tags.clone();
+        cx.write_to_clipboard(gpui::ClipboardItem::new_string(tags));
+    }
+
+    /// The mods take the copied tags, or with `add` gain those they lack; one Undo gives each its
+    /// own back.
+    pub(super) fn paste_tags(&mut self, ids: Vec<ModId>, add: bool, cx: &mut Context<Self>) {
+        let app = super::super::app(cx);
+        let before = app.tags_of(&ids);
+        let copied = self.copied_tags.clone();
+        let changed = match add {
+            true => app.add_tags(&ids, &copied),
+            false => app.set_tags(&ids, &copied),
+        };
+        if !changed {
+            return;
+        }
+        self.edit_list(cx, |list, _| list.order.sync(&app));
+        self.show(cx);
+        let paired: Vec<(ModId, String)> = ids.into_iter().zip(before).collect();
+        let me = cx.entity().downgrade();
+        let said = say_n!(
+            paired.len(),
+            "Tags pasted onto {} mod",
+            "Tags pasted onto {} mods"
+        );
+        notices::offer(
+            put(&said),
+            put(&say!("Undo")),
+            move |_, cx| {
+                let _ = me.update(cx, |mods, cx| mods.undo_tags(paired.clone(), cx));
+            },
+            cx,
+        );
+    }
+
+    /// Each mod gets back the tags it had before the paste.
+    pub(super) fn undo_tags(&mut self, pairs: Vec<(ModId, String)>, cx: &mut Context<Self>) {
+        let app = super::super::app(cx);
+        let mut changed = false;
+        for (id, tags) in pairs {
+            changed |= app.set_tags(&[id], &tags);
+        }
+        if !changed {
+            return;
+        }
+        self.edit_list(cx, |list, _| list.order.sync(&app));
+        self.show(cx);
     }
 
     /// A tag taken off the mod shown.

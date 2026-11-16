@@ -150,6 +150,8 @@ pub struct Mods {
     left_off: left_off::LeftOff,
     /// How far each list, active then inactive, is scrolled sideways.
     sideways: [Entity<sideways::Sideways>; 2],
+    /// Copied from a mod's menu, for pasting onto other mods, as the Add tags box takes them.
+    pub(super) copied_tags: String,
 }
 
 impl Mods {
@@ -261,6 +263,7 @@ impl Mods {
                 false => left_off::LeftOff::Waiting,
             },
             sideways,
+            copied_tags: String::new(),
         };
         mods.show(cx);
         if !demo {

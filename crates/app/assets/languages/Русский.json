@@ -1903,5 +1903,14 @@
  "Menu, Shift + F10": "Menu, Shift + F10",
  "Fold the heading the mod is under, or show its mods again": "Fold the heading the mod is under, or show its mods again",
  "Add tags, separated by commas": "Add tags, separated by commas",
- "Remove all tags": "Remove all tags"
+ "Remove all tags": "Remove all tags",
+ "Add copied tags": "Add copied tags",
+ "Add copied tags to {} mod": "Add copied tags to {} mod",
+ "Add copied tags to {} mods": "Add copied tags to {} mods|Add copied tags to {} mods",
+ "Copy tags": "Copy tags",
+ "Paste tags": "Paste tags",
+ "Paste tags onto {} mod": "Paste tags onto {} mod",
+ "Paste tags onto {} mods": "Paste tags onto {} mods|Paste tags onto {} mods",
+ "Tags pasted onto {} mod": "Tags pasted onto {} mod",
+ "Tags pasted onto {} mods": "Tags pasted onto {} mods|Tags pasted onto {} mods"
 }

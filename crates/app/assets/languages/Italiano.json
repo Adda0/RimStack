@@ -1903,5 +1903,14 @@
  "Menu, Shift + F10": "Menu, Maiusc + F10",
  "Fold the heading the mod is under, or show its mods again": "Ripiega l'intestazione sotto cui sta la mod, o mostra di nuovo le sue mod",
  "Add tags, separated by commas": "Aggiungi etichette, separate da virgole",
- "Remove all tags": "Rimuovi tutte le etichette"
+ "Remove all tags": "Rimuovi tutte le etichette",
+ "Add copied tags": "Aggiungi etichette copiate",
+ "Add copied tags to {} mod": "Aggiungi etichette copiate a {} mod",
+ "Add copied tags to {} mods": "Aggiungi etichette copiate a {} mod",
+ "Copy tags": "Copia etichette",
+ "Paste tags": "Incolla etichette",
+ "Paste tags onto {} mod": "Incolla etichette su {} mod",
+ "Paste tags onto {} mods": "Incolla etichette su {} mod",
+ "Tags pasted onto {} mod": "Etichette incollate su {} mod",
+ "Tags pasted onto {} mods": "Etichette incollate su {} mod"
 }

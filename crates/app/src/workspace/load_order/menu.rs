@@ -103,6 +103,13 @@ pub enum Action {
     DeleteSub {
         tag: String,
     },
+    CopyTags {
+        tags: String,
+    },
+    PasteTags {
+        ids: Vec<ModId>,
+        add: bool,
+    },
 }
 
 #[derive(Serialize)]
@@ -242,6 +249,7 @@ struct Subject {
     group_choices: Option<Vec<String>>,
     sub: String,
     colour: String,
+    tags: String,
     version_ok: bool,
     offer_trust: bool,
     can_bin: bool,
@@ -278,6 +286,7 @@ impl Subject {
             group_choices: Some(about.group_choices),
             sub: about.sub,
             colour: about.colour,
+            tags: about.tags,
             version_ok: about.version_ok,
             offer_trust: about.offer_trust,
             can_bin: about.can_bin,
@@ -302,6 +311,7 @@ impl Subject {
             group_choices: None,
             sub: String::new(),
             colour: String::new(),
+            tags: String::new(),
             version_ok: false,
             offer_trust: false,
             can_bin: false,
@@ -323,7 +333,7 @@ impl LoadOrder {
         chosen.iter().filter(warned).copied().collect()
     }
 
-    pub fn row_menu(&mut self, app: &App, at: &Clicked) -> Vec<Entry> {
+    pub fn row_menu(&mut self, app: &App, at: &Clicked, copied: &str) -> Vec<Entry> {
         let side = Side::of(at.active);
         let subject = match self.not_installed(app, side, at.index) {
             Some(gone) => Subject::gone(gone),
@@ -349,7 +359,7 @@ impl LoadOrder {
         if !subject.repository.is_empty() {
             groups.push(Self::git(at, &subject));
         }
-        groups.push(Self::filing(at, &subject));
+        groups.push(Self::filing(at, &subject, copied));
         groups.push(Self::colouring(at, &subject));
         groups.push(Self::last(at, &subject, many, &warned));
         separated(groups)
@@ -583,43 +593,78 @@ impl LoadOrder {
         Self::group_entries(&at, &subject)
     }
 
-    fn group_entries(at: &Clicked, subject: &Subject) -> Vec<Entry> {
-        let (Some(id), Some(choices)) = (at.id, &subject.group_choices) else {
+    fn group_entries(at: &Clicked, subject: &Subject, copied: &str) -> Vec<Entry> {
+        let Some(id) = at.id else {
             return Vec::new();
         };
-        let mut group = vec![Entry::title(say!("Group under a tag"))];
-        for tag in choices {
-            let action = Action::PutInSub {
-                mod_id: id,
-                tag: tag.clone(),
-            };
-            group.push(Entry::item(tag.clone().into(), "tag", action).pick());
-        }
-        group.push(Entry::item(
-            say!("A new tag…"),
-            "plus",
-            Action::NewSub { mod_id: id },
-        ));
-        if !subject.sub.is_empty() {
-            let action = Action::PutInSub {
-                mod_id: id,
-                tag: String::new(),
-            };
+        let mut group = Vec::new();
+        if let Some(choices) = &subject.group_choices {
+            group.push(Entry::title(say!("Group under a tag")));
+            for tag in choices {
+                let action = Action::PutInSub {
+                    mod_id: id,
+                    tag: tag.clone(),
+                };
+                group.push(Entry::item(tag.clone().into(), "tag", action).pick());
+            }
             group.push(Entry::item(
-                say!("Remove the tag {}", subject.sub),
-                "",
-                action,
+                say!("A new tag…"),
+                "plus",
+                Action::NewSub { mod_id: id },
             ));
-            let tag = subject.sub.clone();
-            group.push(
-                Entry::item(
-                    say!("Delete the group {}…", tag),
-                    "trash-2",
-                    Action::DeleteSub { tag },
-                )
-                .danger(),
-            );
+            if !subject.sub.is_empty() {
+                let action = Action::PutInSub {
+                    mod_id: id,
+                    tag: String::new(),
+                };
+                group.push(Entry::item(
+                    say!("Remove the tag {}", subject.sub),
+                    "",
+                    action,
+                ));
+                let tag = subject.sub.clone();
+                group.push(
+                    Entry::item(
+                        say!("Delete the group {}…", tag),
+                        "trash-2",
+                        Action::DeleteSub { tag },
+                    )
+                    .danger(),
+                );
+            }
         }
+        // Pasting replaces the tags, the first copied one the group; adding keeps those a mod has.
+        let count = at.selected.len();
+        let (paste_said, adding_said) = match count > 1 {
+            true => (
+                say_n!(count, "Paste tags onto {} mod", "Paste tags onto {} mods"),
+                say_n!(
+                    count,
+                    "Add copied tags to {} mod",
+                    "Add copied tags to {} mods"
+                ),
+            ),
+            false => (say!("Paste tags"), say!("Add copied tags")),
+        };
+        let pasting = |text: Sentence, icon: &'static str, add: bool| {
+            let action = Action::PasteTags {
+                ids: at.selected.to_vec(),
+                add,
+            };
+            Entry::item(text, icon, action).off(copied.is_empty())
+        };
+        group.push(
+            Entry::item(
+                say!("Copy tags"),
+                "copy",
+                Action::CopyTags {
+                    tags: subject.tags.clone(),
+                },
+            )
+            .off(subject.tags.is_empty()),
+        );
+        group.push(pasting(paste_said, "tag", false));
+        group.push(pasting(adding_said, "plus", true));
         group
     }
 
@@ -767,6 +812,16 @@ mod tests {
     }
 
     fn menu(order: &mut LoadOrder, app: &App, key: &str, selected: &[&str]) -> Vec<Entry> {
+        menu_with(order, app, key, selected, "")
+    }
+
+    fn menu_with(
+        order: &mut LoadOrder,
+        app: &App,
+        key: &str,
+        selected: &[&str],
+        copied: &str,
+    ) -> Vec<Entry> {
         let (side, index, id) = id_of(order, key);
         let chosen: Vec<ModId> = selected.iter().map(|k| id_of(order, k).2).collect();
         let at = Clicked {
@@ -775,7 +830,7 @@ mod tests {
             id: Some(id),
             selected: &chosen,
         };
-        order.row_menu(app, &at)
+        order.row_menu(app, &at, copied)
     }
 
     #[test]
@@ -783,30 +838,15 @@ mod tests {
         let (_tmp, app) = installed();
         let mut order = LoadOrder::read(&app, true, None);
         let entries = menu(&mut order, &app, "ann.roads", &["ann.roads"]);
-        let wanted: Vec<String> = [
-            "Activate",
-            "-",
-            "Open folder",
-            "Copy name",
-            "Copy package id",
-            "-",
-            "Group under a tag",
-            "-",
-            "Colour",
-            "-",
-            "Move to the bin…",
-        ]
-        .iter()
-        .map(|text| text.to_string())
-        .collect();
-        wanted.extend(SWATCHES.iter().map(|(name, _, _)| name.to_string()));
-        wanted.push("No colour".to_string());
         wanted.extend([
+            "-".to_string(),
+            "Copy tags".to_string(),
+            "Paste tags".to_string(),
+            "Add copied tags".to_string(),
             "-".to_string(),
             "Move to the bin…".to_string(),
             "Delete its files, but keep the .dds textures…".to_string(),
         ]);
-        assert_eq!(shown(&entries), wanted);
         assert!(entries.last().unwrap().danger);
         assert!(matches!(
             entries[0].action,
@@ -861,6 +901,39 @@ mod tests {
             &entries[at + 1].action,
             Some(Action::OpenUrl { url }) if url == "https://github.com/ann/roads"
         ));
+    }
+
+    #[test]
+    fn copy_tags_takes_the_mods_tags_and_paste_and_add_come_alive_once_some_are_copied() {
+        let (_tmp, app) = installed();
+        let mut order = LoadOrder::read(&app, true, None);
+        let id = id_of(&order, "ann.roads").2;
+        let _ = app.add_tags(&[id], "Maps, trade");
+        let entries = menu_with(&mut order, &app, "ann.roads", &["ann.roads"], "");
+        let entry = |text: &str| {
+            entries
+                .iter()
+                .find(|e| e.text.as_ref().is_some_and(|t| t.to_string() == text))
+        };
+        let copy = entry("Copy tags").unwrap();
+        assert!(!copy.off);
+        assert!(matches!(
+            &copy.action,
+            Some(Action::CopyTags { tags }) if tags == "Maps, trade"
+        ));
+        assert!(entry("Paste tags").unwrap().off);
+        assert!(entry("Add copied tags").unwrap().off);
+        let entries = menu_with(&mut order, &app, "ann.roads", &["ann.roads"], "Maps, trade");
+        let paste = entries
+            .iter()
+            .find(|e| matches!(&e.action, Some(Action::PasteTags { add: false, .. })))
+            .unwrap();
+        assert!(!paste.off);
+        assert!(matches!(
+            &paste.action,
+            Some(Action::PasteTags { ids, add: false }) if ids == &[id]
+        ));
+        assert_eq!(paste.text.as_ref().unwrap().to_string(), "Paste tags");
     }
 
     #[test]

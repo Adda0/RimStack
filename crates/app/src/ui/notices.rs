@@ -25,6 +25,9 @@ pub enum Tone {
 }
 
 type Run = Rc<dyn Fn(&mut Window, &mut App)>;
+/// For tests: what a notice's label runs.
+#[cfg(test)]
+type RunOffered = Rc<dyn Fn(&mut Window, &mut App)>;
 
 struct Toast {
     key: usize,
@@ -67,6 +70,15 @@ pub fn earlier(cx: &App) -> Vec<(SharedString, bool, u64)> {
             .map(|e| (e.text.clone(), matches!(e.tone, Tone::Err), e.time))
             .collect()
     })
+}
+
+/// For tests: the newest notice that offers something — what its label runs.
+#[cfg(test)]
+pub fn newest_offer(cx: &App) -> Option<(SharedString, RunOffered)> {
+    let notices = notices(cx)?;
+    let notices = notices.read(cx);
+    let (label, run) = notices.shown.iter().rev().find_map(|t| t.offer.clone())?;
+    Some((label, run))
 }
 
 pub fn install(cx: &mut App) -> Entity<Notices> {

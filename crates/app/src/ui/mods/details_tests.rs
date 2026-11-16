@@ -70,7 +70,7 @@ fn tags_and_a_note_typed_are_kept_for_the_mod_they_were_typed_for() {
     cx.update(|cx| {
         mods.update(cx, |mods, cx| {
             let app = crate::ui::app(cx);
-            app.add_tags(id, "worn");
+            app.add_tags(&[id], "worn");
             mods.draft_note("First line\nsecond".into(), cx);
             mods.keep_drafts(cx);
             let details = mods.details.as_ref().unwrap();
@@ -176,8 +176,8 @@ fn tags_given_to_any_mod_are_offered_while_tagging_and_not_the_one_typed_or_take
     cx.update(|cx| {
         mods.update(cx, |mods, cx| {
             let app = crate::ui::app(cx);
-            assert!(app.add_tags(other, "medieval, mechs"));
-            assert!(app.add_tags(third, "medieval, keep"));
+            assert!(app.add_tags(&[other], "medieval, mechs"));
+            assert!(app.add_tags(&[third], "medieval, keep"));
             mods.choose(Side::Active, id, cx);
         })
     });
@@ -193,7 +193,7 @@ fn tags_given_to_any_mod_are_offered_while_tagging_and_not_the_one_typed_or_take
     );
     cx.update(|cx| {
         mods.update(cx, |mods, cx| {
-            assert!(crate::ui::app(cx).add_tags(id, "medieval"));
+            assert!(crate::ui::app(cx).add_tags(&[id], "medieval"));
             mods.choose(Side::Active, id, cx);
         })
     });
@@ -365,7 +365,7 @@ fn a_tag_offer_is_chosen_with_the_arrows_enter_adds_it_and_escape_closes_the_off
     };
     cx.update(|cx| {
         mods.update(cx, |mods, cx| {
-            assert!(crate::ui::app(cx).add_tags(other, "pointer-pick, pointer-second"));
+            assert!(crate::ui::app(cx).add_tags(&[other], "pointer-pick, pointer-second"));
             mods.choose(Side::Active, id, cx);
         })
     });
@@ -387,4 +387,77 @@ fn a_tag_offer_is_chosen_with_the_arrows_enter_adds_it_and_escape_closes_the_off
         "pointer-p, pointer-pick, pointer-s",
         "with the offers closed Enter adds the typed tag, not the offered one"
     );
+}
+
+#[gpui::test]
+fn copied_tags_replace_a_mods_tags_or_join_them_and_one_undo_gives_each_its_own_back() {
+    let (_tmp, mut cx, mods) = opened_with(|_| {});
+    let id = chosen(&mut cx, &mods, 4);
+    let other = chosen(&mut cx, &mods, 9);
+    let tags = |cx: &mut HeadlessAppContext, of: ModId| -> String {
+        cx.update(|cx| crate::ui::app(cx).tags_of(&[of]).remove(0))
+    };
+    let group = |cx: &mut HeadlessAppContext, of: ModId| -> String {
+        cx.update(|cx| {
+            let app = crate::ui::app(cx);
+            let loaded = app.library();
+            let key = loaded
+                .as_ref()
+                .as_ref()
+                .ok()
+                .and_then(|(library, _)| library.get(of).and_then(|m| m.key()));
+            drop(loaded);
+            key.and_then(|key| {
+                app.notes()
+                    .read()
+                    .unwrap()
+                    .get(&key)
+                    .map(|note| note.group().to_string())
+            })
+            .unwrap_or_default()
+        })
+    };
+    cx.update(|cx| {
+        mods.update(cx, |mods, cx| {
+            assert!(crate::ui::app(cx).add_tags(&[other], "pointer-own"));
+            mods.choose_nth(Side::Active, 4, false, cx);
+            mods.choose_nth(Side::Active, 9, true, cx);
+        })
+    });
+    // Copying a mod's tags keeps them for pasting and puts them on the clipboard.
+    let copied = "pointer-copied, pointer-second".to_string();
+    cx.update(|cx| mods.update(cx, |mods, cx| mods.copy_tags(copied.clone(), cx)));
+    assert_eq!(cx.update(|cx| mods.read(cx).copied_tags.clone()), copied);
+    // Pasting gives both chosen mods the copied tags, the first one their group.
+    cx.update(|cx| mods.update(cx, |mods, cx| mods.paste_tags(vec![id, other], false, cx)));
+    cx.run_until_parked();
+    assert_eq!(tags(&mut cx, other), copied);
+    assert_eq!(group(&mut cx, other), "pointer-copied");
+    assert_eq!(tags(&mut cx, id), copied);
+    assert_eq!(
+        cx.update(|cx| crate::ui::notices::earlier(cx))[0]
+            .0
+            .to_string(),
+        "Tags pasted onto 2 mods"
+    );
+    // One Undo in the notice gives each its own tags and group back.
+    let undo = cx
+        .update(|cx| crate::ui::notices::newest_offer(cx))
+        .expect("the paste offers Undo");
+    assert_eq!(undo.0.to_string(), "Undo");
+    let window = cx.update(|cx| cx.windows()[0]);
+    cx.update_window(window, |_, window, cx| (undo.1)(window, cx))
+        .unwrap();
+    cx.run_until_parked();
+    assert_eq!(tags(&mut cx, other), "pointer-own");
+    assert_eq!(group(&mut cx, other), "pointer-own");
+    assert_eq!(tags(&mut cx, id), "");
+    // Adding the copied tags keeps those a mod has, its own first.
+    cx.update(|cx| mods.update(cx, |mods, cx| mods.paste_tags(vec![other], true, cx)));
+    cx.run_until_parked();
+    assert_eq!(
+        tags(&mut cx, other),
+        "pointer-own, pointer-copied, pointer-second"
+    );
+    assert_eq!(group(&mut cx, other), "pointer-own");
 }

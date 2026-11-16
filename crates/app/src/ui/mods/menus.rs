@@ -47,6 +47,7 @@ impl Mods {
             self.select(mod_id, side == Side::Active, cx);
         }
         let app = crate::ui::app(cx);
+        let copied = self.copied_tags.clone();
         let entries = self.list.update(cx, |list, _| {
             let clicked = Clicked {
                 active: side == Side::Active,
@@ -54,7 +55,7 @@ impl Mods {
                 id: mod_id,
                 selected: &list.selection,
             };
-            list.order.row_menu(&app, &clicked)
+            list.order.row_menu(&app, &clicked, &copied)
         });
         self.open_entries(entries, at, window, cx);
     }
@@ -228,6 +229,8 @@ impl Mods {
             Action::ToggleSub { active, row } => self.toggle_sub(Side::of(*active), *row, cx),
             Action::RemoveSub { active, row } => self.remove_sub(Side::of(*active), *row, cx),
             Action::DeleteSub { tag } => self.ask_delete_group(tag, window, cx),
+            Action::CopyTags { tags } => self.copy_tags(tags.clone(), cx),
+            Action::PasteTags { ids, add } => self.paste_tags(ids.clone(), *add, cx),
         }
     }
 
