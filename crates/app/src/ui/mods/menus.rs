@@ -193,6 +193,17 @@ impl Mods {
                     crate::ui::navigate::go(crate::ui::navigate::Go::Redownload(id), cx);
                 });
             }
+            Action::RestoreKept {
+                mod_id,
+                updated,
+                ask,
+            } => {
+                let (id, updated) = (*mod_id, *updated);
+                let me = cx.entity().downgrade();
+                ask_with(ask, false, window, cx, move |cx| {
+                    let _ = me.update(cx, |mods, cx| mods.restore_kept(id, updated, cx));
+                });
+            }
             Action::Unsubscribe { mod_id } => self.ask_unsubscribe(*mod_id, window, cx),
             Action::UpdateFromGit { mod_id } => {
                 crate::ui::navigate::go(crate::ui::navigate::Go::UpdateFromGit(*mod_id), cx)
@@ -377,6 +388,32 @@ impl Mods {
             self.edit_list(cx, |list, _| list.order.sync(&app));
             self.show(cx);
         }
+    }
+
+    fn restore_kept(&mut self, id: ModId, updated: u64, cx: &mut Context<Self>) {
+        let app = crate::ui::app(cx);
+        crate::jobs::run(
+            "restore a kept copy",
+            cx,
+            move || {
+                let restored = app.restore_kept_copy(id, updated);
+                if restored.is_ok() {
+                    app.rescan();
+                }
+                restored
+            },
+            |mods, restored, cx| {
+                match restored {
+                    Ok(_) => {
+                        let said = say!("Restored; this copy now wins over the Workshop's one");
+                        notices::say(put(&said), notices::Tone::Ok, cx);
+                        mods.status.upkeep_problem = String::new();
+                    }
+                    Err(problem) => mods.status.upkeep_problem = crate::words::said_of(&problem),
+                }
+                cx.notify();
+            },
+        );
     }
 
     fn copy_to_local(&mut self, ids: Vec<ModId>, cx: &mut Context<Self>) {

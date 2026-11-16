@@ -46,6 +46,8 @@ pub struct SettingsReport {
     pub set_config: Option<String>,
     pub set_workshop: Option<String>,
     pub launch_arguments: Option<String>,
+    /// Megabytes of kept mod copies; empty for the default.
+    pub kept_mods_megabytes: Option<String>,
     pub launch_directly: bool,
     pub sandboxed: bool,
     pub language: Option<String>,

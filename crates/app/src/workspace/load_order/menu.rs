@@ -46,6 +46,12 @@ pub enum Action {
         mod_id: ModId,
         ask: Ask,
     },
+    /// A copy kept before the Workshop updated the mod, by that update's time.
+    RestoreKept {
+        mod_id: ModId,
+        updated: u64,
+        ask: Ask,
+    },
     Unsubscribe {
         mod_id: ModId,
     },
@@ -467,6 +473,36 @@ impl LoadOrder {
             if !at.active {
                 let action = Action::Unsubscribe { mod_id: id };
                 group.push(Entry::item(say!("Unsubscribe…"), "minus", action).danger());
+            }
+            let kept = app.kept_copies_of(id);
+            if !kept.is_empty() {
+                group.push(Entry::title(say!("Kept copies")));
+            }
+            let local = app.paths().local_mods().unwrap_or_default();
+            for updated in kept {
+                let day = crate::workspace::logs::day(updated);
+                let ask = Ask {
+                    title: say!("Restore the copy of {}", day.clone()),
+                    lines: vec![
+                        Line::Said(say!(
+                            "Kept before a launch the Workshop's update reached. It is copied into the game's Mods folder, where a copy wins over Steam's newer one:"
+                        )),
+                        Line::Path {
+                            path: local.to_string_lossy().into_owned(),
+                        },
+                    ],
+                    label: say!("Restore"),
+                };
+                let action = Action::RestoreKept {
+                    mod_id: id,
+                    updated,
+                    ask,
+                };
+                group.push(Entry::item(
+                    say!("Restore the copy of {}", day),
+                    "history",
+                    action,
+                ));
             }
         }
         group

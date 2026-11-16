@@ -401,6 +401,23 @@ impl Settings {
                 .held(Choice::new("logs-kept-choice", options, kept).within(Self::choice_room(theme, window)).title(put(&say!("Logs kept"))).on_pick(act(cx, |s, at: usize, _, cx| s.keep("logsKept", &LOGS_KEPT[at].to_string(), cx))))
                 .held(div().flex_1().min_w_0().child(label(theme, theme.small(), c.ink2, put(&say_n!(report.logs_kept_now, "{} kept now", "{} kept now"))))),
         ));
+        let kept_field = crate::ui::field::Field {
+            id: "kept-mods-megabytes",
+            text: &self.fields.kept_megabytes,
+            icon: "",
+            placeholder: "5120".into(),
+            found: None,
+            keys: None,
+        };
+        rows.push(Row::Line(
+            Line::new(4, "kept-mods", put(&say!("Kept mod copies, MB")))
+                .tip(put(&say!("A launch copies each active Workshop mod the Workshop updated since its last kept copy, so a broken update can be rolled back from the row menu. Older ones go once past this size; empty keeps 5120.")))
+                .changed(report.kept_mods_megabytes.as_deref().is_some_and(|m| !m.is_empty()), |s, _, cx| {
+                    s.fields.kept_megabytes.update(cx, |field, cx| field.set_text("", cx));
+                    s.keep("keptModsMegabytes", "", cx);
+                })
+                .held(div().flex_1().min_w_0().child(kept_field.render(theme, window, cx))),
+        ));
         let room = self.held_room(theme, window);
         rows.push(Row::Line(
             Line::new(4, "data-folder", put(&say!("Downloads and records"))).held(path(

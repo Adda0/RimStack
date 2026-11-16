@@ -28,6 +28,7 @@ struct Fields {
     find: Entity<TextField>,
     folders: [Entity<TextField>; 3],
     launch: Entity<TextField>,
+    kept_megabytes: Entity<TextField>,
     key: Entity<TextField>,
     fonts: Entity<TextField>,
 }
@@ -94,6 +95,7 @@ impl Settings {
             find: field(cx),
             folders: [field(cx), field(cx), field(cx)],
             launch: field(cx),
+            kept_megabytes: field(cx),
             key: field(cx),
             fonts: field(cx),
         };
@@ -113,6 +115,11 @@ impl Settings {
         cx.subscribe(&fields.launch, |settings, field, _: &Edited, cx| {
             let typed = field.read(cx).text().to_string();
             settings.keep_later("launchArguments", typed, cx);
+        })
+        .detach();
+        cx.subscribe(&fields.kept_megabytes, |settings, field, _: &Edited, cx| {
+            let typed = field.read(cx).text().trim().to_string();
+            settings.keep_later("keptModsMegabytes", typed, cx);
         })
         .detach();
         cx.subscribe(&fields.key, |settings, _, _: &Entered, cx| {
@@ -238,6 +245,10 @@ impl Settings {
         self.fields
             .launch
             .update(cx, |field, cx| field.set_text(&launch, cx));
+        let kept = report.kept_mods_megabytes.clone().unwrap_or_default();
+        self.fields
+            .kept_megabytes
+            .update(cx, |field, cx| field.set_text(&kept, cx));
     }
 
     fn read_key(&mut self, cx: &mut Context<Self>) {

@@ -117,12 +117,14 @@ const SWITCH: Holds = Holds::Choice(&["on", "off"]);
 pub const UPDATE_EVERY: [&str; 6] = ["1", "5", "10", "15", "30", "60"];
 const UPDATE_EVERY_AT_FIRST: u64 = 10;
 
-const KNOWN: [(&str, Holds); 19] = [
+const KNOWN: [(&str, Holds); 20] = [
     ("game", Holds::Text),
     ("config", Holds::Text),
     ("workshop", Holds::Text),
     ("launch", Holds::Choice(&["steam", "direct"])),
     ("launchArguments", Holds::Text),
+    // Megabytes of kept mod copies for rolling a Workshop update back; oldest go past it.
+    ("keptModsMegabytes", Holds::Count),
     ("language", Holds::Text),
     ("font", Holds::Text),
     ("interfaceScale", Holds::Text),

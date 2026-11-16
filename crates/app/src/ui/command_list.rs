@@ -88,7 +88,7 @@ impl Shell {
         let list = mods.list.read(cx);
         let mut all = Vec::new();
         let setting = say!("Setting");
-        let settings: [(Sentence, usize); 27] = [
+        let settings: [(Sentence, usize); 28] = [
             (say!("RimWorld folder"), 0),
             (say!("Config and saves folder"), 0),
             (say!("Workshop mods folder"), 0),
@@ -113,6 +113,7 @@ impl Shell {
             (say!("Show mods Steam marks as mature"), 3),
             (say!("Verify game files with Steam"), 4),
             (say!("Set mod settings aside"), 4),
+            (say!("Kept mod copies, MB"), 4),
             (say!("List from before RimStack"), 4),
             (say!("RimStack's data folder"), 4),
             (say!("Version and licence"), 4),

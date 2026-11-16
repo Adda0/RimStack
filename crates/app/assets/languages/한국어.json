@@ -1848,5 +1848,13 @@
  "Its folder goes to the bin, and Steam downloads the mod again.": "Its folder goes to the bin, and Steam downloads the mod again.",
  "Only a Workshop mod is downloaded again by Steam": "Only a Workshop mod is downloaded again by Steam",
  "{} texture RimStack made is removed, and the game loads the .png instead.": "{} texture RimStack made is removed, and the game loads the .png instead.",
- "{} textures RimStack made are removed, and the game loads the .png instead.": "{} textures RimStack made are removed, and the game loads the .png instead."
+ "{} textures RimStack made are removed, and the game loads the .png instead.": "{} textures RimStack made are removed, and the game loads the .png instead.",
+ "A launch copies each active Workshop mod the Workshop updated since its last kept copy, so a broken update can be rolled back from the row menu. Older ones go once past this size; empty keeps 5120.": "A launch copies each active Workshop mod the Workshop updated since its last kept copy, so a broken update can be rolled back from the row menu. Older ones go once past this size; empty keeps 5120.",
+ "Kept before a launch the Workshop's update reached. It is copied into the game's Mods folder, where a copy wins over Steam's newer one:": "Kept before a launch the Workshop's update reached. It is copied into the game's Mods folder, where a copy wins over Steam's newer one:",
+ "Kept copies": "Kept copies",
+ "Kept mod copies, MB": "Kept mod copies, MB",
+ "Restore the copy of {}": "Restore the copy of {}",
+ "Restored; this copy now wins over the Workshop's one": "Restored; this copy now wins over the Workshop's one",
+ "That kept copy is gone": "That kept copy is gone",
+ "a kept copy could not be deleted": "a kept copy could not be deleted"
 }

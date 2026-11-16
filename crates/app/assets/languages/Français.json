@@ -1848,5 +1848,13 @@
  "Its folder goes to the bin, and Steam downloads the mod again.": "Son dossier va à la corbeille, et Steam télécharge le mod à nouveau.",
  "Only a Workshop mod is downloaded again by Steam": "Seul un mod du Workshop est à nouveau téléchargé par Steam",
  "{} texture RimStack made is removed, and the game loads the .png instead.": "{} texture créée par RimStack est supprimée, et le jeu charge le .png à la place.",
- "{} textures RimStack made are removed, and the game loads the .png instead.": "{} textures créées par RimStack sont supprimées, et le jeu charge le .png à la place."
+ "{} textures RimStack made are removed, and the game loads the .png instead.": "{} textures créées par RimStack sont supprimées, et le jeu charge le .png à la place.",
+ "A launch copies each active Workshop mod the Workshop updated since its last kept copy, so a broken update can be rolled back from the row menu. Older ones go once past this size; empty keeps 5120.": "Chaque lancement copie chaque mod actif du Workshop mis à jour depuis sa dernière copie conservée, pour pouvoir annuler une mise à jour cassée depuis le menu de la ligne. Les plus anciennes partent une fois cette taille dépassée ; vide garde 5120.",
+ "Kept before a launch the Workshop's update reached. It is copied into the game's Mods folder, where a copy wins over Steam's newer one:": "Conservée avant qu'un lancement ne prenne la mise à jour du Workshop. Elle est copiée dans le dossier Mods du jeu, où une copie l'emporte sur la plus récente de Steam :",
+ "Kept copies": "Copies conservées",
+ "Kept mod copies, MB": "Copies de mods conservées, Mo",
+ "Restore the copy of {}": "Restaurer la copie du {}",
+ "Restored; this copy now wins over the Workshop's one": "Restaurée ; cette copie l'emporte désormais sur celle du Workshop",
+ "That kept copy is gone": "Cette copie conservée a disparu",
+ "a kept copy could not be deleted": "une copie conservée n'a pas pu être supprimée"
 }

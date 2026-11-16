@@ -181,6 +181,7 @@ impl App {
             set_config: owned("config"),
             set_workshop: owned("workshop"),
             launch_arguments: owned("launchArguments"),
+            kept_mods_megabytes: owned("keptModsMegabytes"),
             launch_directly: settings.launch_directly(),
             sandboxed: rimstack_core::base::sandbox::sandboxed(),
             language: owned("language"),
