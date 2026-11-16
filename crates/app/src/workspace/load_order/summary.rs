@@ -104,8 +104,16 @@ mod tests {
                 "Ann.A",
                 "<supportedVersions><li>1.5</li></supportedVersions><incompatibleWith><li>Ann.C</li></incompatibleWith>",
             ),
-            ("b", "Ann.B", ""),
-            ("c", "Ann.C", ""),
+            (
+                "b",
+                "Ann.B",
+                "<supportedVersions><li>1.6</li></supportedVersions>",
+            ),
+            (
+                "c",
+                "Ann.C",
+                "<supportedVersions><li>1.6</li></supportedVersions>",
+            ),
         ] {
             let about = tmp.path().join("game/Mods").join(folder).join("About");
             std::fs::create_dir_all(&about).unwrap();

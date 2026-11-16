@@ -2149,5 +2149,6 @@
  "Use them too": "Use them too",
  "settings kept": "settings kept",
  "{} keeps no mod settings": "{} keeps no mod settings",
- "{} names no settings file of the game": "{} names no settings file of the game"
+ "{} names no settings file of the game": "{} names no settings file of the game",
+ "Reads every installed mod's About.xml and PublishedFileId.txt again and says how many hold no problem": "Reads every installed mod's About.xml and PublishedFileId.txt again and says how many hold no problem"
 }

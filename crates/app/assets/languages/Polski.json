@@ -2149,5 +2149,6 @@
  "Use them too": "Użyj ich też",
  "settings kept": "zapisane ustawienia",
  "{} keeps no mod settings": "{} nie zapisuje ustawień modów",
- "{} names no settings file of the game": "{} nie wskazuje pliku ustawień gry"
+ "{} names no settings file of the game": "{} nie wskazuje pliku ustawień gry",
+ "Reads every installed mod's About.xml and PublishedFileId.txt again and says how many hold no problem": "Reads every installed mod's About.xml and PublishedFileId.txt again and says how many hold no problem"
 }

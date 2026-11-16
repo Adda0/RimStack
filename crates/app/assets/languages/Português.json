@@ -2149,5 +2149,6 @@
  "Use them too": "Usá-las também",
  "settings kept": "definições guardadas",
  "{} keeps no mod settings": "{} não guarda definições de mods",
- "{} names no settings file of the game": "{} não nomeia nenhum ficheiro de definições do jogo"
+ "{} names no settings file of the game": "{} não nomeia nenhum ficheiro de definições do jogo",
+ "Reads every installed mod's About.xml and PublishedFileId.txt again and says how many hold no problem": "Reads every installed mod's About.xml and PublishedFileId.txt again and says how many hold no problem"
 }

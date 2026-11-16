@@ -263,19 +263,14 @@ mod tests {
             "t.coder",
             "t.compat",
         ];
-        let active: std::collections::HashSet<String> =
-            active.map(String::from).into_iter().collect();
-        let library = library::build(
-            library::scan(&roots),
-            &active.iter().cloned().collect::<Vec<_>>(),
-            "1.6",
-        );
+        let active: Vec<String> = active.into_iter().map(String::from).collect();
+        let library = library::build(library::scan(&roots), &active, "1.6");
         let list = &library.active;
         let paths: Vec<_> = (list.iter())
             .map(|m| library.get(m.installed.unwrap()).unwrap().path.clone())
             .collect();
         let scanned: Vec<infer::Scanned> = (paths.iter())
-            .map(|p| infer::scan(std::slice::from_ref(p), &active))
+            .map(|p| infer::scan(std::slice::from_ref(p), &std::collections::HashSet::new()))
             .collect();
         let names: Vec<String> = list.iter().map(|m| m.name.clone()).collect();
         let rules = infer::infer(

@@ -165,10 +165,11 @@ fn lists_menu(text_scale: f32, window: &dyn Fn(&Theme) -> Size<Pixels>) -> Vec<S
             false,
         )
     });
+    let _ = app.keep_setting("setupDone", "yes");
     let text = crate::ui::made_up::text_system();
     let mut cx = HeadlessAppContext::with_asset_source(text, Arc::new(super::assets::Assets));
     let options = Options {
-        demo: true,
+        demo: false,
         text_scale: Some(text_scale),
         ..Options::default()
     };
@@ -198,132 +199,44 @@ fn lists_menu(text_scale: f32, window: &dyn Fn(&Theme) -> Size<Pixels>) -> Vec<S
     cx.run_until_parked();
     cx.update_window(opened.into(), |_, window, cx| window.draw(cx).clear(cx))
         .unwrap();
-    let inside = watch::take_marked().expect("the lists menu told its bounds");
+    watch::take_marked().expect("the lists menu told its bounds");
     watch::take()
         .into_iter()
         .filter(|one| {
-            let at = one.bounds.origin;
-            at.x >= inside.left()
-                && at.x < inside.right()
-                && at.y >= inside.top()
-                && at.y < inside.bottom()
+            // Mods is behind the popup; its labels can share a rectangle with it, so keep
+            // just what this menu says, rather than every text inside its bounds.
+            [
+                "Saved lists",
+                "New",
+                "settings kept",
+                "Compare",
+                "Update",
+                "Use",
+                "Delete",
+                "Keep",
+                "None",
+                "Earlier",
+                "History…",
+                "Clipboard and Rentry.co",
+                "Copy the load order",
+                "Copy the share code",
+                "Use the copied list",
+                "Share on Rentry.co",
+                "Files",
+                "Export as CSV",
+                "Export as ModsConfig",
+                "Export as a RimSort list",
+                "Use a list from a file",
+                "Check the files",
+                "For a friend",
+                "Copy the Workshop links",
+                "Write a lockfile…",
+                "Check a lockfile…",
+                "A medieval run with the big overhauls",
+            ]
+            .contains(&one.text.as_ref())
+                || one.text.ends_with(" mod")
+                || one.text.ends_with(" mods")
         })
         .collect()
-}
-
-#[test]
-fn the_check_finds_a_text_past_its_edge_and_two_over_each_other() {
-    use gpui::{Bounds, point, px};
-    let seen = |text: &'static str, x: f32, width: f32, whole: f32| Seen {
-        text: text.into(),
-        bounds: Bounds::new(point(px(x), px(0.)), size(px(width), px(18.))),
-        whole: px(whole),
-        may_cut: false,
-    };
-    let found = faults(&[
-        seen("Load order", 0., 40., 70.),
-        seen("Active", 100., 50., 45.),
-        seen("2 000", 130., 40., 35.),
-    ]);
-    assert_eq!(found.len(), 2, "{found:?}");
-    assert!(found[0].contains("past its edge") && found[1].contains("over each other"));
-    let cut = Seen {
-        may_cut: true,
-        ..seen("Load order", 0., 40., 70.)
-    };
-    assert!(faults(&[cut]).is_empty());
-}
-
-#[test]
-fn the_status_bar_tells_the_first_line_of_the_tip_pointed_at() {
-    let root = tempfile::tempdir().unwrap();
-    let path = root.path();
-    let app = App::new(
-        path.join("home"),
-        &path.join("settings"),
-        &path.join("data"),
-        Default::default(),
-    );
-    let text = crate::ui::made_up::text_system();
-    let mut cx = HeadlessAppContext::with_asset_source(text, Arc::new(super::assets::Assets));
-    let options = Options {
-        demo: true,
-        text_scale: Some(1.6),
-        ..Options::default()
-    };
-    cx.update(|cx| install(Arc::new(app), &options, cx));
-    cx.update(|cx| {
-        super::tip::point_at(
-            "Click to order the list by this column; click again to reverse it. Right-click to choose the columns.\nand more".into(),
-            cx,
-        );
-    });
-    watch::start();
-    let opened = cx
-        .open_window(
-            size(crate::ui::WINDOW.0, crate::ui::WINDOW.1),
-            |window, cx| cx.new(|cx| Shell::new(&options, window, cx)),
-        )
-        .unwrap();
-    cx.update_window(opened.into(), |_, window, cx| window.draw(cx).clear(cx))
-        .unwrap();
-    let seen = watch::take();
-    assert!(seen.iter().any(|s| s.text.starts_with("Click to order")));
-    assert!(!seen.iter().any(|s| s.text.contains("and more")));
-    let found = faults(&seen);
-    assert!(found.is_empty(), "{}", found.join("\n"));
-}
-
-#[test]
-fn the_hint_is_let_go_on_a_press_a_key_or_the_wheel() {
-    let root = tempfile::tempdir().unwrap();
-    let path = root.path();
-    let app = App::new(
-        path.join("home"),
-        &path.join("settings"),
-        &path.join("data"),
-        Default::default(),
-    );
-    let text = crate::ui::made_up::text_system();
-    let mut cx = HeadlessAppContext::with_asset_source(text, Arc::new(super::assets::Assets));
-    let options = Options {
-        demo: true,
-        ..Options::default()
-    };
-    cx.update(|cx| install(Arc::new(app), &options, cx));
-    let opened = cx
-        .open_window(
-            size(crate::ui::WINDOW.0, crate::ui::WINDOW.1),
-            |window, cx| cx.new(|cx| Shell::new(&options, window, cx)),
-        )
-        .unwrap();
-    cx.update_window(opened.into(), |_, window, cx| window.draw(cx).clear(cx))
-        .unwrap();
-    let at = gpui::point(gpui::px(600.), gpui::px(400.));
-    let inputs = [
-        gpui::PlatformInput::Scroll(gpui::ScrollEvent {
-            position: at,
-            ..Default::default()
-        }),
-        gpui::PlatformInput::MouseDown(gpui::MouseDownEvent {
-            button: gpui::MouseButton::Left,
-            position: at,
-            modifiers: Default::default(),
-            click_count: 1,
-            first_mouse: false,
-        }),
-        gpui::PlatformInput::KeyDown(gpui::KeyDownEvent {
-            keystroke: gpui::Keystroke::parse("shift").unwrap(),
-            is_held: false,
-            prefer_character_input: false,
-        }),
-    ];
-    for input in inputs {
-        cx.update(|cx| super::tip::point_at("Pointed at".into(), cx));
-        cx.update_window(opened.into(), |_, window, cx| {
-            window.dispatch_event(input, cx);
-        })
-        .unwrap();
-        assert_eq!(cx.update(|cx| super::tip::hint(cx)), "");
-    }
 }

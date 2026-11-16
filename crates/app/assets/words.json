@@ -993,6 +993,7 @@
  "Reading the log…": "",
  "Reading the mod folders…": "",
  "Reads each mod's change notes from its Workshop page. Only the Workshop ids are sent.": "",
+ "Reads every installed mod's About.xml and PublishedFileId.txt again and says how many hold no problem": "",
  "Reads every installed mod's About.xml and PublishedFileId.txt again and says how many hold no problem: a Workshop mod's files naming another item than its folder, an About.xml missing or broken, or a package id the game cannot take": "",
  "Reads the header of every DDS file in the installed mods and finds those that are not DDS, are cut short, use a format the game cannot read, or are compressed with a size that is not a multiple of four. From 1.7 it also finds those that hide a texture the mod packed in Assets.zip.": "",
  "Reads this mod's change notes from its Workshop page. Only its Workshop id is sent.": "",

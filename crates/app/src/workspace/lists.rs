@@ -898,7 +898,7 @@ mod tests {
         assert_eq!(
             lines.next().unwrap(),
             format!(
-                "Ludeon.RimWorld,,Ludeon.RimWorld,,,,,Ludeon,{},",
+                "Ludeon.RimWorld,,Ludeon.RimWorld,,1.6,,,Ludeon,{},",
                 path.display()
             )
         );

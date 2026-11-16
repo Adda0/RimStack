@@ -409,6 +409,7 @@ fn a_kind_of_warning_kept_to_the_problems_panel_leaves_the_rows_and_errors_stay_
     );
     assert_eq!(overview["warned"], 1);
     // Kept in the settings: a new app on the same folders leaves it out too.
+    app.settle_writes();
     drop(order);
     drop(app);
     let again = installed_app_again(&tmp);
