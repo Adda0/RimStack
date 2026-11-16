@@ -108,7 +108,7 @@ impl FirstRun {
                 blocks.push(Self::block(theme, put(&say!("Programs")), programs));
             }
             1 => {
-                if report.rimsort_rules {
+                if report.rimsort {
                     let on = self.with_rimsort;
                     let me = cx.entity().downgrade();
                     blocks.push(Self::block(
@@ -117,8 +117,10 @@ impl FirstRun {
                         vec![Self::tick(
                             theme,
                             "rimsort".into(),
-                            put(&say!("Your load order rules")),
-                            put(&say!("(RimSort's file is only read)")),
+                            put(&say!(
+                                "Own load order rules, and the tags, notes and colours of your mods"
+                            )),
+                            put(&say!("(RimSort's files are only read)")),
                             on,
                             move |_, cx| {
                                 let _ = me.update(cx, |first, cx| {

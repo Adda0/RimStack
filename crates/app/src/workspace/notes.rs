@@ -1,9 +1,13 @@
 use super::App;
 use crate::changes::Changes;
+use crate::ui::theme::SWATCHES;
 use rimstack_core::base::locks::Shared;
+use rimstack_core::kept::foreign::{self, Kept};
 use rimstack_core::kept::notes::{self, Note};
 use rimstack_core::mods::library::ModId;
 use rimstack_core::mods::list::Category;
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 
 /// A tag offered while one is typed, with the whole text the field takes when it is picked.
 pub struct TagOffer {
@@ -193,6 +197,57 @@ impl App {
         });
     }
 
+    /// Takes over the tags, notes and colours another manager kept, matched by mod folder;
+    /// nothing kept here is lost. Gives how many mods got something new.
+    pub fn adopt(&self, kept: &[Kept]) -> usize {
+        let loaded = self.library();
+        let Ok((library, _)) = &*loaded else {
+            return 0;
+        };
+        let real = |path: &Path| std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+        let mut by_path: HashMap<PathBuf, String> = HashMap::new();
+        // A folder name, as another machine's path still ends in it; none when two mods share it.
+        let mut by_folder: HashMap<&str, Option<String>> = HashMap::new();
+        for m in &library.installed {
+            let Some(key) = m.key() else { continue };
+            by_path.insert(real(&m.path), key.clone());
+            let shared = by_folder.insert(m.folder.as_str(), Some(key)).is_some();
+            if shared {
+                by_folder.insert(m.folder.as_str(), None);
+            }
+        }
+        let key_of = |k: &Kept| {
+            let folder = || {
+                by_folder
+                    .get(k.folder.file_name()?.to_str()?)
+                    .cloned()
+                    .flatten()
+            };
+            by_path.get(&real(&k.folder)).cloned().or_else(folder)
+        };
+        let found: Vec<(String, &Kept)> =
+            kept.iter().filter_map(|k| Some((key_of(k)?, k))).collect();
+        drop(loaded);
+        let mut all = self.notes().writing();
+        let mut changed = 0;
+        for (key, kept) in found {
+            let before = all.get(&key).cloned().unwrap_or_default();
+            let mut note = before.clone();
+            merge(&mut note, kept);
+            if note != before {
+                all.set(&key, note);
+                changed += 1;
+            }
+        }
+        if changed > 0 {
+            let kept = all.clone();
+            drop(all);
+            self.write_notes(kept);
+            self.publish(Changes::NOTES);
+        }
+        changed
+    }
+
     pub fn warn_again(&self, ids: &[ModId]) {
         let changes = Changes::NOTES | Changes::PROBLEMS;
         self.change_notes(ids, changes, |note| note.ignored.clear());
@@ -223,11 +278,49 @@ impl App {
     }
 }
 
+/// The swatch nearest a colour another manager painted with, so it reads in every theme.
+/// Black, RimPy's way of painting nothing, and greys are none.
+fn nearest_swatch(colour: &str) -> Option<&'static str> {
+    let [r, g, b] = foreign::rgb(colour)?.map(i32::from);
+    if r.max(g).max(b) - r.min(g).min(b) < 24 {
+        return None;
+    }
+    // The dark side of the theme's own swatches, as the manager's colour has to read here.
+    let distance = |(_, dark, _): &&(&str, &str, &str)| {
+        let [sr, sg, sb] = foreign::rgb(dark).unwrap_or_default().map(i32::from);
+        (r - sr).pow(2) + (g - sg).pow(2) + (b - sb).pow(2)
+    };
+    SWATCHES
+        .iter()
+        .min_by_key(distance)
+        .map(|(name, _, _)| *name)
+}
+
+/// Tags not here yet go last, a note not here yet goes below this one, a colour only where
+/// there is none.
+fn merge(note: &mut Note, kept: &Kept) {
+    for tag in &kept.tags {
+        if !note.tags.iter().any(|had| had.eq_ignore_ascii_case(tag)) {
+            note.tags.push(tag.clone());
+        }
+    }
+    if !kept.note.is_empty() && !note.text.contains(&kept.note) {
+        note.text = match note.text.trim().is_empty() {
+            true => kept.note.clone(),
+            false => format!("{}\n\n{}", note.text.trim_end(), kept.note),
+        };
+    }
+    if note.colour.is_empty() {
+        note.colour = nearest_swatch(&kept.colour).unwrap_or_default().to_string();
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::changes::Changes;
     use crate::workspace::tests::installed;
     use rimstack_core::base::locks::Shared;
+    use rimstack_core::kept::foreign::Kept;
     use rimstack_core::mods::library::ModId;
     use std::sync::{Arc, Mutex};
 
@@ -330,5 +423,42 @@ mod tests {
         assert_eq!(app.user_rules().reading().len(), 1);
         app.change_rule(core, id, false);
         assert_eq!(app.user_rules().reading().len(), 0);
+    }
+
+    #[test]
+    fn another_manager_s_tags_notes_and_colours_are_added_to_what_is_here() {
+        let (tmp, app) = installed();
+        let id = roads(&app);
+        app.set_note(id, "travel", "far");
+        let kept = |folder: std::path::PathBuf, tags: &[&str], note: &str, colour: &str| Kept {
+            folder,
+            tags: tags.iter().map(|t| t.to_string()).collect(),
+            note: note.into(),
+            colour: colour.into(),
+        };
+        let found = [
+            // By its path here, and by its folder name from another machine.
+            kept(
+                tmp.path().join("game/Mods/roads"),
+                &["TRAVEL", "must"],
+                "breaks saves",
+                "#ff0000",
+            ),
+            kept("/elsewhere/Core".into(), &["core"], "", "#000000"),
+            kept("/elsewhere/gone".into(), &["lost"], "", ""),
+        ];
+        assert_eq!(app.adopt(&found), 2);
+        app.settle_writes();
+        let notes = rimstack_core::kept::notes::Notes::read(&app.notes_file());
+        let roads = notes.get("ann.roads").unwrap();
+        assert_eq!(roads.tags, ["travel", "must"]);
+        assert_eq!(roads.text, "far\n\nbreaks saves");
+        assert_eq!(roads.colour, "Orange");
+        let core = notes.get("ludeon.rimworld").unwrap();
+        assert_eq!(
+            (core.tags.clone(), core.colour.as_str()),
+            (vec!["core".to_string()], "")
+        );
+        assert_eq!(app.adopt(&found), 0, "taken over once");
     }
 }

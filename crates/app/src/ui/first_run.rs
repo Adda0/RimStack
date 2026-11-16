@@ -108,7 +108,7 @@ impl FirstRun {
 
     fn start(&mut self, cx: &mut Context<Self>) {
         let with_data = self.databases.iter().any(|d| d.on);
-        let with_rimsort = self.with_rimsort && self.report.rimsort_rules;
+        let with_rimsort = self.with_rimsort && self.report.rimsort;
         cx.emit(Started {
             with_data,
             with_rimsort,

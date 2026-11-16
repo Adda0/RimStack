@@ -523,7 +523,7 @@ impl Shell {
             );
         }
         if with_rimsort {
-            let said = app.import_rimsort_rules();
+            let said = app.import_rimsort();
             notices::say(put(&said), notices::Tone::Ok, cx);
         }
         self.first_run = None;

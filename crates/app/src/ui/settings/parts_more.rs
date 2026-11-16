@@ -145,17 +145,38 @@ impl Settings {
             ));
         }
 
-        if report.rimsort_rules {
-            rows.push(Row::Group(2, put(&say!("RimSort"))));
-            rows.push(Row::Line(
-                Line::new(2, "rimsort", put(&say!("Your rules in RimSort")))
-                    .tip(put(&say!("Copies the rules you made in RimSort into RimStack. RimSort's file is only read.")))
-                    .held(Btn::new("rimsort-import", put(&say!("Import"))).icon("download").on_click(cx.listener(|s, _, _, cx| {
-                        s.said.rimsort = put(&crate::ui::app(cx).import_rimsort_rules());
-                        cx.notify();
-                    })))
-                    .held(words(theme, c.ink2, self.said.rimsort.clone())),
-            ));
+        if report.rimsort || report.rimpy {
+            rows.push(Row::Group(2, put(&say!("Other mod managers"))));
+            if report.rimsort {
+                rows.push(Row::Line(
+                    Line::new(2, "rimsort", put(&say!("RimSort")))
+                        .tip(put(&say!(
+                            "Copies your rules, and the tags, notes and colours of your mods, from RimSort into RimStack. What RimStack holds stays; RimSort's files are only read."
+                        )))
+                        .held(Btn::new("rimsort-import", put(&say!("Import"))).icon("download").on_click(cx.listener(|s, _, _, cx| {
+                            s.said.rimsort = put(&crate::ui::app(cx).import_rimsort());
+                            cx.notify();
+                        })))
+                        .held(words(theme, c.ink2, self.said.rimsort.clone())),
+                ));
+            }
+            if report.rimpy {
+                rows.push(Row::Line(
+                    Line::new(2, "rimpy", put(&say!("RimPy")))
+                        .tip(put(&say!(
+                            "Copies the colours of your mods from RimPy's config.ini into RimStack, each as the nearest of RimStack's colours. RimPy's file is only read."
+                        )))
+                        .held(
+                            Btn::new("rimpy-import", put(&say!("Import")))
+                                .icon("download")
+                                .on_click(cx.listener(|s, _, _, cx| {
+                                    s.said.rimpy = put(&crate::ui::app(cx).import_rimpy());
+                                    cx.notify();
+                                })),
+                        )
+                        .held(words(theme, c.ink2, self.said.rimpy.clone())),
+                ));
+            }
         }
 
         rows.push(Row::Group(2, put(&say!("Game version"))));

@@ -39,6 +39,7 @@ struct Said {
     own_theme: String,
     mod_settings: String,
     rimsort: String,
+    rimpy: String,
 }
 
 const READS: Changes = Changes::SETTINGS

@@ -1912,5 +1912,20 @@
  "Paste tags onto {} mod": "Colar etiquetas em {} mod",
  "Paste tags onto {} mods": "Colar etiquetas em {} mods",
  "Tags pasted onto {} mod": "Etiquetas coladas em {} mod",
- "Tags pasted onto {} mods": "Etiquetas coladas em {} mods"
+ "Tags pasted onto {} mods": "Etiquetas coladas em {} mods",
+ "(1 mod, tags, notes, colours) added from {}.": "(1 mod, tags, notes, colours) added from {}.",
+ "(RimSort's files are only read)": "(Os ficheiros do RimSort são apenas lidos)",
+ "({} mods, tags, notes, colours) added from {}.": "({} mods, tags, notes, colours) added from {}.",
+ "No mod is known here yet.": "No mod is known here yet.",
+ "Other mod managers": "Outros gestores de mods",
+ "Own load order rules, and the tags, notes and colours of your mods": "Regras próprias da ordem de carga, e as etiquetas, notas e cores dos teus mods",
+ "Takes over what you made in RimSort: load order rules, mod tags, notes and colours are imported into RimStack. RimSort's files are only read.": "Takes over what you made in RimSort: load order rules, mod tags, notes and colours are imported into RimStack. RimSort's files are only read.",
+ "Takes your mods' colours over from RimPy. RimPy's files are only read.": "Takes your mods' colours over from RimPy. RimPy's files are only read.",
+ "Your colours in RimPy": "Your colours in RimPy",
+ "Your rules, tags, notes and colours in RimSort": "Your rules, tags, notes and colours in RimSort",
+ "Tags, notes or colours for {} mod, now here too.": "Tags, notas ou cores de {} mod, agora aqui também.",
+ "Tags, notes or colours for {} mods, now here too.": "Tags, notas ou cores de {} mods, agora aqui também.",
+ "Copies the colours of your mods from RimPy's config.ini into RimStack, each as the nearest of RimStack's colours. RimPy's file is only read.": "Copia as cores dos teus mods do config.ini do RimPy para o RimStack, cada uma como a cor mais próxima das do RimStack. O ficheiro do RimPy é apenas lido.",
+ "Copies your rules, and the tags, notes and colours of your mods, from RimSort into RimStack. What RimStack holds stays; RimSort's files are only read.": "Copia as tuas regras e as etiquetas, notas e cores dos teus mods do RimSort para o RimStack. O que o RimStack já tem fica; os ficheiros do RimSort são apenas lidos.",
+ "RimPy": "RimPy"
 }

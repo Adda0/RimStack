@@ -2,6 +2,7 @@ pub mod activated;
 pub mod copies;
 pub mod desktop;
 pub mod download_list;
+pub mod foreign;
 pub mod journal;
 pub mod launches;
 pub mod lists;

@@ -8,6 +8,7 @@ use rimstack_core::base::error::Error;
 use rimstack_core::base::locks::Shared;
 use rimstack_core::base::sentence::Sentence;
 use rimstack_core::base::translate::{LOCALE, detected};
+use rimstack_core::kept::foreign;
 use rimstack_core::kept::owntheme;
 use rimstack_core::kept::settings::{Switch, UPDATE_EVERY};
 use rimstack_core::mods::community;
@@ -219,7 +220,8 @@ impl App {
                 .map(String::from)
                 .collect(),
             setup_done: settings.get("setupDone").is_some(),
-            rimsort_rules: self.rimsort_rules_file().is_file(),
+            rimsort: self.rimsort_rules_file().is_file() || self.rimsort_notes_file().is_file(),
+            rimpy: self.rimpy_file().is_file(),
             official: self
                 .install()
                 .official()
@@ -676,7 +678,59 @@ impl App {
         self.keep_setting("versionAsideFor", aside_for)
     }
 
-    pub fn import_rimsort_rules(&self) -> Sentence {
+    /// The RimSort database that keeps tags, notes and colours, read only.
+    fn rimsort_notes_file(&self) -> PathBuf {
+        self.rimsort_dir()
+            .join("instances")
+            .join("Default")
+            .join("aux_metadata.db")
+    }
+
+    /// The RimPy settings file that keeps row colours, read only.
+    fn rimpy_file(&self) -> PathBuf {
+        self.home
+            .join("AppData/LocalLow")
+            .join("RimPy Mod Manager")
+            .join("config.ini")
+    }
+
+    /// Imports RimSort's own load order rules and its tags, notes and colours, read only.
+    pub fn import_rimsort(&self) -> Sentence {
+        let mut said = Vec::new();
+        if self.rimsort_rules_file().is_file() || !self.rimsort_notes_file().is_file() {
+            said.push(self.import_rimsort_rules());
+        }
+        if self.rimsort_notes_file().is_file() {
+            let path = self.rimsort_notes_file();
+            said.push(match foreign::rimsort(&path) {
+                Ok(kept) => self.adopted(&kept),
+                Err(problem) => problem.sentence().clone(),
+            });
+        }
+        Sentence::joined(" ", said)
+    }
+
+    /// Imports RimPy's colours for mods, read only.
+    pub fn import_rimpy(&self) -> Sentence {
+        let path = self.rimpy_file();
+        match std::fs::read_to_string(&path) {
+            Ok(text) => self.adopted(&foreign::rimpy(&text)),
+            Err(e) => Error::file(&path, e).sentence().clone(),
+        }
+    }
+
+    fn adopted(&self, kept: &[foreign::Kept]) -> Sentence {
+        let added = self.adopt(kept);
+        say_n!(
+            added,
+            "Tags, notes or colours for {} mod, now here too.",
+            "Tags, notes or colours for {} mods, now here too.",
+            added
+        )
+    }
+
+    /// The older rules-only import, used by the settings page's RimSort button.
+    fn import_rimsort_rules(&self) -> Sentence {
         let path = self.rimsort_rules_file();
         let read = std::fs::read_to_string(&path).map_err(|e| Error::file(&path, e));
         let pairs = match read.and_then(|text| Ok(community::parse(&text)?.pairs())) {

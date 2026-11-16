@@ -169,3 +169,12 @@ fn the_fonts_offered_start_with_the_systems_and_are_found_by_any_part() {
     assert_eq!(fonts_matching(&fonts, "system", "System font"), [0]);
     assert_eq!(fonts_matching(&fonts, "", "System font"), [0, 1, 2]);
 }
+
+#[test]
+fn rimsort_missing_says_why() {
+    let (_tmp, app) = installed();
+    let said = app.import_rimsort().to_string();
+    assert!(said.contains("userRules.json"), "{said}");
+    let said = app.import_rimpy().to_string();
+    assert!(said.contains("config.ini"), "{said}");
+}
