@@ -7,7 +7,7 @@ use crate::ui::widgets::TextSized;
 use crate::words::put;
 use gpui::{
     AnyElement, Context, InteractiveElement, IntoElement, ParentElement,
-    StatefulInteractiveElement, Styled, div, prelude::FluentBuilder, px,
+    StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder, px,
 };
 use rimstack_core::say;
 
@@ -35,7 +35,7 @@ impl Shell {
         tasks
     }
 
-    pub(crate) fn status_bar(&self, cx: &mut Context<Self>) -> AnyElement {
+    pub(crate) fn status_bar(&self, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
         let theme = cx.global::<Theme>().clone();
         let c = theme.colours;
         let height = theme.strip() - px(2.);
@@ -58,15 +58,14 @@ impl Shell {
                 .aria_label(put(&say!("Background work")))
                 .child(self.spinner.clone())
                 .child(label(&theme, theme.small(), c.ink, said))
-                .on_click(cx.listener(|shell, _, _, cx| match shell.tray_open {
+                .on_click(cx.listener(|shell, _, window, cx| match shell.tray_open {
                     true => shell.close_tray(cx),
-                    false => {
-                        shell.tray_open = true;
-                        shell.tray_fading = false;
-                        shell.tray_turn = super::motion::opening();
-                        cx.notify();
-                    }
+                    false => shell.open_tray(window, cx),
                 }))
+                .map(|d| {
+                    let tray = super::focus::handle("tray", window, cx);
+                    super::focus::reachable(d, &tray, theme::CORNER, false, window, &theme)
+                })
                 .when(self.tray_open || self.tray_fading, |d| {
                     d.child(self.tray_popup(&theme, &tasks, cx))
                 })
@@ -141,6 +140,7 @@ impl Shell {
         cx: &mut Context<Self>,
     ) -> AnyElement {
         let c = &theme.colours;
+        let opening = tasks.iter().position(|(_, stop)| stop.is_some());
         let rows = tasks.iter().enumerate().map(|(at, (said, stop))| {
             div()
                 .flex()
@@ -157,6 +157,7 @@ impl Shell {
                 .when_some(stop.clone(), |d, stop| {
                     d.child(
                         Btn::new(("tray-cancel", at), put(&say!("Cancel")))
+                            .when(opening == Some(at), |d| d.keys(self.tray_keys.clone()))
                             .tip(put(&say!(
                                 "Stops after the current mod; what is already done is kept"
                             )))
@@ -182,6 +183,7 @@ impl Shell {
             .when(self.tray_open, |d| {
                 d.on_mouse_down_out(cx.listener(|shell, _, _, cx| shell.close_tray(cx)))
             })
+            .map(|d| super::focus::trap(d, &self.tray_keys))
             .child(
                 label(theme, theme.title(), c.ink, put(&say!("Background work")))
                     .font_weight(theme.semibold),
@@ -201,6 +203,20 @@ impl Shell {
             false => super::motion::pop_in(popup, self.tray_turn).into_any_element(),
         };
         gpui::deferred(popup).into_any_element()
+    }
+
+    /// Opens the background work card; the keys go to its first Cancel, or to the
+    /// button in the status bar when nothing there can be stopped.
+    fn open_tray(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.tray_open = true;
+        self.tray_fading = false;
+        self.tray_turn = super::motion::opening();
+        let first = match self.tasks(cx).iter().any(|(_, stop)| stop.is_some()) {
+            true => self.tray_keys.clone(),
+            false => super::focus::handle("tray", window, cx),
+        };
+        window.focus(&first, cx);
+        cx.notify();
     }
 
     pub(crate) fn close_tray(&mut self, cx: &mut Context<Self>) {

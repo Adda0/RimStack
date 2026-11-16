@@ -503,6 +503,8 @@ pub fn run(app: Arc<App>, options: Options) {
         });
 }
 
+#[cfg(all(test, target_os = "linux"))]
+mod dialog_tests;
 #[cfg(test)]
 mod fork_tests;
 #[cfg(test)]

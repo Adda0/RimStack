@@ -479,9 +479,9 @@ impl Render for Menu {
         }
         div()
             .id("menu")
-            .track_focus(&self.focus)
             .absolute()
             .inset_0()
+            .map(|d| super::focus::trap(d, &self.focus))
             .on_key_down(cx.listener(|menu, event: &KeyDownEvent, window, cx| {
                 match event.keystroke.key.as_str() {
                     "escape" => menu.close(window, cx),

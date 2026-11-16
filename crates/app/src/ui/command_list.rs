@@ -255,7 +255,7 @@ impl Shell {
             say!("Play"),
             &game,
             none.clone(),
-            Rc::new(|shell, _, cx| shell.press_play(cx)),
+            Rc::new(|shell, window, cx| shell.press_play(window, cx)),
         );
         push(
             errors + warnings > 0,

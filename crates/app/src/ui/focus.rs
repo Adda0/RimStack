@@ -23,6 +23,49 @@ pub fn handle(id: impl Into<ElementId>, window: &mut Window, cx: &mut App) -> Fo
     kept.read(cx).clone()
 }
 
+/// Tab and Shift-Tab inside a card over the window: round its own controls, never
+/// out to what is under it. `card` is the card's own handle, not a tab stop.
+pub fn trap(control: Stateful<gpui::Div>, card: &FocusHandle) -> Stateful<gpui::Div> {
+    let (next, previous) = (card.clone(), card.clone());
+    control
+        .track_focus(card)
+        .on_action(move |_: &Next, window, cx| {
+            round(&next, false, window, cx);
+            cx.stop_propagation();
+        })
+        .on_action(move |_: &Previous, window, cx| {
+            round(&previous, true, window, cx);
+            cx.stop_propagation();
+        })
+}
+
+/// Steps along the window's tab stops until one inside `card` holds the keys; back to
+/// where they were when a whole round finds none.
+pub(crate) fn round(card: &FocusHandle, back: bool, window: &mut Window, cx: &mut App) {
+    let start = window.focused(cx);
+    let mut first = None;
+    loop {
+        match back {
+            true => window.focus_prev(cx),
+            false => window.focus_next(cx),
+        }
+        let Some(now) = window.focused(cx) else {
+            return;
+        };
+        if now != *card && card.contains_focused(window, cx) {
+            return;
+        }
+        match &first {
+            Some(first) if *first == now => break,
+            Some(_) => {}
+            None => first = Some(now),
+        }
+    }
+    if let Some(start) = start {
+        window.focus(&start, cx);
+    }
+}
+
 /// Whether the ring shows: the control holds the keys, and a key brought them there.
 pub fn ringed(handle: &FocusHandle, window: &Window) -> bool {
     handle.is_focused(window) && window.last_input_was_keyboard()

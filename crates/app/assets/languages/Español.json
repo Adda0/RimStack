@@ -1832,5 +1832,7 @@
  "a RimSort mod list": "una lista de mods de RimSort",
  "a game's ModsConfig": "un ModsConfig del juego",
  "{} active mods": "{} mods activos",
- "{} as {} in {}": "{} como {} en {}"
+ "{} as {} in {}": "{} como {} en {}",
+ "Dialogs and menus": "Diálogos y menús",
+ "Press the focused button or menu entry; a dialog opens on its main one": "Pulsar el botón o la entrada de menú enfocados; un diálogo se abre en su botón principal"
 }

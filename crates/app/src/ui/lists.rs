@@ -41,6 +41,8 @@ pub struct Lists {
     /// Closed, and drawn only while it fades out.
     fading: Option<(Which, Bounds<Pixels>)>,
     focus: FocusHandle,
+    /// The card's first control, which the keys open on.
+    keys: FocusHandle,
     before: Option<FocusHandle>,
     reading: crate::jobs::Lane,
 }
@@ -65,6 +67,7 @@ impl Lists {
             turn: 0,
             fading: None,
             focus: cx.focus_handle(),
+            keys: cx.focus_handle().tab_stop(false),
             before: None,
             reading: Default::default(),
         };
@@ -109,8 +112,22 @@ impl Lists {
         self.fading = None;
         self.turn = super::motion::opening();
         self.before = window.focused(cx);
-        window.focus(&self.focus, cx);
+        // The card's first control; a History with nothing to restore keeps the card itself.
+        let reverts = self
+            .history
+            .iter()
+            .any(|line| !line.restore.is_empty() || !line.bring_back.is_empty());
+        let first = match (which, reverts) {
+            (Which::Lists, _) | (Which::History, true) => self.keys.clone(),
+            (Which::History, false) => self.focus.clone(),
+        };
+        window.focus(&first, cx);
         cx.notify();
+    }
+
+    #[cfg(all(test, target_os = "linux"))]
+    pub(crate) fn keys_handle(&self) -> FocusHandle {
+        self.keys.clone()
     }
 
     #[cfg(all(test, target_os = "linux"))]
@@ -495,6 +512,7 @@ impl Lists {
                 .child(div().flex_1().min_w_0().child(Self::title(theme, put(&say!("Saved lists")))))
                 .child(
                     Btn::new("new-list", put(&say!("New")))
+                        .keys(self.keys.clone())
                         .icon("plus")
                         .tip(put(&say!("Start a load order from the game alone or with its expansions; one Undo brings the old one back")))
                         .pops({
@@ -833,6 +851,7 @@ impl Lists {
 
     fn history_popup(&self, theme: &Theme, cx: &mut Context<Self>) -> Vec<AnyElement> {
         let c = &theme.colours;
+        let mut first_revert = false;
         let mut shown =
             vec![Self::title(theme, put(&say!("What RimStack changed"))).into_any_element()];
         if self.history.is_empty() {
@@ -844,6 +863,8 @@ impl Lists {
             let said = put(&line.said);
             let restores = !line.restore.is_empty();
             let reverts = restores || !line.bring_back.is_empty();
+            let opening = reverts && !first_revert;
+            first_revert |= reverts;
             let held = line.clone();
             shown.push(
                 div()
@@ -863,6 +884,7 @@ impl Lists {
                                 true => put(&say!("The load order as it was just before. Nothing is written before Save.")),
                                 false => put(&say!("Renames the files back inside the mod")),
                             })
+                            .when(opening, |d| d.keys(self.keys.clone()))
                             .on_click(cx.listener(move |lists, _, window, cx| lists.revert(&held, window, cx))),
                         )
                     })
@@ -958,11 +980,7 @@ impl Render for Lists {
                     self.turn,
                 ));
         }
-        div()
-            .id("lists-scrim")
-            .track_focus(&self.focus)
-            .absolute()
-            .inset_0()
+        super::focus::trap(div().id("lists-scrim").absolute().inset_0(), &self.focus)
             .on_key_down(cx.listener(|lists, event: &KeyDownEvent, window, cx| {
                 if event.keystroke.key == "escape" {
                     lists.close(window, cx);

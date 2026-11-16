@@ -83,7 +83,7 @@ fn the_search_for_the_broken_mod_halves_the_list_and_gives_it_back() {
 fn play_shows_what_is_in_its_way_before_starting() {
     let (_tmp, mut cx, shell) = opened();
     shell
-        .update(&mut cx, |shell, _, cx| shell.press_play(cx))
+        .update(&mut cx, |shell, window, cx| shell.press_play(window, cx))
         .unwrap();
     let (open, ways) = cx.update(|cx| {
         let shell = shell.read(cx).unwrap();

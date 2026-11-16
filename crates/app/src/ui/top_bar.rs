@@ -469,7 +469,7 @@ pub fn top_bar(state: TopState, window: &Window, cx: &mut Context<Shell>) -> imp
                                 .large()
                                 .enabled(!running)
                                 .tip(play_tip)
-                                .on_click(cx.listener(|shell, _, _, cx| shell.press_play(cx))),
+                                .on_click(cx.listener(|shell, _, window, cx| shell.press_play(window, cx))),
                         )
                         .when(in_the_way.0 > 0, |d| {
                             let said = count(in_the_way.0);

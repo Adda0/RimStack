@@ -138,6 +138,13 @@ fn groups() -> Vec<(Sentence, Vec<(Sentence, Sentence)>)> {
                 (say!("Esc"), say!("Back to the lists")),
             ],
         ),
+        (
+            say!("Dialogs and menus"),
+            vec![(
+                say!("Enter"),
+                say!("Press the focused button or menu entry; a dialog opens on its main one"),
+            )],
+        ),
     ]
 }
 
@@ -187,12 +194,16 @@ fn caps(window: &Window, theme: &Theme, keys: &str) -> (gpui::Div, Pixels) {
 impl Shell {
     pub(crate) fn open_keys(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.keys_open = true;
-        window.focus(&self.keys_focus, cx);
+        self.keys_before = window.focused(cx);
+        window.focus(&self.keys_card, cx);
         cx.notify();
     }
 
-    fn close_keys(&mut self, cx: &mut Context<Self>) {
+    fn close_keys(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.keys_open = false;
+        if let Some(before) = self.keys_before.take() {
+            window.focus(&before, cx);
+        }
         cx.notify();
     }
 
@@ -286,13 +297,14 @@ impl Shell {
                 div().flex().justify_end().child(
                     Btn::new("keys-close", put(&say!("Close")))
                         .primary()
-                        .on_click(cx.listener(|shell, _, _, cx| shell.close_keys(cx))),
+                        .keys(self.keys_card.clone())
+                        .on_click(cx.listener(|shell, _, window, cx| shell.close_keys(window, cx))),
                 ),
             );
         Some(
             div()
                 .id("keys")
-                .track_focus(&self.keys_focus)
+                .track_focus(&self.keys_card)
                 .absolute()
                 .inset_0()
                 .flex()
@@ -300,14 +312,24 @@ impl Shell {
                 .justify_center()
                 .bg(super::widgets::with_alpha(gpui::black(), 0.5))
                 .occlude()
-                .on_key_down(cx.listener(|shell, event: &KeyDownEvent, _, cx| {
+                .on_action(cx.listener(|shell, _: &super::focus::Next, window, cx| {
+                    super::focus::round(&shell.keys_card, false, window, cx);
+                    cx.stop_propagation();
+                }))
+                .on_action(
+                    cx.listener(|shell, _: &super::focus::Previous, window, cx| {
+                        super::focus::round(&shell.keys_card, true, window, cx);
+                        cx.stop_propagation();
+                    }),
+                )
+                .on_key_down(cx.listener(|shell, event: &KeyDownEvent, window, cx| {
                     if event.keystroke.key == "escape" {
-                        shell.close_keys(cx);
+                        shell.close_keys(window, cx);
                     }
                 }))
                 .on_mouse_down(
                     gpui::MouseButton::Left,
-                    cx.listener(|shell, _, _, cx| shell.close_keys(cx)),
+                    cx.listener(|shell, _, window, cx| shell.close_keys(window, cx)),
                 )
                 .child(sheet)
                 .into_any_element(),

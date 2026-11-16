@@ -6,13 +6,13 @@ use super::theme::{self, Theme};
 use super::widgets::{TextSized, label};
 use crate::words::put;
 use gpui::{
-    AnyElement, Context, InteractiveElement, IntoElement, ParentElement, Styled, div,
-    prelude::FluentBuilder, px,
+    AnyElement, Context, InteractiveElement, IntoElement, KeyDownEvent, ParentElement, Styled,
+    Window, div, prelude::FluentBuilder, px,
 };
 use rimstack_core::{say, say_n};
 
 impl Shell {
-    pub(crate) fn press_play(&mut self, cx: &mut Context<Self>) {
+    pub(crate) fn press_play(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if self.game.read(cx).running() {
             return;
         }
@@ -20,13 +20,27 @@ impl Shell {
             true => self.play(cx),
             false => {
                 self.before_play = !self.before_play;
+                if self.before_play {
+                    self.before_play_before = window.focused(cx);
+                    window.focus(&self.before_play_keys, cx);
+                }
                 cx.notify();
             }
         }
     }
 
+    /// Closes the Before-you-play card and gives the keys back where they were.
+    fn close_before_play(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.before_play = false;
+        if let Some(before) = self.before_play_before.take() {
+            window.focus(&before, cx);
+        }
+        cx.notify();
+    }
+
     fn play(&mut self, cx: &mut Context<Self>) {
         self.before_play = false;
+        self.before_play_before = None;
         self.game.update(cx, |game, cx| game.play(false, cx));
         cx.notify();
     }
@@ -110,6 +124,8 @@ impl Shell {
                         .child(way),
                 )
         });
+        // The card's own handle, which its first button holds: the keys open on it.
+        let card = self.before_play_keys.clone();
         let popup = div()
             .id("before-play")
             .absolute()
@@ -136,8 +152,9 @@ impl Shell {
                     Btn::new("save-and-play", put(&say!("Save and play")))
                         .primary()
                         .fill()
-                        .on_click(cx.listener(|shell, _, _, cx| {
-                            shell.before_play = false;
+                        .keys(card.clone())
+                        .on_click(cx.listener(|shell, _, window, cx| {
+                            shell.close_before_play(window, cx);
                             let game = shell.game.downgrade();
                             shell.sections.mods.update(cx, |mods, cx| {
                                 mods.save(
@@ -156,9 +173,10 @@ impl Shell {
                     Btn::new("sort-first", put(&say!("Sort first")))
                         .icon("arrow-up-down")
                         .fill()
+                        .keys(card.clone())
                         .tip(put(&say!("Shows the order the rules ask for, to keep or discard. Nothing is written before Save.")))
-                        .on_click(cx.listener(|shell, _, _, cx| {
-                            shell.before_play = false;
+                        .on_click(cx.listener(|shell, _, window, cx| {
+                            shell.close_before_play(window, cx);
                             shell.go(crate::ui::section::Section::Mods, cx);
                             shell.sections.mods.update(cx, |mods, cx| mods.preview_sort(cx));
                         })),
@@ -168,8 +186,9 @@ impl Shell {
                 d.child(
                     Btn::new("show-problems", put(&say!("Show the problems")))
                         .fill()
-                        .on_click(cx.listener(|shell, _, _, cx| {
-                            shell.before_play = false;
+                        .keys(card.clone())
+                        .on_click(cx.listener(|shell, _, window, cx| {
+                            shell.close_before_play(window, cx);
                             shell.go(crate::ui::section::Section::Mods, cx);
                             shell.sections.mods.update(cx, |mods, cx| mods.open_problems(cx));
                         })),
@@ -180,6 +199,7 @@ impl Shell {
                     Btn::new("find-broken-play", put(&say!("Find the broken mod")))
                         .icon("search")
                         .fill()
+                        .keys(card.clone())
                         .on_click(cx.listener(|shell, _, _, cx| shell.start_hunt(cx))),
                 )
             })
@@ -192,18 +212,35 @@ impl Shell {
                     },
                 )
                 .fill()
+                .keys(card.clone())
                 .on_click(cx.listener(|shell, _, _, cx| shell.play(cx))),
             );
         Some(
             div()
                 .id("before-play-scrim")
+                .track_focus(&card)
                 .absolute()
                 .inset_0()
+                .on_action({
+                    let card = card.clone();
+                    move |_: &super::focus::Next, window, cx| {
+                        super::focus::round(&card, false, window, cx);
+                        cx.stop_propagation();
+                    }
+                })
+                .on_action(move |_: &super::focus::Previous, window, cx| {
+                    super::focus::round(&card, true, window, cx);
+                    cx.stop_propagation();
+                })
+                .on_key_down(cx.listener(|shell, event: &KeyDownEvent, window, cx| {
+                    if event.keystroke.key == "escape" && shell.before_play {
+                        shell.close_before_play(window, cx);
+                    }
+                }))
                 .on_mouse_down(
                     gpui::MouseButton::Left,
-                    cx.listener(|shell, _, _, cx| {
-                        shell.before_play = false;
-                        cx.notify();
+                    cx.listener(|shell, _, window, cx| {
+                        shell.close_before_play(window, cx);
                     }),
                 )
                 .child(popup)

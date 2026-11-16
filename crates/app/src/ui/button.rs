@@ -3,9 +3,9 @@ use super::theme::{self, Theme};
 use super::tip::tipped;
 use super::widgets::{TextSized, halo, icon, watched, weighted, with_alpha};
 use gpui::{
-    App as Cx, Bounds, ClickEvent, ElementId, FontWeight, Hsla, InteractiveElement, IntoElement,
-    ParentElement, Pixels, RenderOnce, Role, SharedString, StatefulInteractiveElement, Styled,
-    Window, div, prelude::FluentBuilder,
+    App as Cx, Bounds, ClickEvent, ElementId, FocusHandle, FontWeight, Hsla, InteractiveElement,
+    IntoElement, ParentElement, Pixels, RenderOnce, Role, SharedString, StatefulInteractiveElement,
+    Styled, Window, div, prelude::FluentBuilder,
 };
 use std::cell::Cell;
 use std::rc::Rc;
@@ -30,6 +30,8 @@ pub struct Btn {
     on_click: Option<Click>,
     placed: Option<Rc<Cell<Bounds<Pixels>>>>,
     fill: bool,
+    /// Held by a card that opens on this button and traps Tab; otherwise its own keyed one.
+    keys: Option<FocusHandle>,
 }
 
 impl Btn {
@@ -51,6 +53,7 @@ impl Btn {
             on_click: None,
             placed: None,
             fill: false,
+            keys: None,
         }
     }
 
@@ -139,11 +142,19 @@ impl Btn {
         self.on_click = Some(Box::new(move |_, window, cx| run(at.get(), window, cx)));
         self
     }
+    /// The keys the card this button opens on holds.
+    pub fn keys(mut self, keys: FocusHandle) -> Self {
+        self.keys = Some(keys);
+        self
+    }
 }
 
 impl RenderOnce for Btn {
     fn render(self, window: &mut Window, cx: &mut Cx) -> impl IntoElement {
-        let handle = focus::handle(self.id.clone(), window, cx);
+        let handle = self
+            .keys
+            .clone()
+            .unwrap_or_else(|| focus::handle(self.id.clone(), window, cx));
         let (pointed, keep_pointed) = super::motion::hovered(&self.id, window, cx);
         let theme = cx.global::<Theme>();
         let c = &theme.colours;

@@ -29,6 +29,7 @@ impl Shell {
             return;
         }
         self.before_play = false;
+        self.before_play_before = None;
         self.go(crate::ui::section::Section::Mods, cx);
         let app = super::app(cx);
         self.hunt_busy = true;

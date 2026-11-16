@@ -34,7 +34,16 @@ pub struct Shell {
     pub(crate) commands: Option<Entity<super::commands::Commands>>,
     pub(crate) closing_commands: Option<Entity<super::commands::Commands>>,
     pub(crate) keys_open: bool,
-    pub(crate) keys_focus: gpui::FocusHandle,
+    /// The keyboard sheet's card: its Close button holds it, and Tab rounds inside.
+    pub(crate) keys_card: gpui::FocusHandle,
+    /// The Before-you-play card: its first button holds it, and Tab rounds inside.
+    pub(crate) before_play_keys: gpui::FocusHandle,
+    /// What held the keys before the keyboard sheet opened.
+    pub(crate) keys_before: Option<gpui::FocusHandle>,
+    /// The background work card, which its first Cancel holds; Tab rounds inside it.
+    pub(crate) tray_keys: gpui::FocusHandle,
+    /// What held the keys before the Before-you-play card opened.
+    pub(crate) before_play_before: Option<gpui::FocusHandle>,
     pub(crate) before_play: bool,
     /// The status bar's note, drawn again alone as the hint changes.
     pub(crate) note: Entity<super::status_note::StatusNote>,
@@ -96,7 +105,11 @@ impl Shell {
             closing_commands: None,
             first_run: None,
             keys_open: false,
-            keys_focus: cx.focus_handle(),
+            keys_card: cx.focus_handle().tab_stop(false),
+            tray_keys: cx.focus_handle().tab_stop(false),
+            before_play_keys: cx.focus_handle().tab_stop(false),
+            keys_before: None,
+            before_play_before: None,
             hunt: match demo {
                 true => Default::default(),
                 false => super::app(cx).hunt(),
@@ -362,7 +375,7 @@ impl Render for Shell {
             ))
             .children(self.hunt_bar(cx))
             .child(self.shown_faded())
-            .child(self.status_bar(cx))
+            .child(self.status_bar(window, cx))
             .children(self.before_play_popup(cx))
             .child(self.lists.clone())
             .children(self.keys_sheet(window, cx))

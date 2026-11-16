@@ -46,6 +46,8 @@ pub struct Prompt {
     focus: FocusHandle,
     before: Option<FocusHandle>,
     turn: usize,
+    /// The main button, which the keys open on.
+    answer_keys: FocusHandle,
     /// Answered or cancelled, drawn only while it fades out; its answer is gone.
     fading: Option<Question>,
 }
@@ -60,6 +62,7 @@ pub fn install(cx: &mut App) -> Entity<Prompt> {
         focus: cx.focus_handle(),
         before: None,
         turn: 0,
+        answer_keys: cx.focus_handle().tab_stop(false),
         fading: None,
     });
     cx.set_global(Asking(prompt.clone()));
@@ -90,7 +93,7 @@ pub fn ask(question: Question, window: &mut Window, cx: &mut App) {
                 cx.observe(&field, |_, _, cx| cx.notify()).detach();
                 window.focus(&field.focus_handle(cx), cx);
             }
-            None => window.focus(&prompt.focus, cx),
+            None => window.focus(&prompt.answer_keys, cx),
         }
         cx.notify();
     });
@@ -171,6 +174,7 @@ impl Render for Prompt {
             })
             .collect();
         let answer = Btn::new("prompt-answer", asked.label.clone())
+            .keys(self.answer_keys.clone())
             .enabled(asked.filled(cx))
             .primary_if(!asked.danger)
             .when(asked.danger, Btn::danger)
@@ -234,8 +238,8 @@ impl Render for Prompt {
             )
             .into_any_element();
         }
-        dimmed
-            .track_focus(&self.focus)
+        let card = self.focus.clone();
+        super::focus::trap(dimmed, &card)
             .occlude()
             .on_key_down(cx.listener(|prompt, event: &KeyDownEvent, window, cx| {
                 if event.keystroke.key == "escape" {
