@@ -518,12 +518,14 @@ impl RenderOnce for Choice {
             .when_some(self.picked, |d, picked| {
                 d.on_key_down(move |event: &KeyDownEvent, window, cx| {
                     let next = match event.keystroke.key.as_str() {
-                        "left" | "up" if current > 0 => current - 1,
-                        "right" | "down" if current < last => current + 1,
+                        "left" | "up" => current.saturating_sub(1),
+                        "right" | "down" => (current + 1).min(last),
                         "home" => 0,
                         "end" => last,
                         _ => return,
                     };
+                    // Ahead of a screen's own arrows, as in the texture comparison, even at an end.
+                    cx.stop_propagation();
                     if next == current {
                         return;
                     }

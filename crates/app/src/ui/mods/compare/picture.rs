@@ -1,13 +1,14 @@
 use super::{CompareView, Cutting};
 use crate::ui::button::Btn;
+use crate::ui::focus;
 use crate::ui::theme::{self, Theme};
 use crate::ui::widgets::label;
 use crate::words::put;
 use crate::workspace::textures::Shared;
 use gpui::{
     AppContext, Bounds, Context, InteractiveElement, IntoElement, MouseButton, MouseMoveEvent,
-    ObjectFit, ParentElement, Pixels, StatefulInteractiveElement, Styled, StyledImage, canvas, div,
-    fill, point, prelude::FluentBuilder, px, size,
+    ObjectFit, ParentElement, Pixels, Role, StatefulInteractiveElement, Styled, StyledImage,
+    Window, canvas, div, fill, point, prelude::FluentBuilder, px, size,
 };
 use rimstack_core::say;
 use std::path::PathBuf;
@@ -167,9 +168,11 @@ impl CompareView {
         &self,
         theme: &Theme,
         texture: &Shared,
+        window: &mut Window,
         cx: &mut Context<Self>,
     ) -> gpui::Div {
         let c = &theme.colours;
+        let divider = self.divider.clone();
         let names = self
             .comparison
             .as_ref()
@@ -262,13 +265,37 @@ impl CompareView {
                                     .w(px(2.))
                                     .bg(c.focus),
                             )
-                            .child(
+                            .child(focus::reachable(
                                 div()
+                                    .id("compare-divider")
+                                    .role(Role::Slider)
+                                    .aria_label(put(&say!("Slider")))
                                     .w(theme::GAP_CARD)
                                     .h(theme.sized(34.))
                                     .rounded(theme::CORNER)
                                     .bg(c.focus),
-                            )
+                                &divider,
+                                theme::CORNER,
+                                true,
+                                window,
+                                theme,
+                            ))
+                            .on_key_down(cx.listener(|view, event: &gpui::KeyDownEvent, _, cx| {
+                                // The line takes the arrows once Tab reaches it, not the texture.
+                                let next = match event.keystroke.key.as_str() {
+                                    "left" => view.cut - 0.05,
+                                    "right" => view.cut + 0.05,
+                                    "home" => 0.,
+                                    "end" => 1.,
+                                    _ => return,
+                                };
+                                cx.stop_propagation();
+                                let next = next.clamp(0., 1.);
+                                if (next - view.cut).abs() > 1e-6 {
+                                    view.cut = next;
+                                    cx.notify();
+                                }
+                            }))
                             .on_drag(Cutting, |_, _, _, cx| cx.new(|_| crate::ui::divider::Ghost)),
                     )
                     .on_drag_move::<Cutting>(cx.listener(

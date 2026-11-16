@@ -162,7 +162,14 @@ fn groups() -> Vec<(Sentence, Vec<(Sentence, Sentence)>)> {
         (
             say!("Texture comparison"),
             vec![
-                (say!("Up, Down"), say!("Previous or next texture")),
+                (
+                    say!("Up, Down, Left, Right"),
+                    say!("Previous or next texture"),
+                ),
+                (
+                    say!("Left, Right, Home, End"),
+                    say!("Move the line of the Slider view, once Tab reaches it"),
+                ),
                 (
                     Sentence::Plain("1, 2".into()),
                     say!("Keep the first or the second mod's"),

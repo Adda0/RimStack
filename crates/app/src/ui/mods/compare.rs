@@ -92,6 +92,8 @@ pub struct CompareView {
     pictures: RefCell<HashMap<&'static str, crate::ui::pictures::Pictures>>,
     scroll: Scrolling,
     pub(super) focus: FocusHandle,
+    /// The line of the Slider view, reached by Tab.
+    divider: FocusHandle,
     /// Every texture is being taken from one side: a second press waits for it.
     keeping: bool,
 }
@@ -131,6 +133,7 @@ impl CompareView {
             pictures: Default::default(),
             scroll,
             focus: cx.focus_handle(),
+            divider: cx.focus_handle().tab_stop(true),
             keeping: false,
         };
         view.comparison = crate::ui::app(cx)
@@ -352,7 +355,7 @@ impl Render for CompareView {
                 .pt(theme::GAP_TINY)
                 .child(self.side(&theme, texture, true, cx))
                 .child(self.side(&theme, texture, false, cx)),
-            (Some(texture), 1) => self.slider(&theme, texture, cx),
+            (Some(texture), 1) => self.slider(&theme, texture, window, cx),
             (Some(_), _) => {
                 let said = match &self.difference {
                     Some((_, Ok(found))) if found.differing == 0 => {
@@ -541,7 +544,7 @@ impl Render for CompareView {
                                 &theme,
                                 theme.small(),
                                 c.ink2,
-                                put(&say!("← → next texture")),
+                                put(&say!("↑ ↓ ← → next texture")),
                             ))
                             .child(label(
                                 &theme,

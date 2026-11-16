@@ -17,6 +17,8 @@ struct Bench {
     on: bool,
     picked: usize,
     slid: f32,
+    /// Keys the screen behind the controls was given.
+    keys: usize,
     chosen: Option<&'static str>,
     menu: Option<Entity<menu::Menu>>,
     notices: Option<Entity<notices::Notices>>,
@@ -31,6 +33,10 @@ impl Render for Bench {
         div()
             .size_full()
             .when_some(self.focus.clone(), |d, focus| d.track_focus(&focus))
+            .on_key_down(cx.listener(|b, _: &gpui::KeyDownEvent, _, cx| {
+                b.keys += 1;
+                cx.notify();
+            }))
             .on_action(|_: &focus::Next, window, cx| window.focus_next(cx))
             .on_action(|_: &focus::Previous, window, cx| window.focus_prev(cx))
             .child(Btn::new("first", "First").on_click(cx.listener(|b, _, _, _| b.first += 1)))
