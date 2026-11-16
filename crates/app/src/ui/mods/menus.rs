@@ -198,6 +198,7 @@ impl Mods {
                 crate::ui::navigate::go(crate::ui::navigate::Go::UpdateFromGit(*mod_id), cx)
             }
             Action::PutInSub { mod_id, tag } => self.group(vec![*mod_id], tag, cx),
+            Action::GroupMenu { mod_id } => self.open_group_menu(*mod_id, window, cx),
             Action::NewSub { mod_id } => self.ask_name(vec![*mod_id], Naming::NewSub, window, cx),
             Action::Trust { ids, yes } => self.trust(ids.clone(), *yes, cx),
             Action::Bin { name, path, mod_id } => self.ask_bin(name, path, *mod_id, window, cx),
@@ -275,6 +276,22 @@ impl Mods {
             }
             _ => cx.open_url(&crate::ui::workshop_page(target)),
         }
+    }
+
+    /// The groups in a menu of their own, where the row menu's single entry was.
+    pub(super) fn open_group_menu(
+        &mut self,
+        mod_id: ModId,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let at = menu::shown_at(cx);
+        let app = crate::ui::app(cx);
+        let entries = self
+            .list
+            .update(cx, |list, _| list.order.group_menu(&app, mod_id));
+        let Some(at) = at else { return };
+        self.open_entries(entries, at, window, cx);
     }
 
     pub(super) fn group(&mut self, ids: Vec<ModId>, name: &str, cx: &mut Context<Self>) {

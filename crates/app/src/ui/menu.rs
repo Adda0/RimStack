@@ -7,8 +7,8 @@ use super::widgets::{TextSized, icon, measure};
 use gpui::{
     AnyElement, App, AppContext, Bounds, Context, Entity, FocusHandle, Focusable, FontWeight,
     Global, Hsla, InteractiveElement, IntoElement, KeyDownEvent, ParentElement, Pixels, Point,
-    Render, Role, SharedString, StatefulInteractiveElement, Styled, Window, anchored, deferred,
-    div, point, prelude::FluentBuilder, px,
+    Render, Role, ScrollHandle, SharedString, StatefulInteractiveElement, Styled, Window, anchored,
+    deferred, div, point, prelude::FluentBuilder, px,
 };
 use std::rc::Rc;
 
@@ -101,6 +101,10 @@ pub struct Menu {
     turn: usize,
     /// Closed, and drawn only while it fades out.
     fading: bool,
+    /// Scrolls the entries when they are taller than the window.
+    scroll: ScrollHandle,
+    /// Whether a menu has been shown, so another can open where it stood.
+    opened: bool,
 }
 
 struct Shown(Entity<Menu>);
@@ -118,6 +122,8 @@ pub fn install(cx: &mut App) -> Entity<Menu> {
         chosen: None,
         focus: cx.focus_handle(),
         before: None,
+        scroll: ScrollHandle::new(),
+        opened: false,
     });
     cx.set_global(Shown(menu.clone()));
     menu
@@ -183,6 +189,8 @@ fn show(
         menu.before = before;
         menu.turn = super::motion::opening();
         menu.fading = false;
+        menu.scroll = ScrollHandle::new();
+        menu.opened = true;
         window.focus(&menu.focus, cx);
         cx.notify();
     });
@@ -235,6 +243,8 @@ impl Menu {
             next = (next + by).rem_euclid(count);
             if matches!(&self.entries[next as usize], Entry::Item(item) if !item.off) {
                 self.chosen = Some(next as usize);
+                // Scrolled just enough to show the entry the keys landed on.
+                self.scroll.scroll_to_item(next as usize);
                 return;
             }
         }
@@ -419,6 +429,8 @@ impl Render for Menu {
         }
         let theme = cx.global::<Theme>().clone();
         let c = theme.colours;
+        // A menu taller than the window stays inside it and scrolls.
+        let room = window.viewport_size().height - theme::GAP_TINY * 2.;
         let entries: Vec<AnyElement> = (0..self.entries.len())
             .map(|at| self.entry(at, &theme, window, cx))
             .collect();
@@ -442,6 +454,9 @@ impl Render for Menu {
                 .gap(theme::GAP_SMALL)
             })
             .when(self.buttons.is_none(), |d| d.p(theme::GAP_TINY))
+            .max_h(room)
+            .overflow_y_scroll()
+            .track_scroll(&self.scroll)
             .rounded(theme::CORNER_LARGE)
             .bg(c.bar)
             .border_1()
@@ -504,10 +519,46 @@ impl Render for Menu {
     }
 }
 
+/// Where the menu last shown was opened, for a menu that opens another where it stands.
+pub fn shown_at(cx: &App) -> Option<Point<Pixels>> {
+    let menu = cx.try_global::<Shown>().map(|shown| shown.0.clone())?;
+    let menu = menu.read(cx);
+    menu.opened.then_some(menu.at)
+}
+
+#[cfg(all(test, target_os = "linux"))]
+impl Menu {
+    /// The bounds of the entries' list, for the checks.
+    pub(crate) fn list(&self) -> Bounds<Pixels> {
+        self.scroll.bounds()
+    }
+
+    /// Whether the entries are taller than the room they were given.
+    pub(crate) fn scrolls(&self) -> bool {
+        self.scroll.max_offset().y > px(0.)
+    }
+
+    /// How far the entries are scrolled down, negative as a scroll offset is.
+    pub(crate) fn down(&self) -> Pixels {
+        -self.scroll.offset().y
+    }
+
+    /// The entry the keys are on, and its bounds, for the checks.
+    pub(crate) fn seen(&self) -> Option<(usize, Bounds<Pixels>)> {
+        let at = self.chosen?;
+        Some((at, self.scroll.bounds_for_item(at)?))
+    }
+}
+
 #[cfg(all(test, target_os = "linux"))]
 pub(crate) fn drawn(cx: &App) -> bool {
     cx.try_global::<Shown>()
         .is_some_and(|shown| !shown.0.read(cx).entries.is_empty())
+}
+
+#[cfg(all(test, target_os = "linux"))]
+pub(crate) fn shown(cx: &App) -> Option<Entity<Menu>> {
+    cx.try_global::<Shown>().map(|shown| shown.0.clone())
 }
 
 #[cfg(all(test, target_os = "linux"))]

@@ -59,6 +59,10 @@ pub enum Action {
     NewSub {
         mod_id: ModId,
     },
+    /// One entry, as the tags in use may be many: opens the groups in a menu of their own.
+    GroupMenu {
+        mod_id: ModId,
+    },
     Trust {
         ids: Vec<ModId>,
         yes: bool,
@@ -459,7 +463,23 @@ impl LoadOrder {
         ]
     }
 
-    /// The row menu's filing entries, for the About tab's Change button.
+    /// The row menu's filing group: one entry, as the tags in use may be many. The groups
+    /// themselves open in a menu of their own, the same one the About tab's group button
+    /// opens.
+    fn filing(at: &Clicked, subject: &Subject) -> Vec<Entry> {
+        let (Some(id), Some(_)) = (at.id, subject.group_choices.as_ref()) else {
+            return Vec::new();
+        };
+        vec![Entry::item(
+            say!("Group under a tag"),
+            "tag",
+            Action::GroupMenu { mod_id: id },
+        )]
+    }
+
+    /// The groups beside the mod, a new one, out of its group, and its group deleted for
+    /// every mod in it: opened by the row menu's one filing entry and the About tab's
+    /// Change button alike.
     pub fn group_menu(&mut self, app: &App, id: ModId) -> Vec<Entry> {
         let subject = Subject::held(self.details(app, id));
         let at = Clicked {
@@ -468,10 +488,10 @@ impl LoadOrder {
             id: Some(id),
             selected: &[],
         };
-        Self::filing(&at, &subject)
+        Self::group_entries(&at, &subject)
     }
 
-    fn filing(at: &Clicked, subject: &Subject) -> Vec<Entry> {
+    fn group_entries(at: &Clicked, subject: &Subject) -> Vec<Entry> {
         let (Some(id), Some(choices)) = (at.id, &subject.group_choices) else {
             return Vec::new();
         };
@@ -651,8 +671,7 @@ mod tests {
             "Copy name",
             "Copy package id",
             "-",
-            "# Group under a tag",
-            "A new tag…",
+            "Group under a tag",
             "-",
             "# Colour",
         ]
@@ -753,6 +772,54 @@ mod tests {
         order.toggle_sub(&app, Side::Inactive, row);
         assert_eq!(shown(&order.sub_menu(false, row))[0], "Show its mods");
         assert!(order.sub_menu(false, 99).is_empty());
+    }
+
+    #[test]
+    fn the_row_menu_holds_the_groups_in_one_entry() {
+        let (tmp, app) = installed();
+        mod_at(tmp.path(), "game/Mods/hats", "Ann.Hats");
+        app.rescan();
+        let mut order = LoadOrder::read(&app, true, None);
+        let (_, _, roads) = id_of(&order, "ann.roads");
+        app.set_group(&[roads], "Stone");
+        order.sync(&app);
+        let entries = menu(&mut order, &app, "ann.roads", &["ann.roads"]);
+        let texts = shown(&entries);
+        assert_eq!(
+            texts
+                .iter()
+                .filter(|t| t.as_str() == "Group under a tag")
+                .count(),
+            1,
+            "one entry, not a title with a Group under for every tag"
+        );
+        assert!(!texts.contains(&"A new tag…".to_string()));
+        let group = entries
+            .iter()
+            .find(|e| {
+                e.text
+                    .as_ref()
+                    .is_some_and(|t| t.to_string() == "Group under a tag")
+            })
+            .unwrap();
+        assert_eq!(group.icon, "tag");
+        let Action::GroupMenu { mod_id } = group.action.as_ref().unwrap() else {
+            panic!("opens the groups");
+        };
+        assert_eq!(*mod_id, roads);
+        // The same entries the About tab's Change button opens. The mod's own tag is
+        // offered too: grouping it under Stone again is a no-op that keeps it there.
+        let mut wanted = vec!["# Group under a tag".to_string()];
+        let choices = order.details(&app, roads).group_choices;
+        for tag in choices {
+            wanted.push(format!("Group under {tag}"));
+        }
+        wanted.extend([
+            "A new tag…".to_string(),
+            "Remove the tag Stone".to_string(),
+            "Delete the group Stone…".to_string(),
+        ]);
+        assert_eq!(shown(&order.group_menu(&app, roads)), wanted);
     }
 
     #[test]

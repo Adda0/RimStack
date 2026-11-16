@@ -219,6 +219,72 @@ fn a_menu_is_chosen_from_with_the_arrows_and_closes_on_escape(cx: &mut TestAppCo
 }
 
 #[gpui::test]
+fn a_menu_taller_than_the_window_stays_inside_it_and_follows_the_keys(cx: &mut TestAppContext) {
+    let (_root, bench, cx) = bench(cx);
+    let entries: Vec<menu::Entry> = (0..80)
+        .map(|at| {
+            let me = bench.downgrade();
+            menu::Entry::item(format!("check entry {at}"), move |_, cx| {
+                let _ = me.update(cx, |b, _| b.chosen = Some("chosen"));
+            })
+            .into()
+        })
+        .collect();
+    cx.update(|window, cx| {
+        menu::open_at(
+            gpui::point(gpui::px(10.), gpui::px(10.)),
+            entries,
+            window,
+            cx,
+        );
+    });
+    cx.run_until_parked();
+    cx.update(|window, cx| {
+        window.draw(cx).clear(cx);
+    });
+    let (menu, window) = cx.update(|window, cx| {
+        (
+            menu::shown(cx).expect("the menu is shown"),
+            window.viewport_size(),
+        )
+    });
+    menu.read_with(cx, |menu, _| {
+        let list = menu.list();
+        assert!(menu.scrolls(), "an 80-entry menu is taller than the window");
+        assert!(
+            list.bottom() <= window.height,
+            "a menu taller than the window stays inside it"
+        );
+    });
+    cx.simulate_keystrokes("up");
+    let (at, _) = menu.read_with(cx, |menu, _| menu.seen().expect("the keys are on an entry"));
+    assert!(at > 40, "the up key steps to the last entry");
+    // Drawn twice: once to land the scroll the key asked for, once to lay the entries out
+    // under it.
+    for _ in 0..2 {
+        cx.run_until_parked();
+        cx.update(|window, cx| window.draw(cx).clear(cx));
+    }
+    let (list, spot, down) = menu.read_with(cx, |menu, _| {
+        (
+            menu.list(),
+            menu.seen().expect("the keys are on an entry"),
+            menu.down(),
+        )
+    });
+    // `bounds_for_item` speaks in the content's space: the scroll is taken off it.
+    let (top, bottom) = (spot.1.top() - down, spot.1.bottom() - down);
+    assert!(
+        top >= list.top() && bottom <= list.bottom(),
+        "and it scrolls to the entry the keys are on: chosen {} at {:?}..{:?} in {:?}",
+        spot.0,
+        top,
+        bottom,
+        list
+    );
+}
+
+#[gpui::test]
 fn a_toast_goes_by_itself_after_a_while(cx: &mut TestAppContext) {
     let (_root, bench, cx) = bench(cx);
     cx.update(|_, cx| notices::say("Saved", notices::Tone::Ok, cx));
