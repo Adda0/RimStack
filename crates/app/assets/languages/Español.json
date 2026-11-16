@@ -1834,5 +1834,19 @@
  "{} active mods": "{} mods activos",
  "{} as {} in {}": "{} como {} en {}",
  "Dialogs and menus": "Diálogos y menús",
- "Press the focused button or menu entry; a dialog opens on its main one": "Pulsar el botón o la entrada de menú enfocados; un diálogo se abre en su botón principal"
+ "Press the focused button or menu entry; a dialog opens on its main one": "Pulsar el botón o la entrada de menú enfocados; un diálogo se abre en su botón principal",
+ "Delete and subscribe again": "Eliminar y suscribirse de nuevo",
+ "Delete and subscribe again…": "Eliminar y suscribirse de nuevo…",
+ "Delete its files, but keep the .dds textures…": "Eliminar sus archivos, pero mantener las texturas .dds…",
+ "Delete the .dds textures of {}": "Eliminar las texturas .dds de {}",
+ "Delete the .dds textures…": "Eliminar las texturas .dds…",
+ "Delete the files": "Eliminar los archivos",
+ "Delete the files of {} but keep its .dds textures": "Eliminar los archivos de {} pero mantener sus texturas .dds",
+ "Delete the textures": "Eliminar las texturas",
+ "Delete {} and subscribe to it again": "Eliminar {} y suscribirse de nuevo",
+ "Everything but its .dds textures goes to the bin, so the mod stops being listed; the textures stay for the copy Steam downloads again.": "Todo excepto sus texturas .dds va a la papelera, por lo que el mod deja de aparecer en la lista; las texturas se quedan para la copia que Steam descarga nuevamente.",
+ "Its folder goes to the bin, and Steam downloads the mod again.": "Su carpeta va a la papelera, y Steam descarga el mod nuevamente.",
+ "Only a Workshop mod is downloaded again by Steam": "Solo un mod del Workshop se vuelve a descargar con Steam",
+ "{} texture RimStack made is removed, and the game loads the .png instead.": "{} textura que RimStack hizo se elimina, y el juego carga el .png en su lugar.",
+ "{} textures RimStack made are removed, and the game loads the .png instead.": "{} texturas que RimStack hizo se eliminan, y el juego carga el .png en su lugar."
 }

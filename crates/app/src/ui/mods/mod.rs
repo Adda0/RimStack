@@ -456,6 +456,8 @@ impl Mods {
             cx,
             move |_| {
                 let mut order = LoadOrder::read(&app, headings, inactive_by);
+                // Read here, so a mod's details and row menu count its DDS files at once.
+                let _ = app.texture_manifest();
                 order.set_active_by(active_by);
                 order
             },

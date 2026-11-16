@@ -6,7 +6,7 @@ use crate::ui::text_field::TextField;
 use crate::ui::theme::{CATEGORY_NAMES, SWATCHES, Theme};
 use crate::words::put;
 use crate::workspace::load_order::{Action, Clicked, Entry, Side};
-use crate::workspace::upkeep::Line as AskLine;
+use crate::workspace::upkeep::{BinKind, Line as AskLine};
 use gpui::{AppContext, Context, Pixels, Point, Window};
 use rimstack_core::base::sentence::Sentence;
 use rimstack_core::mods::library::ModId;
@@ -201,7 +201,13 @@ impl Mods {
             Action::GroupMenu { mod_id } => self.open_group_menu(*mod_id, window, cx),
             Action::NewSub { mod_id } => self.ask_name(vec![*mod_id], Naming::NewSub, window, cx),
             Action::Trust { ids, yes } => self.trust(ids.clone(), *yes, cx),
-            Action::Bin { name, path, mod_id } => self.ask_bin(name, path, *mod_id, window, cx),
+            Action::Bin {
+                name,
+                path,
+                mod_id,
+                kind,
+                made,
+            } => self.ask_bin_as((name, path, *mod_id), (*kind, *made), window, cx),
             Action::ToggleSub { active, row } => self.toggle_sub(Side::of(*active), *row, cx),
             Action::RemoveSub { active, row } => self.remove_sub(Side::of(*active), *row, cx),
             Action::DeleteSub { tag } => self.ask_delete_group(tag, window, cx),
@@ -449,27 +455,46 @@ impl Mods {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        self.ask_bin_as((name, folder, id), (BinKind::Whole, 0), window, cx);
+    }
+
+    /// The mod's name, folder and id; how to delete it and the DDS textures RimStack made in
+    /// it, for the question.
+    pub(super) fn ask_bin_as(
+        &mut self,
+        (name, folder, id): (&str, &str, ModId),
+        (kind, made): (BinKind, usize),
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         let me = cx.entity().downgrade();
         prompt::ask(
             Question {
-                title: put(&say!("Move to the bin: {}", name.to_string())),
+                title: put(&kind.title(name)),
                 lines: vec![
                     Line::Path(folder.to_string()),
-                    Line::Text(put(&say!(
-                        "Steam downloads a Workshop mod again while you stay subscribed to it."
-                    ))),
+                    Line::Text(put(&kind.note(made))),
                 ],
-                label: put(&say!("Move to the bin")),
+                label: put(&kind.label()),
                 danger: true,
                 run: Box::new(move |_, cx| {
-                    let _ = me.update(cx, |mods, cx| {
+                    let _ = me.update(cx, |_, cx| {
                         let app = crate::ui::app(cx);
-                        let binned = app.bin_mod(id);
-                        mods.status.upkeep_problem = crate::words::why_not(&binned);
-                        if binned.is_ok() {
-                            app.rescan_soon();
-                        }
-                        cx.notify();
+                        crate::jobs::run(
+                            "delete a mod",
+                            cx,
+                            move || {
+                                let binned = app.bin_as(id, kind);
+                                if binned.is_ok() {
+                                    app.rescan_soon();
+                                }
+                                binned
+                            },
+                            |mods, binned, cx| {
+                                mods.status.upkeep_problem = crate::words::why_not(&binned);
+                                cx.notify();
+                            },
+                        );
                     });
                 }),
             },

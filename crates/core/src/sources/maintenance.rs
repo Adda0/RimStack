@@ -26,6 +26,19 @@ pub fn copy_to_local(mod_root: &Path, workshop_id: &str, local_mods: &Path) -> R
     Ok(to)
 }
 
+/// What goes when a mod's files go but its DDS textures stay, so that the
+/// game loads the PNGs instead and a resubscribe needs no conversion again.
+pub fn files_except_dds(mod_root: &Path) -> Vec<PathBuf> {
+    crate::base::walk::files(mod_root)
+        .into_iter()
+        .filter(|file| {
+            !file
+                .extension()
+                .is_some_and(|x| x.eq_ignore_ascii_case("dds"))
+        })
+        .collect()
+}
+
 /// Every file is copied before any is removed; `aside` must not exist yet.
 pub fn set_mod_settings_aside(config: &Path, aside: &Path) -> Result<usize> {
     let files = std::fs::read_dir(config.join("Config"))
@@ -468,6 +481,32 @@ mod tests {
             std::fs::read_to_string(aside.join("Mod_1_A.xml")).unwrap(),
             "Mod_1_A.xml"
         );
+    }
+    #[test]
+    fn only_the_files_that_are_not_dds_go() {
+        let tmp = tempfile::tempdir().unwrap();
+        let root = tmp.path().join("mod");
+        std::fs::create_dir_all(root.join("About")).unwrap();
+        std::fs::create_dir_all(root.join("Textures/Things")).unwrap();
+        for name in [
+            "About/About.xml",
+            "Textures/Things/hat.png",
+            "Textures/Things/hat.dds",
+            "Textures/Things/HAT.DDS",
+        ] {
+            std::fs::write(root.join(name), name).unwrap();
+        }
+        let mut going: Vec<String> = files_except_dds(&root)
+            .iter()
+            .map(|file| {
+                file.strip_prefix(&root)
+                    .unwrap()
+                    .to_string_lossy()
+                    .into_owned()
+            })
+            .collect();
+        going.sort();
+        assert_eq!(going, ["About/About.xml", "Textures/Things/hat.png"]);
     }
 
     #[test]

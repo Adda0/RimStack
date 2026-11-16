@@ -1834,5 +1834,19 @@
  "{} active mods": "{} mods actifs",
  "{} as {} in {}": "{} en {} dans {}",
  "Dialogs and menus": "Dialogues et menus",
- "Press the focused button or menu entry; a dialog opens on its main one": "Appuyer sur le bouton ou l'entrée de menu ciblés ; un dialogue s'ouvre sur son bouton principal"
+ "Press the focused button or menu entry; a dialog opens on its main one": "Appuyer sur le bouton ou l'entrée de menu ciblés ; un dialogue s'ouvre sur son bouton principal",
+ "Delete and subscribe again": "Supprimer et vous y réabonner",
+ "Delete and subscribe again…": "Supprimer et vous y réabonner…",
+ "Delete its files, but keep the .dds textures…": "Supprimer ses fichiers, mais conserver les textures .dds…",
+ "Delete the .dds textures of {}": "Supprimer les textures .dds de {}",
+ "Delete the .dds textures…": "Supprimer les textures .dds…",
+ "Delete the files": "Supprimer les fichiers",
+ "Delete the files of {} but keep its .dds textures": "Supprimer les fichiers de {} mais conserver ses textures .dds",
+ "Delete the textures": "Supprimer les textures",
+ "Delete {} and subscribe to it again": "Supprimer {} et vous y réabonner",
+ "Everything but its .dds textures goes to the bin, so the mod stops being listed; the textures stay for the copy Steam downloads again.": "Tout sauf ses textures .dds va à la corbeille, donc le mod n'est plus listé; les textures restent pour la copie que Steam télécharge à nouveau.",
+ "Its folder goes to the bin, and Steam downloads the mod again.": "Son dossier va à la corbeille, et Steam télécharge le mod à nouveau.",
+ "Only a Workshop mod is downloaded again by Steam": "Seul un mod du Workshop est à nouveau téléchargé par Steam",
+ "{} texture RimStack made is removed, and the game loads the .png instead.": "{} texture créée par RimStack est supprimée, et le jeu charge le .png à la place.",
+ "{} textures RimStack made are removed, and the game loads the .png instead.": "{} textures créées par RimStack sont supprimées, et le jeu charge le .png à la place."
 }

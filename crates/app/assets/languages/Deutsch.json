@@ -1834,5 +1834,19 @@
  "{} active mods": "{} aktive Mods",
  "{} as {} in {}": "{} als {} in {}",
  "Dialogs and menus": "Dialoge und Menüs",
- "Press the focused button or menu entry; a dialog opens on its main one": "Die fokussierte Schaltfläche oder den Menüeintrag drücken; ein Dialog öffnet auf seiner Hauptschaltfläche"
+ "Press the focused button or menu entry; a dialog opens on its main one": "Die fokussierte Schaltfläche oder den Menüeintrag drücken; ein Dialog öffnet auf seiner Hauptschaltfläche",
+ "Delete and subscribe again": "Löschen und erneut abonnieren",
+ "Delete and subscribe again…": "Löschen und erneut abonnieren…",
+ "Delete its files, but keep the .dds textures…": "Dateien löschen, aber .dds-Texturen behalten…",
+ "Delete the .dds textures of {}": ".dds-Texturen von {} löschen",
+ "Delete the .dds textures…": ".dds-Texturen löschen…",
+ "Delete the files": "Dateien löschen",
+ "Delete the files of {} but keep its .dds textures": "Dateien von {} löschen, aber .dds-Texturen behalten",
+ "Delete the textures": "Texturen löschen",
+ "Delete {} and subscribe to it again": "{} löschen und erneut abonnieren",
+ "Everything but its .dds textures goes to the bin, so the mod stops being listed; the textures stay for the copy Steam downloads again.": "Alles außer seinen .dds-Texturen geht in den Papierkorb, so dass das Mod nicht mehr aufgelistet wird; die Texturen bleiben für die Kopie, die Steam erneut herunterlädt.",
+ "Its folder goes to the bin, and Steam downloads the mod again.": "Sein Ordner geht in den Papierkorb, und Steam lädt das Mod erneut herunter.",
+ "Only a Workshop mod is downloaded again by Steam": "Nur eine Workshop-Mod wird von Steam erneut heruntergeladen",
+ "{} texture RimStack made is removed, and the game loads the .png instead.": "{} Textur, die RimStack erstellt hat, wird entfernt, und das Spiel lädt stattdessen die .png.",
+ "{} textures RimStack made are removed, and the game loads the .png instead.": "{} Texturen, die RimStack erstellt hat, werden entfernt, und das Spiel lädt stattdessen die .png."
 }

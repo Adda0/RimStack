@@ -71,6 +71,9 @@ pub enum Action {
         name: String,
         path: String,
         mod_id: ModId,
+        kind: crate::workspace::upkeep::BinKind,
+        /// DDS textures RimStack made in it, for the question.
+        made: usize,
     },
     ToggleSub {
         active: bool,
@@ -207,6 +210,7 @@ struct Subject {
     version_ok: bool,
     offer_trust: bool,
     can_bin: bool,
+    dds_made: usize,
 }
 
 impl Subject {
@@ -242,6 +246,7 @@ impl Subject {
             version_ok: about.version_ok,
             offer_trust: about.offer_trust,
             can_bin: about.can_bin,
+            dds_made: about.dds_made,
             ..Subject::unknown()
         }
     }
@@ -265,6 +270,7 @@ impl Subject {
             version_ok: false,
             offer_trust: false,
             can_bin: false,
+            dds_made: 0,
         }
     }
 }
@@ -605,13 +611,23 @@ impl LoadOrder {
             let text = say!("Ignore the game version mismatch");
             group.push(Entry::item(text, "check", trust(one, true)));
         }
-        if let (true, Some(id)) = (subject.can_bin, at.id) {
-            let action = Action::Bin {
-                name: subject.name.clone(),
-                path: subject.path.clone(),
-                mod_id: id,
-            };
-            group.push(Entry::item(say!("Move to the bin…"), "trash-2", action).danger());
+        if let Some(id) = at.id {
+            let kinds = crate::workspace::upkeep::BinKind::offered(
+                subject.dds_made,
+                subject.workshop,
+                subject.can_bin,
+            );
+            for kind in kinds {
+                let action = Action::Bin {
+                    name: subject.name.clone(),
+                    path: subject.path.clone(),
+                    mod_id: id,
+                    kind,
+                    made: subject.dds_made,
+                };
+                let (text, icon) = kind.entry();
+                group.push(Entry::item(text, icon, action).danger());
+            }
         }
         group
     }
@@ -701,7 +717,11 @@ mod tests {
         .collect();
         wanted.extend(SWATCHES.iter().map(|(name, _, _)| name.to_string()));
         wanted.push("No colour".to_string());
-        wanted.extend(["-".to_string(), "Move to the bin…".to_string()]);
+        wanted.extend([
+            "-".to_string(),
+            "Move to the bin…".to_string(),
+            "Delete its files, but keep the .dds textures…".to_string(),
+        ]);
         assert_eq!(shown(&entries), wanted);
         assert!(entries.last().unwrap().danger);
         assert!(matches!(

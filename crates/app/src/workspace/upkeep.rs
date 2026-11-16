@@ -27,6 +27,57 @@ impl App {
         trash::delete(&folder).map_err(|problem| Error::file(&folder, problem))
     }
 
+    /// The way `kind` deletes the mod, as its row menu asked.
+    pub fn bin_as(&self, id: ModId, kind: BinKind) -> Result<(), Error> {
+        match kind {
+            BinKind::Whole => self.bin_mod(id),
+            BinKind::KeepDds => self.bin_except_dds(id).map(|_| ()),
+            BinKind::DdsOnly => self.remove_dds(id).map(|_| ()),
+            BinKind::Resubscribe => self.bin_and_resubscribe(id),
+        }
+    }
+
+    /// The DDS textures stay where they are, so a resubscribed Workshop mod reads them
+    /// again without converting anything.
+    pub fn bin_except_dds(&self, id: ModId) -> Result<usize, Error> {
+        let folder = self.bin_target(id)?;
+        let files = maintenance::files_except_dds(&folder);
+        let gone = files.len();
+        trash::delete_all(&files).map_err(|problem| Error::file(&folder, problem))?;
+        Ok(gone)
+    }
+
+    /// Only the DDS files RimStack made: the game goes back to loading the PNGs.
+    pub fn remove_dds(&self, id: ModId) -> Result<usize, Error> {
+        let folder = self.installed_mod(id, |m| m.path.clone())?;
+        let file = self.texture_manifest_file();
+        let mut manifest = rimstack_core::mods::textures::Manifest::read(&file);
+        let removed = rimstack_core::mods::textures::remove(&folder, &mut manifest);
+        manifest
+            .write(&file)
+            .map_err(|problem| Error::file(&file, problem))?;
+        self.textures_changed();
+        Ok(removed)
+    }
+
+    /// Steam drops the copy in its own hands only after the unsubscription, so that
+    /// comes first; the subscription it is sent next downloads the mod anew.
+    pub fn bin_and_resubscribe(&self, id: ModId) -> Result<(), Error> {
+        let workshop = self.workshop_id(id).ok_or_else(|| {
+            Error::refused(said!("Only a Workshop mod is downloaded again by Steam"))
+        })?;
+        let folder = self.bin_target(id)?;
+        trash::delete(&folder).map_err(|problem| Error::file(&folder, problem))?;
+        let ids = std::slice::from_ref(&workshop);
+        let unsubscribed = self
+            .ask_steam(super::fetch::SteamAsk::Unsubscribe, ids)
+            .note;
+        std::thread::sleep(std::time::Duration::from_secs(1));
+        let subscribed = self.ask_steam(super::fetch::SteamAsk::Subscribe, ids).note;
+        unsubscribed?;
+        subscribed.map(|_| ())
+    }
+
     /// The game's own mods and those in the load order being edited are refused, but for a
     /// local copy whose Workshop subscription then takes its place.
     fn bin_target(&self, id: ModId) -> Result<PathBuf, Error> {
@@ -137,6 +188,81 @@ impl App {
                     first.within()
                 ),
             )),
+        }
+    }
+}
+
+/// The ways a mod's row menu offers to delete it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub enum BinKind {
+    Whole,
+    KeepDds,
+    DdsOnly,
+    Resubscribe,
+}
+
+impl BinKind {
+    /// The whole mod only where it may go; the DDS files only where some were made.
+    pub fn offered(made: usize, workshop: bool, whole: bool) -> Vec<BinKind> {
+        let mut kinds = Vec::new();
+        if whole {
+            kinds.extend([BinKind::Whole, BinKind::KeepDds]);
+        }
+        if made > 0 {
+            kinds.push(BinKind::DdsOnly);
+        }
+        if whole && workshop {
+            kinds.push(BinKind::Resubscribe);
+        }
+        kinds
+    }
+
+    pub fn entry(self) -> (Sentence, &'static str) {
+        match self {
+            BinKind::Whole => (say!("Move to the bin…"), "trash-2"),
+            BinKind::KeepDds => (
+                say!("Delete its files, but keep the .dds textures…"),
+                "trash-2",
+            ),
+            BinKind::DdsOnly => (say!("Delete the .dds textures…"), "image"),
+            BinKind::Resubscribe => (say!("Delete and subscribe again…"), "download"),
+        }
+    }
+
+    pub fn title(self, name: &str) -> Sentence {
+        match self {
+            BinKind::KeepDds => say!("Delete the files of {} but keep its .dds textures", name),
+            BinKind::DdsOnly => say!("Delete the .dds textures of {}", name),
+            BinKind::Resubscribe => say!("Delete {} and subscribe to it again", name),
+            BinKind::Whole => say!("Move to the bin: {}", name),
+        }
+    }
+
+    pub fn note(self, made: usize) -> Sentence {
+        match self {
+            BinKind::KeepDds => say!(
+                "Everything but its .dds textures goes to the bin, so the mod stops being listed; the textures stay for the copy Steam downloads again."
+            ),
+            BinKind::DdsOnly => say_n!(
+                made,
+                "{} texture RimStack made is removed, and the game loads the .png instead.",
+                "{} textures RimStack made are removed, and the game loads the .png instead."
+            ),
+            BinKind::Resubscribe => {
+                say!("Its folder goes to the bin, and Steam downloads the mod again.")
+            }
+            BinKind::Whole => {
+                say!("Steam downloads a Workshop mod again while you stay subscribed to it.")
+            }
+        }
+    }
+
+    pub fn label(self) -> Sentence {
+        match self {
+            BinKind::KeepDds => say!("Delete the files"),
+            BinKind::DdsOnly => say!("Delete the textures"),
+            BinKind::Resubscribe => say!("Delete and subscribe again"),
+            BinKind::Whole => say!("Move to the bin"),
         }
     }
 }

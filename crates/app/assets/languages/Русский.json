@@ -1834,5 +1834,19 @@
  "{} active mods": "{} active mods",
  "{} as {} in {}": "{} as {} in {}",
  "Dialogs and menus": "Dialogs and menus",
- "Press the focused button or menu entry; a dialog opens on its main one": "Press the focused button or menu entry; a dialog opens on its main one"
+ "Press the focused button or menu entry; a dialog opens on its main one": "Press the focused button or menu entry; a dialog opens on its main one",
+ "Delete and subscribe again": "Delete and subscribe again",
+ "Delete and subscribe again…": "Delete and subscribe again…",
+ "Delete its files, but keep the .dds textures…": "Delete its files, but keep the .dds textures…",
+ "Delete the .dds textures of {}": "Delete the .dds textures of {}",
+ "Delete the .dds textures…": "Delete the .dds textures…",
+ "Delete the files": "Delete the files",
+ "Delete the files of {} but keep its .dds textures": "Delete the files of {} but keep its .dds textures",
+ "Delete the textures": "Delete the textures",
+ "Delete {} and subscribe to it again": "Delete {} and subscribe to it again",
+ "Everything but its .dds textures goes to the bin, so the mod stops being listed; the textures stay for the copy Steam downloads again.": "Everything but its .dds textures goes to the bin, so the mod stops being listed; the textures stay for the copy Steam downloads again.",
+ "Its folder goes to the bin, and Steam downloads the mod again.": "Its folder goes to the bin, and Steam downloads the mod again.",
+ "Only a Workshop mod is downloaded again by Steam": "Only a Workshop mod is downloaded again by Steam",
+ "{} texture RimStack made is removed, and the game loads the .png instead.": "{} texture RimStack made is removed, and the game loads the .png instead.",
+ "{} textures RimStack made are removed, and the game loads the .png instead.": "{} textures RimStack made are removed, and the game loads the .png instead."
 }

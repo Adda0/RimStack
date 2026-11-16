@@ -112,6 +112,8 @@ pub struct Details {
     pub preview: Option<String>,
     /// Its `Mod_*` files of the game's Config.
     pub settings_files: Vec<String>,
+    /// DDS textures RimStack made in its folder.
+    pub dds_made: usize,
     pub author: String,
     pub package_id: String,
     pub version: String,
@@ -363,6 +365,7 @@ impl LoadOrder {
         said.group_choices = choices;
         said.can_bin = m.source != Source::Official && self.active.position_of(id).is_none();
         said.settings_files = app.mod_settings_files(&m.folder);
+        said.dds_made = app.texture_manifest().made_in(&m.path);
         // A local copy has the page of the item it names, of its subscribed twin, or of its
         // package id in the Workshop database.
         let item = match m.source {
