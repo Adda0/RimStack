@@ -74,6 +74,9 @@ pub struct Edited;
 
 pub struct Entered;
 
+/// Runs when the field's Escape key is pressed.
+type OnEscape = Box<dyn Fn(&mut Context<TextField>) + 'static>;
+
 pub struct TextField {
     focus: FocusHandle,
     text: String,
@@ -92,6 +95,8 @@ pub struct TextField {
     area: usize,
     /// Esc leaves the text as it is, as in a field that holds what is kept rather than a filter.
     kept_on_escape: bool,
+    /// Told when Escape is pressed, so a field's owner can close what it shows around it.
+    on_escape: Option<OnEscape>,
     wrapped: Painted<area::Wrapped>,
     rows_drawn: std::rc::Rc<std::cell::Cell<usize>>,
     /// Shown to be selected and copied, never typed in, as `CopyText` was.
@@ -129,6 +134,7 @@ impl TextField {
             focused: std::cell::Cell::new(false),
             area: 0,
             kept_on_escape: false,
+            on_escape: None,
             wrapped: Default::default(),
             rows_drawn: std::rc::Rc::new(std::cell::Cell::new(1)),
             read_only: false,
@@ -220,6 +226,12 @@ impl TextField {
 
     pub fn kept_on_escape(mut self) -> Self {
         self.kept_on_escape = true;
+        self
+    }
+
+    /// Runs `run` when Escape is pressed, whatever `kept_on_escape` does to the text.
+    pub fn on_escape(mut self, run: impl Fn(&mut Context<Self>) + 'static) -> Self {
+        self.on_escape = Some(Box::new(run));
         self
     }
 
@@ -453,6 +465,10 @@ impl TextField {
     fn escape(&mut self, _: &Escape, _: &mut Window, cx: &mut Context<Self>) {
         if !self.kept_on_escape {
             self.set_text("", cx);
+        }
+        if let Some(escape) = self.on_escape.take() {
+            escape(cx);
+            self.on_escape = Some(escape);
         }
     }
 

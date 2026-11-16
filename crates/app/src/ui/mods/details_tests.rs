@@ -322,3 +322,69 @@ fn two_mods_defining_the_same_def_are_said_to_clash_the_later_winning() {
         })
     });
 }
+
+#[gpui::test]
+fn a_tag_offer_is_chosen_with_the_arrows_enter_adds_it_and_escape_closes_the_offers() {
+    let (_tmp, mut cx, mods) = opened_with(|_| {});
+    let id = chosen(&mut cx, &mods, 4);
+    let other = chosen(&mut cx, &mods, 9);
+    let type_tags = |typed: &str, cx: &mut HeadlessAppContext| {
+        let view = cx.update(|cx| mods.read(cx).details_view.clone());
+        let window = cx.update(|cx| cx.windows()[0]);
+        cx.update_window(window, |_, window, cx| {
+            let field = view.read(cx).tags.clone();
+            window.focus(&field.focus_handle(cx), cx);
+            field.update(cx, |field, cx| field.set_text(typed, cx));
+        })
+        .unwrap();
+    };
+    let tags = |cx: &mut HeadlessAppContext| -> String {
+        cx.update(|cx| {
+            mods.read(cx)
+                .details
+                .as_ref()
+                .map(|d| d.tags.clone())
+                .unwrap_or_default()
+        })
+    };
+    let enter = |cx: &mut HeadlessAppContext| {
+        let window = cx.update(|cx| cx.windows()[0]);
+        cx.update_window(window, |_, window, cx| {
+            window.dispatch_keystroke(gpui::Keystroke::parse("enter").unwrap(), cx);
+        })
+        .unwrap();
+        cx.run_until_parked();
+    };
+    let key = |name: &'static str, cx: &mut HeadlessAppContext| {
+        let window = cx.update(|cx| cx.windows()[0]);
+        cx.update_window(window, |_, window, cx| {
+            window.dispatch_keystroke(gpui::Keystroke::parse(name).unwrap(), cx);
+        })
+        .unwrap();
+        cx.run_until_parked();
+    };
+    cx.update(|cx| {
+        mods.update(cx, |mods, cx| {
+            assert!(crate::ui::app(cx).add_tags(other, "pointer-pick, pointer-second"));
+            mods.choose(Side::Active, id, cx);
+        })
+    });
+    // Enter with no offer picked adds what is typed.
+    type_tags("pointer-p", &mut cx);
+    enter(&mut cx);
+    assert_eq!(tags(&mut cx), "pointer-p");
+    // Down then Enter adds the offered tag.
+    type_tags("pointer-p", &mut cx);
+    key("down", &mut cx);
+    enter(&mut cx);
+    assert_eq!(tags(&mut cx), "pointer-p, pointer-pick");
+    // Escape closes the offers, so Enter then adds what is typed.
+    type_tags("pointer-s", &mut cx);
+    key("escape", &mut cx);
+    enter(&mut cx);
+    assert_eq!(
+        tags(&mut cx),
+        "pointer-p, pointer-pick, pointer-s",
+        "with the offers closed Enter adds the typed tag, not the offered one"
+    );
+}

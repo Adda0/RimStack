@@ -58,7 +58,11 @@ pub enum Asked {
     Tab(usize),
 }
 
+/// The tag offers around the tags field are closed.
+pub struct OffersShut;
+
 impl gpui::EventEmitter<Asked> for DetailsView {}
+impl gpui::EventEmitter<OffersShut> for crate::ui::text_field::TextField {}
 
 /// The details pane, a view of its own: choosing a mod or a tab draws nothing else.
 pub struct DetailsView {
@@ -79,6 +83,9 @@ pub struct DetailsView {
     pub(super) small_picture: bool,
     /// The pane's own, which F6 gives the keys to.
     pub(super) focus: gpui::FocusHandle,
+    /// The tag offer picked with the arrow keys, and the offers closed with Escape, while typing.
+    pub(super) tag_choose: Option<usize>,
+    pub(super) tag_shut: bool,
     paging: crate::ui::page::Paging,
     copyable: std::cell::RefCell<
         std::collections::HashMap<&'static str, gpui::Entity<crate::ui::text_field::TextField>>,
@@ -90,17 +97,33 @@ impl DetailsView {
         use crate::ui::text_field::{Edited, Entered, TextField};
         use gpui::AppContext;
         let size = cx.global::<Theme>().body();
+        // Escape in the tags field closes the tag offers around it; a later press keeps its
+        // usual meaning.
+        let tags = cx.new(|cx| {
+            TextField::new(size, cx).kept_on_escape().on_escape(|cx| {
+                cx.emit(OffersShut);
+            })
+        });
         let tags = cx.new(|cx| TextField::new(size, cx).kept_on_escape());
         let note = cx.new(|cx| TextField::new(size, cx).several_lines(2));
         cx.subscribe(&note, |view, _, _: &Edited, cx| view.draft_note(cx))
             .detach();
         cx.subscribe(&note, |view, _, _: &Entered, cx| view.keep_drafts(cx))
             .detach();
-        cx.subscribe(&tags, |_, field, _: &Edited, cx| {
+        cx.subscribe(&tags, |view, field, _: &Edited, cx| {
             if field.read(cx).is_focused_now() {
-                // The offers are read as the field is drawn, so a change of what is typed draws them.
+                // The offers are read as the field is drawn, so a change of what is typed draws
+                // them; typing opens them again and takes the arrow-key choice off.
+                view.tag_choose = None;
+                view.tag_shut = false;
                 cx.notify();
             }
+        })
+        .detach();
+        cx.subscribe(&tags, |view, _, _: &OffersShut, cx| {
+            view.tag_choose = None;
+            view.tag_shut = true;
+            cx.notify();
         })
         .detach();
         cx.subscribe(&tags, |view, _, _: &Entered, cx| {
@@ -118,6 +141,8 @@ impl DetailsView {
             note,
             small_picture: false,
             focus: cx.focus_handle(),
+            tag_choose: None,
+            tag_shut: false,
             pictures: Default::default(),
             copyable: Default::default(),
             paging: crate::ui::page::Paging::new(cx.global::<Theme>().appearance.reduce_motion),
@@ -136,14 +161,81 @@ impl DetailsView {
         let _ = self.mods.update(cx, |mods, cx| mods.draft_note(note, cx));
     }
 
-    /// The tags typed in the add-tags field go onto the mod shown, and the field is cleared.
+    /// The tags typed in the add-tags field go onto the mod shown, the offer picked with the
+    /// arrow keys in their place, and the field is cleared.
     pub(super) fn add_tags_typed(&mut self, cx: &mut Context<Self>) {
-        let text = self.tags.read(cx).text().to_string();
+        let typed = self.tags.read(cx).text().to_string();
+        let text = self.chosen_tag(&typed, cx).unwrap_or(typed);
+        self.tag_choose = None;
         let field = self.tags.clone();
         let _ = self
             .mods
             .update(cx, move |mods, cx| mods.add_tags(text, cx));
         field.update(cx, |field, cx| field.set_text_quietly("", cx));
+    }
+
+    /// The whole text that adds the tag offer picked with the arrow keys, if it is still offered.
+    fn chosen_tag(&self, typed: &str, cx: &mut Context<Self>) -> Option<String> {
+        if self.tag_shut {
+            return None;
+        }
+        self.offered(typed, cx)
+            .into_iter()
+            .nth(self.tag_choose?)
+            .map(|offer| offer.text)
+    }
+
+    /// The tags the mod shown has, as the offers take them into account.
+    fn had_tags(&self, cx: &mut Context<Self>) -> String {
+        self.mods
+            .upgrade()
+            .and_then(|mods| {
+                mods.read(cx)
+                    .details
+                    .as_ref()
+                    .map(|details| details.tags.clone())
+            })
+            .unwrap_or_default()
+    }
+
+    fn offered(
+        &self,
+        typed: &str,
+        cx: &mut Context<Self>,
+    ) -> Vec<crate::workspace::notes::TagOffer> {
+        let had = self.had_tags(cx);
+        crate::ui::app(cx).tag_offers(&had, typed)
+    }
+
+    /// The arrow keys take the offer list up and down while it is open.
+    pub(super) fn tags_key(
+        &mut self,
+        event: &gpui::KeyDownEvent,
+        window: &mut gpui::Window,
+        cx: &mut Context<Self>,
+    ) {
+        let (offer_count, typing) = {
+            let typed = self.tags.read(cx).text().to_string();
+            (
+                self.chosen_count(&typed, cx),
+                self.tags.read(cx).is_focused(window),
+            )
+        };
+        if offer_count == 0 || self.tag_shut || !typing {
+            return;
+        }
+        let chosen = self.tag_choose.unwrap_or(1);
+        self.tag_choose = Some(match event.keystroke.key.as_str() {
+            "down" => (chosen + 1).min(offer_count - 1),
+            "up" => chosen.saturating_sub(1),
+            _ => return,
+        });
+        cx.notify();
+    }
+
+    /// How many tag offers the field holds for what is typed.
+    fn chosen_count(&self, typed: &str, cx: &mut Context<Self>) -> usize {
+        self.offered(typed, cx).len()
     }
 
     /// The offer picked goes onto the mod shown, and the field is cleared and refocused.

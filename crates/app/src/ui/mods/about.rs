@@ -734,7 +734,8 @@ impl DetailsView {
             &self.tags,
             put(&say!("Add tags, separated by commas")),
         )
-        .capture_action(self.escape_to_list(cx));
+        .capture_action(self.escape_to_list(cx))
+        .on_key_down(cx.listener(Self::tags_key));
         let had = details.tags.clone();
         let mut body = Vec::new();
         if !chips.is_empty() {
@@ -823,15 +824,16 @@ impl DetailsView {
     ) -> gpui::Stateful<gpui::Div> {
         let c = &theme.colours;
         let focused = self.tags.read(cx).is_focused(window);
-        let offers = match focused {
-            true => crate::ui::app(cx).tag_offers(had, &typed),
-            false => Vec::new(),
+        let offers = match (focused, self.tag_shut) {
+            (true, false) => crate::ui::app(cx).tag_offers(had, &typed),
+            _ => Vec::new(),
         };
         let rows = offers
             .into_iter()
             .enumerate()
             .map(|(at, offer)| {
                 let (tag, text) = (offer.tag, offer.text);
+                let chosen = self.tag_choose == Some(at);
                 div()
                     .id(("tag-offer", at))
                     .role(gpui::Role::Button)
@@ -842,6 +844,7 @@ impl DetailsView {
                     .px(theme::GAP)
                     .rounded(theme::CORNER)
                     .cursor_pointer()
+                    .when(chosen, |row| row.bg(c.chip))
                     .hover(|s| s.bg(c.chip))
                     .sized_text(theme, theme.small())
                     .text_color(c.ink)
