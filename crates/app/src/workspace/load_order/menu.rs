@@ -1,6 +1,7 @@
 use super::details::{Details, FixSaid, NotInstalled};
 use super::{LoadOrder, Side};
 use crate::App;
+use crate::ui::theme::SWATCHES;
 use crate::workspace::upkeep::Line;
 use rimstack_core::base::sentence::Sentence;
 use rimstack_core::mods::library::ModId;
@@ -75,6 +76,11 @@ pub enum Action {
         active: bool,
         row: usize,
     },
+    /// Paints the mods' rows with a swatch, by name; an empty name takes the colour off.
+    Paint {
+        ids: Vec<ModId>,
+        name: String,
+    },
     /// Takes the tag off every mod grouped under it.
     DeleteSub {
         tag: String,
@@ -111,6 +117,11 @@ pub struct Entry {
     pub off: bool,
     #[serde(skip_serializing_if = "unset")]
     pub danger: bool,
+    /// The swatch the entry is drawn in, by name.
+    #[serde(skip_serializing_if = "empty")]
+    pub swatch: &'static str,
+    #[serde(skip_serializing_if = "unset")]
+    pub ticked: bool,
     #[serde(flatten)]
     pub action: Option<Action>,
 }
@@ -140,6 +151,15 @@ impl Entry {
         Entry {
             danger: true,
             ..self
+        }
+    }
+
+    /// A swatch, named in its own colour.
+    fn swatch(name: &'static str, ticked: bool, action: Action) -> Self {
+        Entry {
+            swatch: name,
+            ticked,
+            ..Entry::item(Sentence::said(name, Vec::new()), "", action)
         }
     }
 }
@@ -179,6 +199,7 @@ struct Subject {
     repository: String,
     group_choices: Option<Vec<String>>,
     sub: String,
+    colour: String,
     version_ok: bool,
     offer_trust: bool,
     can_bin: bool,
@@ -213,6 +234,7 @@ impl Subject {
             repository,
             group_choices: Some(about.group_choices),
             sub: about.sub,
+            colour: about.colour,
             version_ok: about.version_ok,
             offer_trust: about.offer_trust,
             can_bin: about.can_bin,
@@ -235,6 +257,7 @@ impl Subject {
             repository: String::new(),
             group_choices: None,
             sub: String::new(),
+            colour: String::new(),
             version_ok: false,
             offer_trust: false,
             can_bin: false,
@@ -280,6 +303,7 @@ impl LoadOrder {
             groups.push(Self::git(at, &subject));
         }
         groups.push(Self::filing(at, &subject));
+        groups.push(Self::colouring(at, &subject));
         groups.push(Self::last(at, &subject, many, &warned));
         separated(groups)
     }
@@ -487,6 +511,28 @@ impl LoadOrder {
         group
     }
 
+    /// Paints the chosen mods' rows, as RimSort and RimPy users do to spot mods at a glance.
+    fn colouring(at: &Clicked, subject: &Subject) -> Vec<Entry> {
+        let (Some(id), true) = (at.id, subject.group_choices.is_some()) else {
+            return Vec::new();
+        };
+        let ids = match at.selected.contains(&id) {
+            true => at.selected.to_vec(),
+            false => vec![id],
+        };
+        let paint = |name: &str| Action::Paint {
+            ids: ids.clone(),
+            name: name.to_string(),
+        };
+        let mut group = vec![Entry::title(say!("Colour"))];
+        for (name, _, _) in SWATCHES {
+            group.push(Entry::swatch(name, name == subject.colour, paint(name)));
+        }
+        let none = Entry::item(say!("No colour"), "x", paint(""));
+        group.push(none.off(subject.colour.is_empty()));
+        group
+    }
+
     fn last(at: &Clicked, subject: &Subject, many: bool, warned: &[ModId]) -> Vec<Entry> {
         let mut group = Vec::new();
         let trust = |ids: Vec<ModId>, yes| Action::Trust { ids, yes };
@@ -598,21 +644,25 @@ mod tests {
         let (_tmp, app) = installed();
         let mut order = LoadOrder::read(&app, true, None);
         let entries = menu(&mut order, &app, "ann.roads", &["ann.roads"]);
-        assert_eq!(
-            shown(&entries),
-            [
-                "Activate",
-                "-",
-                "Open folder",
-                "Copy name",
-                "Copy package id",
-                "-",
-                "# Group under a tag",
-                "A new tag…",
-                "-",
-                "Move to the bin…",
-            ]
-        );
+        let mut wanted: Vec<String> = [
+            "Activate",
+            "-",
+            "Open folder",
+            "Copy name",
+            "Copy package id",
+            "-",
+            "# Group under a tag",
+            "A new tag…",
+            "-",
+            "# Colour",
+        ]
+        .iter()
+        .map(|text| text.to_string())
+        .collect();
+        wanted.extend(SWATCHES.iter().map(|(name, _, _)| name.to_string()));
+        wanted.push("No colour".to_string());
+        wanted.extend(["-".to_string(), "Move to the bin…".to_string()]);
+        assert_eq!(shown(&entries), wanted);
         assert!(entries.last().unwrap().danger);
         assert!(matches!(
             entries[0].action,
@@ -703,5 +753,59 @@ mod tests {
         order.toggle_sub(&app, Side::Inactive, row);
         assert_eq!(shown(&order.sub_menu(false, row))[0], "Show its mods");
         assert!(order.sub_menu(false, 99).is_empty());
+    }
+
+    #[test]
+    fn a_mods_menu_paints_the_chosen_mods_with_a_swatch() {
+        let (_tmp, app) = installed();
+        let mut order = LoadOrder::read(&app, true, None);
+        let entries = menu(&mut order, &app, "ann.roads", &["ann.roads"]);
+        let texts = shown(&entries);
+        let at = texts.iter().position(|t| t == "# Colour").unwrap();
+        let swatches: Vec<String> = SWATCHES
+            .iter()
+            .map(|(name, _, _)| name.to_string())
+            .collect();
+        assert_eq!(texts[at + 1..at + 1 + swatches.len()], swatches[..]);
+        let none = at + 1 + swatches.len();
+        assert_eq!(texts[none], "No colour");
+        assert!(entries[none].off);
+        let painting = |entry: &Entry| -> (Vec<ModId>, String) {
+            match &entry.action {
+                Some(Action::Paint { ids, name }) => (ids.clone(), name.clone()),
+                _ => panic!("paints"),
+            }
+        };
+        let rose = entries
+            .iter()
+            .position(|e| e.text.as_ref().is_some_and(|t| t.to_string() == "Rose"))
+            .unwrap();
+        assert!(!entries[rose].ticked);
+        let (ids, name) = painting(&entries[rose]);
+        assert_eq!(name, "Rose");
+        app.set_colour(&ids, &name);
+        order.sync(&app);
+        let entries = menu(&mut order, &app, "ann.roads", &["ann.roads"]);
+        let (_, _, roads) = id_of(&order, "ann.roads");
+        assert_eq!(order.details(&app, roads).colour, "Rose");
+        let rose = entries
+            .iter()
+            .position(|e| e.text.as_ref().is_some_and(|t| t.to_string() == "Rose"))
+            .unwrap();
+        assert!(entries[rose].ticked);
+        let none = entries
+            .iter()
+            .position(|e| {
+                e.text
+                    .as_ref()
+                    .is_some_and(|t| t.to_string() == "No colour")
+            })
+            .unwrap();
+        assert!(!entries[none].off);
+        let (ids, name) = painting(&entries[none]);
+        assert!(name.is_empty());
+        app.set_colour(&ids, &name);
+        order.sync(&app);
+        assert_eq!(order.details(&app, roads).colour, "");
     }
 }

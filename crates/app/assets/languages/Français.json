@@ -1757,5 +1757,9 @@
  "Apply sort": "Appliquer le tri",
  "Close, cancel, discard a sort preview, clear the selection": "Fermer, annuler, abandonner l'aperçu du tri, vider la sélection",
  "Discard changes": "Abandonner les modifications",
- "Discard sort": "Abandonner le tri"
+ "Discard sort": "Abandonner le tri",
+ "Colour": "Couleur",
+ "No colour": "Aucune couleur",
+ "painted with this colour": "peint de cette couleur",
+ "{}  ✓": "{}  ✓"
 }

@@ -126,6 +126,7 @@ impl Mods {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        let theme = cx.global::<Theme>().clone();
         let me = cx.entity().downgrade();
         let shown: Vec<Shown> = entries
             .into_iter()
@@ -137,15 +138,22 @@ impl Mods {
                     return Some(Shown::Line);
                 }
                 let (text, action) = (entry.text?, entry.action?);
+                let mut words = put(&text).to_string();
+                if entry.ticked {
+                    words.push_str("  ✓");
+                }
                 let me = me.clone();
                 let action = std::rc::Rc::new(action);
-                let mut item = menu::Entry::item(put(&text), move |window, cx| {
+                let mut item = menu::Entry::item(words, move |window, cx| {
                     let action = action.clone();
                     let _ = me.update(cx, |mods, cx| mods.run(&action, window, cx));
                 })
                 .off(entry.off);
                 if !entry.icon.is_empty() {
                     item = item.icon(entry.icon);
+                }
+                if let Some(colour) = theme.swatch(entry.swatch) {
+                    item = item.colour(colour);
                 }
                 if entry.danger {
                     item = item.danger();
@@ -158,6 +166,7 @@ impl Mods {
 
     fn run(&mut self, action: &Action, window: &mut Window, cx: &mut Context<Self>) {
         match action {
+            Action::Paint { ids, name } => self.paint(ids.clone(), name, cx),
             Action::MoveSelected => self.move_selected(cx),
             Action::MoveAcross { active, index } => self.take(Side::of(*active), *index, None, cx),
             Action::OpenFolder { path } => cx.open_with_system(std::path::Path::new(path)),
@@ -271,6 +280,13 @@ impl Mods {
     pub(super) fn group(&mut self, ids: Vec<ModId>, name: &str, cx: &mut Context<Self>) {
         let app = crate::ui::app(cx);
         app.set_group(&ids, name);
+        self.edit_list(cx, |list, _| list.order.sync(&app));
+        self.show(cx);
+    }
+
+    pub(super) fn paint(&mut self, ids: Vec<ModId>, name: &str, cx: &mut Context<Self>) {
+        let app = crate::ui::app(cx);
+        app.set_colour(&ids, name);
         self.edit_list(cx, |list, _| list.order.sync(&app));
         self.show(cx);
     }

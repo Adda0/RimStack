@@ -100,6 +100,8 @@ pub struct Mod {
     pub patched: std::sync::Arc<[String]>,
     /// Its first tag; empty without tags.
     pub sub: String,
+    /// The swatch its row is painted with; empty for none.
+    pub colour: String,
     /// Microseconds it took at the game's last start, where measured.
     pub load_micros: Option<u32>,
     /// Seconds since 1970 when Steam last updated it; Workshop mods only.

@@ -1757,5 +1757,9 @@
  "Apply sort": "Apply sort",
  "Close, cancel, discard a sort preview, clear the selection": "Close, cancel, discard a sort preview, clear the selection",
  "Discard changes": "Discard changes",
- "Discard sort": "Discard sort"
+ "Discard sort": "Discard sort",
+ "Colour": "Colour",
+ "No colour": "No colour",
+ "painted with this colour": "painted with this colour",
+ "{}  ✓": "{}  ✓"
 }

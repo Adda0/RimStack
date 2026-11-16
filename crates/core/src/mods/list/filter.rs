@@ -13,6 +13,7 @@ pub(super) struct Filter {
     words: Vec<String>,
     authors: Vec<String>,
     tags: Vec<String>,
+    colours: Vec<String>,
     versions: Vec<String>,
     local: bool,
     workshop: bool,
@@ -55,6 +56,7 @@ impl Filter {
         match term.split_once(':') {
             Some(("author", name)) if !name.is_empty() => self.authors.push(name.to_string()),
             Some(("tag", label)) if !label.is_empty() => self.tags.push(label.to_string()),
+            Some(("colour", name)) if !name.is_empty() => self.colours.push(name.to_string()),
             Some(("version", game)) if !game.is_empty() => self.versions.push(game.to_string()),
             Some(("is", "local")) => self.local = true,
             Some(("is", "workshop")) => self.workshop = true,
@@ -155,6 +157,9 @@ impl Filter {
         self.words.iter().all(|w| haystack.contains(w))
             && self.authors.iter().all(|a| author().contains(a))
             && self.tags.iter().all(|wanted| tagged(&m.tags, wanted))
+            && self.colours.iter().all(|wanted| {
+                !m.colour.is_empty() && m.colour.to_lowercase().starts_with(wanted.as_str())
+            })
             && self
                 .versions
                 .iter()

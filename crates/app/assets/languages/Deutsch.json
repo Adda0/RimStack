@@ -1757,5 +1757,9 @@
  "Apply sort": "Sortierung anwenden",
  "Close, cancel, discard a sort preview, clear the selection": "Schließen, abbrechen, Vorschau der Sortierung verwerfen, Auswahl leeren",
  "Discard changes": "Änderungen verwerfen",
- "Discard sort": "Sortierung verwerfen"
+ "Discard sort": "Sortierung verwerfen",
+ "Colour": "Farbe",
+ "No colour": "Keine Farbe",
+ "painted with this colour": "in dieser Farbe markiert",
+ "{}  ✓": "{}  ✓"
 }

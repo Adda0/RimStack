@@ -1757,5 +1757,9 @@
  "Apply sort": "Aplicar la ordenación",
  "Close, cancel, discard a sort preview, clear the selection": "Cerrar, cancelar, descartar la vista previa de ordenación, borrar la selección",
  "Discard changes": "Descartar los cambios",
- "Discard sort": "Descartar la ordenación"
+ "Discard sort": "Descartar la ordenación",
+ "Colour": "Color",
+ "No colour": "Sin color",
+ "painted with this colour": "pintado de este color",
+ "{}  ✓": "{}  ✓"
 }

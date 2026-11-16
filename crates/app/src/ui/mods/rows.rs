@@ -278,6 +278,7 @@ pub fn row(
 ) -> AnyElement {
     let c = &theme.colours;
     let colour = category_colour(theme, row.category);
+    let painted = theme.swatch(&row.colour);
     let big_header = row.is_header && !row.is_sub && !row.again;
     let mark = row
         .mod_id
@@ -357,6 +358,29 @@ pub fn row(
                     colour
                 }),
         )
+        .when_some(painted.filter(|_| !chosen), |d, swatch| {
+            // A painted row: the swatch as a wash under the row, with its edge.
+            let wash = with_alpha(swatch, 0.22);
+            d.child(
+                div()
+                    .absolute()
+                    .top_0()
+                    .bottom_0()
+                    .left(theme::GAP)
+                    .right(theme::GAP_SMALL)
+                    .rounded(theme::CORNER)
+                    .bg(wash)
+                    .child(
+                        div()
+                            .absolute()
+                            .top_0()
+                            .right_0()
+                            .bottom_0()
+                            .w(px(3.))
+                            .bg(swatch),
+                    ),
+            )
+        })
         .when(row.outdated && !chosen, |d| {
             d.child(
                 div()

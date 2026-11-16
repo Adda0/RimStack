@@ -146,6 +146,8 @@ pub struct Details {
     pub load_folders: Vec<Sentence>,
     pub code: Sentence,
     pub sub: String,
+    /// The swatch its row is painted with; empty for none.
+    pub colour: String,
     pub patches: Vec<Patched>,
     pub category: Option<&'static str>,
     pub held: Sentence,
@@ -272,6 +274,7 @@ impl LoadOrder {
             folder: m.folder.clone(),
             preview: m.preview.as_ref().map(|p| p.to_string_lossy().into_owned()),
             tags: note.tags.join(", "),
+            colour: note.colour.clone(),
             version_ok: note.version_ok,
             problems_ignored: note.ignored.len(),
             replaced_by: replaced.map(|new| new.name.clone()),

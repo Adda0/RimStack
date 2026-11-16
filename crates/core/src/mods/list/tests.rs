@@ -15,6 +15,7 @@ pub(super) fn m(name: &str, author: &str, category: Category) -> Mod {
         code: false,
         patched: Default::default(),
         sub: String::new(),
+        colour: String::new(),
         load_micros: None,
         updated: None,
         size: None,
@@ -356,6 +357,26 @@ fn a_needs_term_shows_the_mods_depending_on_that_dlc() {
     assert_eq!(shown(&list), names);
     list.set_filter("!needs:royalty");
     assert_eq!(shown(&list).len(), 5);
+}
+#[test]
+fn a_colour_term_shows_the_mods_painted_with_it() {
+    let mut mods = sample().mods().to_vec();
+    mods[1].colour = "Rose".into(); // Core
+    mods[5].colour = "Red".into(); // Rimefeller
+    let mut list = GroupedList::flat(mods);
+    let shown = |list: &GroupedList| -> Vec<String> {
+        let name = |r: &Row| match r {
+            Row::Mod { index } => Some(list.mods()[*index].name.clone()),
+            _ => None,
+        };
+        list.rows().iter().filter_map(name).collect()
+    };
+    list.set_filter("colour:ROSE");
+    assert_eq!(shown(&list), ["Core"]);
+    list.set_filter("colour:r");
+    assert_eq!(shown(&list), ["Core", "Rimefeller"]);
+    list.set_filter("!colour:r");
+    assert_eq!(shown(&list).len(), 4);
 }
 
 #[test]

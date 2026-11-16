@@ -82,6 +82,7 @@ const TERMS: &[(&str, About)] = &[
     ("patchesdef:", |_| say!("patches this defName")),
     ("patches:", |_| say!("patches this method of the game")),
     ("tag:", |_| say!("has this tag")),
+    ("colour:", |_| say!("painted with this colour")),
     ("version:", |_| say!("the newest game version it lists")),
     ("author:", |_| say!("by this author")),
     ("needs:", |_| say!("lists this DLC as a dependency")),
@@ -115,6 +116,7 @@ pub fn offers<'a>(
     let mods = mods.into_iter();
     let offers = match bare.split_once(':') {
         Some(("tag", _)) => tag_offers(sign, mods.map(|m| m.tags.as_slice()), fits),
+        Some(("colour", _)) => colour_offers(sign, mods, fits),
         Some(("version", _)) => version_offers(sign, mods, fits),
         Some(("author", value)) => value_offers(
             sign,
@@ -198,6 +200,26 @@ fn version_offers<'a>(
     versions
         .into_iter()
         .map(|(version, mods)| (format!("{sign}version:{version}"), mods))
+        .filter(|(term, _)| fits(term))
+        .map(|(term, mods)| counted_offer(term, mods))
+        .collect()
+}
+
+/// A colour is offered as the mods keep it, the most painted first.
+fn colour_offers<'a>(
+    sign: &str,
+    mods: impl Iterator<Item = &'a Mod>,
+    fits: impl Fn(&str) -> bool,
+) -> Vec<Offer> {
+    let mut mods_of: BTreeMap<&str, usize> = BTreeMap::new();
+    for m in mods.filter(|m| !m.colour.is_empty()) {
+        *mods_of.entry(&m.colour).or_default() += 1;
+    }
+    let mut colours: Vec<(&str, usize)> = mods_of.into_iter().collect();
+    colours.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(b.0)));
+    colours
+        .into_iter()
+        .map(|(colour, mods)| (format!("{sign}colour:{colour}"), mods))
         .filter(|(term, _)| fits(term))
         .map(|(term, mods)| counted_offer(term, mods))
         .collect()
@@ -395,6 +417,17 @@ mod tests {
                 ("tag:HUDs".into(), "2 mods".into())
             ]
         );
+    }
+
+    #[test]
+    fn the_colours_in_use_are_offered_after_colour() {
+        let mut mods = vec![blank(), blank()];
+        mods[0].colour = "Rose".into();
+        mods[1].colour = "Rose".into();
+        assert_eq!(terms("colour:", "", &mods), ["colour:Rose"]);
+        let mut alone = vec![blank()];
+        alone[0].colour = "Red".into();
+        assert_eq!(terms("colour:r", "", &alone), ["colour:Red"]);
     }
 
     #[test]
