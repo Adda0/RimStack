@@ -70,22 +70,36 @@ pub fn forget_hint(cx: &mut App) {
     point_at(SharedString::default(), cx);
 }
 
+/// The tip's side of a hover: pointed at `text` while `over`, let go after.
+pub fn follow(over: bool, text: &SharedString, cx: &mut App) {
+    if over {
+        point_at(text.clone(), cx);
+    } else if hint(cx) == *text {
+        forget_hint(cx);
+    }
+}
+
+/// `control` with its tip, and no hover of its own: for a control that already listens for hover,
+/// as gpui takes one listener and panics on a second.
+pub fn pointed(control: Stateful<gpui::Div>, text: SharedString) -> Stateful<gpui::Div> {
+    if text.is_empty() {
+        return control;
+    }
+    control
+        .tooltip(move |_: &mut Window, cx: &mut App| -> AnyView {
+            cx.new(|_| Tip(text.clone())).into()
+        })
+        .tooltip_show_delay(DELAY)
+}
+
 /// `control` with its tip; an empty one shows none.
 pub fn tipped(control: Stateful<gpui::Div>, text: SharedString) -> Stateful<gpui::Div> {
     if text.is_empty() {
         return control;
     }
-    let pointed = text.clone();
-    control
-        .on_hover(move |over, _, cx| {
-            if *over {
-                point_at(pointed.clone(), cx);
-            } else if hint(cx) == pointed {
-                forget_hint(cx);
-            }
-        })
-        .tooltip(move |_: &mut Window, cx: &mut App| -> AnyView {
-            cx.new(|_| Tip(text.clone())).into()
-        })
-        .tooltip_show_delay(DELAY)
+    let pointed_at = text.clone();
+    pointed(
+        control.on_hover(move |over, _, cx| follow(*over, &pointed_at, cx)),
+        text,
+    )
 }

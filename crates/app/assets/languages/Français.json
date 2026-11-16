@@ -2023,5 +2023,19 @@
  "its folder name sorts first in its folder": "le nom de son dossier vient en premier dans son dossier",
  "the game loads another copy": "le jeu charge une autre copie",
  "the game's own copy comes first": "la propre copie du jeu passe en premier",
- "the load order names it with \"_steam\"": "l'ordre de chargement le nomme avec « _steam »"
+ "the load order names it with \"_steam\"": "l'ordre de chargement le nomme avec « _steam »",
+ "Copies what moves and why, and the rules the sort could not follow, as text for a bug report": "Copie ce qui bouge et pourquoi, et les règles que le tri n'a pas pu suivre, en texte pour un rapport de bug",
+ "Copy the report": "Copier le rapport",
+ "community: at the bottom": "communauté : tout en bas",
+ "detected from code": "détectée dans le code",
+ "force load after": "charger obligatoirement après",
+ "force load before": "charger obligatoirement avant",
+ "in a loop": "dans une boucle",
+ "load after": "charger après",
+ "load before": "charger avant",
+ "patch hint": "indice de patch",
+ "their files put {} before {}": "leurs fichiers placent {} avant {}",
+ "would leave its category": "le ferait sortir de sa catégorie",
+ "{} rule could not be followed": "{} règle n'a pas pu être suivie",
+ "{} rules could not be followed": "{} règles n'ont pas pu être suivies"
 }

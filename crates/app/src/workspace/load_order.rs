@@ -28,7 +28,7 @@ pub use details::{Details, Files, Overview, ProblemSaid, Textures};
 pub use menu::{Action, Ask, Clicked, Entry};
 pub use orders::{OrderEntry, Orders};
 pub use rows::{Level, Origin, RowView, sort_slides};
-pub use sorting::{SortGroup, SortMove};
+pub use sorting::{SortDrop, SortGroup, SortMove};
 pub use summary::SelectionSummary;
 
 pub struct Preview {
@@ -64,6 +64,8 @@ pub struct LoadOrder {
     pub problem: Sentence,
     /// A sentence each; the first is the news.
     pub sort_note: Vec<Sentence>,
+    /// The rules the sort on show could not follow.
+    sort_dropped: Vec<sorting::SortDrop>,
 }
 
 fn side_index(side: Side) -> usize {
@@ -135,6 +137,7 @@ impl LoadOrder {
             status: [Sentence::default(), Sentence::default()],
             problem: Sentence::default(),
             sort_note: Vec::new(),
+            sort_dropped: Vec::new(),
         }
     }
 
@@ -366,6 +369,7 @@ impl LoadOrder {
         };
         self.preview = None;
         self.sort_note.clear();
+        self.sort_dropped.clear();
         let mut now = arranged(app, library);
         date(&mut now.active, &self.activated);
         let (mods, _) = rules::sorted_by_category(app, &mut self.detected, library, now.active);

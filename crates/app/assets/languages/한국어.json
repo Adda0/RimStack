@@ -2023,5 +2023,19 @@
  "its folder name sorts first in its folder": "its folder name sorts first in its folder",
  "the game loads another copy": "the game loads another copy",
  "the game's own copy comes first": "the game's own copy comes first",
- "the load order names it with \"_steam\"": "the load order names it with \"_steam\""
+ "the load order names it with \"_steam\"": "the load order names it with \"_steam\"",
+ "Copies what moves and why, and the rules the sort could not follow, as text for a bug report": "Copies what moves and why, and the rules the sort could not follow, as text for a bug report",
+ "Copy the report": "Copy the report",
+ "community: at the bottom": "community: at the bottom",
+ "detected from code": "detected from code",
+ "force load after": "force load after",
+ "force load before": "force load before",
+ "in a loop": "in a loop",
+ "load after": "load after",
+ "load before": "load before",
+ "patch hint": "patch hint",
+ "their files put {} before {}": "their files put {} before {}",
+ "would leave its category": "would leave its category",
+ "{} rule could not be followed": "{} rule could not be followed",
+ "{} rules could not be followed": "{} rules could not be followed"
 }

@@ -76,7 +76,8 @@ impl DetailsView {
             .clone()
             .filter(|_| self.shown.selection.is_none())
         {
-            return scrolled.child(self.sort_moves(theme, &groups, cx));
+            let dropped = self.shown.sort_dropped.clone();
+            return scrolled.child(self.sort_moves(theme, &groups, dropped, cx));
         }
         if let Some(summary) = self.shown.selection.clone() {
             return scrolled.child(self.selection_pane(

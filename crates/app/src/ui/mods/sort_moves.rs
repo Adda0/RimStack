@@ -1,21 +1,23 @@
 use super::chosen::DetailsView;
 use crate::ui::card::Card;
 use crate::ui::theme::{self, Theme};
-use crate::ui::widgets::{TextSized, icon, label};
+use crate::ui::widgets::{Btn, TextSized, icon, label};
 use crate::words::put;
-use crate::workspace::load_order::SortGroup;
+use crate::workspace::load_order::{SortDrop, SortGroup};
 use gpui::{
-    Context, InteractiveElement, IntoElement, ParentElement, StatefulInteractiveElement, Styled,
-    div, prelude::FluentBuilder, relative,
+    Context, FontWeight, InteractiveElement, IntoElement, ParentElement,
+    StatefulInteractiveElement, Styled, div, prelude::FluentBuilder, relative,
 };
 use rimstack_core::base::sentence::Sentence;
 use rimstack_core::{say, say_n};
+use std::rc::Rc;
 
 impl DetailsView {
     pub(super) fn sort_moves(
         &self,
         theme: &Theme,
         groups: &[SortGroup],
+        dropped: Option<Rc<Vec<SortDrop>>>,
         cx: &mut Context<Self>,
     ) -> gpui::Div {
         let c = &theme.colours;
@@ -26,8 +28,26 @@ impl DetailsView {
             .flex_col()
             .gap(theme::GAP_HAIR)
             .child(
-                label(theme, theme.heading(), c.ink, put(&say!("Sort preview")))
-                    .font_weight(theme.semibold),
+                div()
+                    .flex()
+                    .items_center()
+                    .gap(theme::GAP)
+                    .pb(theme::GAP_HAIR)
+                    .child(
+                        label(theme, theme.heading(), c.ink, put(&say!("Sort preview")))
+                            .font_weight(theme.semibold),
+                    )
+                    .child(
+                        Btn::new("copy-report", put(&say!("Copy the report")))
+                            .icon("copy")
+                            .tip(put(&say!(
+                                "Copies what moves and why, and the rules the sort could not follow, as text for a bug report"
+                            )))
+                            .on_click(self.on_mods(|mods, cx| {
+                                let report = mods.list.read(cx).order.sort_report();
+                                cx.write_to_clipboard(gpui::ClipboardItem::new_string(report));
+                            })),
+                    )
             )
             .child(
                 div()
@@ -125,6 +145,38 @@ impl DetailsView {
                             )),
                     )
                     .children(moves),
+            );
+        }
+        if let Some(dropped) = dropped.filter(|d| !d.is_empty()) {
+            let lines: Vec<_> = dropped
+                .iter()
+                .enumerate()
+                .map(|(at, d)| {
+                    let (rule, kind, why) = (put(&d.rule), put(&d.kind), put(&d.why));
+                    let text = format!("{rule} ({kind}, {why})");
+                    let whole = format!("{text} [{} → {}]", d.first_id, d.then_id);
+                    let field = self.copyable(
+                        ("sort-dropped", at),
+                        &whole,
+                        theme.caption(),
+                        FontWeight::NORMAL,
+                        c.ink2,
+                        cx,
+                    );
+                    div().pb(theme::GAP_HAIR).child(field).into_any_element()
+                })
+                .collect();
+            let (folded, fold) = self.fold("sort-dropped", false, cx);
+            let title = put(&say_n!(
+                dropped.len(),
+                "{} rule could not be followed",
+                "{} rules could not be followed"
+            ));
+            shown = shown.pt(theme::GAP_SMALL).child(
+                Card::new("sort-dropped", title)
+                    .body(lines)
+                    .folds(folded, fold)
+                    .render(theme, None),
             );
         }
         let _ = cx;

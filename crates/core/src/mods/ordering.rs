@@ -100,11 +100,16 @@ pub fn sorted_by_category(
                 })
                 .collect()
         };
-        let (kept, dropped) = (back(&again.kept), back(&again.dropped));
+        let (kept, dropped, off_group) = (
+            back(&again.kept),
+            back(&again.dropped),
+            back(&again.off_group),
+        );
         sorted = sort::Sorted {
             order: again.order.iter().map(|&at| sorted.order[at]).collect(),
             kept,
             dropped,
+            off_group,
             groups,
         };
         if held || seen.contains(&sorted.order) {

@@ -34,6 +34,8 @@ pub struct DetailsShown {
     pub files: Option<Rc<FilesRead>>,
     pub unhide_problem: String,
     pub sort_moves: Option<Rc<Vec<crate::workspace::load_order::SortGroup>>>,
+    /// The rules the sort on show could not follow.
+    pub sort_dropped: Option<Rc<Vec<crate::workspace::load_order::SortDrop>>>,
     pub community_problem: String,
     pub fresh: usize,
     pub commits: Option<Rc<Vec<rimstack_core::sources::changes::Note>>>,
@@ -88,7 +90,7 @@ pub struct DetailsView {
     pub(super) tag_shut: bool,
     paging: crate::ui::page::Paging,
     copyable: std::cell::RefCell<
-        std::collections::HashMap<&'static str, gpui::Entity<crate::ui::text_field::TextField>>,
+        std::collections::HashMap<gpui::ElementId, gpui::Entity<crate::ui::text_field::TextField>>,
     >,
 }
 
@@ -287,7 +289,7 @@ impl DetailsView {
 
     pub(super) fn copyable(
         &self,
-        key: &'static str,
+        key: impl Into<gpui::ElementId>,
         text: &str,
         size: Pixels,
         weight: FontWeight,
@@ -295,7 +297,8 @@ impl DetailsView {
         cx: &mut Context<Self>,
     ) -> gpui::Entity<crate::ui::text_field::TextField> {
         use gpui::AppContext;
-        let made = self.copyable.borrow().get(key).cloned();
+        let key = key.into();
+        let made = self.copyable.borrow().get(&key).cloned();
         let field = made.unwrap_or_else(|| {
             let field = cx.new(|cx| {
                 crate::ui::text_field::TextField::new(size, cx)

@@ -3,6 +3,7 @@ use crate::ui::made_up::made_up;
 use crate::ui::shell::Shell;
 use crate::ui::theme::Theme;
 use crate::ui::{Options, install};
+use crate::words::put;
 use crate::workspace::load_order::Side;
 use gpui::{AppContext, Entity, HeadlessAppContext, size};
 use rimstack_core::mods::library::ModId;
@@ -194,6 +195,57 @@ fn sort_is_shown_before_it_is_kept_and_save_writes_the_list() {
         written.matches("<li>").count() - known_expansions(&written),
         count
     );
+}
+
+#[test]
+fn a_sort_that_breaks_a_loop_lists_the_rules_it_could_not_follow_and_copies_the_report() {
+    let (_tmp, mut cx, mods) = opened();
+    cx.update(|cx| {
+        mods.update(cx, |mods, cx| {
+            // The fixture's own load-after rule loads 007 after 006; a rule of yours the other
+            // way makes a loop the sort must break.
+            let active = mods.list.read(cx).order.list(Side::Active);
+            let id_of = |package: &str| {
+                active
+                    .mods()
+                    .iter()
+                    .find(|m| m.id == package)
+                    .and_then(|m| m.installed)
+                    .unwrap()
+            };
+            let (mod007, mod006) = (id_of("fixture.mod007"), id_of("fixture.mod006"));
+            super::super::app(cx).change_rule(mod007, mod006, true);
+            mods.preview_sort(cx);
+            let order = &mods.list.read(cx).order;
+            assert!(order.previewing());
+            let dropped = order.sort_dropped();
+            assert!(!dropped.is_empty());
+            let lines: Vec<String> = dropped
+                .iter()
+                .map(|d| format!("{} {} {}", put(&d.rule), put(&d.kind), put(&d.why)))
+                .collect();
+            assert!(
+                lines.iter().any(
+                    |line| line.contains("Fixture Mod 007") && line.contains("Fixture Mod 006")
+                ),
+                "{lines:?}"
+            );
+            let report = order.sort_report();
+            assert!(report.contains("could not be followed"));
+            assert!(report.contains("[fixture.mod006 → fixture.mod007]"));
+            let moves = order.sort_moves();
+            assert!(!moves.is_empty());
+            assert!(report.contains(&moves[0].moves[0].name));
+            assert!(report.contains(&put(&moves[0].moves[0].why)));
+            cx.write_to_clipboard(gpui::ClipboardItem::new_string(report.clone()));
+            assert_eq!(
+                cx.read_from_clipboard().and_then(|item| item.text()),
+                Some(report)
+            );
+            mods.end_sort(false, cx);
+            assert!(mods.list.read(cx).order.sort_dropped().is_empty());
+        })
+    });
 }
 
 fn known_expansions(written: &str) -> usize {

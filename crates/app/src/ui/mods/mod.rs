@@ -434,6 +434,10 @@ impl Mods {
                 .order
                 .previewing()
                 .then(|| Rc::new(list.order.sort_moves())),
+            sort_dropped: list
+                .order
+                .previewing()
+                .then(|| Rc::new(list.order.sort_dropped().to_vec())),
             chosen_id: list.selected_id(),
             fresh: self.reads.fresh,
             community_problem: match self.demo {

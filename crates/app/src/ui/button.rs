@@ -234,7 +234,7 @@ impl RenderOnce for Btn {
             .rounded(theme::CORNER)
             .bg(with_alpha(ground, frame))
             .when(self.enabled, |d| {
-                d.on_hover(keep_pointed).child(super::motion::layer(
+                d.child(super::motion::layer(
                     div()
                         .absolute()
                         .inset_0()
@@ -292,7 +292,15 @@ impl RenderOnce for Btn {
             true => focus::reachable(control, &handle, theme::CORNER, false, window, theme),
             false => control,
         };
-        tipped(control, tip)
+        // One hover listener: gpui takes a single one and panics on a second.
+        let (lit, shown_tip) = (self.enabled, tip.clone());
+        let control = control.on_hover(move |over, window, cx| {
+            if lit {
+                keep_pointed(over, window, cx);
+            }
+            super::tip::follow(*over, &shown_tip, cx);
+        });
+        super::tip::pointed(control, tip)
     }
 }
 
@@ -431,8 +439,12 @@ impl RenderOnce for Chip {
                 ))
             })
             .when_some(pointed, |d, (pointed, keep_pointed)| {
+                let shown_tip = self.tip.clone();
                 d.cursor_pointer()
-                    .on_hover(keep_pointed)
+                    .on_hover(move |over, window, cx| {
+                        keep_pointed(over, window, cx);
+                        super::tip::follow(*over, &shown_tip, cx);
+                    })
                     .child(super::motion::layer(
                         div()
                             .absolute()
@@ -481,6 +493,10 @@ impl RenderOnce for Chip {
             }
             None => control,
         };
-        tipped(control, self.tip)
+        // A pressable chip has its hover already, with the tip pointed from it.
+        match pressed {
+            true => super::tip::pointed(control, self.tip),
+            false => tipped(control, self.tip),
+        }
     }
 }
