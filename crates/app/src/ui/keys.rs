@@ -96,6 +96,11 @@ fn groups() -> Vec<(Sentence, Vec<(Sentence, Sentence)>)> {
                 (say!("Ctrl + Z"), say!("Undo")),
                 (say!("Ctrl + Shift + Z"), say!("Redo")),
                 (say!("Ctrl + F"), say!("Filter the load order")),
+                (say!("Down, Enter"), say!("From the filter to the list")),
+                (
+                    say!("Esc"),
+                    say!("From an empty filter, the tag box or the note back to the list"),
+                ),
             ],
         ),
         (

@@ -1856,5 +1856,9 @@
  "Restore the copy of {}": "Restore the copy of {}",
  "Restored; this copy now wins over the Workshop's one": "Restored; this copy now wins over the Workshop's one",
  "That kept copy is gone": "That kept copy is gone",
- "a kept copy could not be deleted": "a kept copy could not be deleted"
+ "a kept copy could not be deleted": "a kept copy could not be deleted",
+ "Down, Enter": "Down, Enter",
+ "From an empty filter, tag box or note back to the list": "From an empty filter, tag box or note back to the list",
+ "From the filter to the list": "From the filter to the list",
+ "From an empty filter, the tag box or the note back to the list": "From an empty filter, the tag box or the note back to the list"
 }

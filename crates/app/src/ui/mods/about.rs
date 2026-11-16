@@ -739,7 +739,8 @@ impl DetailsView {
             "tags-field",
             &self.tags,
             put(&say!("Tags, separated by commas")),
-        );
+        )
+        .capture_action(self.escape_to_list(cx));
         let mut body = vec![
             self.tag_offers(theme, tags_field, window, cx)
                 .into_any_element(),
@@ -764,6 +765,7 @@ impl DetailsView {
                 keys: None,
             }
             .area(theme, window, cx)
+            .capture_action(self.escape_to_list(cx))
             .into_any_element(),
         );
         let (folded, fold) = self.fold("about-notes", false, cx);
@@ -774,6 +776,19 @@ impl DetailsView {
             .body(body)
             .render(theme, None)
             .into_any_element()
+    }
+
+    /// Esc in the tag or note box gives the keys back to the chosen mod's list, the text kept.
+    fn escape_to_list(
+        &self,
+        cx: &mut Context<Self>,
+    ) -> impl Fn(&crate::ui::text_field::Escape, &mut gpui::Window, &mut gpui::App) + 'static {
+        cx.listener(|view, _: &crate::ui::text_field::Escape, window, cx| {
+            let _ = view
+                .mods
+                .update(cx, |mods, cx| mods.keys_to_chosen_list(window, cx));
+            cx.stop_propagation();
+        })
     }
 
     /// The tags field, with the tags given to any mod offered for the one typed after the last

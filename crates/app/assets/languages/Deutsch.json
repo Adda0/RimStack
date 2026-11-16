@@ -1856,5 +1856,9 @@
  "Restore the copy of {}": "Kopie vom {} wiederherstellen",
  "Restored; this copy now wins over the Workshop's one": "Wiederhergestellt; diese Kopie gewinnt nun gegenüber der aus dem Workshop",
  "That kept copy is gone": "Diese gehaltene Kopie ist weg",
- "a kept copy could not be deleted": "eine gehaltene Kopie konnte nicht gelöscht werden"
+ "a kept copy could not be deleted": "eine gehaltene Kopie konnte nicht gelöscht werden",
+ "Down, Enter": "Unten, Eingabe",
+ "From an empty filter, tag box or note back to the list": "Aus einem leeren Filter, Tag-Feld oder der Notiz zurück in die Liste",
+ "From the filter to the list": "Vom Filter in die Liste",
+ "From an empty filter, the tag box or the note back to the list": "From an empty filter, the tag box or the note back to the list"
 }

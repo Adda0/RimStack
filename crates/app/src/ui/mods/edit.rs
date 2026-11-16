@@ -414,7 +414,13 @@ impl Mods {
         self.reveal_mod(side, id, centre, cx);
     }
 
-    fn reveal_mod(&mut self, side: Side, id: ModId, centre: bool, cx: &mut Context<Self>) {
+    pub(super) fn reveal_mod(
+        &mut self,
+        side: Side,
+        id: ModId,
+        centre: bool,
+        cx: &mut Context<Self>,
+    ) {
         let rows = self.shown(side).rows.clone();
         if let Some(at) = rows
             .iter()

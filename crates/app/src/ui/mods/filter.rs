@@ -178,6 +178,28 @@ impl Mods {
         self.filtering.update(cx, |filter, cx| filter.clear(cx));
     }
 
+    /// Gives the keys to a list, choosing its first shown mod when no mod is chosen.
+    pub(super) fn keys_to_list(&mut self, side: Side, window: &mut Window, cx: &mut Context<Self>) {
+        if self.selected_id(cx).is_none() {
+            let first = self.shown(side).rows.iter().find_map(|row| row.mod_id);
+            if let Some(first) = first {
+                self.select(Some(first), side == Side::Active, cx);
+                self.reveal_mod(side, first, false, cx);
+            }
+        }
+        let focus = self.list(side).read(cx).focus_handle();
+        window.focus(&focus, cx);
+    }
+
+    /// Gives the keys back to the list of the chosen mod.
+    pub(super) fn keys_to_chosen_list(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let side = match self.list.read(cx).selected_active {
+            true => Side::Active,
+            false => Side::Inactive,
+        };
+        self.keys_to_list(side, window, cx);
+    }
+
     pub(super) fn offers(&self, field: &Entity<TextField>, cx: &gpui::App) -> Offers {
         let typed = field.read(cx).text().to_string();
         let partial = typed.rsplit(' ').next().unwrap_or_default().to_string();
@@ -348,6 +370,10 @@ impl Mods {
         });
         let held = field.clone();
         let (enter_field, keys_field) = (field.clone(), field.clone());
+        let side = match *field == self.mirror {
+            true => Side::Inactive,
+            false => Side::Active,
+        };
         div()
             .id(id)
             .relative()
@@ -363,10 +389,15 @@ impl Mods {
             .border_color(if focused { c.focus } else { c.field_line })
             .when(focused, |d| d.children(halo(c.focus, theme::CORNER)))
             .cursor_text()
-            .capture_action(cx.listener(|mods, _: &text_field::Escape, _, cx| {
-                mods.clear_filter(cx);
-                cx.stop_propagation();
-            }))
+            .capture_action(
+                cx.listener(move |mods, _: &text_field::Escape, window, cx| {
+                    match empty {
+                        true => mods.keys_to_list(side, window, cx),
+                        false => mods.clear_filter(cx),
+                    }
+                    cx.stop_propagation();
+                }),
+            )
             .capture_action(cx.listener(move |mods, _: &text_field::Enter, window, cx| {
                 let offers = match mods.filtering.read(cx).offers_shut() {
                     true => Offers::default(),
@@ -374,7 +405,8 @@ impl Mods {
                 };
                 let chosen = mods.filtering.read(cx).chosen();
                 let Some(offer) = offers.offers.get(chosen).cloned() else {
-                    cx.propagate();
+                    mods.keys_to_list(side, window, cx);
+                    cx.stop_propagation();
                     return;
                 };
                 mods.filtering.update(cx, |filter, cx| {
@@ -384,20 +416,29 @@ impl Mods {
                 window.focus(&focus, cx);
                 cx.stop_propagation();
             }))
-            .on_key_down(cx.listener(move |mods, event: &gpui::KeyDownEvent, _, cx| {
-                let by = match event.keystroke.key.as_str() {
-                    "down" => 1,
-                    "up" => -1,
-                    _ => return,
-                };
-                if mods.filtering.read(cx).offers_shut() {
-                    return;
-                }
-                let count = mods.offers(&keys_field, cx).offers.len();
-                mods.filtering
-                    .update(cx, |filter, cx| filter.step(by, count, cx));
-                cx.stop_propagation();
-            }))
+            .on_key_down(
+                cx.listener(move |mods, event: &gpui::KeyDownEvent, window, cx| {
+                    let by = match event.keystroke.key.as_str() {
+                        "down" => 1,
+                        "up" => -1,
+                        _ => return,
+                    };
+                    let count = match mods.filtering.read(cx).offers_shut() {
+                        true => 0,
+                        false => mods.offers(&keys_field, cx).offers.len(),
+                    };
+                    if count == 0 {
+                        if by > 0 {
+                            mods.keys_to_list(side, window, cx);
+                            cx.stop_propagation();
+                        }
+                        return;
+                    }
+                    mods.filtering
+                        .update(cx, |filter, cx| filter.step(by, count, cx));
+                    cx.stop_propagation();
+                }),
+            )
             .capture_action(cx.listener(move |mods, _: &text_field::Backspace, _, cx| {
                 let terms = mods.filtering.read(cx).terms().len();
                 match held.read(cx).text().is_empty() && terms > 0 {

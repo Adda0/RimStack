@@ -359,6 +359,70 @@ fn home_end_and_the_page_keys_walk_the_list() {
 }
 
 #[test]
+fn esc_in_an_empty_filter_and_down_give_the_list_the_keys() {
+    let (_tmp, mut cx, mods) = opened();
+    let window = cx.update(|cx| cx.windows()[0]);
+    let keys = |keys: &'static str, cx: &mut HeadlessAppContext| {
+        for key in keys.split(' ') {
+            cx.update_window(window, |_, window, cx| {
+                let parsed = gpui::Keystroke::parse(key).unwrap();
+                window.dispatch_keystroke(parsed, cx);
+            })
+            .unwrap();
+            cx.run_until_parked();
+        }
+    };
+    let on_list = |cx: &mut HeadlessAppContext| {
+        cx.update_window(window, |_, window, cx| {
+            let mods = mods.read(cx);
+            let list = mods.list(Side::Active).read(cx).focus_handle();
+            (list.is_focused(window), mods.list.read(cx).selected_id())
+        })
+        .unwrap()
+    };
+    let first = cx.update(|cx| {
+        let order = mods.read(cx).list.read(cx).order.list(Side::Active);
+        (0..order.rows().len()).find_map(|row| order.installed_on(row))
+    });
+    cx.update_window(window, |_, window, cx| {
+        let handle = mods.read(cx).list(Side::Active).read(cx).focus_handle();
+        window.focus(&handle, cx);
+    })
+    .unwrap();
+    cx.run_until_parked();
+    keys("ctrl-f", &mut cx);
+    assert_eq!(
+        on_list(&mut cx),
+        (false, None),
+        "Ctrl+F gives the filter the keys"
+    );
+    keys("escape", &mut cx);
+    assert_eq!(
+        on_list(&mut cx),
+        (true, first),
+        "Esc in the empty filter goes to the list and chooses its first mod"
+    );
+    keys("ctrl-f z z z q escape", &mut cx);
+    assert!(!on_list(&mut cx).0, "Esc first empties a filter typed in");
+    keys("z z z q down", &mut cx);
+    assert_eq!(
+        on_list(&mut cx),
+        (true, first),
+        "Down with nothing offered goes to the list"
+    );
+    let note = cx.update(|cx| mods.read(cx).details_view.read(cx).note.clone());
+    cx.update_window(window, |_, window, cx| {
+        window.focus(&gpui::Focusable::focus_handle(&note, cx), cx);
+        note.update(cx, |field, cx| field.set_text("kept", cx));
+    })
+    .unwrap();
+    cx.run_until_parked();
+    keys("escape", &mut cx);
+    assert!(on_list(&mut cx).0, "Esc in the note goes back to the list");
+    assert_eq!(cx.update(|cx| note.read(cx).text().to_string()), "kept");
+}
+
+#[test]
 fn shift_ctrl_and_ctrl_a_choose_from_the_keyboard() {
     let (_tmp, mut cx, mods) = opened();
     let window = cx.update(|cx| cx.windows()[0]);
