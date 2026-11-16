@@ -121,7 +121,7 @@ pub struct Mods {
     facts_quiet: Lane,
     focus: gpui::FocusHandle,
     details: Option<Rc<Details>>,
-    details_view: Entity<chosen::DetailsView>,
+    pub(super) details_view: Entity<chosen::DetailsView>,
     demo: bool,
     loading: Lane,
     counting: Lane,
@@ -489,7 +489,7 @@ impl Mods {
         );
     }
 
-    fn show(&mut self, cx: &mut Context<Self>) {
+    pub(super) fn show(&mut self, cx: &mut Context<Self>) {
         let app = super::app(cx);
         let demo = self.demo;
         let (rows, orders, fresh, conflicts) = self.edit_list(cx, |list, _| {

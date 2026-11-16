@@ -73,7 +73,7 @@ pub struct DetailsView {
     pub folded: std::collections::HashSet<&'static str>,
     pub summary_open: bool,
     pub mods: gpui::WeakEntity<super::Mods>,
-    pub(super) tags: gpui::Entity<crate::ui::text_field::TextField>,
+    pub(crate) tags: gpui::Entity<crate::ui::text_field::TextField>,
     pub(super) note: gpui::Entity<crate::ui::text_field::TextField>,
     pub(super) small_picture: bool,
     paging: crate::ui::page::Paging,

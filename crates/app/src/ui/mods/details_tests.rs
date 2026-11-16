@@ -2,7 +2,7 @@ use super::Mods;
 use super::edit_tests::opened_with;
 use super::notes::Picking;
 use crate::workspace::load_order::Side;
-use gpui::{Entity, HeadlessAppContext};
+use gpui::{Entity, Focusable, HeadlessAppContext};
 use rimstack_core::mods::library::ModId;
 
 fn active_id(mods: &Mods, nth: usize) -> ModId {
@@ -143,4 +143,43 @@ fn a_comparison_holds_the_watcher_and_ends_when_the_mods_are_read_again() {
     cx.run_until_parked();
     assert!(cx.update(|cx| mods.read(cx).comparing.is_none()));
     assert!(!cx.update(|cx| mods.read(cx).held(cx)));
+}
+
+#[test]
+fn tags_given_to_any_mod_are_offered_while_tagging_and_not_the_one_typed_or_taken() {
+    let (_tmp, mut cx, mods) = opened_with(|_| {});
+    let id = chosen(&mut cx, &mods, 4);
+    let other = chosen(&mut cx, &mods, 9);
+    let offered = |typed: &str, cx: &mut HeadlessAppContext| -> Vec<String> {
+        let view = cx.update(|cx| mods.read(cx).details_view.clone());
+        let window = cx.update(|cx| cx.windows()[0]);
+        cx.update_window(window, |_, window, cx| {
+            let field = view.read(cx).tags.clone();
+            window.focus(&field.focus_handle(cx), cx);
+            field.update(cx, |field, cx| field.set_text(typed, cx));
+            crate::ui::app(cx).tag_offers(typed)
+        })
+        .unwrap()
+        .into_iter()
+        .map(|offer| offer.tag)
+        .collect()
+    };
+    cx.update(|cx| {
+        mods.update(cx, |mods, cx| {
+            let app = crate::ui::app(cx);
+            app.set_note(id, "medieval, keep", "");
+            app.set_note(other, "medieval, mechs", "");
+            mods.show(cx);
+        })
+    });
+    assert_eq!(
+        offered("me", &mut cx),
+        ["medieval", "mechs"],
+        "the most used tag is offered first and the one typed is not"
+    );
+    assert_eq!(
+        offered("medieval, ", &mut cx),
+        ["keep", "mechs"],
+        "the tags already typed are not offered again"
+    );
 }

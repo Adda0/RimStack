@@ -11,9 +11,10 @@ use crate::words::put;
 use crate::workspace::load_order::Details;
 use gpui::AnimationExt;
 use gpui::InteractiveElement as _;
+use gpui::StatefulInteractiveElement as _;
 use gpui::{
-    AnyElement, Context, FontWeight, IntoElement, ParentElement, Pixels, Styled, Window, div,
-    point, prelude::FluentBuilder, px,
+    AnyElement, Context, Focusable, FontWeight, IntoElement, ParentElement, Pixels, Styled, Window,
+    anchored, deferred, div, point, prelude::FluentBuilder, px,
 };
 use rimstack_core::base::sentence::Sentence;
 use rimstack_core::{say, say_n};
@@ -639,13 +640,14 @@ impl DetailsView {
             .render(theme, window, cx)
         };
         let chips: Vec<AnyElement> = chips.collect();
+        let tags_field = field(
+            "tags-field",
+            &self.tags,
+            put(&say!("Tags, separated by commas")),
+        );
         let mut body = vec![
-            field(
-                "tags-field",
-                &self.tags,
-                put(&say!("Tags, separated by commas")),
-            )
-            .into_any_element(),
+            self.tag_offers(theme, tags_field, window, cx)
+                .into_any_element(),
         ];
         if !chips.is_empty() {
             body.push(
@@ -677,6 +679,69 @@ impl DetailsView {
             .body(body)
             .render(theme, None)
             .into_any_element()
+    }
+
+    /// The tags field, with the tags given to any mod offered for the one typed after the last
+    /// comma: the most used first, each a click away.
+    fn tag_offers(
+        &self,
+        theme: &Theme,
+        field: gpui::Stateful<gpui::Div>,
+        window: &Window,
+        cx: &mut Context<Self>,
+    ) -> gpui::Stateful<gpui::Div> {
+        let c = &theme.colours;
+        let typed = self.tags.read(cx).text().to_string();
+        let focused = self.tags.read(cx).is_focused(window);
+        let offers = match focused {
+            true => crate::ui::app(cx).tag_offers(&typed),
+            false => Vec::new(),
+        };
+        let rows = offers
+            .into_iter()
+            .enumerate()
+            .map(|(at, offer)| {
+                let (tag, text) = (offer.tag, offer.text);
+                div()
+                    .id(("tag-offer", at))
+                    .role(gpui::Role::Button)
+                    .aria_label(tag.clone())
+                    .flex()
+                    .items_center()
+                    .h(theme.sized(26.))
+                    .px(theme::GAP)
+                    .rounded(theme::CORNER)
+                    .cursor_pointer()
+                    .hover(|s| s.bg(c.chip))
+                    .sized_text(theme, theme.small())
+                    .text_color(c.ink)
+                    .child(tag)
+                    .on_click(cx.listener(move |view, _, window, cx| {
+                        view.tags.update(cx, |field, cx| field.set_text(&text, cx));
+                        let focus = Focusable::focus_handle(view.tags.read(cx), cx);
+                        window.focus(&focus, cx);
+                    }))
+            })
+            .collect::<Vec<_>>();
+        field.when(!rows.is_empty(), |field| {
+            field.child(
+                div().absolute().top_full().left_0().child(deferred(
+                    anchored().child(
+                        div()
+                            .id("tag-offers")
+                            .mt(px(4.))
+                            .w(theme.sized(320.))
+                            .p(px(6.))
+                            .rounded(theme::CORNER_LARGE)
+                            .bg(c.bar)
+                            .border_1()
+                            .border_color(c.line)
+                            .occlude()
+                            .children(rows),
+                    ),
+                )),
+            )
+        })
     }
 
     pub(super) fn about(
