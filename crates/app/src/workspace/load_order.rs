@@ -4,6 +4,7 @@ use rimstack_core::base::sentence::Sentence;
 use rimstack_core::kept::settings::Switch;
 use rimstack_core::kept::{activated, launches};
 use rimstack_core::mods::describe::Trouble;
+use rimstack_core::mods::infer;
 use rimstack_core::mods::library::{Library, ModId};
 pub use rimstack_core::mods::list::Side;
 use rimstack_core::mods::list::offers::{self, Counted, Offers};
@@ -706,11 +707,52 @@ impl App {
             &|name| names.contains(name),
             &|folded| library.name_of(folded).is_some(),
         );
+        let member_of: HashMap<ModId, usize> = (members.iter().copied())
+            .enumerate()
+            .map(|(at, id)| (id, at))
+            .collect();
+        // The installed mods of the newest save that are off need their own scan; the game
+        // waits, this run does not.
+        let save_keys: HashSet<String> = self.newest_save().as_ref().clone().unwrap_or_default();
+        let mut scanned_off: HashMap<ModId, infer::Scanned> = HashMap::new();
+        let mut removal = HashMap::new();
+        for (id, m) in library.ids() {
+            if m.key().is_none_or(|key| !save_keys.contains(&key)) {
+                continue;
+            }
+            let defines = match member_of.get(&id) {
+                Some(&at) => &scanned[at].1.defines,
+                None => {
+                    &scanned_off
+                        .entry(id)
+                        .or_insert_with(|| {
+                            infer::scan_xml(&rimstack_core::rimworld::loadfolders::folders(
+                                &m.path,
+                                &library.game_version,
+                                &|m| active.contains(m),
+                            ))
+                        })
+                        .defines
+                }
+            };
+            removal.insert(
+                id,
+                rimstack_core::mods::removal::removal(
+                    library.category_of(id),
+                    defines,
+                    &m.code.facts,
+                ),
+            );
+        }
+        let collisions = rimstack_core::mods::defs::collisions(&defines);
+        let mut scanned: HashMap<ModId, infer::Scanned> = scanned.into_iter().collect();
+        scanned.extend(scanned_off);
         let found = super::Conflicts {
             overlaps: conflicts::overlaps(&provided),
-            def_collisions: rimstack_core::mods::defs::collisions(&defines),
-            scanned: scanned.into_iter().collect(),
+            def_collisions: collisions,
+            scanned,
             xml_found: members.iter().copied().zip(xml).collect(),
+            removal,
             members: members.clone(),
         };
         if !self.keep_facts(run, &loaded, members.iter().copied().zip(facts)) {

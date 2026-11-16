@@ -477,6 +477,101 @@ fn a_sort_of_a_list_in_order_moves_nothing_and_says_so() {
     assert_eq!(order.sort_count().map(|count| count.moves(&app)), Some(0));
 }
 
+#[test]
+fn a_mod_of_the_newest_save_switched_off_says_what_removal_would_do() {
+    let (tmp, app) = installed();
+    // A mod defining things, and a textures-only one, both active and in the newest save.
+    std::fs::create_dir_all(tmp.path().join("game/Mods/roads/Defs")).unwrap();
+    std::fs::write(
+        tmp.path().join("game/Mods/roads/Defs/Things.xml"),
+        "<Defs><ThingDef><defName>Rock</defName></ThingDef></Defs>",
+    )
+    .unwrap();
+    let about = "<ModMetaData><packageId>Ann.Pale</packageId><name>Pale</name></ModMetaData>";
+    std::fs::create_dir_all(tmp.path().join("game/Mods/pale/About")).unwrap();
+    std::fs::create_dir_all(tmp.path().join("game/Mods/pale/Textures")).unwrap();
+    std::fs::write(tmp.path().join("game/Mods/pale/About/About.xml"), about).unwrap();
+    std::fs::write(
+        tmp.path().join("game/Mods/pale/Textures/rock.png"),
+        [0, 0, 0, 0],
+    )
+    .unwrap();
+    std::fs::write(
+        tmp.path().join("config/Config/ModsConfig.xml"),
+        "<ModsConfigData><activeMods><li>ludeon.rimworld</li><li>ann.roads</li><li>ann.pale</li></activeMods></ModsConfigData>",
+    )
+    .unwrap();
+    std::fs::create_dir_all(tmp.path().join("config/Saves")).unwrap();
+    std::fs::write(
+        tmp.path().join("config/Saves/Colony.rws"),
+        "<savegame><meta><gameVersion>1.6.4871 rev600</gameVersion><modIds><li>ludeon.rimworld</li><li>ann.roads</li><li>ann.pale</li></modIds><modNames><li>Core</li><li>Ann.Roads</li><li>Pale</li></modNames></meta><game/></savegame>",
+    )
+    .unwrap();
+    let mut order = LoadOrder::read(&app, true, None);
+    order.settle(&app);
+    let members = order.files_to_read(&app).unwrap();
+    app.read_active_files(members);
+    // While it stands on the active list its details say what removing it would do.
+    use rimstack_core::mods::removal::Removal;
+    let roads = (app.library().as_ref().as_ref().unwrap().0.ids())
+        .find(|(_, m)| m.key().as_deref() == Some("ann.roads"))
+        .unwrap()
+        .0;
+    let pale = (app.library().as_ref().as_ref().unwrap().0.ids())
+        .find(|(_, m)| m.key().as_deref() == Some("ann.pale"))
+        .unwrap()
+        .0;
+    assert_eq!(
+        app.conflicts()
+            .reading()
+            .as_ref()
+            .map(|found| found.removal.get(&roads)),
+        Some(Some(&Removal::Defs(vec!["ThingDef".to_string()]))),
+    );
+    let said = order.details(&app, roads);
+    assert_eq!(
+        said.removal.as_ref().map(|s| s.to_string()),
+        Some(
+            "Removing it mid-save likely damages the save, which keeps what it defines: ThingDef"
+                .to_string()
+        ),
+    );
+    assert!(said.removal_harms);
+    assert_eq!(
+        order
+            .details(&app, pale)
+            .removal
+            .as_ref()
+            .map(|s| s.to_string()),
+        Some(
+            "Likely safe to remove mid-save: it changes how things look, not what they are."
+                .to_string()
+        ),
+    );
+    // Switched off, taking both out of the save is put in words, the damage first.
+    let all: Vec<ModId> = (order.list(Side::Active).mods().iter())
+        .filter(|m| m.id != "ludeon.rimworld")
+        .filter_map(|m| m.installed)
+        .collect();
+    order.take_all(&app, Side::Active, &all, None);
+    if let Some(members) = order.files_to_read(&app) {
+        app.read_active_files(members);
+    }
+    let library = app.library();
+    let (library, _) = library.as_ref().as_ref().unwrap();
+    let switched_off: Vec<String> = app
+        .session()
+        .changes()
+        .deactivated
+        .iter()
+        .map(|id| id.to_string())
+        .collect();
+    assert_eq!(
+        order.left_save(&app, library, &switched_off).to_string(),
+        "Taking Ann.Roads out of the newest save is likely to damage it. Taking Pale out of it is likely safe.",
+    );
+}
+
 fn nothing_found() -> crate::workspace::Conflicts {
     crate::workspace::Conflicts {
         members: Vec::new(),
@@ -484,6 +579,7 @@ fn nothing_found() -> crate::workspace::Conflicts {
         def_collisions: Vec::new(),
         scanned: Default::default(),
         xml_found: Default::default(),
+        removal: Default::default(),
     }
 }
 

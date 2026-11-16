@@ -463,6 +463,7 @@ impl DetailsView {
         let labels = [
             say!("Contains"),
             say!("Translates"),
+            say!("Mid-save removal"),
             say!("Code"),
             say!("Load time"),
             say!("Package id"),
@@ -491,6 +492,11 @@ impl DetailsView {
         .join("; ");
         let facts = [
             ("fact-contains", say!("Contains"), contains),
+            (
+                "fact-removal",
+                say!("Mid-save removal"),
+                details.removal.as_ref().map_or(String::new(), put),
+            ),
             (
                 "fact-translates",
                 say!("Translates"),

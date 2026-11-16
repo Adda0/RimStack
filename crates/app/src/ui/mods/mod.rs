@@ -104,6 +104,8 @@ impl gpui::EventEmitter<Progress> for Mods {}
 pub struct Standing {
     pub dirty: bool,
     pub unsaved: String,
+    /// Removing a switched-off mod of the newest save; empty for nothing said.
+    pub left_save: String,
     pub can_undo: bool,
     pub can_redo: bool,
 }
@@ -516,11 +518,29 @@ impl Mods {
                 true => Standing::default(),
                 false => app
                     .session_if_read()
-                    .map_or_else(Standing::default, |session| Standing {
-                        dirty: session.is_dirty(),
-                        unsaved: crate::words::put(&session.changes().said()),
-                        can_undo: session.can_undo(),
-                        can_redo: session.can_redo(),
+                    .map_or_else(Standing::default, |session| {
+                        let library = app.library();
+                        let switched_off: Vec<String> = session
+                            .changes()
+                            .deactivated
+                            .iter()
+                            .map(|id| id.to_string())
+                            .collect();
+                        let left_save = match library.as_ref() {
+                            Ok((library, _)) => crate::words::put(&list.order.left_save(
+                                &app,
+                                library,
+                                &switched_off,
+                            )),
+                            Err(_) => String::new(),
+                        };
+                        Standing {
+                            dirty: session.is_dirty(),
+                            unsaved: crate::words::put(&session.changes().said()),
+                            left_save,
+                            can_undo: session.can_undo(),
+                            can_redo: session.can_redo(),
+                        }
                     }),
             };
             let order = &list.order;

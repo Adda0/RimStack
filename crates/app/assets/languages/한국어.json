@@ -1927,5 +1927,15 @@
  "Tags, notes or colours for {} mods, now here too.": "Tags, notes or colours for {} mods, now here too.",
  "Copies the colours of your mods from RimPy's config.ini into RimStack, each as the nearest of RimStack's colours. RimPy's file is only read.": "Copies the colours of your mods from RimPy's config.ini into RimStack, each as the nearest of RimStack's colours. RimPy's file is only read.",
  "Copies your rules, and the tags, notes and colours of your mods, from RimSort into RimStack. What RimStack holds stays; RimSort's files are only read.": "Copies your rules, and the tags, notes and colours of your mods, from RimSort into RimStack. What RimStack holds stays; RimSort's files are only read.",
- "RimPy": "RimPy"
+ "RimPy": "RimPy",
+ "Likely safe to remove mid-save: it adds nothing a save is known to keep.": "Likely safe to remove mid-save: it adds nothing a save is known to keep.",
+ "Likely safe to remove mid-save: it changes how the game runs, not what is in it.": "Likely safe to remove mid-save: it changes how the game runs, not what is in it.",
+ "Likely safe to remove mid-save: it changes how things look, not what they are.": "Likely safe to remove mid-save: it changes how things look, not what they are.",
+ "Likely safe to remove mid-save: it changes the interface, not the world.": "Likely safe to remove mid-save: it changes the interface, not the world.",
+ "Likely safe to remove mid-save: it only patches defs other mods define.": "Likely safe to remove mid-save: it only patches defs other mods define.",
+ "Mid-save removal": "Mid-save removal",
+ "Removing it mid-save likely damages the save, which keeps what it defines: {}": "Removing it mid-save likely damages the save, which keeps what it defines: {}",
+ "Removing it mid-save may damage the save: its code adds parts of the game, such as comps or hediffs, that a save can keep.": "Removing it mid-save may damage the save: its code adds parts of the game, such as comps or hediffs, that a save can keep.",
+ "Taking {} out of it is likely safe.": "Taking {} out of it is likely safe.",
+ "Taking {} out of the newest save is likely to damage it.": "Taking {} out of the newest save is likely to damage it."
 }

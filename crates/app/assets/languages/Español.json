@@ -1927,5 +1927,15 @@
  "Tags, notes or colours for {} mods, now here too.": "Etiquetas, notas o colores de {} mods, ahora también aquí.",
  "Copies the colours of your mods from RimPy's config.ini into RimStack, each as the nearest of RimStack's colours. RimPy's file is only read.": "Copia los colores de tus mods desde el config.ini de RimPy a RimStack, cada uno como el color más cercano de RimStack. El archivo de RimPy solo se lee.",
  "Copies your rules, and the tags, notes and colours of your mods, from RimSort into RimStack. What RimStack holds stays; RimSort's files are only read.": "Copia tus reglas y las etiquetas, notas y colores de tus mods de RimSort a RimStack. Lo que RimStack guarda se queda; los archivos de RimSort solo se leen.",
- "RimPy": "RimPy"
+ "RimPy": "RimPy",
+ "Likely safe to remove mid-save: it adds nothing a save is known to keep.": "Probablemente seguro de quitar a mitad de una partida: no añade nada que sepa que una partida conserva.",
+ "Likely safe to remove mid-save: it changes how the game runs, not what is in it.": "Probablemente seguro de quitar a mitad de una partida: cambia cómo funciona el juego, no lo que contiene.",
+ "Likely safe to remove mid-save: it changes how things look, not what they are.": "Probablemente seguro de quitar a mitad de una partida: cambia cómo se ven las cosas, no lo que son.",
+ "Likely safe to remove mid-save: it changes the interface, not the world.": "Probablemente seguro de quitar a mitad de una partida: cambia la interfaz, no el mundo.",
+ "Likely safe to remove mid-save: it only patches defs other mods define.": "Probablemente seguro de quitar a mitad de una partida: solo modifica defs que definen otros mods.",
+ "Mid-save removal": "Quitar a mitad de una partida",
+ "Removing it mid-save likely damages the save, which keeps what it defines: {}": "Quitarlo a mitad de una partida probablemente daña la partida, que conserva lo que define: {}",
+ "Removing it mid-save may damage the save: its code adds parts of the game, such as comps or hediffs, that a save can keep.": "Quitarlo a mitad de una partida puede dañar la partida: su código añade partes del juego, como comps o hediffs, que una partida puede conservar.",
+ "Taking {} out of it is likely safe.": "Quitar {} de ella es probablemente seguro.",
+ "Taking {} out of the newest save is likely to damage it.": "Quitar {} de la partida más reciente probablemente la dañará."
 }

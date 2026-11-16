@@ -164,6 +164,9 @@ pub struct Details {
     pub defs_replaces: Vec<rimstack_core::mods::defs::DefClash>,
     /// The mods not installed that its patches or defs are for; a note, not a problem.
     pub xml_leaves_out: Option<Sentence>,
+    /// Removing it mid-save, judged on what it adds; only for a mod in the newest save.
+    pub removal: Option<Sentence>,
+    pub removal_harms: bool,
     pub loads_after: Vec<Named>,
     pub loads_before: Vec<Named>,
     pub required_above: usize,
@@ -434,6 +437,21 @@ impl LoadOrder {
                 .as_ref()
                 .and_then(|known| known.xml_found.get(&id))
                 .and_then(rimstack_core::mods::xmlcheck::leaves_out);
+            let save_ids = app.newest_save();
+            let in_newest_save = m
+                .key()
+                .zip(save_ids.as_ref().as_ref())
+                .is_some_and(|(key, ids)| ids.contains(&key));
+            if in_newest_save
+                && let Some(verdict) = app
+                    .conflicts()
+                    .reading()
+                    .as_ref()
+                    .and_then(|known| known.removal.get(&id))
+            {
+                said.removal = Some(verdict.said());
+                said.removal_harms = verdict.harms();
+            }
             said.placement = near.bottom.then(|| say!("The community rules keep this mod near the bottom of the list, below everything that does not have to follow it."));
         } else if let Some((_, listed)) = listed
             && let Some(lack) = describe::lacking(library, listed)
@@ -568,6 +586,62 @@ impl LoadOrder {
             Some((at, self.active.mods()[at].name.clone()))
         };
         rimstack_core::mods::defs::of_mod(&known.members, &known.def_collisions, id, &listed)
+    }
+
+    /// What taking the switched-off mods, still in the newest save, out of it would do; empty
+    /// for nothing said. The keys are given, not read of the session: the caller may hold it.
+    pub fn left_save(
+        &self,
+        app: &App,
+        library: &rimstack_core::mods::library::Library,
+        switched_off: &[String],
+    ) -> Sentence {
+        let save_ids = app.newest_save();
+        let Some(save_ids) = save_ids.as_ref().as_ref() else {
+            return Sentence::default();
+        };
+        let known = app.conflicts().reading();
+        let Some(found) = known.as_ref() else {
+            return Sentence::default();
+        };
+        let mut names = Vec::new();
+        for id in switched_off {
+            let key = rimstack_core::rimworld::id::split_steam(id).0;
+            if !save_ids.contains(&key) {
+                continue;
+            }
+            let Some((mod_id, m)) = library
+                .ids()
+                .find(|(_, m)| m.key().as_deref() == Some(key.as_str()))
+            else {
+                continue;
+            };
+            let Some(verdict) = found.removal.get(&mod_id) else {
+                continue;
+            };
+            names.push((m.display_name().to_string(), verdict.harms()));
+        }
+        let (harms, safe): (Vec<_>, Vec<_>) = names.into_iter().partition(|(_, harms)| *harms);
+        let named = |which: Vec<String>| {
+            let list = which.join(", ");
+            (!list.is_empty()).then_some(list)
+        };
+        Sentence::joined(
+            " ",
+            [
+                named(harms.into_iter().map(|(name, _)| name).collect()).map(|list| {
+                    say!(
+                        "Taking {} out of the newest save is likely to damage it.",
+                        list
+                    )
+                }),
+                named(safe.into_iter().map(|(name, _)| name).collect())
+                    .map(|list| say!("Taking {} out of it is likely safe.", list)),
+            ]
+            .into_iter()
+            .flatten()
+            .collect(),
+        )
     }
 
     pub fn overview(&self, app: &App) -> Overview {

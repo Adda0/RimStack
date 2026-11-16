@@ -1927,5 +1927,15 @@
  "Tags, notes or colours for {} mods, now here too.": "Tag, note o colori per {} mod, ora anche qui.",
  "Copies the colours of your mods from RimPy's config.ini into RimStack, each as the nearest of RimStack's colours. RimPy's file is only read.": "Copia i colori dei tuoi mod dal config.ini di RimPy in RimStack, ciascuno come il colore più vicino tra quelli di RimStack. Il file di RimPy viene solo letto.",
  "Copies your rules, and the tags, notes and colours of your mods, from RimSort into RimStack. What RimStack holds stays; RimSort's files are only read.": "Copia le tue regole e le etichette, le note e i colori dei tuoi mod da RimSort in RimStack. Ciò che RimStack già ha resta; i file di RimSort vengono solo letti.",
- "RimPy": "RimPy"
+ "RimPy": "RimPy",
+ "Likely safe to remove mid-save: it adds nothing a save is known to keep.": "Probabilmente sicuro da rimuovere a partita iniziata: non aggiunge nulla che sia noto venire conservato in un salvataggio.",
+ "Likely safe to remove mid-save: it changes how the game runs, not what is in it.": "Probabilmente sicuro da rimuovere a partita iniziata: cambia come funziona il gioco, non cosa contiene.",
+ "Likely safe to remove mid-save: it changes how things look, not what they are.": "Probabilmente sicuro da rimuovere a partita iniziata: cambia l'aspetto delle cose, non cosa sono.",
+ "Likely safe to remove mid-save: it changes the interface, not the world.": "Probabilmente sicuro da rimuovere a partita iniziata: cambia l'interfaccia, non il mondo.",
+ "Likely safe to remove mid-save: it only patches defs other mods define.": "Probabilmente sicuro da rimuovere a partita iniziata: modifica solo def definite da altre mod.",
+ "Mid-save removal": "Rimozione a partita iniziata",
+ "Removing it mid-save likely damages the save, which keeps what it defines: {}": "Rimuoverlo a partita iniziata probabilmente danneggia il salvataggio, che conserva ciò che definisce: {}",
+ "Removing it mid-save may damage the save: its code adds parts of the game, such as comps or hediffs, that a save can keep.": "Rimuoverlo a partita iniziata può danneggiare il salvataggio: il suo codice aggiunge parti del gioco, come comp o hediff, che un salvataggio può conservare.",
+ "Taking {} out of it is likely safe.": "Rimuovere {} da esso è probabilmente sicuro.",
+ "Taking {} out of the newest save is likely to damage it.": "Rimuovere {} dall'ultimo salvataggio probabilmente lo danneggerà."
 }

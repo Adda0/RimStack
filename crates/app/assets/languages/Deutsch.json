@@ -1927,5 +1927,15 @@
  "Tags, notes or colours for {} mods, now here too.": "Tags, Notizen oder Farben für {} Mods, jetzt auch hier.",
  "Copies the colours of your mods from RimPy's config.ini into RimStack, each as the nearest of RimStack's colours. RimPy's file is only read.": "Kopiert die Farben deiner Mods aus RimPys config.ini nach RimStack, jede als die nächstliegende Farbe von RimStack. RimPys Datei wird nur gelesen.",
  "Copies your rules, and the tags, notes and colours of your mods, from RimSort into RimStack. What RimStack holds stays; RimSort's files are only read.": "Kopiert deine Regeln und die Markierungen, Notizen und Farben deiner Mods von RimSort nach RimStack. Was RimStack bereits hat, bleibt; RimSorts Dateien werden nur gelesen.",
- "RimPy": "RimPy"
+ "RimPy": "RimPy",
+ "Likely safe to remove mid-save: it adds nothing a save is known to keep.": "Vermutlich sicher, mitten im Spielstand zu entfernen: es fügt nichts hinzu, von dem bekannt ist, dass ein Spielstand es behält.",
+ "Likely safe to remove mid-save: it changes how the game runs, not what is in it.": "Vermutlich sicher, mitten im Spielstand zu entfernen: es ändert, wie das Spiel läuft, nicht, was darin ist.",
+ "Likely safe to remove mid-save: it changes how things look, not what they are.": "Vermutlich sicher, mitten im Spielstand zu entfernen: es ändert, wie Dinge aussehen, nicht, was sie sind.",
+ "Likely safe to remove mid-save: it changes the interface, not the world.": "Vermutlich sicher, mitten im Spielstand zu entfernen: es ändert die Oberfläche, nicht die Welt.",
+ "Likely safe to remove mid-save: it only patches defs other mods define.": "Vermutlich sicher, mitten im Spielstand zu entfernen: es patcht nur Defs, die andere Mods definieren.",
+ "Mid-save removal": "Entfernen mitten im Spielstand",
+ "Removing it mid-save likely damages the save, which keeps what it defines: {}": "Es mitten im Spielstand zu entfernen beschädigt den Spielstand vermutlich, der behält, was es definiert: {}",
+ "Removing it mid-save may damage the save: its code adds parts of the game, such as comps or hediffs, that a save can keep.": "Es mitten im Spielstand zu entfernen kann den Spielstand beschädigen: sein Code fügt Teile des Spiels hinzu, etwa Comps oder Hediffs, die ein Spielstand behalten kann.",
+ "Taking {} out of it is likely safe.": "{} aus ihm zu entfernen ist vermutlich sicher.",
+ "Taking {} out of the newest save is likely to damage it.": "{} aus dem neuesten Spielstand zu entfernen beschädigt ihn vermutlich."
 }

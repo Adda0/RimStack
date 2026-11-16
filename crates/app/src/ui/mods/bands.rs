@@ -61,6 +61,7 @@ impl Mods {
         let previewing = list.order.previewing();
         let dirty = list.standing.dirty && list.order.is_installed();
         let unsaved = list.standing.unsaved.clone();
+        let left_save = list.standing.left_save.clone();
         let band = |tone| {
             div()
                 .flex_none()
@@ -112,6 +113,23 @@ impl Mods {
                                     .primary()
                                     .on_click(cx.listener(|m, _, _, cx| m.save(None, cx))),
                             ),
+                    )
+                    .into_any_element(),
+            );
+        }
+        if dirty && !previewing && !left_save.is_empty() {
+            shown.push(
+                band(c.warn)
+                    .child(
+                        div()
+                            .flex_1()
+                            .min_w_0()
+                            .overflow_hidden()
+                            .whitespace_nowrap()
+                            .text_ellipsis()
+                            .sized_text(theme, theme.small())
+                            .text_color(c.ink)
+                            .child(left_save),
                     )
                     .into_any_element(),
             );
