@@ -27,13 +27,14 @@ pub enum Which {
     History,
     /// The load orders ModsConfig.xml held over time, newest first.
     Past,
-    /// A saved list beside the load order: which mods each holds alone, and which moved.
+    /// Two orders side by side: which mods each holds alone, and which moved.
     Compare,
 }
 
-/// The saved list a comparison card shows, and the groups read for it.
+/// The two orders a comparison card shows, and the groups read for them.
 struct Comparing {
-    name: String,
+    left: String,
+    right: String,
     /// None until the mods are read.
     groups: Option<Comparison>,
 }
@@ -66,6 +67,9 @@ fn widest_button(buttons: &[Btn], window: &Window, theme: &Theme) -> Pixels {
         .map(|button| button.width(window, theme))
         .fold(Pixels::ZERO, |most, wide| most.max(wide))
 }
+
+/// The key of the load order, the right side of every comparison until changed.
+const CURRENT: &str = "current";
 
 pub struct Lists {
     saved: Vec<Saved>,
@@ -352,11 +356,12 @@ impl Lists {
         );
     }
 
-    /// The saved list `name` beside the load order as it is, the card opening where the lists did.
-    fn compare(&mut self, name: &str, window: &mut Window, cx: &mut Context<Self>) {
+    /// The order `key` beside the load order, the card opening where the lists did.
+    fn compare(&mut self, key: &str, window: &mut Window, cx: &mut Context<Self>) {
         let below = self.open.map_or_else(Bounds::default, |(_, below)| below);
         self.comparing = Some(Comparing {
-            name: name.to_string(),
+            left: key.to_string(),
+            right: CURRENT.to_string(),
             groups: None,
         });
         self.toggle(Which::Compare, below, window, cx);
@@ -365,24 +370,24 @@ impl Lists {
 
     /// The comparison card's groups, read anew: off the window's thread.
     fn compare_again(&mut self, cx: &mut Context<Self>) {
-        let Some(name) = self
+        let Some((left, right)) = self
             .comparing
             .as_ref()
-            .map(|comparing| comparing.name.clone())
+            .map(|comparing| (comparing.left.clone(), comparing.right.clone()))
         else {
             return;
         };
         let app = super::app(cx);
-        let asked = name.clone();
+        let asked = (left.clone(), right.clone());
         crate::jobs::run(
             "list compared",
             cx,
-            move || app.compare_saved(&asked),
+            move || app.compare_orders(&asked.0, &asked.1),
             move |lists, groups, cx| {
                 let Some(comparing) = &mut lists.comparing else {
                     return;
                 };
-                if comparing.name != name {
+                if comparing.left != left || comparing.right != right {
                     return;
                 }
                 comparing.groups = Some(groups);
@@ -391,7 +396,45 @@ impl Lists {
         );
     }
 
-    /// The saved list's mods the load order lacks join its end, in its order; nothing else moves.
+    /// The menu of every order, putting the one picked on the `left` side or the right.
+    fn choose_order(
+        &mut self,
+        left: bool,
+        below: Bounds<Pixels>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let app = super::app(cx);
+        let me = cx.entity().downgrade();
+        let entries: Vec<Entry> = app
+            .order_choices()
+            .into_iter()
+            .map(|choice| {
+                if choice.pick {
+                    let (me, key) = (me.clone(), choice.key);
+                    Entry::item(put(&choice.text), move |_, cx| {
+                        let _ = me.update(cx, |lists, cx| {
+                            if let Some(comparing) = lists.comparing.as_mut() {
+                                if left {
+                                    comparing.left = key.clone();
+                                } else {
+                                    comparing.right = key.clone();
+                                }
+                            }
+                            lists.compare_again(cx);
+                        });
+                    })
+                    .into()
+                } else {
+                    Entry::Title(put(&choice.title).into())
+                }
+            })
+            .collect();
+        menu::open(below, entries, window, cx);
+    }
+
+    /// The left order's mods the load order lacks join its end, in its order; nothing else
+    /// moves.
     fn merge_missing(&mut self, cx: &mut Context<Self>) {
         let Some(groups) = self
             .comparing
@@ -923,7 +966,7 @@ impl Lists {
                                 compared.clone()
                             )))
                             .on_click(cx.listener(move |lists, _, window, cx| {
-                                lists.compare(&compared, window, cx);
+                                lists.compare(&format!("list:{compared}"), window, cx);
                             })),
                     )    .child(label(theme, theme.small(), c.ink3, counted))
                     .child(update)
@@ -1232,23 +1275,39 @@ impl Lists {
         (shown, widest)
     }
 
-    /// The saved list beside the load order: the mods each holds alone, the ones placed
-    /// differently, and the saved list's mods the load order can take.
+    /// Either side of a comparison, with the groups the two orders differ by.
     fn compare_popup(&self, theme: &Theme, cx: &mut Context<Self>) -> Vec<AnyElement> {
         let c = &theme.colours;
         let Some(comparing) = &self.comparing else {
             return Vec::new();
         };
-        let name = comparing.name.clone();
+        let report = comparing
+            .groups
+            .as_ref()
+            .map(|groups| groups.report.clone())
+            .unwrap_or_default();
         let mut shown = vec![
             div()
                 .flex()
                 .items_center()
                 .gap(theme::GAP_SMALL)
-                .child(div().flex_1().min_w_0().child(Self::title(
-                    theme,
-                    put(&say!("Compare {} with the load order", name.clone())),
-                )))
+                .child(
+                    div()
+                        .flex_1()
+                        .min_w_0()
+                        .child(Self::title(theme, put(&say!("Compare")))),
+                )
+                .child(
+                    Btn::new("compare-copy", "")
+                        .icon("copy")
+                        .spoken(put(&say!("Copy the comparison")))
+                        .tip(put(&say!(
+                            "Copies each group as text, a line per mod with its package id"
+                        )))
+                        .on_click(move |_, _, cx| {
+                            cx.write_to_clipboard(gpui::ClipboardItem::new_string(report.clone()))
+                        }),
+                )
                 .child(
                     Btn::new("compare-close", put(&say!("Close")))
                         .keys(self.keys.clone())
@@ -1259,56 +1318,100 @@ impl Lists {
         let Some(groups) = &comparing.groups else {
             return shown;
         };
-        if groups.only_saved.is_empty() && groups.only_current.is_empty() && groups.moved.is_empty()
-        {
+        let left_pick = {
+            let me = cx.entity().downgrade();
+            Btn::new("compare-left", put(&groups.left))
+                .tip(put(&say!(
+                    "The order compared: a saved list, an earlier order, the game's file or the load order"
+                )))
+                .opens(move |below, window, cx| {
+                    let _ = me.update(cx, |lists, cx| {
+                        lists.choose_order(true, below, window, cx)
+                    });
+                })
+        };
+        let right_pick = {
+            let me = cx.entity().downgrade();
+            Btn::new("compare-right", put(&groups.right))
+                .tip(put(&say!("The order it is compared with")))
+                .opens(move |below, window, cx| {
+                    let _ = me.update(cx, |lists, cx| lists.choose_order(false, below, window, cx));
+                })
+        };
+        shown.push(
+            div()
+                .flex()
+                .items_center()
+                .flex_wrap()
+                .gap(theme::GAP_SMALL)
+                .child(left_pick)
+                .child(label(theme, theme.body(), c.ink2, put(&say!("with"))))
+                .child(right_pick)
+                .into_any_element(),
+        );
+        if groups.same {
             shown.push(
                 label(
                     theme,
                     theme.body(),
                     c.ink2,
-                    put(&say!(
-                        "The saved list and the load order hold the same mods in the same order"
-                    )),
+                    put(&say!("Both hold the same mods in the same order")),
                 )
                 .into_any_element(),
             );
         }
-        for (heading, mods) in [
-            (say!("Only in the saved list"), &groups.only_saved),
-            (say!("Only in the load order"), &groups.only_current),
-            (say!("Placed differently"), &groups.moved),
+        for (id, group) in [
+            ("compare-only-left", &groups.only_left),
+            ("compare-only-right", &groups.only_right),
+            ("compare-moved", &groups.moved),
         ] {
-            if mods.is_empty() {
+            if group.mods.is_empty() {
                 continue;
             }
-            shown.push(super::card::group_title(theme, put(&heading)));
-            for held in mods {
+            shown.push(super::card::group_title(theme, put(&group.heading)));
+            for (at, held) in group.mods.iter().enumerate() {
                 shown.push(
-                    label(theme, theme.body(), c.ink, held.name.clone())
-                        .overflow_hidden()
-                        .text_ellipsis()
+                    div()
+                        .flex()
+                        .items_center()
+                        .gap(theme::GAP)
+                        .child(super::tip::tipped(
+                            div()
+                                .id((id, at))
+                                .flex_1()
+                                .min_w_0()
+                                .overflow_hidden()
+                                .whitespace_nowrap()
+                                .text_ellipsis()
+                                .sized_text(theme, theme.body())
+                                .text_color(c.ink)
+                                .child(held.name.clone()),
+                            held.id.clone().into(),
+                        ))
+                        .child(label(theme, theme.small(), c.ink3, put(&held.said)))
                         .into_any_element(),
                 );
             }
         }
         let count = groups.addable.len();
-        shown.push(
-            Btn::new(
-                "compare-merge",
-                put(&say_n!(
-                    count,
-                    "Activate the {} missing mod",
-                    "Activate the {} missing mods"
-                )),
-            )
-            .enabled(count > 0)
-            .tip(put(&say!(
-                "Activates the mods {} holds that the load order lacks; nothing else changes, and Save still writes it",
-                name
-            )))
-            .on_click(cx.listener(|lists, _, _, cx| lists.merge_missing(cx)))
-            .into_any_element(),
-        );
+        if count > 0 {
+            shown.push(
+                Btn::new(
+                    "compare-merge",
+                    put(&say_n!(
+                        count,
+                        "Activate the {} missing mod",
+                        "Activate the {} missing mods"
+                    )),
+                )
+                .tip(put(&say!(
+                    "Activates the mods {} holds that the load order lacks; nothing else changes, and Save still writes it",
+                    groups.left.inside()
+                )))
+                .on_click(cx.listener(|lists, _, _, cx| lists.merge_missing(cx)))
+                .into_any_element(),
+            );
+        }
         shown
     }
 
@@ -1401,6 +1504,15 @@ impl Lists {
                                 } else {
                                     lists.close(window, cx);
                                 }
+                            })),
+                    )
+                    .child(
+                        Btn::new(("past-compare", at), put(&say!("Compare")))
+                            .tip(put(&say!(
+                                "Shows the mods this order and the load order hold apart or in a different order"
+                            )))
+                            .on_click(cx.listener(move |lists, _, window, cx| {
+                                lists.compare(&format!("order:{at}"), window, cx);
                             })),
                     )
                     .child(
@@ -1576,7 +1688,7 @@ impl Render for Lists {
             Which::Compare => popup
                 .left(below.left())
                 .top(below.bottom() + px(6.))
-                .w(theme.sized(440.))
+                .w(theme.sized(540.))
                 .child(
                     div()
                         .id("compare-lines")

@@ -403,13 +403,50 @@ mod tests {
 
     #[test]
     fn an_unanswered_item_is_gone_only_when_its_page_is_steams_error() {
+        let hidden = ["3288243760".to_string(), "9999999999".to_string()];
         // Trimmed from what steamcommunity.com serves a visitor not logged in.
         let shown = "<title>Steam Workshop::Salvaging</title>\n\
             <div class=\"workshopItemTitle\">Salvaging</div>";
         let error = "<title>Steam Community :: Error</title>\n<div class=\"error_ctn\">\n\
             <h3>There was a problem accessing the item.  Please try again.</h3>";
-        assert_eq!((Page::of(shown), Page::of(error)), (Page::Live, Page::Gone));
+        let pages = |id: &str| Some(if id == "3288243760" { shown } else { error }.to_string());
+        assert_eq!(gone_among(&hidden, pages), ["9999999999"]);
+        // A refused page (HTTP 429) ends the asking: the rest is not gone.
+        let mut asked = 0;
+        let refused = |_: &str| {
+            asked += 1;
+            None
+        };
+        assert!(gone_among(&hidden, refused).is_empty());
+        assert_eq!(asked, 1);
     }
+
+    const ACF: &str = r#""AppWorkshop"
+{
+	"appid"		"294100"
+	"TimeLastUpdated"		"1791750395"
+	"WorkshopItemsInstalled"
+	{
+		"705924057"
+		{
+			"size"		"1372735"
+			"timeupdated"		"1711286985"
+			"manifest"		"7900175110102980905"
+		}
+		"712141500"
+		{
+			"size"		"5310730"
+			"timeupdated"		"1710519878"
+		}
+	}
+	"WorkshopItemDetails"
+	{
+		"705924057"
+		{
+			"timeupdated"		"5"
+		}
+	}
+}"#;
 
     #[test]
     fn installed_times_come_from_the_installed_block_only() {
