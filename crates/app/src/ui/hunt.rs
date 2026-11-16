@@ -174,7 +174,7 @@ impl Shell {
                 .child(icon("search", theme.icon(), c.moved))
                 .child(
                     div()
-                        .flex_1()
+                        .flex_initial()
                         .min_w_0()
                         .sized_text(&theme, theme.body())
                         .text_color(c.ink)
@@ -221,6 +221,7 @@ impl Shell {
                     .tip(put(&say!("The list the search began with. Nothing is written before Save.")))
                     .on_click(cx.listener(|shell, _, _, cx| shell.end_hunt(false, cx))),
                 )
+                .child(div().flex_1())
                 .child(div().absolute().bottom_0().left_0().right_0().h(px(1.)).bg(c.edge))
                 .into_any_element(),
         )

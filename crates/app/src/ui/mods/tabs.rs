@@ -165,7 +165,7 @@ impl DetailsView {
                         .h(theme.sized(26.))
                         .child(
                             div()
-                                .flex_1()
+                                .flex_initial()
                                 .min_w_0()
                                 .overflow_hidden()
                                 .whitespace_nowrap()
@@ -194,6 +194,7 @@ impl DetailsView {
                                     self.on_mods(move |mods, cx| mods.remove_rule(first, then, cx)),
                                 ),
                         )
+                        .child(div().flex_1())
                         .into_any_element(),
                 );
             }
@@ -464,9 +465,10 @@ impl DetailsView {
                         .flex()
                         .items_center()
                         .h(theme.sized(21.))
+                        .gap(theme::GAP)
                         .child(
                             div()
-                                .flex_1()
+                                .flex_initial()
                                 .min_w_0()
                                 .overflow_hidden()
                                 .whitespace_nowrap()
@@ -488,6 +490,7 @@ impl DetailsView {
                             c.ink3,
                             put(&say_n!(branch.files, "{} file", "{} files")),
                         ))
+                        .child(div().flex_1())
                         .into_any_element(),
                 );
             }

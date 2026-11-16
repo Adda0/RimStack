@@ -23,7 +23,7 @@ fn line(
         .gap(theme::GAP)
         .child(
             div()
-                .flex_1()
+                .flex_initial()
                 .min_w_0()
                 .sized_text(theme, theme.body())
                 .text_color(theme.colours.ink)
@@ -32,6 +32,7 @@ fn line(
         .when_some(action, |d, (said, primary, pressed)| {
             d.child(Btn::new(id, said).primary_if(primary).on_click(pressed))
         })
+        .child(div().flex_1())
         .into_any_element()
 }
 
@@ -212,12 +213,13 @@ impl DetailsView {
                     .gap(theme::GAP)
                     .child(
                         div()
-                            .flex_1()
+                            .flex_initial()
                             .min_w_0()
                             .sized_text(theme, theme.body())
                             .text_color(c.ink2)
                             .child(put(&start.line)),
                     )
+                    .flex_initial()
                     .when(logged, |d| {
                         d.child(Btn::new("open-log", put(&say!("Open log"))).on_click(
                             self.on_mods(|_, cx| {
@@ -230,6 +232,7 @@ impl DetailsView {
                             }),
                         ))
                     })
+                    .child(div().flex_1())
                     .into_any_element(),
             );
         }

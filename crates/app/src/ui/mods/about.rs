@@ -39,13 +39,14 @@ impl DetailsView {
             .child(icon(mark, theme.icon(), c.ink3))
             .child(
                 div()
-                    .flex_1()
+                    .flex_initial()
                     .min_w_0()
                     .sized_text(theme, theme.body())
                     .text_color(c.ink2)
                     .child(text),
             )
             .child(button)
+            .child(div().flex_1())
             .into_any_element()
     }
 
@@ -343,7 +344,7 @@ impl DetailsView {
                 .gap(theme::GAP)
                 .child(
                     div()
-                        .flex_1()
+                        .flex_initial()
                         .min_w_0()
                         .spaced_text(theme, theme.body(), 1.3)
                         .text_color(c.ink)
@@ -354,6 +355,7 @@ impl DetailsView {
                         .icon("external-link")
                         .on_click(move |_, _, cx| cx.open_url(&crate::ui::workshop_page(&id))),
                 )
+                .child(div().flex_1())
                 .into_any_element(),
             div()
                 .flex()
@@ -622,12 +624,13 @@ impl DetailsView {
                     .child(label(theme, theme.body(), c.ink2, put(&name)).w(label_width))
                     .child(
                         div()
-                            .flex_1()
+                            .flex_initial()
                             .min_w_0()
                             .sized_text(theme, theme.body())
                             .text_color(c.ink)
                             .child(value),
                     )
+                    .child(div().flex_1())
                     .into_any_element()
             })
             .collect();
@@ -750,7 +753,7 @@ impl DetailsView {
                 ))
                 .child(
                     div()
-                        .flex_1()
+                        .flex_initial()
                         .min_w_0()
                         .overflow_hidden()
                         .whitespace_nowrap()
@@ -767,6 +770,7 @@ impl DetailsView {
                             let _ = mods.update(cx, |mods, cx| mods.category_choices(at, window, cx));
                         }),
                 )
+                .child(div().flex_1())
                 .into_any_element(),
         );
         let held = put(&details.held);
@@ -789,7 +793,7 @@ impl DetailsView {
                 .child(defined(theme, put(&say!("Group"))).w(label_width))
                 .child(
                     div()
-                        .flex_1()
+                        .flex_initial()
                         .min_w_0()
                         .overflow_hidden()
                         .whitespace_nowrap()
@@ -812,6 +816,7 @@ impl DetailsView {
                             let _ = mods.update(cx, |mods, cx| mods.group_choices(at, window, cx));
                         }),
                 )
+                .child(div().flex_1())
                 .into_any_element(),
         );
         let (folded, fold) = self.fold("about-facts", false, cx);

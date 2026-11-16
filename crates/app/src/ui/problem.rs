@@ -113,8 +113,9 @@ pub fn problem(
             .items_start()
             .gap(theme::GAP)
             .child(mark)
-            .child(div().flex_1().min_w_0().child(words))
+            .child(div().flex_initial().min_w_0().child(words))
             .child(actions)
+            .child(div().flex_1())
             .into_any_element(),
     }
 }

@@ -41,7 +41,7 @@ impl DetailsView {
                 .h(theme.sized(24.))
                 .child(
                     div()
-                        .flex_1()
+                        .flex_initial()
                         .min_w_0()
                         .overflow_hidden()
                         .whitespace_nowrap()
@@ -51,6 +51,8 @@ impl DetailsView {
                         .child(name),
                 )
                 .child(label(theme, theme.body(), c.ink2, value))
+                .child(div().flex_1())
+                .gap(theme::GAP)
         });
         let total = comparison.total;
         div()

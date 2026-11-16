@@ -83,7 +83,7 @@ impl Mods {
                             .child(div().flex_none().size(px(7.)).rounded(px(3.5)).bg(c.warn))
                             .child(
                                 div()
-                                    .flex_1()
+                                    .flex_initial()
                                     .min_w_0()
                                     .overflow_hidden()
                                     .whitespace_nowrap()
@@ -112,7 +112,8 @@ impl Mods {
                                 Btn::new("save-band", put(&say!("Save")))
                                     .primary()
                                     .on_click(cx.listener(|m, _, _, cx| m.save(None, cx))),
-                            ),
+                            )
+                            .child(div().flex_1()),
                     )
                     .into_any_element(),
             );
@@ -220,7 +221,7 @@ impl Mods {
                             .pr(theme::GAP)
                             .child(
                                 div()
-                                    .flex_1()
+                                    .flex_initial()
                                     .min_w_0()
                                     .spaced_text(theme, theme.body(), 1.25)
                                     .text_color(c.ink)
@@ -244,7 +245,8 @@ impl Mods {
                                         cx.notify();
                                     }),
                                 ))
-                            }),
+                            })
+                            .child(div().flex_1()),
                     )
                     .into_any_element(),
             );
