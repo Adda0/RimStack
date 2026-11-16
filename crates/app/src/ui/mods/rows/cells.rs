@@ -486,7 +486,11 @@ fn quick_chip(
         } else {
             String::new()
         })
-        .tip(put(&row.trouble_text))
+        .tip(put(if row.trouble_tip.is_empty() {
+            &row.trouble_text
+        } else {
+            &row.trouble_tip
+        }))
         .tone(if error { c.err } else { c.warn })
         .icon(if error {
             "circle-alert"

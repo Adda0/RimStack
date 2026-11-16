@@ -2007,5 +2007,21 @@
  "Enter, Space": "Intro, Espacio",
  "Move through a menu": "Recorrer un menú",
  "The ends or a page on, in a menu, a choice or a slider": "A los extremos o una página más, en un menú, una elección o un deslizador",
- "The next menu entry starting with it": "A la siguiente entrada del menú que empieza por ella"
+ "The next menu entry starting with it": "A la siguiente entrada del menú que empieza por ella",
+ "Installed more than once": "Instalado más de una vez",
+ "Its id {} is installed more than once: {}. For \"{}\" the game loads this copy — {}.": "Su id {} está instalado más de una vez: {}. Para «{}» el juego carga esta copia: {}.",
+ "Its id {} is installed more than once: {}. The order reaches \"{}\" first: the game loads {}, and reads nothing of this copy.": "Su id {} está instalado más de una vez: {}. El orden alcanza «{}» primero: el juego carga {} y no lee nada de esta copia.",
+ "More than one folder names this mod's package id; the game reads only one of them. Keep one.": "Más de una carpeta nombra el id de paquete de este mod; el juego solo lee una. Quédate con una.",
+ "That copy is no longer there": "Esa copia ya no está",
+ "The game reads this one: {}": "The game reads this one: {}",
+ "The load order is made to name it: \"{}\"": "El orden de carga pasará a nombrarlo: «{}»",
+ "The load order now names this copy": "El orden de carga ahora nombra esta copia",
+ "Use this copy": "Usar esta copia",
+ "a copy in the game's Mods folder comes before a Workshop one": "una copia en la carpeta Mods del juego va antes que una de Workshop",
+ "another copy is installed": "hay otra copia instalada",
+ "in use": "en uso",
+ "its folder name sorts first in its folder": "el nombre de su carpeta va primero en su carpeta",
+ "the game loads another copy": "el juego carga otra copia",
+ "the game's own copy comes first": "la propia copia del juego va primero",
+ "the load order names it with \"_steam\"": "el orden de carga lo nombra con «_steam»"
 }

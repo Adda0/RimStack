@@ -134,8 +134,8 @@ pub struct Details {
     pub replaced_by: Option<String>,
     pub replaced_by_id: Option<String>,
     pub replaced_by_versions: Option<String>,
-    pub copies: Option<Sentence>,
-    pub bin_local_copy: Option<LocalCopy>,
+    /// Every installed copy of its package id, this one included; empty for only one.
+    pub copies: Vec<Copy>,
     pub updated: Option<u64>,
     pub megabytes: Option<f64>,
     pub requires: Vec<Named>,
@@ -178,11 +178,24 @@ pub struct Details {
     pub steam_page: Option<String>,
 }
 
+/// One installed folder naming this mod's package id.
 #[derive(Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
-pub struct LocalCopy {
+pub struct Copy {
     pub mod_id: ModId,
+    pub source: &'static str,
+    pub folder: String,
     pub path: String,
+    /// Its `modVersion`; empty when the About.xml names none.
+    pub version: String,
+    pub megabytes: Option<f64>,
+    /// This is the copy the game reads for the load order.
+    pub used: bool,
+    /// Why the game reads this one; `None` while another is read.
+    pub note: Option<Sentence>,
+    /// The order entry naming this copy instead, offered as "Use this copy"; `None` while
+    /// the game cannot be told.
+    pub use_as: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -326,29 +339,41 @@ impl LoadOrder {
             Err(reason) => said.unreadable = Some(reason.sentence().clone()),
         }
         if let Some(copies) = library.copies(id) {
-            let local = m.source == Source::Local;
-            said.copies = Some(match (local, copies.workshop_newer) {
-                (true, true) => say!(
-                    "You are also subscribed to this mod in the Workshop, and that copy is newer, but the game uses this one from its own Mods folder."
-                ),
-                (true, false) => say!(
-                    "You are also subscribed to this mod in the Workshop, but the game uses this copy from its own Mods folder."
-                ),
-                (false, true) => say!(
-                    "An older copy of this mod is in the game's own Mods folder, and the game uses that one instead of this one."
-                ),
-                (false, false) => say!(
-                    "A copy of this mod is also in the game's own Mods folder, and the game uses that one instead of this one."
-                ),
-            });
-            said.bin_local_copy = copies
-                .workshop_newer
-                .then(|| library.get(copies.local))
-                .flatten()
-                .map(|copy| LocalCopy {
-                    mod_id: copies.local,
-                    path: copy.path.to_string_lossy().into_owned(),
-                });
+            let active: Vec<String> = self.active.mods().iter().map(|x| x.id.clone()).collect();
+            let read = library.in_use(&active);
+            let entry = copies.all.iter().find_map(|at| read.get(at));
+            said.copies = (copies.all.iter().copied())
+                .filter_map(|at| {
+                    let copy = library.get(at)?;
+                    let used = read.contains_key(&at);
+                    let written = library.written_for(at);
+                    let note = read
+                        .get(&at)
+                        .and_then(|entry| library.loaded_why(at, entry))
+                        .map(rimstack_core::mods::library::Loaded::words);
+                    let version = copy
+                        .about
+                        .as_ref()
+                        .ok()
+                        .and_then(|about| about.mod_version.clone())
+                        .unwrap_or_default();
+                    let megabytes = sizes
+                        .get(&copy.folder)
+                        .filter(|_| copy.source == Source::Workshop)
+                        .map(|bytes| *bytes as f64 / 1_048_576.0);
+                    Some(Copy {
+                        mod_id: at,
+                        source: copy.source_label(),
+                        folder: copy.folder.clone(),
+                        path: copy.path.to_string_lossy().into_owned(),
+                        version,
+                        megabytes,
+                        used,
+                        note,
+                        use_as: (!used && entry.is_some()).then_some(written).flatten(),
+                    })
+                })
+                .collect();
         }
         let chosen = Category::from_kept(&note.category);
         said.category = chosen.or(library.category_of(id)).map(Category::label);

@@ -213,6 +213,22 @@ impl Mods {
         self.done_said(say_n!(ids.len(), "Moved {} mod", "Moved {} mods"), cx);
     }
 
+    /// The order's entry is made to name this copy of the mod's id instead.
+    pub fn use_copy(&mut self, id: ModId, written: String, cx: &mut Context<Self>) {
+        let app = super::super::app(cx);
+        let done = self.edit_list(cx, |list, _| list.order.use_copy(&app, id, written));
+        if done {
+            self.changed(cx);
+            self.done_said(say!("The load order now names this copy"), cx);
+        } else {
+            notices::say(
+                put(&say!("That copy is no longer there")),
+                notices::Tone::Err,
+                cx,
+            );
+        }
+    }
+
     pub fn undo(&mut self, cx: &mut Context<Self>) {
         let app = super::super::app(cx);
         if !self.list.read(cx).previewing() && self.edit_list(cx, |list, _| list.order.undo(&app)) {

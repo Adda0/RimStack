@@ -6,7 +6,7 @@ use crate::ui::field::Field;
 use crate::ui::problem::problem;
 use crate::ui::rich::{self, Link};
 use crate::ui::theme::{self, Theme};
-use crate::ui::widgets::{TextSized, elide_middle_in, icon, label, measure};
+use crate::ui::widgets::{TextSized, elide_middle, elide_middle_in, icon, label, measure};
 use crate::words::put;
 use crate::workspace::load_order::Details;
 use gpui::AnimationExt;
@@ -392,41 +392,147 @@ impl DetailsView {
         )
     }
 
-    fn copies(&self, theme: &Theme, details: &Details) -> Option<AnyElement> {
+    fn copies(&self, theme: &Theme, details: &Details, window: &Window) -> Option<AnyElement> {
         let c = &theme.colours;
-        let copies = details.copies.as_ref()?;
-        let mut body = vec![
+        if details.copies.is_empty() {
+            return None;
+        }
+        let mods = self.mods.clone();
+        let previewing = self.shown.previewing;
+        let body: Vec<AnyElement> = std::iter::once(
             div()
                 .spaced_text(theme, theme.body(), 1.3)
                 .text_color(c.ink)
-                .child(put(copies))
+                .child(put(&say!(
+                    "More than one folder names this mod's package id; the game reads only one of them. Keep one."
+                )))
                 .into_any_element(),
-        ];
-        if let Some(local) = &details.bin_local_copy {
-            let (name, path, id) = (details.name.clone(), local.path.clone(), local.mod_id);
-            let mods = self.mods.clone();
-            body.push(
-                div()
-                    .flex()
-                    .child(
-                        Btn::new("bin-local", put(&say!("Move the local copy to the bin…")))
-                            .danger()
-                            .icon("trash-2")
-                            .tip(put(&say!(
-                                "The Workshop copy is then the one the game uses."
-                            )))
-                            .on_click(move |_, window, cx| {
-                                let (name, path) = (name.clone(), path.clone());
-                                let _ = mods.update(cx, |mods, cx| {
-                                    mods.ask_bin(&name, &path, id, window, cx)
-                                });
-                            }),
-                    )
-                    .into_any_element(),
+        )
+        .chain(details.copies.iter().enumerate().map(|(at, copy)| {
+            let (folder, version, source) = (
+                copy.folder.clone(),
+                copy.version.clone(),
+                copy.source.to_string(),
             );
-        }
+            let line = match version.is_empty() {
+                true => folder.clone(),
+                false => format!("{} — {}", folder, version),
+            };
+            let path = elide_middle(
+                window,
+                theme,
+                &copy.path,
+                theme.small(),
+                theme.sized(240.),
+            );
+            let note = copy
+                .note
+                .as_ref()
+                .map(|why| put(&say!("The game reads this one: {}", why.clone())))
+                .unwrap_or_default();
+            let size = copy
+                .megabytes
+                .map(|mb| put(&rimstack_core::base::sizes::of_bytes((mb * 1_048_576.) as u64)))
+                .unwrap_or_default();
+            let (id, used, use_as) = (copy.mod_id, copy.used, copy.use_as.clone());
+            let buttons = div()
+                .flex()
+                .flex_wrap()
+                .gap(theme::GAP_SMALL)
+                .children(use_as.filter(|_| !previewing).map(|written| {
+                    let (mods, tip) = (
+                        mods.clone(),
+                        put(&say!("The load order is made to name it: \"{}\"", written)),
+                    );
+                    Btn::new(("about-copy-use", at), put(&say!("Use this copy")))
+                        .icon("check")
+                        .tip(tip)
+                        .on_click(move |_, _, cx| {
+                            let _ = mods.update(cx, |mods, cx| {
+                                mods.use_copy(id, written.clone(), cx)
+                            });
+                        })
+                }))
+                .child(
+                    Btn::new(("about-copy-open", at), put(&say!("Open folder")))
+                        .icon("folder-open")
+                        .on_click({
+                            let path = copy.path.clone();
+                            move |_, _, cx| {
+                                cx.open_with_system(std::path::Path::new(&path))
+                            }
+                        }),
+                )
+                .children((!used).then(|| {
+                    let (name, path) = (details.name.clone(), copy.path.clone());
+                    let mods = mods.clone();
+                    Btn::new(("about-copy-bin", at), put(&say!("Move to the bin…")))
+                        .danger()
+                        .icon("trash-2")
+                        .on_click(move |_, window, cx| {
+                            let (name, path) = (name.clone(), path.clone());
+                            let _ = mods.update(cx, |mods, cx| {
+                                mods.ask_bin(&name, &path, id, window, cx)
+                            });
+                        })
+                }));
+            div()
+                .flex()
+                .flex_col()
+                .gap(theme::GAP_TINY)
+                .child(
+                    div()
+                        .flex()
+                        .items_center()
+                        .gap(theme::GAP_SMALL)
+                        .flex_wrap()
+                        .children(used.then(|| {
+                            Chip::new(put(&say!("in use")))
+                                .tone(c.ok)
+                                .icon("check")
+                        }))
+                        .child(
+                            div()
+                                .flex_1()
+                                .min_w_0()
+                                .text_color(c.ink)
+                                .sized_text(theme, theme.body())
+                                .overflow_hidden()
+                                .child(line),
+                        )
+                        .child(
+                            div()
+                                .text_color(c.ink3)
+                                .sized_text(theme, theme.body())
+                                .child(source),
+                        )
+                        .children((!size.is_empty()).then(|| {
+                            div()
+                                .text_color(c.ink3)
+                                .sized_text(theme, theme.small())
+                                .child(size)
+                        })),
+                )
+                .children((!note.is_empty()).then(|| {
+                    div()
+                        .w_full()
+                        .spaced_text(theme, theme.small(), 1.3)
+                        .text_color(c.ink3)
+                        .child(note)
+                }))
+                .child(
+                    div()
+                        .w_full()
+                        .text_color(c.ink3)
+                        .sized_text(theme, theme.small())
+                        .child(path),
+                )
+                .child(buttons)
+                .into_any_element()
+        }))
+        .collect();
         Some(
-            Card::new("about-copies", put(&say!("Two copies")))
+            Card::new("about-copies", put(&say!("Installed more than once")))
                 .spacing(theme::GAP)
                 .body(body)
                 .render(theme, None)
@@ -958,7 +1064,7 @@ impl DetailsView {
         shown.extend(self.clashes(theme, details, cx));
         shown.extend(self.def_clashes(theme, details, cx));
         shown.extend(self.replaced(theme, details));
-        shown.extend(self.copies(theme, details));
+        shown.extend(self.copies(theme, details, window));
         shown.extend(self.latest(theme, details, window, cx));
         shown.extend(self.mod_settings(theme, details));
         shown

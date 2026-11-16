@@ -204,6 +204,9 @@ pub fn troubles(
             own.extend(said);
         }
     }
+    for (own, duplicate) in found.iter_mut().zip(describe::duplicates(library, mods)) {
+        own.extend(duplicate);
+    }
     describe::without_ignored(&mut found, mods, &ignored);
     let by_you = trust.versions(&trust.excused);
     (found, describe::version_ignored(library, mods, by_you))

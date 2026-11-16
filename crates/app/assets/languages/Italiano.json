@@ -2007,5 +2007,21 @@
  "Enter, Space": "Invio, Spazio",
  "Move through a menu": "Scorri un menu",
  "The ends or a page on, in a menu, a choice or a slider": "Agli estremi o una pagina avanti, in un menu, una scelta o un cursore",
- "The next menu entry starting with it": "Alla voce di menu successiva che inizia con essa"
+ "The next menu entry starting with it": "Alla voce di menu successiva che inizia con essa",
+ "Installed more than once": "Installato più di una volta",
+ "Its id {} is installed more than once: {}. For \"{}\" the game loads this copy — {}.": "Il suo id {} è installato più di una volta: {}. Per «{}» il gioco carica questa copia: {}.",
+ "Its id {} is installed more than once: {}. The order reaches \"{}\" first: the game loads {}, and reads nothing of this copy.": "Il suo id {} è installato più di una volta: {}. L'ordine raggiunge prima «{}»: il gioco carica {} e non legge nulla di questa copia.",
+ "More than one folder names this mod's package id; the game reads only one of them. Keep one.": "Più di una cartella dichiara l'id di pacchetto di questa mod; il gioco ne legge una sola. Tienine una.",
+ "That copy is no longer there": "Quella copia non c'è più",
+ "The game reads this one: {}": "The game reads this one: {}",
+ "The load order is made to name it: \"{}\"": "L'ordine di caricamento lo chiamerà: «{}»",
+ "The load order now names this copy": "L'ordine di caricamento ora indica questa copia",
+ "Use this copy": "Usa questa copia",
+ "a copy in the game's Mods folder comes before a Workshop one": "una copia nella cartella Mods del gioco viene prima di una del Workshop",
+ "another copy is installed": "è installata un'altra copia",
+ "in use": "in uso",
+ "its folder name sorts first in its folder": "il nome della sua cartella viene prima nella sua cartella",
+ "the game loads another copy": "il gioco carica un'altra copia",
+ "the game's own copy comes first": "la copia del gioco stesso viene prima",
+ "the load order names it with \"_steam\"": "l'ordine di caricamento lo indica con «_steam»"
 }

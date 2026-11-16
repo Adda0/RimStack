@@ -2007,5 +2007,21 @@
  "Enter, Space": "Eingabe, Leertaste",
  "Move through a menu": "Durch ein Menü gehen",
  "The ends or a page on, in a menu, a choice or a slider": "Zum Anfang, zum Ende oder eine Seite weiter, in einem Menü, einer Auswahl oder einem Schieberegler",
- "The next menu entry starting with it": "Zum nächsten Menüeintrag, der damit beginnt"
+ "The next menu entry starting with it": "Zum nächsten Menüeintrag, der damit beginnt",
+ "Installed more than once": "Mehr als einmal installiert",
+ "Its id {} is installed more than once: {}. For \"{}\" the game loads this copy — {}.": "Seine ID {} ist mehr als einmal installiert: {}. Für „{}“ lädt das Spiel diese Kopie – {}.",
+ "Its id {} is installed more than once: {}. The order reaches \"{}\" first: the game loads {}, and reads nothing of this copy.": "Seine ID {} ist mehr als einmal installiert: {}. Die Reihenfolge erreicht „{}“ zuerst: Das Spiel lädt {} und liest nichts von dieser Kopie.",
+ "More than one folder names this mod's package id; the game reads only one of them. Keep one.": "Mehr als ein Ordner nennt die Paket-ID dieses Mods; das Spiel liest nur einen davon. Behalte einen.",
+ "That copy is no longer there": "Diese Kopie ist nicht mehr da",
+ "The game reads this one: {}": "The game reads this one: {}",
+ "The load order is made to name it: \"{}\"": "Die Ladereihenfolge nennt es dann: „{}“",
+ "The load order now names this copy": "Die Ladereihenfolge nennt nun diese Kopie",
+ "Use this copy": "Diese Kopie verwenden",
+ "a copy in the game's Mods folder comes before a Workshop one": "eine Kopie im Mods-Ordner des Spiels kommt vor einer Workshop-Kopie",
+ "another copy is installed": "eine weitere Kopie ist installiert",
+ "in use": "in Verwendung",
+ "its folder name sorts first in its folder": "sein Ordnername steht in seinem Ordner zuerst",
+ "the game loads another copy": "das Spiel lädt eine andere Kopie",
+ "the game's own copy comes first": "die eigene Kopie des Spiels kommt zuerst",
+ "the load order names it with \"_steam\"": "die Ladereihenfolge nennt es mit „_steam“"
 }

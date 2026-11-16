@@ -414,6 +414,10 @@ impl GroupedList {
     pub fn facts(&self) -> &HashMap<ModId, Arc<Facts>> {
         &self.facts
     }
+    /// The rows, to change a mod in place; the haystacks hold only its name and author.
+    pub fn mods_mut(&mut self) -> &mut [Mod] {
+        &mut self.mods
+    }
 
     /// Changing the order forgets it.
     pub fn set_flags(&mut self, flags: Vec<u16>) {

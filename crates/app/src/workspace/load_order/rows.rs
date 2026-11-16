@@ -60,6 +60,8 @@ pub struct RowView {
     pub moved_from: Option<usize>,
     pub trouble: Level,
     pub trouble_text: Sentence,
+    /// What the trouble chip's tooltip says: every trouble of the row in full.
+    pub trouble_tip: Sentence,
     pub tags: String,
     /// The swatch the row is painted with; empty for none.
     pub colour: String,
@@ -117,6 +119,7 @@ impl RowView {
             moved_from: None,
             trouble: Level::None,
             trouble_text: Sentence::default(),
+            trouble_tip: Sentence::default(),
             tags: String::new(),
             colour: String::new(),
             local: false,
@@ -360,6 +363,7 @@ impl LoadOrder {
             },
             trouble: trouble_level(own),
             trouble_text: first.map_or_else(Sentence::default, |t| t.short.clone()),
+            trouble_tip: Sentence::joined("\n", shown().map(|t| t.words.clone()).collect()),
             tags: m.tags.join(", "),
             colour: m.colour.clone(),
             local: m.local,
