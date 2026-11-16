@@ -135,6 +135,9 @@ pub struct Entry {
     pub swatch: &'static str,
     #[serde(skip_serializing_if = "unset")]
     pub ticked: bool,
+    /// One of the entries the menu's search field narrows to.
+    #[serde(skip_serializing_if = "unset")]
+    pub pick: bool,
     #[serde(flatten)]
     pub action: Option<Action>,
 }
@@ -165,6 +168,11 @@ impl Entry {
             danger: true,
             ..self
         }
+    }
+
+    /// One of the entries the menu's search field narrows to.
+    fn pick(self) -> Self {
+        Entry { pick: true, ..self }
     }
 
     /// A swatch, named in its own colour.
@@ -564,7 +572,7 @@ impl LoadOrder {
                 mod_id: id,
                 tag: tag.clone(),
             };
-            group.push(Entry::item(say!("Group under {}", tag), "", action));
+            group.push(Entry::item(tag.clone().into(), "tag", action).pick());
         }
         group.push(Entry::item(
             say!("A new tag…"),
@@ -884,12 +892,13 @@ mod tests {
             panic!("opens the groups");
         };
         assert_eq!(*mod_id, roads);
-        // The same entries the About tab's Change button opens. The mod's own tag is
-        // offered too: grouping it under Stone again is a no-op that keeps it there.
+        // The same entries the About tab's Change button opens: the bare tag names, narrowed
+        // by a search field. The mod's own tag is offered too: grouping it under Stone again
+        // is a no-op that keeps it there.
         let mut wanted = vec!["# Group under a tag".to_string()];
         let choices = order.details(&app, roads).group_choices;
-        for tag in choices {
-            wanted.push(format!("Group under {tag}"));
+        for tag in &choices {
+            wanted.push(tag.clone());
         }
         wanted.extend([
             "A new tag…".to_string(),
@@ -897,6 +906,13 @@ mod tests {
             "Delete the group Stone…".to_string(),
         ]);
         assert_eq!(shown(&order.group_menu(&app, roads)), wanted);
+        let picks = order
+            .group_menu(&app, roads)
+            .into_iter()
+            .filter(|e| e.pick)
+            .map(|e| e.text.unwrap().to_string())
+            .collect::<Vec<_>>();
+        assert_eq!(picks, choices, "the groups alone are the picks");
     }
 
     #[test]

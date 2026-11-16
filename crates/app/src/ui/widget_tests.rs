@@ -1,5 +1,6 @@
 use super::button::Btn;
 use super::controls::{Choice, Toggle};
+use super::menu::Menu;
 use super::{Options, focus, install, menu, notices};
 use crate::App;
 use gpui::{
@@ -282,6 +283,64 @@ fn a_menu_taller_than_the_window_stays_inside_it_and_follows_the_keys(cx: &mut T
         bottom,
         list
     );
+}
+
+#[gpui::test]
+fn a_menu_with_picks_narrows_them_to_what_one_types(cx: &mut TestAppContext) {
+    let (_root, bench, cx) = bench(cx);
+    let entries = |bench: &Entity<Bench>| -> Vec<menu::Entry> {
+        vec![
+            menu::Entry::Title("Group under a tag".into()),
+            menu::Entry::Line,
+        ]
+        .into_iter()
+        .chain(["pick-one", "pick-two", "pick-three"].map(|tag| {
+            let me = bench.downgrade();
+            menu::Entry::item(tag, move |_, cx| {
+                let _ = me.update(cx, |b, _| b.chosen = Some(tag));
+            })
+            .pick()
+            .into()
+        }))
+        .chain([menu::Entry::item("A new tag…", |_, _| {}).into()])
+        .collect()
+    };
+    cx.update(|window, cx| {
+        menu::open_at(
+            gpui::point(gpui::px(10.), gpui::px(10.)),
+            entries(&bench),
+            window,
+            cx,
+        )
+    });
+    cx.run_until_parked();
+    let menu = cx.update(|_, cx| menu::shown(cx).expect("the menu is shown"));
+    menu.read_with(cx, |menu, cx| {
+        let field = menu.search.as_ref().expect("a search field over the picks");
+        assert!(field.read(cx).is_focused_now(), "the field holds the keys");
+    });
+    cx.update(|window, cx| {
+        window.draw(cx).clear(cx);
+    });
+    cx.simulate_input("two");
+    menu.read_with(cx, |menu, cx| {
+        assert_eq!(menu.query(cx), "two");
+        assert!(
+            Menu::left(&menu.entries[3], "two"),
+            "pick-two holds the text"
+        );
+        assert!(!Menu::left(&menu.entries[2], "two"), "pick-one does not");
+        assert!(Menu::left(&menu.entries[5], "two"), "a plain entry stays");
+    });
+    cx.simulate_keystrokes("enter");
+    assert_eq!(
+        bench.read_with(cx, |b, _| b.chosen),
+        Some("pick-two"),
+        "Enter takes the first pick the search left"
+    );
+    cx.executor().advance_clock(Duration::from_millis(500));
+    cx.run_until_parked();
+    assert!(!cx.update(|_, cx| menu::drawn(cx)), "the menu is closed");
 }
 
 #[gpui::test]

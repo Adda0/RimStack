@@ -158,6 +158,9 @@ impl Mods {
                 if entry.danger {
                     item = item.danger();
                 }
+                if entry.pick {
+                    item = item.pick();
+                }
                 Some(item.into())
             })
             .collect();

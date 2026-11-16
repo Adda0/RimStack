@@ -1,15 +1,20 @@
 //! A list of what can be done, opened under the control that asks for it, closed
 //! by a choice, Escape or a click beside it. Any view opens one through [`open`]; the shell draws
-//! it over everything.
+//! it over everything. Entries marked [`Item::pick`] bring a search field that narrows them as
+//! one types.
 
+use super::field::Field;
+use super::text_field::{Edited, Entered, Escape, TextField};
 use super::theme::{self, Theme};
 use super::widgets::{TextSized, icon, measure};
+use crate::words::put;
 use gpui::{
     AnyElement, App, AppContext, Bounds, Context, Entity, FocusHandle, Focusable, FontWeight,
     Global, Hsla, InteractiveElement, IntoElement, KeyDownEvent, ParentElement, Pixels, Point,
-    Render, Role, ScrollHandle, SharedString, StatefulInteractiveElement, Styled, Window, anchored,
-    deferred, div, point, prelude::FluentBuilder, px,
+    Render, Role, ScrollHandle, SharedString, StatefulInteractiveElement, Styled, Subscription,
+    Window, anchored, deferred, div, point, prelude::FluentBuilder, px,
 };
+use rimstack_core::say;
 use std::rc::Rc;
 
 type Run = Rc<dyn Fn(&mut Window, &mut App)>;
@@ -29,6 +34,8 @@ pub struct Item {
     colour: Option<Hsla>,
     off: bool,
     danger: bool,
+    /// Narrowed by the menu's search field.
+    pick: bool,
     run: Run,
 }
 
@@ -45,6 +52,7 @@ impl Entry {
             colour: None,
             off: false,
             danger: false,
+            pick: false,
             run: Rc::new(run),
         }
     }
@@ -80,6 +88,13 @@ impl Item {
         self.danger = true;
         self
     }
+
+    /// One of the entries the search field narrows: a menu holding any shows the field, with
+    /// the keys in it.
+    pub fn pick(mut self) -> Self {
+        self.pick = true;
+        self
+    }
 }
 
 impl From<Item> for Entry {
@@ -89,7 +104,7 @@ impl From<Item> for Entry {
 }
 
 pub struct Menu {
-    entries: Vec<Entry>,
+    pub(crate) entries: Vec<Entry>,
     at: Point<Pixels>,
     corner: gpui::Anchor,
     /// Drawn as a column of buttons, so many captions' letters wide, or as wide as its widest
@@ -105,6 +120,9 @@ pub struct Menu {
     scroll: ScrollHandle,
     /// Whether a menu has been shown, so another can open where it stood.
     opened: bool,
+    /// The search field of a menu with picks; typing hides the picks not holding the text.
+    pub(crate) search: Option<Entity<TextField>>,
+    heard: Vec<Subscription>,
 }
 
 struct Shown(Entity<Menu>);
@@ -124,6 +142,8 @@ pub fn install(cx: &mut App) -> Entity<Menu> {
         before: None,
         scroll: ScrollHandle::new(),
         opened: false,
+        search: None,
+        heard: Vec::new(),
     });
     cx.set_global(Shown(menu.clone()));
     menu
@@ -191,7 +211,28 @@ fn show(
         menu.fading = false;
         menu.scroll = ScrollHandle::new();
         menu.opened = true;
-        window.focus(&menu.focus, cx);
+        menu.heard.clear();
+        menu.search = None;
+        let picks = menu.buttons.is_none()
+            && (menu.entries.iter()).any(|e| matches!(e, Entry::Item(i) if i.pick));
+        match picks {
+            true => {
+                let field = cx.new(|cx| TextField::new(cx.global::<Theme>().body(), cx));
+                menu.heard
+                    .push(cx.subscribe(&field, |menu, _, _: &Edited, cx| {
+                        menu.chosen = None;
+                        cx.notify();
+                    }));
+                menu.heard.push(cx.subscribe_in(
+                    &field,
+                    window,
+                    |menu, _, _: &Entered, window, cx| menu.enter(window, cx),
+                ));
+                window.focus(&field.focus_handle(cx), cx);
+                menu.search = Some(field);
+            }
+            false => window.focus(&menu.focus, cx),
+        }
         cx.notify();
     });
 }
@@ -234,14 +275,47 @@ impl Menu {
         run(window, cx);
     }
 
-    fn step(&mut self, by: isize) {
+    /// The text typed in the search field, lowered; empty without one.
+    pub(crate) fn query(&self, cx: &App) -> String {
+        (self.search.as_ref())
+            .map(|field| field.read(cx).text().trim().to_lowercase())
+            .unwrap_or_default()
+    }
+
+    /// Whether the search leaves the entry shown: all but the picks not holding the text.
+    pub(crate) fn left(entry: &Entry, query: &str) -> bool {
+        match entry {
+            Entry::Item(item) if item.pick => {
+                query.is_empty() || item.text.to_lowercase().contains(query)
+            }
+            _ => true,
+        }
+    }
+
+    /// Enter takes the entry the keys are on, or else the first pick the search left.
+    fn enter(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let query = self.query(cx);
+        let reached = (self.chosen).filter(|&at| Self::left(&self.entries[at], &query));
+        let first = || {
+            self.entries.iter().position(|e| {
+                matches!(e, Entry::Item(i) if i.pick && !i.off) && Self::left(e, &query)
+            })
+        };
+        if let Some(at) = reached.or_else(first) {
+            self.choose(at, window, cx);
+        }
+    }
+
+    fn step(&mut self, by: isize, cx: &App) {
+        let query = self.query(cx);
         let count = self.entries.len() as isize;
         let mut next = self
             .chosen
             .map_or(if by > 0 { -1 } else { count }, |at| at as isize);
         for _ in 0..count {
             next = (next + by).rem_euclid(count);
-            if matches!(&self.entries[next as usize], Entry::Item(item) if !item.off) {
+            let entry = &self.entries[next as usize];
+            if matches!(entry, Entry::Item(item) if !item.off) && Self::left(entry, &query) {
                 self.chosen = Some(next as usize);
                 // Scrolled just enough to show the entry the keys landed on.
                 self.scroll.scroll_to_item(next as usize);
@@ -253,11 +327,16 @@ impl Menu {
     fn entry(
         &self,
         at: usize,
+        query: &str,
         theme: &Theme,
         window: &Window,
         cx: &mut Context<Self>,
     ) -> AnyElement {
         let c = &theme.colours;
+        if !Self::left(&self.entries[at], query) {
+            // Kept as an empty child, so the scroll handle still finds each entry by its place.
+            return div().into_any_element();
+        }
         let item = match &self.entries[at] {
             Entry::Line => {
                 return div()
@@ -429,10 +508,33 @@ impl Render for Menu {
         }
         let theme = cx.global::<Theme>().clone();
         let c = theme.colours;
-        // A menu taller than the window stays inside it and scrolls.
-        let room = window.viewport_size().height - theme::GAP_TINY * 2.;
+        let query = self.query(cx);
+        let searched = self.search.clone().map(|field| {
+            div()
+                .p(theme::GAP_TINY)
+                .pb_0()
+                .min_w(theme.sized(220.))
+                .child(
+                    Field {
+                        id: "menu-search",
+                        text: &field,
+                        icon: "search",
+                        placeholder: put(&say!("Search")),
+                        found: None,
+                        keys: None,
+                    }
+                    .render(&theme, window, cx),
+                )
+        });
+        // A menu taller than the window stays inside it and scrolls, below its search field and
+        // within its border.
+        let above = match searched {
+            Some(_) => theme.field() + theme::GAP_TINY,
+            None => px(0.),
+        };
+        let room = window.viewport_size().height - theme::GAP_TINY * 2. - above - px(2.);
         let entries: Vec<AnyElement> = (0..self.entries.len())
-            .map(|at| self.entry(at, &theme, window, cx))
+            .map(|at| self.entry(at, &query, &theme, window, cx))
             .collect();
         let letter = measure(
             window,
@@ -457,6 +559,10 @@ impl Render for Menu {
             .max_h(room)
             .overflow_y_scroll()
             .track_scroll(&self.scroll)
+            .children(entries);
+        let list = div()
+            .flex()
+            .flex_col()
             .rounded(theme::CORNER_LARGE)
             .bg(c.bar)
             .border_1()
@@ -464,7 +570,8 @@ impl Render for Menu {
             .when(!self.fading, |d| d.occlude())
             .on_mouse_down(gpui::MouseButton::Left, |_, _, cx| cx.stop_propagation())
             .on_mouse_down(gpui::MouseButton::Right, |_, _, cx| cx.stop_propagation())
-            .children(entries);
+            .children(searched)
+            .child(list);
         if self.fading {
             return div().id("menu").absolute().inset_0().child(deferred(
                 anchored()
@@ -482,18 +589,24 @@ impl Render for Menu {
             .absolute()
             .inset_0()
             .map(|d| super::focus::trap(d, &self.focus))
+            .capture_action(cx.listener(|menu, _: &Escape, window, cx| {
+                cx.stop_propagation();
+                menu.close(window, cx);
+            }))
             .on_key_down(cx.listener(|menu, event: &KeyDownEvent, window, cx| {
+                // Escape and Enter in the search field come as its actions instead.
+                let typing = (menu.search.as_ref()).is_some_and(|f| f.read(cx).is_focused(window));
                 match event.keystroke.key.as_str() {
-                    "escape" => menu.close(window, cx),
+                    "escape" if !typing => menu.close(window, cx),
                     "down" => {
-                        menu.step(1);
+                        menu.step(1, cx);
                         cx.notify();
                     }
                     "up" => {
-                        menu.step(-1);
+                        menu.step(-1, cx);
                         cx.notify();
                     }
-                    "enter" => {
+                    "enter" if !typing => {
                         if let Some(at) = menu.chosen {
                             menu.choose(at, window, cx);
                         }
