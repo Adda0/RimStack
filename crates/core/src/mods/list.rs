@@ -348,6 +348,8 @@ pub mod flag {
     pub const NEW: u16 = 128;
     pub const CHANGED: u16 = 256;
     pub const IN_SEARCH: u16 = 512;
+    /// A library no active mod needs.
+    pub const UNUSED: u16 = 1024;
 }
 
 impl GroupedList {

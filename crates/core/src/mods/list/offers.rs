@@ -70,6 +70,9 @@ const TERMS: &[(&str, About)] = &[
     }),
     ("is:recent", |_| say!("updated by Steam in the last week")),
     ("is:duplicate", |_| say!("installed more than once")),
+    ("is:unused", |_| say!("a library no active mod needs")),
+    ("size:>", |_| say!("bigger than this many megabytes")),
+    ("size:<", |_| say!("smaller than this many megabytes")),
     ("in:search", |_| {
         say!("has matches in the last search of Find")
     }),

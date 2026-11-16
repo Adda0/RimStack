@@ -478,6 +478,11 @@ impl LoadOrder {
             Side::Active => &self.troubles,
             Side::Inactive => &[],
         };
+        let needed: HashSet<String> = (self.active.mods().iter())
+            .filter_map(|m| library.get(m.installed?)?.about.as_ref().ok())
+            .flat_map(|about| about.dependencies.for_version(&library.game_version))
+            .map(|dep| rimstack_core::rimworld::id::split_steam(dep).0)
+            .collect();
         let mods = self.list(side).mods().iter().enumerate();
         mods.map(|(at, m)| {
             let own = troubles.get(at).map(Vec::as_slice).unwrap_or_default();
@@ -514,6 +519,10 @@ impl LoadOrder {
                 (
                     m.installed.is_some_and(|i| found.contains(&i)),
                     flag::IN_SEARCH,
+                ),
+                (
+                    m.filed == Category::Libraries && !needed.contains(&key),
+                    flag::UNUSED,
                 ),
             ];
             marks

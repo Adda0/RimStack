@@ -397,6 +397,42 @@ fn a_colour_term_shows_the_mods_painted_with_it() {
     list.set_filter("!colour:r");
     assert_eq!(shown(&list).len(), 4);
 }
+#[test]
+fn a_size_term_keeps_the_mods_bigger_or_smaller_than_so_many_megabytes() {
+    let mut mods = sample().mods().to_vec();
+    let mb = 1_048_576;
+    let sizes = [
+        Some(50 * mb),
+        Some(150 * mb),
+        Some(80 * mb),
+        None,
+        Some(1_000),
+        Some(120 * mb),
+    ];
+    for (m, size) in mods.iter_mut().zip(sizes) {
+        m.size = size;
+    }
+    let names: Vec<String> = mods.iter().map(|m| m.name.clone()).collect();
+    let names_at = |at: &[usize]| -> Vec<String> { at.iter().map(|&i| names[i].clone()).collect() };
+    let mut list = GroupedList::flat(mods);
+    let shown = |list: &GroupedList| -> Vec<String> {
+        let name = |r: &Row| match r {
+            Row::Mod { index } => Some(list.mods()[*index].name.clone()),
+            _ => None,
+        };
+        list.rows().iter().filter_map(name).collect()
+    };
+    list.set_filter("size:>100");
+    assert_eq!(shown(&list), names_at(&[1, 5]));
+    list.set_filter("size:<100");
+    assert_eq!(shown(&list), names_at(&[0, 2, 4]));
+    list.set_filter("size:>60 size:<130");
+    assert_eq!(shown(&list), names_at(&[2, 5]));
+    list.set_filter("size:>0.5");
+    assert_eq!(shown(&list).len(), 4);
+    list.set_filter("size:big");
+    assert!(shown(&list).is_empty(), "an unread size is a word");
+}
 
 #[test]
 fn source_terms_tell_the_workshop_from_git_checkouts_and_the_game() {

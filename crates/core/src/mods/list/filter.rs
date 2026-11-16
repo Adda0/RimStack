@@ -24,6 +24,9 @@ pub(super) struct Filter {
     pinned: bool,
     patches: Vec<String>,
     needs: Vec<String>,
+    /// Bytes a mod's size must be above, or below.
+    bigger: Vec<u64>,
+    smaller: Vec<u64>,
     has: Vec<Has>,
     defines: Vec<String>,
     patches_def: Vec<String>,
@@ -54,6 +57,13 @@ impl Filter {
     }
 
     fn take(&mut self, term: &str) {
+        if let Some((bigger, bytes)) = term.strip_prefix("size:").and_then(size_bound) {
+            match bigger {
+                true => self.bigger.push(bytes),
+                false => self.smaller.push(bytes),
+            }
+            return;
+        }
         match term.split_once(':') {
             Some(("author", name)) if !name.is_empty() => self.authors.push(name.to_string()),
             Some(("tag", label)) if !label.is_empty() => self.tags.push(label.to_string()),
@@ -87,6 +97,7 @@ impl Filter {
             Some(("is", "new")) => self.flags |= flag::NEW,
             Some(("is", "changed")) => self.flags |= flag::CHANGED,
             Some(("in", "search")) => self.flags |= flag::IN_SEARCH,
+            Some(("is", "unused")) => self.flags |= flag::UNUSED,
             _ => self.words.push(term.to_string()),
         }
     }
@@ -181,7 +192,26 @@ impl Filter {
                 .needs
                 .iter()
                 .all(|dlc| m.needs_dlcs.iter().any(|own| own.contains(dlc)))
+            && self
+                .bigger
+                .iter()
+                .all(|&b| m.size.is_some_and(|own| own > b))
+            && self
+                .smaller
+                .iter()
+                .all(|&b| m.size.is_some_and(|own| own < b))
     }
+}
+
+/// `>N` or `<N` megabytes, as `size:` takes it: whether it asks for bigger, and the bytes.
+fn size_bound(bound: &str) -> Option<(bool, u64)> {
+    let (bigger, number) = match bound.split_at_checked(1)? {
+        (">", number) => (true, number),
+        ("<", number) => (false, number),
+        _ => return None,
+    };
+    let megabytes: f64 = number.parse().ok().filter(|mb: &f64| *mb >= 0.0)?;
+    Some((bigger, (megabytes * 1_048_576.0) as u64))
 }
 
 #[cfg(test)]

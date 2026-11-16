@@ -790,3 +790,48 @@ fn only_the_settings_the_lists_read_count_as_read() {
         .unwrap();
     assert_ne!(LoadOrder::settings_read(&app), before);
 }
+
+#[test]
+fn a_library_no_active_mod_needs_is_unused_until_one_does() {
+    let (tmp, app) = installed();
+    let add = |folder: &str, id: &str, needs: &str| {
+        let about = tmp.path().join("game/Mods").join(folder).join("About");
+        std::fs::create_dir_all(&about).unwrap();
+        let deps = match needs {
+            "" => String::new(),
+            id => {
+                format!("<modDependencies><li><packageId>{id}</packageId></li></modDependencies>")
+            }
+        };
+        let xml = format!(
+            "<ModMetaData><packageId>{id}</packageId><name>{id}</name>{deps}</ModMetaData>"
+        );
+        std::fs::write(about.join("About.xml"), xml).unwrap();
+    };
+    // Two mods needing it make it a library.
+    add("lib", "a.lib", "");
+    add("b", "a.b", "a.lib");
+    add("c", "a.c", "a.lib");
+    std::fs::write(
+        tmp.path().join("config/Config/ModsConfig.xml"),
+        "<ModsConfigData><activeMods><li>ludeon.rimworld</li><li>a.lib</li></activeMods></ModsConfigData>",
+    )
+    .unwrap();
+    app.rescan();
+    let mut order = LoadOrder::read(&app, true, None);
+    let unused = |order: &LoadOrder, side| order.list(side).matching();
+    order.set_filter("is:unused");
+    assert_eq!(unused(&order, Side::Active), 1);
+    let b = order
+        .list(Side::Inactive)
+        .mods()
+        .iter()
+        .position(|m| m.id == "a.b");
+    order.take(&app, Side::Inactive, b.unwrap(), None);
+    order.recheck(&app);
+    order.set_filter("is:unused");
+    // With one needing it active, no list shows an unneeded library: an empty match
+    // shows every mod dimmed, so the count is read instead of the rows.
+    assert_eq!(unused(&order, Side::Active), 0);
+    assert_eq!(unused(&order, Side::Inactive), 0);
+}

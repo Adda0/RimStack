@@ -1763,5 +1763,8 @@
  "painted with this colour": "painted with this colour",
  "{}  ✓": "{}  ✓",
  "Pinned: Sort leaves it here": "Pinned: Sort leaves it here",
- "left where it is by Sort": "left where it is by Sort"
+ "left where it is by Sort": "left where it is by Sort",
+ "a library no active mod needs": "a library no active mod needs",
+ "bigger than this many megabytes": "bigger than this many megabytes",
+ "smaller than this many megabytes": "smaller than this many megabytes"
 }
