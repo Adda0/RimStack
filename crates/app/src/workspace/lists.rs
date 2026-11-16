@@ -6,8 +6,8 @@ use rimstack_core::kept::{journal, lists, orders};
 use rimstack_core::mods::library::ModId;
 use rimstack_core::mods::{share, share_file};
 use rimstack_core::rimworld::modsconfig;
-use rimstack_core::say;
 use rimstack_core::sources::rentry;
+use rimstack_core::{say, say_n};
 use serde::Serialize;
 use std::path::{Path, PathBuf};
 
@@ -105,24 +105,117 @@ pub fn snapshot_title(name: &str) -> Sentence {
         .unwrap_or_else(|| Sentence::Plain(name.to_string()))
 }
 
+/// The keys `compare_orders` takes besides `list:<name>` and `order:<at>`.
+const CURRENT: &str = "current";
+const GAME: &str = "game";
+
 /// A mod in a comparison group.
 #[derive(Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ComparedMod {
     pub id: String,
     pub name: String,
+    pub installed: bool,
+    /// For a moved mod, the places it sits later (+) or earlier (−) on the right,
+    /// among the mods both hold; 0 elsewhere.
+    pub by: isize,
+    /// Installed or not; for a moved mod, by how many places.
+    pub said: Sentence,
 }
 
-/// Comparison of a saved list against the current load order.
+/// A comparison group, its heading counting its mods.
+#[derive(Serialize, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct Group {
+    pub heading: Sentence,
+    pub mods: Vec<ComparedMod>,
+}
+
+/// One order against another.
 #[derive(Serialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct Comparison {
-    pub only_saved: Vec<ComparedMod>,
-    pub only_current: Vec<ComparedMod>,
-    pub moved: Vec<ComparedMod>,
-    /// The saved-only mods that are installed, given to `take_all` to join the
-    /// load order in the saved list's own order.
+    /// The orders' titles.
+    pub left: Sentence,
+    pub right: Sentence,
+    pub only_left: Group,
+    pub only_right: Group,
+    pub moved: Group,
+    /// Both read, and the same mods in the same order.
+    pub same: bool,
+    /// With the load order on the right, the installed left-only mods, given to
+    /// `take_all` to join it in the left order's own order; empty otherwise.
     pub addable: Vec<ModId>,
+    /// The groups as text: each heading, then a `- ` line per mod with its package id.
+    pub report: String,
+}
+
+/// An order to compare, or with only a `title` the caption over a kind of them: a menu entry.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OrderChoice {
+    pub key: String,
+    pub text: Sentence,
+    pub title: Sentence,
+    pub pick: bool,
+}
+
+fn current_title() -> Sentence {
+    say!("the load order")
+}
+
+fn game_title() -> Sentence {
+    say!("the game's ModsConfig.xml")
+}
+
+fn order_title(seconds: u64) -> Sentence {
+    say!("the order of {}", super::logs::moment(seconds))
+}
+
+fn how_said(how: orders::How) -> Sentence {
+    match how {
+        orders::How::Saved => say!("Saved from RimStack"),
+        orders::How::Game => say!("Rewritten by RimWorld as it started"),
+        orders::How::Outside => say!("Changed outside RimStack"),
+    }
+}
+
+fn only_in(n: usize, title: &Sentence) -> Sentence {
+    say_n!(n, "{} mod only in {}", "{} mods only in {}", title.inside())
+}
+
+fn places(by: isize) -> Sentence {
+    let n = by.unsigned_abs();
+    match by.cmp(&0) {
+        std::cmp::Ordering::Greater => say_n!(n, "{} place later", "{} places later"),
+        std::cmp::Ordering::Less => say_n!(n, "{} place earlier", "{} places earlier"),
+        std::cmp::Ordering::Equal => say!("in the same place, among mods that moved"),
+    }
+}
+
+fn report(comparison: &Comparison) -> String {
+    let put = crate::words::put;
+    let (left, right) = (comparison.left.inside(), comparison.right.inside());
+    let mut lines = vec![put(&say!("{} compared with {}", left, right))];
+    if comparison.same {
+        lines.push(String::new());
+        lines.push(put(&say!("Both hold the same mods in the same order")));
+    }
+    for group in [
+        &comparison.only_left,
+        &comparison.only_right,
+        &comparison.moved,
+    ] {
+        if group.mods.is_empty() {
+            continue;
+        }
+        lines.push(String::new());
+        lines.push(put(&group.heading));
+        for m in &group.mods {
+            lines.push(format!("- {} [{}], {}", m.name, m.id, put(&m.said)));
+        }
+    }
+    lines.join("\n")
 }
 
 #[derive(Serialize)]
@@ -337,10 +430,77 @@ impl App {
     }
 
     /// `None` for the load order being edited.
-    pub fn keep_list(&self, name: &str, ids: Option<Vec<String>>) -> Result<(), Error> {
+    pub fn keep_list(
+        &self,
+        name: &str,
+        ids: Option<Vec<String>>,
+        with_settings: bool,
+    ) -> Result<(), Error> {
         let ids = ids.unwrap_or_else(|| self.session().current().to_vec());
+        if with_settings {
+            self.keep_list_settings(name, &ids)?;
+        }
         lists::save(&self.lists_dir(), name, &ids)?;
         self.publish(Changes::LISTS);
+        Ok(())
+    }
+
+    /// The active mods' own `Mod_*.xml` files, by the folder the game names them after.
+    fn keep_list_settings(&self, name: &str, ids: &[String]) -> Result<(), Error> {
+        let config = self.config_dir()?;
+        let loaded = self.library();
+        let (library, _) = loaded.as_ref().as_ref().map_err(Clone::clone)?;
+        let arranged = library.arrange(ids);
+        let active: std::collections::HashSet<&str> = arranged
+            .active
+            .iter()
+            .filter_map(|m| m.installed)
+            .filter_map(|id| library.get(id))
+            .map(|m| m.folder.as_str())
+            .collect();
+        let installed = super::settings::installed_folders(library);
+        let files: Vec<lists::SettingsFile> = rimstack_core::rimworld::mod_settings::files(&config)
+            .into_iter()
+            .filter_map(|path| {
+                let owner = rimstack_core::rimworld::mod_settings::owner(&path, &installed)?;
+                if !active.contains(owner) {
+                    return None;
+                }
+                let mod_id = library
+                    .installed
+                    .iter()
+                    .find(|m| m.folder == owner)
+                    .and_then(|m| m.key())
+                    .unwrap_or_else(|| owner.to_string());
+                Some(lists::SettingsFile {
+                    file: path.file_name()?.to_string_lossy().into_owned(),
+                    folder: owner.to_string(),
+                    mod_id,
+                })
+            })
+            .collect();
+        lists::keep_settings(&self.lists_dir(), name, &config, &files)?;
+        Ok(())
+    }
+
+    /// The settings kept with a list take the place of the current ones, which the
+    /// usual dated folder holds instead; never under a running game.
+    pub fn use_list_settings(&self, name: &str) -> Result<(), Error> {
+        self.running_check()?;
+        let config = self.config_dir()?;
+        let loaded = self.library();
+        let (library, _) = loaded.as_ref().as_ref().map_err(Clone::clone)?;
+        let aside = self.settings_aside_dir();
+        let done = lists::use_settings(
+            &self.lists_dir(),
+            name,
+            &config,
+            &aside,
+            super::settings::installed_folders(library),
+        )?;
+        if done != lists::Applied::default() {
+            self.publish(Changes::MOD_SETTINGS);
+        }
         Ok(())
     }
 
@@ -395,17 +555,12 @@ impl App {
             .rev()
             .map(|entry| {
                 let diff = lists::compare(&entry.ids, &current);
-                let said = match entry.how {
-                    orders::How::Saved => say!("Saved from RimStack"),
-                    orders::How::Game => say!("Rewritten by RimWorld as it started"),
-                    orders::How::Outside => say!("Changed outside RimStack"),
-                };
                 PastOrder {
                     time: entry.time,
-                    said,
+                    said: how_said(entry.how),
                     mods: entry.ids.len(),
-                    added: diff.only_saved.len(),
-                    removed: diff.only_current.len(),
+                    added: diff.only_left.len(),
+                    removed: diff.only_right.len(),
                     moved: diff.moved.len(),
                 }
             })
@@ -414,11 +569,11 @@ impl App {
 
     /// `at` is the place in `past_orders` (newest first, 0 up).
     pub fn past_order(&self, at: usize) -> Option<Vec<String>> {
-        orders::read(&self.orders_file())
-            .into_iter()
-            .rev()
-            .nth(at)
-            .map(|entry| entry.ids)
+        self.past_entry(at).map(|entry| entry.ids)
+    }
+
+    fn past_entry(&self, at: usize) -> Option<orders::Entry> {
+        orders::read(&self.orders_file()).into_iter().rev().nth(at)
     }
 
     pub fn original_list(&self) -> Option<Vec<String>> {
@@ -427,52 +582,149 @@ impl App {
         modsconfig::read(&original).ok().map(|config| config.active)
     }
 
-    /// A saved list against the load order as it is: all groups empty for no
-    /// such list, or before the library is read.
-    pub fn compare_saved(&self, name: &str) -> Comparison {
-        let Some(saved) = self.list_named(name) else {
-            return Comparison::default();
+    /// An order to compare by its key, with its title: `current` for the load order being
+    /// edited, `game` for ModsConfig.xml as it is on disk, `list:<name>` for a saved list,
+    /// `order:<at>` for the place in `past_orders`. No ids for one that is not there.
+    fn order_of(&self, key: &str) -> (Sentence, Option<Vec<String>>) {
+        match key.split_once(':') {
+            Some(("list", name)) => (Sentence::from(name), self.list_named(name)),
+            Some(("order", at)) => match at.parse().ok().and_then(|at| self.past_entry(at)) {
+                Some(entry) => (order_title(entry.time), Some(entry.ids)),
+                None => (Sentence::from(key), None),
+            },
+            _ if key == CURRENT => (current_title(), Some(self.session().current().to_vec())),
+            _ if key == GAME => {
+                let config = self.paths().mods_config();
+                let read = config.and_then(|config| modsconfig::read(&config).ok());
+                (game_title(), read.map(|config| config.active))
+            }
+            _ => (Sentence::from(key), None),
+        }
+    }
+
+    /// Every order `compare_orders` takes, under a caption per kind, for a menu.
+    pub fn order_choices(&self) -> Vec<OrderChoice> {
+        let pick = |key: String, text: Sentence| OrderChoice {
+            key,
+            text,
+            title: Sentence::default(),
+            pick: true,
         };
-        let current = self.session().current().to_vec();
+        let caption = |title: Sentence| OrderChoice {
+            key: String::new(),
+            text: Sentence::default(),
+            title,
+            pick: false,
+        };
+        let mut choices = vec![
+            pick(CURRENT.to_string(), current_title()),
+            pick(GAME.to_string(), game_title()),
+        ];
+        let saved = self.saved_lists();
+        if !saved.is_empty() {
+            choices.push(caption(say!("Saved lists")));
+        }
+        for list in saved {
+            choices.push(pick(
+                format!("list:{}", list.name),
+                Sentence::from(list.name),
+            ));
+        }
+        let past = orders::read(&self.orders_file());
+        if !past.is_empty() {
+            choices.push(caption(say!("Load order history")));
+        }
+        for (at, entry) in past.into_iter().rev().enumerate() {
+            let text = Sentence::listed(vec![order_title(entry.time), how_said(entry.how)]);
+            choices.push(pick(format!("order:{at}"), text));
+        }
+        choices
+    }
+
+    /// Two orders, each named by its key as `order_of` takes it: no groups when either is
+    /// not there, or before the library is read.
+    pub fn compare_orders(&self, left: &str, right: &str) -> Comparison {
+        let (left_title, left_ids) = self.order_of(left);
+        let (right_title, right_ids) = self.order_of(right);
+        let nothing = |left, right| Comparison {
+            left,
+            right,
+            ..Comparison::default()
+        };
+        let (Some(left_ids), Some(right_ids)) = (left_ids, right_ids) else {
+            return nothing(left_title, right_title);
+        };
         let loaded = self.library();
         let Ok((library, _)) = &*loaded else {
-            return Comparison::default();
+            return nothing(left_title, right_title);
         };
 
-        let diff = lists::compare(&saved, &current);
-        let arranged_saved = library.arrange(&saved);
-        let arranged_current = library.arrange(&current);
-
-        let shown = |at: usize, arranged: &rimstack_core::mods::library::Arranged| {
-            let m = &arranged.active[at];
-            ComparedMod {
-                id: m.id.clone(),
-                name: m.name.clone(),
-            }
+        let diff = lists::compare(&left_ids, &right_ids);
+        let arranged_left = library.arrange(&left_ids);
+        let arranged_right = library.arrange(&right_ids);
+        let shown = |m: &rimstack_core::mods::list::Mod, by: isize, said: Sentence| ComparedMod {
+            id: m.id.clone(),
+            name: m.name.clone(),
+            installed: m.installed.is_some(),
+            by,
+            said,
         };
-
-        Comparison {
-            only_saved: diff
-                .only_saved
+        let alone = |m: &rimstack_core::mods::list::Mod| {
+            let said = match m.installed {
+                Some(_) => say!("installed"),
+                None => say!("not installed"),
+            };
+            shown(m, 0, said)
+        };
+        let only_left: Vec<ComparedMod> = diff
+            .only_left
+            .iter()
+            .map(|&at| alone(&arranged_left.active[at]))
+            .collect();
+        let only_right: Vec<ComparedMod> = diff
+            .only_right
+            .iter()
+            .map(|&at| alone(&arranged_right.active[at]))
+            .collect();
+        let moved: Vec<ComparedMod> = diff
+            .moved
+            .iter()
+            .map(|m| shown(&arranged_left.active[m.at], m.by, places(m.by)))
+            .collect();
+        let addable = match right {
+            CURRENT => diff
+                .only_left
                 .iter()
-                .map(|&at| shown(at, &arranged_saved))
+                .filter_map(|&at| arranged_left.active[at].installed)
                 .collect(),
-            only_current: diff
-                .only_current
-                .iter()
-                .map(|&at| shown(at, &arranged_current))
-                .collect(),
-            moved: diff
-                .moved
-                .iter()
-                .map(|&at| shown(at, &arranged_saved))
-                .collect(),
-            addable: diff
-                .only_saved
-                .iter()
-                .filter_map(|&at| arranged_saved.active[at].installed)
-                .collect(),
-        }
+            _ => Vec::new(),
+        };
+        let mut comparison = Comparison {
+            same: only_left.is_empty() && only_right.is_empty() && moved.is_empty(),
+            only_left: Group {
+                heading: only_in(only_left.len(), &left_title),
+                mods: only_left,
+            },
+            only_right: Group {
+                heading: only_in(only_right.len(), &right_title),
+                mods: only_right,
+            },
+            moved: Group {
+                heading: say_n!(
+                    moved.len(),
+                    "{} mod placed elsewhere in {}",
+                    "{} mods placed elsewhere in {}",
+                    right_title.inside()
+                ),
+                mods: moved,
+            },
+            left: left_title,
+            right: right_title,
+            addable,
+            report: String::new(),
+        };
+        comparison.report = report(&comparison);
+        comparison
     }
 }
 
@@ -555,8 +807,9 @@ mod tests {
     #[test]
     fn a_list_is_kept_found_and_deleted_and_the_history_says_what_takes_it_back() {
         let (_tmp, app) = installed();
-        app.keep_list("Mine", Some(vec!["a.b".into()])).unwrap();
-        assert!(app.keep_list(" ", None).is_err());
+        app.keep_list("Mine", Some(vec!["a.b".into()]), false)
+            .unwrap();
+        assert!(app.keep_list(" ", None, false).is_err());
         assert_eq!(app.saved_lists()[0].mods, 1);
         assert_eq!(app.list_named("Mine").unwrap(), ["a.b"]);
         app.delete_list("Mine");
@@ -583,6 +836,48 @@ mod tests {
         );
         assert_eq!(app.snapshot_named(&snapshot).unwrap(), ["a.b"]);
         assert_eq!(app.original_list(), None);
+    }
+
+    #[test]
+    fn settings_kept_with_a_list_take_the_current_ones_place() {
+        let (tmp, app) = installed();
+        let config = tmp.path().join("config");
+        let write = |file: &str, contents: &str| {
+            std::fs::write(config.join(format!("Config/{file}")), contents).unwrap();
+        };
+        write("Mod_Core_Settings.xml", "first");
+        write("Mod_roads_Settings.xml", "roads");
+        let ids = vec!["ludeon.rimworld".to_string(), "ann.roads".to_string()];
+        app.keep_list("run", Some(ids), true).unwrap();
+        assert!(
+            app.saved_lists()
+                .iter()
+                .any(|l| l.name == "run" && l.settings)
+        );
+
+        // The game touched Core's settings: using the list's ones sets them aside first.
+        write("Mod_Core_Settings.xml", "changed");
+        app.use_list_settings("run").unwrap();
+        assert_eq!(
+            std::fs::read_to_string(config.join("Config/Mod_Core_Settings.xml")).unwrap(),
+            "first"
+        );
+        let asides: Vec<_> = std::fs::read_dir(app.data_dir())
+            .unwrap()
+            .flatten()
+            .filter(|e| e.file_name().to_string_lossy().starts_with("mod-settings-"))
+            .collect();
+        assert_eq!(asides.len(), 1);
+        assert_eq!(
+            std::fs::read_to_string(asides[0].path().join("Mod_Core_Settings.xml")).unwrap(),
+            "changed"
+        );
+
+        // Without the settings asked for, no folder; using one there is refused.
+        app.keep_list("empty", Some(vec![]), true).unwrap();
+        assert!(app.use_list_settings("empty").is_err());
+        app.delete_list("run");
+        assert!(!app.saved_lists().iter().any(|l| l.settings));
     }
 
     #[test]
@@ -694,39 +989,96 @@ mod tests {
     }
 
     #[test]
-    fn comparing_a_saved_list_with_the_load_order_groups_each_mod() {
+    fn comparing_two_orders_groups_each_mod_from_any_side() {
         let (_tmp, app) = installed();
         let saved = vec![
             "ludeon.rimworld".to_string(),
             "ann.roads".to_string(),
             "gone.mod".to_string(),
         ];
-        app.keep_list("run", Some(saved)).unwrap();
-
-        // Only rimworld active: the mods the run switched off are saved-only.
-        app.session().record(vec!["ludeon.rimworld".to_string()]);
-        let comp = app.compare_saved("run");
-        fn ids(mods: &[ComparedMod]) -> Vec<&str> {
-            mods.iter().map(|m| m.id.as_str()).collect()
+        app.keep_list("run", Some(saved), false).unwrap();
+        fn ids(group: &Group) -> Vec<(&str, bool, isize, String)> {
+            group
+                .mods
+                .iter()
+                .map(|m| (m.id.as_str(), m.installed, m.by, m.said.to_string()))
+                .collect()
         }
-        assert_eq!(ids(&comp.only_saved), ["ann.roads", "gone.mod"]);
-        assert_eq!(ids(&comp.only_current), Vec::<&str>::new());
-        assert_eq!(ids(&comp.moved), Vec::<&str>::new());
-        // A saved-only mod that is not installed cannot join the load order.
+        let installed = |id| (id, true, 0, "installed".to_string());
+        let missing = |id| (id, false, 0, "not installed".to_string());
+
+        // Only rimworld active: the mods the run switched off are left-only.
+        app.session().record(vec!["ludeon.rimworld".to_string()]);
+        let comp = app.compare_orders("list:run", "current");
+        assert_eq!(
+            ids(&comp.only_left),
+            [installed("ann.roads"), missing("gone.mod")]
+        );
+        assert_eq!(comp.only_left.heading.to_string(), "2 mods only in run");
+        assert!(comp.only_right.mods.is_empty() && comp.moved.mods.is_empty() && !comp.same);
+        // A left-only mod that is not installed cannot join the load order.
         assert_eq!(comp.addable.len(), 1);
 
         // The same mods, but the load order places roads first.
         app.session()
             .record(vec!["ann.roads".to_string(), "ludeon.rimworld".to_string()]);
-        let comp = app.compare_saved("run");
-        assert_eq!(ids(&comp.only_saved), ["gone.mod"]);
-        assert_eq!(ids(&comp.only_current), Vec::<&str>::new());
-        assert_eq!(ids(&comp.moved), ["ann.roads"]);
-        assert_eq!(comp.addable.len(), 0);
-
-        let none = app.compare_saved("absent");
-        assert!(
-            none.only_saved.is_empty() && none.only_current.is_empty() && none.moved.is_empty()
+        let comp = app.compare_orders("list:run", "current");
+        assert_eq!(ids(&comp.only_left), [missing("gone.mod")]);
+        assert!(comp.only_right.mods.is_empty());
+        assert_eq!(
+            ids(&comp.moved),
+            [("ann.roads", true, -1, "1 place earlier".to_string())]
         );
+        assert_eq!(comp.addable.len(), 0);
+        assert_eq!(
+            comp.report,
+            "run compared with the load order\n\n\
+             1 mod only in run\n- gone.mod [gone.mod], not installed\n\n\
+             1 mod placed elsewhere in the load order\n- Ann.Roads [ann.roads], 1 place earlier"
+        );
+
+        // ModsConfig.xml on disk holds rimworld alone; the load order is not on the right,
+        // so nothing is offered to join it.
+        let comp = app.compare_orders("current", "game");
+        assert_eq!(ids(&comp.only_left), [installed("ann.roads")]);
+        assert_eq!(
+            comp.only_left.heading.to_string(),
+            "1 mod only in the load order"
+        );
+        assert!(comp.only_right.mods.is_empty() && comp.moved.mods.is_empty());
+        assert!(comp.addable.is_empty());
+        let comp = app.compare_orders("game", "list:run");
+        assert_eq!(
+            ids(&comp.only_right),
+            [installed("ann.roads"), missing("gone.mod")]
+        );
+        assert_eq!(comp.left.to_string(), "the game's ModsConfig.xml");
+        assert!(comp.addable.is_empty());
+
+        let same = app.compare_orders("list:run", "list:run");
+        assert!(same.same && same.only_left.mods.is_empty() && same.moved.mods.is_empty());
+        assert_eq!(
+            same.report,
+            "run compared with run\n\nBoth hold the same mods in the same order"
+        );
+        for (left, right) in [
+            ("list:absent", "current"),
+            ("current", "order:9"),
+            ("x", "game"),
+        ] {
+            let none = app.compare_orders(left, right);
+            let groups = [&none.only_left, &none.only_right, &none.moved];
+            assert!(!none.same && groups.iter().all(|g| g.mods.is_empty()));
+        }
+
+        // Every kind of order is offered, the past ones under their own caption.
+        app.record_order(orders::How::Saved, &["ludeon.rimworld".to_string()]);
+        let choices = app.order_choices();
+        let keys: Vec<&str> = choices.iter().map(|c| c.key.as_str()).collect();
+        assert_eq!(keys, ["current", "game", "", "list:run", "", "order:0"]);
+        assert_eq!(choices[2].title.to_string(), "Saved lists");
+        let past = app.compare_orders("order:0", "list:run");
+        assert!(past.left.to_string().starts_with("the order of 2"));
+        assert_eq!(ids(&past.only_right).len(), 2);
     }
 }

@@ -2140,5 +2140,14 @@
  "{} place earlier": "{} puesto antes",
  "{} place later": "{} puesto después",
  "{} places earlier": "{} puestos antes",
- "{} places later": "{} puestos después"
+ "{} places later": "{} puestos después",
+ "Keep the mods' settings too": "Guardar también los ajustes de los mods",
+ "Only the list": "Solo la lista",
+ "The current settings of those mods are set aside, then the kept ones take their place": "Los ajustes actuales de esos mods se apartan y los guardados toman su lugar",
+ "The mods' settings are kept with this list; using it offers them": "Los ajustes de los mods se guardan con esta lista; usarla los ofrece",
+ "Use the mod settings kept with {} too?": "¿Usar también los ajustes guardados con {}?",
+ "Use them too": "Usarlos también",
+ "settings kept": "ajustes guardados",
+ "{} keeps no mod settings": "{} no guarda ajustes de mods",
+ "{} names no settings file of the game": "{} no nombra ningún archivo de ajustes del juego"
 }

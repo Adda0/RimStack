@@ -2140,5 +2140,14 @@
  "{} place earlier": "{} place earlier",
  "{} place later": "{} place later",
  "{} places earlier": "{} places earlier",
- "{} places later": "{} places later"
+ "{} places later": "{} places later",
+ "Keep the mods' settings too": "Keep the mods' settings too",
+ "Only the list": "Only the list",
+ "The current settings of those mods are set aside, then the kept ones take their place": "The current settings of those mods are set aside, then the kept ones take their place",
+ "The mods' settings are kept with this list; using it offers them": "The mods' settings are kept with this list; using it offers them",
+ "Use the mod settings kept with {} too?": "Use the mod settings kept with {} too?",
+ "Use them too": "Use them too",
+ "settings kept": "settings kept",
+ "{} keeps no mod settings": "{} keeps no mod settings",
+ "{} names no settings file of the game": "{} names no settings file of the game"
 }

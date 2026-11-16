@@ -7,6 +7,7 @@ use super::text_field::{Entered, TextField};
 use super::theme::{self, Theme};
 use super::widgets::{TextSized, label, measure, watched};
 use crate::changes::Changes;
+use crate::ui::controls::Toggle;
 use crate::words::put;
 use crate::workspace::lists::{Comparison, HistoryLine, PastOrder, Snapshot};
 use crate::workspace::logs::{clock, moment};
@@ -74,6 +75,8 @@ pub struct Lists {
     problem: String,
     clipboard_problem: String,
     name: Entity<TextField>,
+    /// The remembered `Keep the mods' settings too` choice.
+    keep_settings: bool,
     open: Option<(Which, Bounds<Pixels>)>,
     lock_report: Option<rimstack_core::mods::lock::Report>,
     comparing: Option<Comparing>,
@@ -103,6 +106,11 @@ impl Lists {
             problem: String::new(),
             clipboard_problem: String::new(),
             name,
+            keep_settings: super::app(cx)
+                .prefs()
+                .get("Mods", "listWithSettings")
+                .map(|kept| kept == "1")
+                .unwrap_or(false),
             open: None,
             lock_report: None,
             comparing: None,
@@ -274,6 +282,76 @@ impl Lists {
         self.close(window, cx);
     }
 
+    /// The saved list without its kept settings.
+    fn use_saved(&mut self, name: &str, window: &mut Window, cx: &mut Context<Self>) {
+        if let Some(ids) = super::app(cx).list_named(name) {
+            self.use_ids(ids, name, window, cx);
+        } else {
+            self.close(window, cx);
+        }
+    }
+
+    /// Asks whether the mod settings kept with `name` take the current ones' place.
+    fn ask_use_settings(&mut self, name: &str, window: &mut Window, cx: &mut Context<Self>) {
+        let (me, only) = (cx.entity().downgrade(), cx.entity().downgrade());
+        let (asked, only_name) = (name.to_string(), name.to_string());
+        prompt::ask(
+            Question {
+                title: put(&say!(
+                    "Use the mod settings kept with {} too?",
+                    asked.clone()
+                )),
+                lines: vec![Line::Text(put(&say!(
+                    "The current settings of those mods are set aside, then the kept ones take their place"
+                )))],
+                label: put(&say!("Use them too")),
+                danger: false,
+                run: Box::new(move |window, cx| {
+                    let _ = me.update(cx, |lists, cx| lists.use_with_settings(&asked, window, cx));
+                }),
+                second: Some((
+                    put(&say!("Only the list")),
+                    Box::new(move |window, cx| {
+                        let _ =
+                            only.update(cx, |lists, cx| lists.use_saved(&only_name, window, cx));
+                    }),
+                )),
+            },
+            window,
+            cx,
+        );
+    }
+
+    /// The saved list with its kept settings; off the window's thread.
+    fn use_with_settings(&mut self, name: &str, _window: &mut Window, cx: &mut Context<Self>) {
+        if self.busy {
+            return;
+        }
+        let (app, name) = (super::app(cx), name.to_string());
+        let asked = name.clone();
+        self.busy = true;
+        crate::jobs::run(
+            "list settings",
+            cx,
+            move || app.use_list_settings(&asked),
+            move |lists, done: Result<(), Error>, cx| {
+                lists.busy = false;
+                match done {
+                    Ok(()) => match super::app(cx).list_named(&name) {
+                        Some(ids) => {
+                            super::navigate::go(super::navigate::Go::TakeList(ids), cx);
+                            lists.go_by(&name, cx);
+                            lists.open = None;
+                        }
+                        None => lists.open = None,
+                    },
+                    Err(problem) => lists.problem = crate::words::said_of(&problem),
+                }
+                cx.notify();
+            },
+        );
+    }
+
     /// The saved list `name` beside the load order as it is, the card opening where the lists did.
     fn compare(&mut self, name: &str, window: &mut Window, cx: &mut Context<Self>) {
         let below = self.open.map_or_else(Bounds::default, |(_, below)| below);
@@ -366,7 +444,7 @@ impl Lists {
             return;
         };
         let name = moment(order.time);
-        let kept = app.keep_list(&name, Some(ids));
+        let kept = app.keep_list(&name, Some(ids), false);
         match kept {
             Ok(()) => {
                 notices::say(put(&say!("Kept as {}", name)), notices::Tone::Ok, cx);
@@ -537,10 +615,11 @@ impl Lists {
     fn keep(&mut self, name: &str, typed: bool, cx: &mut Context<Self>) {
         let (app, name) = (super::app(cx), name.trim().to_string());
         let asked = name.clone();
+        let with_settings = self.keep_settings;
         crate::jobs::run(
             "list kept",
             cx,
-            move || app.keep_list(&asked, None),
+            move || app.keep_list(&asked, None, with_settings),
             move |lists, kept, cx| {
                 lists.problem = crate::words::why_not(&kept);
                 if kept.is_ok() {
@@ -657,6 +736,7 @@ impl Lists {
                 run: Box::new(move |_, cx| {
                     let _ = me.update(cx, |lists, cx| lists.share(cx));
                 }),
+                second: None,
             },
             window,
             cx,
@@ -749,6 +829,7 @@ impl Lists {
             let name = saved.name.clone();
             let (kept, used, deleted, compared) =
                 (name.clone(), name.clone(), name.clone(), name.clone());
+            let holds_settings = saved.settings;
             let update = Btn::new(
                 ("update-list", at),
                 if current == name {
@@ -786,19 +867,53 @@ impl Lists {
                 use_list.width(window, theme),
                 delete.width(window, theme),
             ]));
+
             shown.push(
                 row(div())
                     .child(
-                        div().flex_1().min_w_0().child(watched(
-                            div()
-                                .overflow_hidden()
-                                .whitespace_nowrap()
-                                .text_ellipsis()
-                                .sized_text(theme, theme.body())
-                                .text_color(c.ink),
-                            SharedString::from(name.clone()),
-                            name.clone(),
-                            true,
+                        div()
+                            .flex_1()
+                            .min_w_0()
+                            .overflow_hidden()
+                            .whitespace_nowrap()
+                            .text_ellipsis()
+                            .sized_text(theme, theme.body())
+                            .text_color(c.ink)
+                            .child(name.clone()),
+                    )
+                    .when(holds_settings, |row| {
+                        row.child(
+                            super::tip::tipped(
+                                div()
+                                    .id(("list-holds-settings", at))
+                                    .sized_text(theme, theme.small())
+                                    .text_color(c.ink3)
+                                    .child(put(&say!("settings kept"))),
+                                put(&say!(
+                                    "The mods' settings are kept with this list; using it offers them"
+                                ))
+                                .into(),
+                            ),
+                        )
+                    })
+                    .child(label(
+                        theme,
+                        theme.small(),
+                        c.ink3,
+                        put(&say_n!(saved.mods, "{} mod", "{} mods")),
+                    ))
+                    .child(update)
+                    .child(
+                        Btn::new(("use-list", at), put(&say!("Use"))).on_click(cx.listener(
+                            move |lists, _, window, cx| {
+                                if holds_settings {
+                                    lists.ask_use_settings(&used, window, cx);
+                                } else if let Some(ids) = super::app(cx).list_named(&used) {
+                                    lists.use_ids(ids, &used, window, cx);
+                                } else {
+                                    lists.close(window, cx);
+                                }
+                            },
                         )),
                     )
                     .child(
@@ -810,8 +925,7 @@ impl Lists {
                             .on_click(cx.listener(move |lists, _, window, cx| {
                                 lists.compare(&compared, window, cx);
                             })),
-                    )
-                    .child(label(theme, theme.small(), c.ink3, counted))
+                    )    .child(label(theme, theme.small(), c.ink3, counted))
                     .child(update)
                     .child(use_list)
                     .child(delete)
@@ -844,6 +958,38 @@ impl Lists {
                     ),
                 )
                 .child(keep)
+                .into_any_element(),
+        );
+        shown.push(
+            div()
+                .flex()
+                .items_center()
+                .gap(theme::GAP_SMALL)
+                .child(
+                    Toggle::new(
+                        "keep-list-settings",
+                        self.keep_settings,
+                        put(&say!("Keep the mods' settings too")),
+                    )
+                    .on_flip(crate::ui::act(
+                        cx,
+                        |lists: &mut Self, on: bool, _, cx| {
+                            lists.keep_settings = on;
+                            let kept = match super::app(cx).keep_pref(
+                                "Mods",
+                                "listWithSettings",
+                                if on { "1" } else { "0" },
+                            ) {
+                                Ok(()) => None,
+                                Err(problem) => Some(crate::words::said_of(&problem)),
+                            };
+                            if let Some(said) = kept {
+                                notices::say(said, notices::Tone::Err, cx);
+                            }
+                            cx.notify();
+                        },
+                    )),
+                )
                 .into_any_element(),
         );
         let wrapped = |text: String, colour| {
