@@ -303,6 +303,13 @@ impl Render for Shell {
                 shell.open_keys(window, cx)
             }))
             .on_action(
+                cx.listener(|shell, _: &super::keys::NewestNotice, window, cx| {
+                    shell
+                        .notices
+                        .update(cx, |notices, cx| notices.give_keys(window, cx))
+                }),
+            )
+            .on_action(
                 cx.listener(|shell, _: &super::keys::OpenCommands, window, cx| {
                     shell.open_commands(window, cx)
                 }),

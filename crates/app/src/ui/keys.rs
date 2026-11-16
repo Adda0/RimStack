@@ -23,7 +23,8 @@ actions!(
         Section5,
         Section6,
         Section7,
-        Section8
+        Section8,
+        NewestNotice
     ]
 );
 
@@ -40,6 +41,7 @@ pub fn bind_keys(cx: &mut App) {
         KeyBinding::new(crate::command!("6"), Section6, None),
         KeyBinding::new(crate::command!("7"), Section7, None),
         KeyBinding::new(crate::command!("8"), Section8, None),
+        KeyBinding::new("alt-n", NewestNotice, None),
     ]);
     #[cfg(feature = "profiler")]
     cx.bind_keys([KeyBinding::new("ctrl-alt-shift-f", FrameTimes, None)]);
@@ -81,12 +83,15 @@ fn groups() -> Vec<(Sentence, Vec<(Sentence, Sentence)>)> {
                 (say!("Tab"), say!("Next control")),
                 (
                     say!("Esc"),
-                    say!("Close, cancel, discard a sort preview, clear the selection"),
+                    say!(
+                        "Close, cancel, discard a sort preview, clear the selection, end the hints, leave a launch's record"
+                    ),
                 ),
                 (
                     say!("Home, End, Page Up, Page Down"),
                     say!("To either end of a list, or a page further"),
                 ),
+                (say!("Alt + N"), say!("To the newest notice's button")),
             ],
         ),
         (

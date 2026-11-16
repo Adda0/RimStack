@@ -2,9 +2,9 @@ use super::theme::{self, Theme};
 use super::widgets::{Btn, TextSized};
 use crate::words::put;
 use gpui::{
-    AnyElement, App, AppContext, Context, Entity, Global, Hsla, InteractiveElement, IntoElement,
-    ParentElement, Render, Role, SharedString, StatefulInteractiveElement, Styled, Window, div,
-    prelude::FluentBuilder, px,
+    AnyElement, App, AppContext, Context, Entity, FocusHandle, Global, Hsla, InteractiveElement,
+    IntoElement, ParentElement, Render, Role, SharedString, StatefulInteractiveElement, Styled,
+    Window, div, prelude::FluentBuilder, px,
 };
 use rimstack_core::say;
 use std::rc::Rc;
@@ -31,9 +31,13 @@ struct Toast {
     text: SharedString,
     tone: Tone,
     offer: Option<(SharedString, Run)>,
-    /// When it goes, unless the pointer is on it then.
+    /// When it goes, unless the pointer or the keys are on it then.
     until: Instant,
     held: bool,
+    /// Its first button's, which Alt+N gives the keys to.
+    keys: FocusHandle,
+    /// Whether the keys were in it when last drawn.
+    keyed: bool,
 }
 
 pub struct Earlier {
@@ -120,6 +124,8 @@ impl Notices {
             offer,
             until: cx.background_executor().now() + stays,
             held: false,
+            keys: cx.focus_handle().tab_stop(true),
+            keyed: false,
         });
         let over = self.shown.len().saturating_sub(SHOWN);
         self.shown.drain(..over);
@@ -133,6 +139,16 @@ impl Notices {
         );
         self.earlier.truncate(KEPT);
         self.tick(cx);
+        cx.notify();
+    }
+
+    /// Alt+N: the newest notice's first button takes the keys, which keep the notice up.
+    pub fn give_keys(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(toast) = self.shown.last_mut() else {
+            return;
+        };
+        toast.keyed = true;
+        window.focus(&toast.keys, cx);
         cx.notify();
     }
 
@@ -157,7 +173,7 @@ impl Notices {
                     let before = notices.shown.len();
                     notices
                         .shown
-                        .retain(|toast| toast.held || toast.until > now);
+                        .retain(|toast| toast.held || toast.keyed || toast.until > now);
                     if notices.shown.len() != before {
                         cx.notify();
                     }
@@ -219,15 +235,18 @@ impl Notices {
                     .child(toast.text.clone()),
             )
             .when_some(toast.offer.clone(), |d, (label, run)| {
-                d.child(Btn::new(("toast-offer", key), label).on_click(cx.listener(
-                    move |notices, _, window, cx| {
-                        run(window, cx);
-                        notices.dismiss(key, cx);
-                    },
-                )))
+                d.child(
+                    Btn::new(("toast-offer", key), label)
+                        .keys(toast.keys.clone())
+                        .on_click(cx.listener(move |notices, _, window, cx| {
+                            run(window, cx);
+                            notices.dismiss(key, cx);
+                        })),
+                )
             })
             .child(
                 Btn::new(("toast-dismiss", key), "")
+                    .when(toast.offer.is_none(), |b| b.keys(toast.keys.clone()))
                     .icon("x")
                     .tip(put(&say!("Dismiss")))
                     .on_click(cx.listener(move |notices, _, _, cx| notices.dismiss(key, cx))),
@@ -244,8 +263,16 @@ impl Notices {
 }
 
 impl Render for Notices {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.global::<Theme>().clone();
+        let now = cx.background_executor().now();
+        for toast in &mut self.shown {
+            let keyed = toast.keys.is_focused(window);
+            if toast.keyed && !keyed {
+                toast.until = now + SHORT;
+            }
+            toast.keyed = keyed;
+        }
         let toasts: Vec<AnyElement> = (0..self.shown.len())
             .map(|at| self.toast(at, &theme, cx))
             .collect();

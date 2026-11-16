@@ -44,6 +44,8 @@ impl Layout {
 pub struct Hinting {
     /// The first-run hint shown, 1 to 3; 0 for none.
     pub step: u8,
+    /// The step whose Next button was given the keys.
+    pub keyed: u8,
     pub anchors: hints::Anchors,
 }
 

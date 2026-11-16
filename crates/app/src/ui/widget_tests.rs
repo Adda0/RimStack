@@ -298,6 +298,27 @@ fn a_toast_goes_by_itself_after_a_while(cx: &mut TestAppContext) {
     assert_eq!(shown(cx), 0);
 }
 
+#[gpui::test]
+fn a_toast_holding_the_keys_stays_until_they_leave(cx: &mut TestAppContext) {
+    let (_root, bench, cx) = bench(cx);
+    cx.update(|_, cx| notices::say("Saved", notices::Tone::Ok, cx));
+    let notices = bench.read_with(cx, |b, _| b.notices.clone().unwrap());
+    let shown = |cx: &mut VisualTestContext| notices.read_with(cx, |n, _| n.shown().len());
+    cx.update(|window, cx| notices.update(cx, |n, cx| n.give_keys(window, cx)));
+    cx.run_until_parked();
+    cx.executor().advance_clock(Duration::from_secs(12));
+    cx.run_until_parked();
+    assert_eq!(shown(cx), 1, "kept up while its button has the keys");
+    cx.update(|window, cx| {
+        let focus = bench.read(cx).focus.clone().unwrap();
+        window.focus(&focus, cx);
+    });
+    cx.run_until_parked();
+    cx.executor().advance_clock(Duration::from_secs(6));
+    cx.run_until_parked();
+    assert_eq!(shown(cx), 0, "and goes once they leave");
+}
+
 struct Asking {
     drawn: usize,
 }

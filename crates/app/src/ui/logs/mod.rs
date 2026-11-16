@@ -294,7 +294,7 @@ impl Logs {
 
 impl gpui::Render for Logs {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl gpui::IntoElement {
-        use gpui::{ParentElement, Styled};
+        use gpui::{InteractiveElement, ParentElement, Styled};
         let theme = cx.global::<Theme>().clone();
         let record = self
             .recorded
@@ -303,6 +303,13 @@ impl gpui::Render for Logs {
             .relative()
             .flex()
             .size_full()
+            .on_key_down(cx.listener(|logs, event: &gpui::KeyDownEvent, _, cx| {
+                // Esc leaves a launch's record for its log.
+                if event.keystroke.key == "escape" && logs.recorded.take().is_some() {
+                    cx.stop_propagation();
+                    cx.notify();
+                }
+            }))
             .child(self.launches_pane(&theme, window, cx))
             .child(self.middle(&theme, window, cx))
             .child(self.side(&theme, window, cx))

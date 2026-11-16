@@ -79,6 +79,8 @@ impl Mods {
 
     fn end_hints(&mut self, cx: &mut Context<Self>) {
         self.hints.step = 0;
+        self.hints.keyed = 0;
+        self.focus_wanted = true;
         crate::ui::keep_appearance("hintsSeen", "true", cx);
         cx.notify();
     }
@@ -137,6 +139,12 @@ impl Mods {
             true => point(below.right() - wide, below.bottom() + px(9.)),
             false => point(below.left(), below.bottom() + px(9.)),
         };
+        // Each hint opens with the keys on Next: Enter goes on, Tab reaches Skip.
+        let next = crate::ui::focus::handle("hint-next", window, cx);
+        if self.hints.keyed != step {
+            self.hints.keyed = step;
+            window.focus(&next, cx);
+        }
         let accent = c.accent;
         let notch = canvas(
             |_, _, _| (),
@@ -172,6 +180,12 @@ impl Mods {
                         .rounded(theme::CORNER_LARGE)
                         .bg(accent)
                         .occlude()
+                        .on_key_down(cx.listener(|m, event: &gpui::KeyDownEvent, _, cx| {
+                            if event.keystroke.key == "escape" {
+                                m.end_hints(cx);
+                                cx.stop_propagation();
+                            }
+                        }))
                         .child(notch)
                         .child(
                             div()
@@ -205,6 +219,7 @@ impl Mods {
                                             _ => say!("Next"),
                                         }),
                                     )
+                                    .keys(next)
                                     .on_click(cx.listener(|m, _, _, cx| m.next_hint(cx))),
                                 ),
                         ),

@@ -1867,5 +1867,8 @@
  "Select through to an end or a page further": "Select through to an end or a page further",
  "Shift + Home, Shift + End, Shift + Page Up, Shift + Page Down": "Shift + Home, Shift + End, Shift + Page Up, Shift + Page Down",
  "The previous or the next tab of the details": "The previous or the next tab of the details",
- "To the next or the previous pane": "To the next or the previous pane"
+ "To the next or the previous pane": "To the next or the previous pane",
+ "Alt + N": "Alt + N",
+ "Close, cancel, discard a sort preview, clear the selection, end the hints, leave a launch's record": "Close, cancel, discard a sort preview, clear the selection, end the hints, leave a launch's record",
+ "To the newest notice's button": "To the newest notice's button"
 }

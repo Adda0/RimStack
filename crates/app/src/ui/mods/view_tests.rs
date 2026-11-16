@@ -570,6 +570,27 @@ fn the_hints_go_one_after_the_other_and_are_not_shown_again() {
 }
 
 #[test]
+fn esc_ends_the_hints() {
+    let (_tmp, mut cx, mods) = opened_with(|_| {});
+    let window = cx.update(|cx| cx.windows()[0]);
+    cx.update(|cx| mods.update(cx, |mods, cx| mods.start_hints(cx)));
+    cx.run_until_parked();
+    let step = cx.update(|cx| mods.read(cx).hints.step);
+    assert!(step > 0, "a hint is shown");
+    cx.update_window(window, |_, window, cx| {
+        window.dispatch_keystroke(gpui::Keystroke::parse("escape").unwrap(), cx);
+    })
+    .unwrap();
+    cx.run_until_parked();
+    cx.update(|cx| {
+        let mods = mods.read(cx);
+        assert_eq!(mods.hints.step, 0, "Esc on the hint's Next ends them");
+        let seen = crate::ui::app(cx).prefs().flag("Appearance", "hintsSeen");
+        assert_eq!(seen, Some(true));
+    });
+}
+
+#[test]
 fn select_all_chooses_only_the_mods_the_filter_shows() {
     let (_tmp, mut cx, mods) = opened_with(|_| {});
     cx.update(|cx| mods.update(cx, |mods, cx| mods.filter_by("Fixture Mod 04", cx)));
