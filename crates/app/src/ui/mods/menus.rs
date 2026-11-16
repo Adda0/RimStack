@@ -281,6 +281,18 @@ impl Mods {
                 self.trust(ids, true, cx);
             }
             "sort" => self.preview_sort(cx),
+            "move" => {
+                let Some((at, side)) = target.split_once(':') else {
+                    return;
+                };
+                let (Ok(other), Some(id)) = (at.parse::<usize>(), mod_id) else {
+                    return;
+                };
+                self.edit_list(cx, |list, _| {
+                    list.order.move_next_to(&app, id, other, side == "after")
+                });
+                self.changed(cx);
+            }
             "subscribe" => {
                 let (app, target) = (app.clone(), target.to_string());
                 crate::jobs::run(

@@ -24,26 +24,56 @@ fn group(kind: Kind) -> &'static str {
     }
 }
 
+impl Rule {
+    /// The rule that matters most in `at`'s place; the very bottom's rule only ever sorts.
+    fn broken_rule(at: usize, rules: &[Rule]) -> Option<&Rule> {
+        let own = rules.iter().filter(|r| r.first == at || r.then == at);
+        own.filter(|r| r.broken() && r.kind != Kind::CommunityBottom)
+            .max_by_key(|r| r.kind.strength())
+    }
+}
+
+/// Words for a broken rule, as the sort's reasons say it: "after Harmony, by its own rule".
+pub fn rule_words(at: usize, rule: &Rule, names: &[&str]) -> Sentence {
+    let side = match rule.then == at {
+        true => say!("after {}", names[rule.first]),
+        false => say!("before {}", names[rule.then]),
+    };
+    let says = match (rule.kind, rule.declared_by()) {
+        (Kind::Requires, Some(by)) if by == at => say!("which it requires"),
+        (Kind::Requires, _) => say!("which requires it"),
+        (Kind::Yours, _) => say!("by your rule"),
+        (Kind::Inferred | Kind::Hint, _) => say!("as their files suggest"),
+        (_, None) => say!("by a community rule"),
+        (_, Some(by)) if by == at => say!("by its own rule"),
+        _ => say!("by that mod's rule"),
+    };
+    Sentence::listed(vec![side, says])
+}
+
+/// The strongest rule whose load order place `at` breaks, in words, its other mod, and whether
+/// `at` should load after it. Soft rules (detected from files, hints) only ever sort.
+pub fn broken_against(
+    at: usize,
+    rules: &[Rule],
+    names: &[&str],
+) -> Option<(Sentence, usize, bool)> {
+    let rule = Rule::broken_rule(at, rules)?;
+    if rule.kind.strength() == 0 {
+        return None;
+    }
+    let (other, after) = match rule.then == at {
+        true => (rule.first, true),
+        false => (rule.then, false),
+    };
+    Some((rule_words(at, rule, names), other, after))
+}
+
 pub fn moved(at: usize, rules: &[Rule], names: &[&str], categories: &[Category]) -> Why {
-    let own = rules.iter().filter(|r| r.first == at || r.then == at);
-    let broken = own.filter(|r| r.broken() && r.kind != Kind::CommunityBottom);
-    if let Some(rule) = broken.max_by_key(|r| r.kind.strength()) {
-        let side = match rule.then == at {
-            true => say!("after {}", names[rule.first]),
-            false => say!("before {}", names[rule.then]),
-        };
-        let says = match (rule.kind, rule.declared_by()) {
-            (Kind::Requires, Some(by)) if by == at => say!("which it requires"),
-            (Kind::Requires, _) => say!("which requires it"),
-            (Kind::Yours, _) => say!("by your rule"),
-            (Kind::Inferred | Kind::Hint, _) => say!("as their files suggest"),
-            (_, None) => say!("by a community rule"),
-            (_, Some(by)) if by == at => say!("by its own rule"),
-            _ => say!("by that mod's rule"),
-        };
+    if let Some(rule) = Rule::broken_rule(at, rules) {
         return Why {
             group: group(rule.kind),
-            text: Sentence::listed(vec![side, says]),
+            text: rule_words(at, rule, names),
         };
     }
     let bottom = |r: &&Rule| r.kind == Kind::CommunityBottom && r.then == at;
@@ -116,5 +146,20 @@ mod tests {
         let content = [Category::Content; 3];
         let why = moved(0, &[rule(0, 0, Kind::CommunityBottom)], &NAMES, &content);
         assert_eq!(why.text.to_string(), "near the bottom, by a community rule");
+    }
+
+    #[test]
+    fn a_broken_rule_warns_but_a_soft_rule_only_sorts() {
+        let rules = [
+            rule(2, 0, Kind::Yours),    // broken: 2 must be before 0
+            rule(2, 1, Kind::Inferred), // broken but soft: sorts, never warns
+        ];
+        assert_eq!(broken_against(1, &rules, &NAMES), None); // soft only
+        let (words, other, after) = broken_against(0, &rules, &NAMES).unwrap();
+        assert_eq!(words.to_string(), "after Other, by your rule");
+        assert_eq!((other, after), (2, true));
+        let (words, other, after) = broken_against(2, &rules, &NAMES).unwrap();
+        assert_eq!(words.to_string(), "before Mod, by your rule");
+        assert_eq!((other, after), (0, false));
     }
 }
