@@ -148,7 +148,7 @@ impl Shell {
                 .gap(theme::GAP)
                 .child(
                     div()
-                        .flex_1()
+                        .flex_initial()
                         .min_w_0()
                         .sized_text(theme, theme.body())
                         .text_color(c.ink)
@@ -164,6 +164,7 @@ impl Shell {
                             .on_click(move |_, _, _| stop()),
                     )
                 })
+                .child(div().flex_1())
         });
         let popup = div()
             .id("tray-popup")

@@ -264,7 +264,7 @@ impl Textures {
                 .pr(theme::GAP)
                 .child(
                     div()
-                        .flex_1()
+                        .flex_initial()
                         .min_w_0()
                         .overflow_hidden()
                         .whitespace_nowrap()
@@ -289,6 +289,7 @@ impl Textures {
                             t.work(made.clone(), true, cx);
                         })),
                 )
+                .child(div().flex_1())
                 .into_any_element(),
         )
     }
@@ -534,8 +535,9 @@ impl Textures {
                         .flex()
                         .items_center()
                         .h(theme.sized(24.))
-                        .child(div().flex_1().sized_text(theme, theme.body()).text_color(if warn { c.warn } else { c.ink }).child(name))
+                        .child(div().flex_initial().sized_text(theme, theme.body()).text_color(if warn { c.warn } else { c.ink }).child(name))
                         .child(label(theme, theme.body(), c.ink2, value))
+                        .child(div().flex_1())
                 }))
                 .child(
                     div()

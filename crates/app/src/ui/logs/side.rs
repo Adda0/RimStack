@@ -130,7 +130,7 @@ impl Logs {
                     .h(theme.sized(31.))
                     .child(
                         div()
-                            .flex_1()
+                            .flex_initial()
                             .min_w_0()
                             .overflow_hidden()
                             .whitespace_nowrap()
@@ -149,6 +149,7 @@ impl Logs {
                             },
                         )),
                     )
+                    .child(div().flex_1())
                     .into_any_element()
             })
             .collect();

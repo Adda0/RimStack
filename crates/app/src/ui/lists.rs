@@ -1177,7 +1177,7 @@ impl Lists {
                     )
                     .child(
                         div()
-                            .flex_1()
+                            .flex_initial()
                             .min_w_0()
                             .flex()
                             .flex_col()
@@ -1219,6 +1219,7 @@ impl Lists {
                                 lists.keep_past(at, window, cx);
                             })),
                     )
+                    .child(div().flex_1())
                     .into_any_element(),
             );
         }
@@ -1248,7 +1249,7 @@ impl Lists {
                     .items_start()
                     .gap(theme::GAP)
                     .child(label(theme, theme.small(), c.ink3, moment(line.time)).w(theme.sized(112.)))
-                    .child(div().flex_1().min_w_0().sized_text(theme, theme.body()).text_color(c.ink).child(said.clone()))
+                    .child(div().flex_initial().min_w_0().sized_text(theme, theme.body()).text_color(c.ink).child(said.clone()))
                     .when(reverts, |d| {
                         d.child(
                             Btn::new(("revert", at), match restores {
@@ -1264,6 +1265,7 @@ impl Lists {
                             .on_click(cx.listener(move |lists, _, window, cx| lists.revert(&held, window, cx))),
                         )
                     })
+                    .child(div().flex_1())
                     .into_any_element(),
             );
         }

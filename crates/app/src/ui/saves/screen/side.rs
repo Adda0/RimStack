@@ -261,7 +261,7 @@ impl Saves {
                             ))
                             .child(
                                 div()
-                                    .flex_1()
+                                    .flex_initial()
                                     .min_w_0()
                                     .overflow_hidden()
                                     .whitespace_nowrap()
@@ -280,6 +280,7 @@ impl Saves {
                                     put(&say!("not installed"))
                                 },
                             ))
+                            .child(div().flex_1())
                     }))
                     .when(missing.len() > 5, |d| {
                         d.child(
