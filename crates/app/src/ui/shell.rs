@@ -206,6 +206,12 @@ impl Shell {
                     .mods
                     .update(cx, |mods, cx| mods.use_list(ids, cx));
             }
+            Go::Activate(ids) => {
+                let ids = ids.clone();
+                self.sections
+                    .mods
+                    .update(cx, |mods, cx| mods.activate_ids(&ids, cx));
+            }
             Go::Distrust(id) => {
                 let id = *id;
                 self.sections

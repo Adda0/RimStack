@@ -1872,5 +1872,14 @@
  "Close, cancel, discard a sort preview, clear the selection, end the hints, leave a launch's record": "Close, cancel, discard a sort preview, clear the selection, end the hints, leave a launch's record",
  "To the newest notice's button": "To the newest notice's button",
  "Copy a description, or the log's marked line": "Copy a description, or the log's marked line",
- "Ctrl + C": "Ctrl + C"
+ "Ctrl + C": "Ctrl + C",
+ "Activate the {} missing mod": "Ativar o mod {} que falta",
+ "Activate the {} missing mods": "Ativar os {} mods que faltam",
+ "Activates the mods {} holds that the load order lacks; nothing else changes, and Save still writes it": "Ativa os mods que {} tem e que faltam na ordem de carregamento; mais nada muda, e o Guardar continua a escrevê-la",
+ "Compare {} with the load order": "Compare {} with the load order",
+ "Only in the load order": "Only in the load order",
+ "Only in the saved list": "Only in the saved list",
+ "Placed differently": "Placed differently",
+ "Shows the mods {} and the load order hold apart or in a different order, and merges the missing ones": "Mostra os mods que {} e a ordem de carregamento têm em separado ou noutra ordem, e junta os que faltam",
+ "The saved list and the load order hold the same mods in the same order": "The saved list and the load order hold the same mods in the same order"
 }

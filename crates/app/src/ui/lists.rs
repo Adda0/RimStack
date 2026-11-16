@@ -8,7 +8,7 @@ use super::theme::{self, Theme};
 use super::widgets::{TextSized, label};
 use crate::changes::Changes;
 use crate::words::put;
-use crate::workspace::lists::{HistoryLine, Snapshot};
+use crate::workspace::lists::{Comparison, HistoryLine, Snapshot};
 use crate::workspace::logs::{clock, moment};
 use gpui::{
     AnyElement, AppContext, Bounds, Context, Entity, FocusHandle, InteractiveElement, IntoElement,
@@ -23,6 +23,15 @@ use rimstack_core::{say, say_n};
 pub enum Which {
     Lists,
     History,
+    /// A saved list beside the load order: which mods each holds alone, and which moved.
+    Compare,
+}
+
+/// The saved list a comparison card shows, and the groups read for it.
+struct Comparing {
+    name: String,
+    /// None until the mods are read.
+    groups: Option<Comparison>,
 }
 
 const READS: Changes = Changes::LISTS.or(Changes::LANGUAGE);
@@ -37,6 +46,7 @@ pub struct Lists {
     name: Entity<TextField>,
     open: Option<(Which, Bounds<Pixels>)>,
     lock_report: Option<rimstack_core::mods::lock::Report>,
+    comparing: Option<Comparing>,
     turn: usize,
     /// Closed, and drawn only while it fades out.
     fading: Option<(Which, Bounds<Pixels>)>,
@@ -64,6 +74,7 @@ impl Lists {
             name,
             open: None,
             lock_report: None,
+            comparing: None,
             turn: 0,
             fading: None,
             focus: cx.focus_handle(),
@@ -118,7 +129,7 @@ impl Lists {
             .iter()
             .any(|line| !line.restore.is_empty() || !line.bring_back.is_empty());
         let first = match (which, reverts) {
-            (Which::Lists, _) | (Which::History, true) => self.keys.clone(),
+            (Which::Lists, _) | (Which::History, true) | (Which::Compare, _) => self.keys.clone(),
             (Which::History, false) => self.focus.clone(),
         };
         window.focus(&first, cx);
@@ -179,6 +190,61 @@ impl Lists {
         super::navigate::go(super::navigate::Go::TakeList(ids), cx);
         self.go_by(name, cx);
         self.close(window, cx);
+    }
+
+    /// The saved list `name` beside the load order as it is, the card opening where the lists did.
+    fn compare(&mut self, name: &str, window: &mut Window, cx: &mut Context<Self>) {
+        let below = self.open.map_or_else(Bounds::default, |(_, below)| below);
+        self.comparing = Some(Comparing {
+            name: name.to_string(),
+            groups: None,
+        });
+        self.toggle(Which::Compare, below, window, cx);
+        self.compare_again(cx);
+    }
+
+    /// The comparison card's groups, read anew: off the window's thread.
+    fn compare_again(&mut self, cx: &mut Context<Self>) {
+        let Some(name) = self
+            .comparing
+            .as_ref()
+            .map(|comparing| comparing.name.clone())
+        else {
+            return;
+        };
+        let app = super::app(cx);
+        let asked = name.clone();
+        crate::jobs::run(
+            "list compared",
+            cx,
+            move || app.compare_saved(&asked),
+            move |lists, groups, cx| {
+                let Some(comparing) = &mut lists.comparing else {
+                    return;
+                };
+                if comparing.name != name {
+                    return;
+                }
+                comparing.groups = Some(groups);
+                cx.notify();
+            },
+        );
+    }
+
+    /// The saved list's mods the load order lacks join its end, in its order; nothing else moves.
+    fn merge_missing(&mut self, cx: &mut Context<Self>) {
+        let Some(groups) = self
+            .comparing
+            .as_ref()
+            .and_then(|shown| shown.groups.as_ref())
+        else {
+            return;
+        };
+        if groups.addable.is_empty() {
+            return;
+        }
+        super::navigate::go(super::navigate::Go::Activate(groups.addable.clone()), cx);
+        self.compare_again(cx);
     }
 
     /// Asks where the list goes, offering `suggest` in the user's own folder, and writes it.
@@ -540,7 +606,8 @@ impl Lists {
         }
         for (at, saved) in self.saved.iter().enumerate() {
             let name = saved.name.clone();
-            let (kept, used, deleted) = (name.clone(), name.clone(), name.clone());
+            let (kept, used, deleted, compared) =
+                (name.clone(), name.clone(), name.clone(), name.clone());
             let update = Btn::new(
                 ("update-list", at),
                 if current == name {
@@ -587,6 +654,16 @@ impl Lists {
                                 }
                             },
                         )),
+                    )
+                    .child(
+                        Btn::new(("compare-list", at), put(&say!("Compare")))
+                            .tip(put(&say!(
+                                "Shows the mods {} and the load order hold apart or in a different order, and merges the missing ones",
+                                compared.clone()
+                            )))
+                            .on_click(cx.listener(move |lists, _, window, cx| {
+                                lists.compare(&compared, window, cx);
+                            })),
                     )
                     .child(
                         Btn::new(("delete-list", at), "")
@@ -849,6 +926,86 @@ impl Lists {
         shown
     }
 
+    /// The saved list beside the load order: the mods each holds alone, the ones placed
+    /// differently, and the saved list's mods the load order can take.
+    fn compare_popup(&self, theme: &Theme, cx: &mut Context<Self>) -> Vec<AnyElement> {
+        let c = &theme.colours;
+        let Some(comparing) = &self.comparing else {
+            return Vec::new();
+        };
+        let name = comparing.name.clone();
+        let mut shown = vec![
+            div()
+                .flex()
+                .items_center()
+                .gap(theme::GAP_SMALL)
+                .child(div().flex_1().min_w_0().child(Self::title(
+                    theme,
+                    put(&say!("Compare {} with the load order", name.clone())),
+                )))
+                .child(
+                    Btn::new("compare-close", put(&say!("Close")))
+                        .keys(self.keys.clone())
+                        .on_click(cx.listener(|lists, _, window, cx| lists.close(window, cx))),
+                )
+                .into_any_element(),
+        ];
+        let Some(groups) = &comparing.groups else {
+            return shown;
+        };
+        if groups.only_saved.is_empty() && groups.only_current.is_empty() && groups.moved.is_empty()
+        {
+            shown.push(
+                label(
+                    theme,
+                    theme.body(),
+                    c.ink2,
+                    put(&say!(
+                        "The saved list and the load order hold the same mods in the same order"
+                    )),
+                )
+                .into_any_element(),
+            );
+        }
+        for (heading, mods) in [
+            (say!("Only in the saved list"), &groups.only_saved),
+            (say!("Only in the load order"), &groups.only_current),
+            (say!("Placed differently"), &groups.moved),
+        ] {
+            if mods.is_empty() {
+                continue;
+            }
+            shown.push(super::card::group_title(theme, put(&heading)));
+            for held in mods {
+                shown.push(
+                    label(theme, theme.body(), c.ink, held.name.clone())
+                        .overflow_hidden()
+                        .text_ellipsis()
+                        .into_any_element(),
+                );
+            }
+        }
+        let count = groups.addable.len();
+        shown.push(
+            Btn::new(
+                "compare-merge",
+                put(&say_n!(
+                    count,
+                    "Activate the {} missing mod",
+                    "Activate the {} missing mods"
+                )),
+            )
+            .enabled(count > 0)
+            .tip(put(&say!(
+                "Activates the mods {} holds that the load order lacks; nothing else changes, and Save still writes it",
+                name
+            )))
+            .on_click(cx.listener(|lists, _, _, cx| lists.merge_missing(cx)))
+            .into_any_element(),
+        );
+        shown
+    }
+
     fn history_popup(&self, theme: &Theme, cx: &mut Context<Self>) -> Vec<AnyElement> {
         let c = &theme.colours;
         let mut first_revert = false;
@@ -933,6 +1090,7 @@ impl Render for Lists {
         let content = match which {
             Which::Lists => self.lists_popup(&theme, window, cx),
             Which::History => self.history_popup(&theme, cx),
+            Which::Compare => self.compare_popup(&theme, cx),
         };
         let column = div()
             .flex()
@@ -965,6 +1123,21 @@ impl Render for Lists {
                         .max_h(
                             theme.sized(520.).min(below.top() - theme::GAP_LARGE)
                                 - theme::GAP_LARGE * 2.,
+                        )
+                        .overflow_y_scroll()
+                        .child(column),
+                ),
+            Which::Compare => popup
+                .left(below.left())
+                .top(below.bottom() + px(6.))
+                .w(theme.sized(440.))
+                .child(
+                    div()
+                        .id("compare-lines")
+                        .max_h(
+                            theme
+                                .sized(520.)
+                                .min(viewport.height - below.bottom() - theme::GAP_LARGE * 2.),
                         )
                         .overflow_y_scroll()
                         .child(column),

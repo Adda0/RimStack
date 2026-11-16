@@ -745,6 +745,8 @@ impl Shell {
                 ),
                 size(theme.sized(120.), theme.strip()),
             ),
+            // Opened from the lists card, where that card stands; nothing opens it from here.
+            Which::Compare => Bounds::default(),
         };
         self.lists.update(cx, |lists, cx| {
             if !lists.is_open(which) {

@@ -107,6 +107,11 @@ impl Mods {
         self.done_said(said, cx);
     }
 
+    /// These mods are activated where the load order ends, as one change.
+    pub(crate) fn activate_ids(&mut self, ids: &[ModId], cx: &mut Context<Self>) {
+        self.take_ids(Side::Inactive, ids, None, cx);
+    }
+
     pub fn move_selected(&mut self, cx: &mut Context<Self>) {
         let (from, ids) = (Side::of(self.list.read(cx).selected_active), self.ids(cx));
         self.take_ids(from, &ids, None, cx);

@@ -13,6 +13,8 @@ pub enum Go {
     UseList(Vec<String>),
     /// The load order becomes these mods, unsaved, with the window left where it is.
     TakeList(Vec<String>),
+    /// These mods join the load order at its end, as one change; nothing already in it moves.
+    Activate(Vec<ModId>),
     StartHints,
     Distrust(ModId),
     SearchedInMods,
