@@ -5,11 +5,51 @@
 use super::theme::Theme;
 use super::widgets::{TextSized, halo};
 use gpui::{
-    AnyElement, App, ElementId, FocusHandle, InteractiveElement, IntoElement, KeyBinding,
-    ParentElement, Pixels, Stateful, Styled, Window, actions, div, px,
+    AnyElement, App, Bounds, ElementId, FocusHandle, InteractiveElement, IntoElement, KeyBinding,
+    ParentElement, Pixels, Stateful, Styled, WeakFocusHandle, Window, actions, canvas, div, px,
 };
+use std::cell::RefCell;
 
 actions!(focus, [Next, Previous]);
+
+thread_local! {
+    /// Where each control that takes the keys was last drawn, so a page that scrolls can show
+    /// the one the keys reach.
+    static DRAWN: RefCell<Vec<(WeakFocusHandle, Bounds<Pixels>)>> = const { RefCell::new(Vec::new()) };
+}
+
+/// Where the control of `handle` was last drawn, in its window.
+pub(crate) fn drawn_at(handle: &FocusHandle) -> Option<Bounds<Pixels>> {
+    DRAWN.with(|drawn| {
+        drawn
+            .borrow()
+            .iter()
+            .find(|(kept, _)| kept.upgrade().as_ref() == Some(handle))
+            .map(|(_, at)| *at)
+    })
+}
+
+/// `control` reports where it is drawn, so a page that scrolls can bring it into view.
+fn marked(control: Stateful<gpui::Div>, handle: &FocusHandle) -> Stateful<gpui::Div> {
+    let weak = handle.downgrade();
+    control.relative().child(
+        canvas(
+            move |bounds, _, _| {
+                DRAWN.with(|drawn| {
+                    let mut drawn = drawn.borrow_mut();
+                    drawn.retain(|(kept, _)| kept.upgrade().is_some());
+                    match drawn.iter_mut().find(|(kept, _)| kept == &weak) {
+                        Some(kept) => kept.1 = bounds,
+                        None => drawn.push((weak.clone(), bounds)),
+                    }
+                })
+            },
+            |_, _, _, _| {},
+        )
+        .absolute()
+        .inset_0(),
+    )
+}
 
 pub fn bind_keys(cx: &mut App) {
     cx.bind_keys([
@@ -81,7 +121,7 @@ pub fn reachable(
     theme: &Theme,
 ) -> Stateful<gpui::Div> {
     let shown = ringed(handle, window);
-    control
+    marked(control, handle)
         .track_focus(handle)
         .capture_any_mouse_down(|_, window, _| window.prevent_default())
         .when(shown, |d| d.child(ring(theme, corner, on_accent)))

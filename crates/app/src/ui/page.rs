@@ -1,14 +1,19 @@
 use super::rows::{Scrolling, bar};
 use super::theme::Theme;
 use gpui::{
-    ElementId, EntityId, HitboxBehavior, InteractiveElement, IntoElement, ParentElement,
-    ScrollEvent, ScrollHandle, StatefulInteractiveElement, Styled, canvas, div, point, px,
+    Bounds, ElementId, EntityId, FocusHandle, HitboxBehavior, InteractiveElement, IntoElement,
+    ParentElement, Pixels, ScrollEvent, ScrollHandle, StatefulInteractiveElement, Styled, canvas,
+    div, point, px,
 };
+use std::cell::RefCell;
+use std::rc::Rc;
 
 #[derive(Clone, Default)]
 pub struct Paging {
     pub scroll: Scrolling,
     handle: ScrollHandle,
+    /// The control the keys were on when the page was last drawn.
+    followed: Rc<RefCell<Option<FocusHandle>>>,
 }
 
 impl Paging {
@@ -16,6 +21,11 @@ impl Paging {
         let paging = Self::default();
         paging.scroll.borrow_mut().set_reduce_motion(reduce_motion);
         paging
+    }
+
+    /// Where the page's content shows, in its window.
+    pub fn area(&self) -> Bounds<Pixels> {
+        self.handle.bounds()
     }
 
     pub fn contain_drawn(&self, top: gpui::Pixels, bottom: gpui::Pixels) {
@@ -40,10 +50,26 @@ pub fn page(
 ) -> gpui::Div {
     let line = theme.sized(40.);
     let (follow, handle) = (paging.scroll.clone(), paging.handle.clone());
+    let followed = paging.followed.clone();
     let (wheeled, wheel_bounds) = (paging.scroll.clone(), paging.handle.clone());
     // Laid out after the content: the handle knows how tall it is by then.
     let steer = canvas(
-        move |_, window, _| {
+        move |_, window, cx| {
+            // A control the keys come to inside the page is shown, just enough.
+            let reached = window.focused(cx);
+            if reached != *followed.borrow() {
+                let area = handle.bounds();
+                if let Some(at) = reached.as_ref().and_then(super::focus::drawn_at)
+                    && at.left() < area.right()
+                    && at.right() > area.left()
+                {
+                    // From the window's place to the content's, the way `contain_drawn` does.
+                    let shift = follow.borrow().top() - area.top();
+                    let mut scroll = follow.borrow_mut();
+                    scroll.contain(at.top() + shift, at.bottom() + shift);
+                }
+                *followed.borrow_mut() = reached;
+            }
             let shown = handle.bounds().size.height;
             let total = shown + handle.max_offset().y;
             let gliding = {

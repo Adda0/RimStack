@@ -295,3 +295,35 @@ fn publishing_says_what_came_of_it(cx: &mut TestAppContext) {
     });
     assert!(said(cx).contains(&"GitHub did not answer".to_string()));
 }
+#[gpui::test]
+fn a_control_the_keys_reach_is_scrolled_into_view(cx: &mut TestAppContext) {
+    let (_root, settings, cx) = settings(cx, 0);
+    let paging = settings.read_with(cx, |settings, _| settings.paging.clone());
+    paging.scroll.borrow_mut().set_top(gpui::px(0.));
+    cx.update(|window, cx| window.draw(cx).clear(cx));
+    let mut scrolled = None;
+    for _ in 0..60 {
+        cx.update(|window, cx| window.focus_next(cx));
+        cx.update(|window, cx| window.draw(cx).clear(cx));
+        let top = paging.scroll.borrow().top();
+        if top > gpui::px(0.) {
+            scrolled = Some(top);
+            break;
+        }
+    }
+    assert!(
+        scrolled.is_some(),
+        "a control the keys reach below the fold is scrolled into view"
+    );
+    let at = cx.update(|window, cx| {
+        window
+            .focused(cx)
+            .and_then(|focused| crate::ui::focus::drawn_at(&focused))
+    });
+    let at = at.expect("the control the keys are on was drawn");
+    let area = paging.area();
+    assert!(
+        at.top() >= area.top() && at.bottom() <= area.bottom(),
+        "{at:?} is shown whole inside {area:?}"
+    );
+}
