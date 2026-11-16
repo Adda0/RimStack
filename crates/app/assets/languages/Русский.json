@@ -1901,5 +1901,7 @@
  "Move the selected mods one place": "Move the selected mods one place",
  "To the top or the bottom of their category": "To the top or the bottom of their category",
  "Menu, Shift + F10": "Menu, Shift + F10",
- "Fold the heading the mod is under, or show its mods again": "Fold the heading the mod is under, or show its mods again"
+ "Fold the heading the mod is under, or show its mods again": "Fold the heading the mod is under, or show its mods again",
+ "Add tags, separated by commas": "Add tags, separated by commas",
+ "Remove all tags": "Remove all tags"
 }

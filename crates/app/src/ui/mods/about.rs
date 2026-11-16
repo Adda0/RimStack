@@ -13,8 +13,8 @@ use gpui::AnimationExt;
 use gpui::InteractiveElement as _;
 use gpui::StatefulInteractiveElement as _;
 use gpui::{
-    AnyElement, Context, Focusable, FontWeight, IntoElement, ParentElement, Pixels, Styled, Window,
-    anchored, deferred, div, point, prelude::FluentBuilder, px,
+    AnyElement, Context, FontWeight, IntoElement, ParentElement, Pixels, Styled, Window, anchored,
+    deferred, div, point, prelude::FluentBuilder, px,
 };
 use rimstack_core::base::sentence::Sentence;
 use rimstack_core::{say, say_n};
@@ -705,24 +705,16 @@ impl DetailsView {
             let chip = match at {
                 0 => Chip::new(put(&say!("{}  group", tag.clone())))
                     .tone(c.moved)
-                    .icon("layers")
                     .tip(group_meaning.clone()),
-                _ => Chip::new(tag.clone())
-                    .tone(c.ink2)
-                    .tip(put(&say!("Group under this tag: it becomes the first"))),
+                _ => Chip::new(tag.clone()).tone(c.ink2),
             };
-            match at {
-                0 => chip.into_any_element(),
-                _ => chip
-                    .on_click(
-                        ("tag-chip", at),
-                        self.on_mods(move |mods, cx| {
-                            let ids = mods.selected_id(cx).into_iter().collect();
-                            mods.group(ids, &tag, cx)
-                        }),
-                    )
-                    .into_any_element(),
-            }
+            chip.icon("x")
+                .tip(put(&say!("Remove the tag {}", tag.clone())))
+                .on_click(
+                    ("tag-chip", at),
+                    self.on_mods(move |mods, cx| mods.remove_tag(&tag, cx)),
+                )
+                .into_any_element()
         });
         let field = |id: &'static str, text, placeholder: String| {
             Field {
@@ -736,16 +728,15 @@ impl DetailsView {
             .render(theme, window, cx)
         };
         let chips: Vec<AnyElement> = chips.collect();
+        let typed = self.tags.read(cx).text().to_string();
         let tags_field = field(
             "tags-field",
             &self.tags,
-            put(&say!("Tags, separated by commas")),
+            put(&say!("Add tags, separated by commas")),
         )
         .capture_action(self.escape_to_list(cx));
-        let mut body = vec![
-            self.tag_offers(theme, tags_field, window, cx)
-                .into_any_element(),
-        ];
+        let had = details.tags.clone();
+        let mut body = Vec::new();
         if !chips.is_empty() {
             body.push(
                 div()
@@ -756,6 +747,33 @@ impl DetailsView {
                     .into_any_element(),
             );
         }
+        body.push(
+            div()
+                .flex()
+                .items_center()
+                .gap(theme::GAP_SMALL)
+                .child(
+                    div()
+                        .flex_1()
+                        .min_w_0()
+                        .child(self.tag_offers(theme, &had, typed, tags_field, window, cx)),
+                )
+                .child(
+                    Btn::new("add-tags", "")
+                        .icon("plus")
+                        .tip(put(&say!("Add")))
+                        .on_click(cx.listener(|view, _, _window, cx| view.add_tags_typed(cx))),
+                )
+                .when(!details.tags.is_empty(), |row| {
+                    row.child(
+                        Btn::new("clear-tags", "")
+                            .icon("trash-2")
+                            .tip(put(&say!("Remove all tags")))
+                            .on_click(self.on_mods(|mods, cx| mods.clear_tags(cx))),
+                    )
+                })
+                .into_any_element(),
+        );
         body.push(
             Field {
                 id: "note-field",
@@ -793,19 +811,20 @@ impl DetailsView {
     }
 
     /// The tags field, with the tags given to any mod offered for the one typed after the last
-    /// comma: the most used first, each a click away.
+    /// comma: the most used first, each a click away, adding the tag picked.
     fn tag_offers(
         &self,
         theme: &Theme,
+        had: &str,
+        typed: String,
         field: gpui::Stateful<gpui::Div>,
         window: &Window,
         cx: &mut Context<Self>,
     ) -> gpui::Stateful<gpui::Div> {
         let c = &theme.colours;
-        let typed = self.tags.read(cx).text().to_string();
         let focused = self.tags.read(cx).is_focused(window);
         let offers = match focused {
-            true => crate::ui::app(cx).tag_offers(&typed),
+            true => crate::ui::app(cx).tag_offers(had, &typed),
             false => Vec::new(),
         };
         let rows = offers
@@ -828,9 +847,7 @@ impl DetailsView {
                     .text_color(c.ink)
                     .child(tag)
                     .on_click(cx.listener(move |view, _, window, cx| {
-                        view.tags.update(cx, |field, cx| field.set_text(&text, cx));
-                        let focus = Focusable::focus_handle(view.tags.read(cx), cx);
-                        window.focus(&focus, cx);
+                        view.add_offered_tags(&text, window, cx);
                     }))
             })
             .collect::<Vec<_>>();

@@ -1,4 +1,5 @@
 use super::Mods;
+use crate::App;
 use crate::ui::menu::{self, Entry};
 use crate::words::put;
 use crate::workspace::load_order::{LoadOrder, Side};
@@ -22,7 +23,7 @@ pub enum Picking {
 pub struct Drafts {
     pause: crate::jobs::Lane,
     fade: crate::jobs::Lane,
-    note: Option<(ModId, String, String)>,
+    note: Option<(ModId, String)>,
 }
 
 impl Mods {
@@ -97,10 +98,54 @@ impl Mods {
         self.show(cx);
     }
 
-    pub(super) fn draft_note(&mut self, tags: String, note: String, cx: &mut Context<Self>) {
+    pub(super) fn draft_note(&mut self, note: String, cx: &mut Context<Self>) {
         if let Some(id) = self.selected_id(cx) {
-            self.chosen_reads.drafts.note = Some((id, tags, note));
+            self.chosen_reads.drafts.note = Some((id, note));
             self.wait_for_drafts(cx);
+        }
+    }
+
+    /// Each tag of the comma-separated `text` the mod shown does not yet have goes last.
+    pub(super) fn add_tags(&mut self, text: String, cx: &mut Context<Self>) {
+        let Some(id) = self.selected_id(cx) else {
+            return;
+        };
+        let app = super::super::app(cx);
+        if !app.add_tags(id, &text) {
+            return;
+        }
+        self.edit_list(cx, |list, _| list.order.sync(&app));
+        // The field that asked is being updated as this runs, so the panel is shown after it.
+        let me = cx.entity().downgrade();
+        cx.defer(move |cx| {
+            let _ = me.update(cx, |mods, cx| mods.show(cx));
+        });
+    }
+
+    /// A tag taken off the mod shown.
+    pub(super) fn remove_tag(&mut self, tag: &str, cx: &mut Context<Self>) {
+        if let Some(id) = self.selected_id(cx) {
+            self.change_tags(id, |app, id| app.remove_tag(&[id], tag), cx);
+        }
+    }
+
+    /// Every tag taken off the mod shown, the note staying.
+    pub(super) fn clear_tags(&mut self, cx: &mut Context<Self>) {
+        if let Some(id) = self.selected_id(cx) {
+            self.change_tags(id, |app, id| app.clear_tags(id), cx);
+        }
+    }
+
+    fn change_tags(
+        &mut self,
+        id: ModId,
+        change: impl FnOnce(&App, ModId) -> bool,
+        cx: &mut Context<Self>,
+    ) {
+        let app = super::super::app(cx);
+        if change(&app, id) {
+            self.edit_list(cx, |list, _| list.order.sync(&app));
+            self.show(cx);
         }
     }
 
@@ -113,11 +158,11 @@ impl Mods {
 
     pub(super) fn keep_drafts(&mut self, cx: &mut Context<Self>) {
         self.chosen_reads.drafts.pause.cancel();
-        let Some((id, tags, note)) = self.chosen_reads.drafts.note.take() else {
+        let Some((id, note)) = self.chosen_reads.drafts.note.take() else {
             return;
         };
         let app = super::super::app(cx);
-        if !app.set_note(id, &tags, &note) {
+        if !app.set_note_text(id, &note) {
             return;
         }
         self.edit_list(cx, |list, _| list.order.sync(&app));

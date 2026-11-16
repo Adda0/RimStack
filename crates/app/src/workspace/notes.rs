@@ -59,13 +59,25 @@ impl App {
         true
     }
 
-    pub fn set_note(&self, id: ModId, tags: &str, text: &str) -> bool {
-        let tags = notes::tags_in(tags);
+    pub fn set_note_text(&self, id: ModId, text: &str) -> bool {
         let text = text.trim().to_string();
+        self.change_notes(&[id], Changes::NOTES, |note| note.text = text.clone())
+    }
+
+    /// Each tag of the comma-separated `text` the mod has in no case yet goes last.
+    pub fn add_tags(&self, id: ModId, text: &str) -> bool {
+        let tags = notes::tags_in(text);
         self.change_notes(&[id], Changes::NOTES, |note| {
-            note.tags = tags.clone();
-            note.text = text.clone();
+            for tag in &tags {
+                if !note.tags.iter().any(|had| had.eq_ignore_ascii_case(tag)) {
+                    note.tags.push(tag.clone());
+                }
+            }
         })
+    }
+
+    pub fn clear_tags(&self, id: ModId) -> bool {
+        self.change_notes(&[id], Changes::NOTES, |note| note.tags.clear())
     }
 
     pub fn add_tag(&self, ids: &[ModId], tag: &str) {
@@ -86,23 +98,24 @@ impl App {
         self.change_notes(ids, Changes::NOTES, |note| note.set_group(&name))
     }
 
-    pub fn remove_tag(&self, ids: &[ModId], tag: &str) {
-        self.change_notes(ids, Changes::NOTES, |note| note.remove_tag(tag));
+    pub fn remove_tag(&self, ids: &[ModId], tag: &str) -> bool {
+        self.change_notes(ids, Changes::NOTES, |note| note.remove_tag(tag))
     }
 
-    /// For the tag typed after the last comma of `text`: each tag to offer, with the whole
-    /// text the box takes when it is picked.
-    pub fn tag_offers(&self, text: &str) -> Vec<TagOffer> {
+    /// For the tag typed after the last comma of `text`: each tag to offer, from those not in
+    /// `had`, with the whole text that adds it.
+    pub fn tag_offers(&self, had: &str, text: &str) -> Vec<TagOffer> {
         let before = match text.rfind(',') {
             Some(at) => format!("{} ", &text[..=at]),
             None => String::new(),
         };
+        let had = notes::tags_in(had);
         self.notes()
             .reading()
-            .tags_for(text, 8)
+            .tags_for(text, &had, 8)
             .into_iter()
             .map(|tag| TagOffer {
-                text: format!("{before}{tag}, "),
+                text: format!("{before}{tag}"),
                 tag,
             })
             .collect()
@@ -206,8 +219,8 @@ mod tests {
         let into = heard.clone();
         app.listen(move |changes| *into.lock().unwrap() |= changes);
         let id = roads(&app);
-        app.set_note(id, "travel, maps", " far ");
-        app.add_tag(&[id], "travel");
+        let _ = app.set_note_text(id, " far ");
+        let _ = app.add_tags(id, "travel, maps");
         app.settle_writes();
         let kept = rimstack_core::kept::notes::Notes::read(&app.notes_file());
         let note = kept.get("ann.roads").unwrap();
@@ -219,9 +232,36 @@ mod tests {
     }
 
     #[test]
+    fn tags_are_added_once_in_any_case_offered_only_when_missing_and_cleared() {
+        let (_tmp, app) = installed();
+        let id = roads(&app);
+        let core = {
+            let loaded = app.library();
+            let (library, _) = loaded.as_ref().as_ref().unwrap();
+            library.ids().find(|(_, m)| m.folder == "Core").unwrap().0
+        };
+        let _ = app.add_tags(core, "trade, Travel");
+        let _ = app.set_note_text(id, "far");
+        let _ = app.add_tags(id, "travel");
+        assert!(app.add_tags(id, "TRAVEL, maps , "));
+        assert!(!app.add_tags(id, "Maps"));
+        let note = || app.notes().reading().get("ann.roads").cloned().unwrap();
+        assert_eq!(note().tags, ["travel", "maps"]);
+        let offered: Vec<String> = app
+            .tag_offers("travel, maps", "x, T")
+            .into_iter()
+            .map(|o| o.text)
+            .collect();
+        assert_eq!(offered, ["x, trade"]);
+        assert!(app.set_note_text(id, "near"));
+        assert!(app.clear_tags(id));
+        assert_eq!((note().tags.len(), note().text), (0, "near".to_string()));
+    }
+
+    #[test]
     fn an_id_from_an_earlier_reading_changes_nothing() {
         let (_tmp, app) = installed();
-        app.set_note(ModId::new(0, 99), "lost", "lost");
+        let _ = app.set_note_text(ModId::new(0, 99), "lost");
         assert!(app.notes().reading().is_empty());
     }
 

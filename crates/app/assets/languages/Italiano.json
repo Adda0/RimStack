@@ -1901,5 +1901,7 @@
  "Move the selected mods one place": "Sposta le mod selezionate di un posto",
  "To the top or the bottom of their category": "In cima o in fondo alla loro categoria",
  "Menu, Shift + F10": "Menu, Maiusc + F10",
- "Fold the heading the mod is under, or show its mods again": "Ripiega l'intestazione sotto cui sta la mod, o mostra di nuovo le sue mod"
+ "Fold the heading the mod is under, or show its mods again": "Ripiega l'intestazione sotto cui sta la mod, o mostra di nuovo le sue mod",
+ "Add tags, separated by commas": "Aggiungi etichette, separate da virgole",
+ "Remove all tags": "Rimuovi tutte le etichette"
 }

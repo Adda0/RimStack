@@ -4,8 +4,9 @@ use crate::ui::widgets::{Btn, Chip, TextSized, icon, label, measure};
 use crate::words::put;
 use crate::workspace::load_order::{Details, Overview};
 use gpui::{
-    Context, FontWeight, InteractiveElement, IntoElement, ObjectFit, ParentElement, Pixels,
-    StatefulInteractiveElement, Styled, StyledImage, Window, div, prelude::FluentBuilder, px,
+    Context, Focusable, FontWeight, InteractiveElement, IntoElement, ObjectFit, ParentElement,
+    Pixels, StatefulInteractiveElement, Styled, StyledImage, Window, div, prelude::FluentBuilder,
+    px,
 };
 use rimstack_core::say;
 use std::rc::Rc;
@@ -89,16 +90,23 @@ impl DetailsView {
         use crate::ui::text_field::{Edited, Entered, TextField};
         use gpui::AppContext;
         let size = cx.global::<Theme>().body();
-        let (tags, note) = (
-            cx.new(|cx| TextField::new(size, cx).kept_on_escape()),
-            cx.new(|cx| TextField::new(size, cx).several_lines(2)),
-        );
-        for field in [&tags, &note] {
-            cx.subscribe(field, |view, _, _: &Edited, cx| view.draft_note(cx))
-                .detach();
-            cx.subscribe(field, |view, _, _: &Entered, cx| view.keep_drafts(cx))
-                .detach();
-        }
+        let tags = cx.new(|cx| TextField::new(size, cx).kept_on_escape());
+        let note = cx.new(|cx| TextField::new(size, cx).several_lines(2));
+        cx.subscribe(&note, |view, _, _: &Edited, cx| view.draft_note(cx))
+            .detach();
+        cx.subscribe(&note, |view, _, _: &Entered, cx| view.keep_drafts(cx))
+            .detach();
+        cx.subscribe(&tags, |_, field, _: &Edited, cx| {
+            if field.read(cx).is_focused_now() {
+                // The offers are read as the field is drawn, so a change of what is typed draws them.
+                cx.notify();
+            }
+        })
+        .detach();
+        cx.subscribe(&tags, |view, _, _: &Entered, cx| {
+            view.add_tags_typed(cx);
+        })
+        .detach();
         Self {
             description: crate::ui::rich::Selection::new(cx),
             shown: Default::default(),
@@ -118,19 +126,39 @@ impl DetailsView {
         }
     }
 
-    /// The tags and the note typed, kept once typing stops.
+    /// The note typed, kept once typing stops.
     fn draft_note(&mut self, cx: &mut Context<Self>) {
-        let typing = self.tags.read(cx).is_focused_now() || self.note.read(cx).is_focused_now();
+        let typing = self.note.read(cx).is_focused_now();
         if !typing {
             return;
         }
-        let (tags, note) = (
-            self.tags.read(cx).text().to_string(),
-            self.note.read(cx).text().to_string(),
-        );
+        let note = self.note.read(cx).text().to_string();
+        let _ = self.mods.update(cx, |mods, cx| mods.draft_note(note, cx));
+    }
+
+    /// The tags typed in the add-tags field go onto the mod shown, and the field is cleared.
+    pub(super) fn add_tags_typed(&mut self, cx: &mut Context<Self>) {
+        let text = self.tags.read(cx).text().to_string();
+        let field = self.tags.clone();
         let _ = self
             .mods
-            .update(cx, |mods, cx| mods.draft_note(tags, note, cx));
+            .update(cx, move |mods, cx| mods.add_tags(text, cx));
+        field.update(cx, |field, cx| field.set_text_quietly("", cx));
+    }
+
+    /// The offer picked goes onto the mod shown, and the field is cleared and refocused.
+    pub(super) fn add_offered_tags(
+        &mut self,
+        text: &str,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let field = self.tags.clone();
+        let text = text.to_string();
+        let _ = self.mods.update(cx, |mods, cx| mods.add_tags(text, cx));
+        field.update(cx, |field, cx| field.set_text_quietly("", cx));
+        let focus = Focusable::focus_handle(self.tags.read(cx), cx);
+        window.focus(&focus, cx);
     }
 
     fn keep_drafts(&mut self, cx: &mut Context<Self>) {
@@ -142,7 +170,7 @@ impl DetailsView {
         let Some(details) = self.shown.details.clone() else {
             return;
         };
-        for (field, text) in [(&self.tags, &details.tags), (&self.note, &details.note)] {
+        for (field, text) in [(&self.note, &details.note)] {
             let typing = field.read(cx).is_focused_now();
             if !typing && field.read(cx).text() != text.as_str() {
                 let text = text.clone();

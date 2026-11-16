@@ -66,13 +66,15 @@ fn picking_a_mod_while_asked_adds_a_rule_of_your_own() {
 #[test]
 fn tags_and_a_note_typed_are_kept_for_the_mod_they_were_typed_for() {
     let (_tmp, mut cx, mods) = opened_with(|_| {});
-    chosen(&mut cx, &mods, 4);
+    let id = chosen(&mut cx, &mods, 4);
     cx.update(|cx| {
         mods.update(cx, |mods, cx| {
-            mods.draft_note("worn, kept".into(), "First line\nsecond".into(), cx);
+            let app = crate::ui::app(cx);
+            app.add_tags(id, "worn");
+            mods.draft_note("First line\nsecond".into(), cx);
             mods.keep_drafts(cx);
             let details = mods.details.as_ref().unwrap();
-            assert_eq!(details.tags, "worn, kept");
+            assert_eq!(details.tags, "worn");
             assert_eq!(details.note, "First line\nsecond");
             assert!(mods.chosen_reads.notes_saved);
             mods.chosen_reads.notes_saved = false;
@@ -150,6 +152,7 @@ fn tags_given_to_any_mod_are_offered_while_tagging_and_not_the_one_typed_or_take
     let (_tmp, mut cx, mods) = opened_with(|_| {});
     let id = chosen(&mut cx, &mods, 4);
     let other = chosen(&mut cx, &mods, 9);
+    let third = chosen(&mut cx, &mods, 12);
     let offered = |typed: &str, cx: &mut HeadlessAppContext| -> Vec<String> {
         let view = cx.update(|cx| mods.read(cx).details_view.clone());
         let window = cx.update(|cx| cx.windows()[0]);
@@ -157,7 +160,13 @@ fn tags_given_to_any_mod_are_offered_while_tagging_and_not_the_one_typed_or_take
             let field = view.read(cx).tags.clone();
             window.focus(&field.focus_handle(cx), cx);
             field.update(cx, |field, cx| field.set_text(typed, cx));
-            crate::ui::app(cx).tag_offers(typed)
+            let had = mods
+                .read(cx)
+                .details
+                .as_ref()
+                .map(|d| d.tags.clone())
+                .unwrap_or_default();
+            crate::ui::app(cx).tag_offers(&had, typed)
         })
         .unwrap()
         .into_iter()
@@ -167,9 +176,9 @@ fn tags_given_to_any_mod_are_offered_while_tagging_and_not_the_one_typed_or_take
     cx.update(|cx| {
         mods.update(cx, |mods, cx| {
             let app = crate::ui::app(cx);
-            app.set_note(id, "medieval, keep", "");
-            app.set_note(other, "medieval, mechs", "");
-            mods.show(cx);
+            assert!(app.add_tags(other, "medieval, mechs"));
+            assert!(app.add_tags(third, "medieval, keep"));
+            mods.choose(Side::Active, id, cx);
         })
     });
     assert_eq!(
@@ -182,6 +191,78 @@ fn tags_given_to_any_mod_are_offered_while_tagging_and_not_the_one_typed_or_take
         ["keep", "mechs"],
         "the tags already typed are not offered again"
     );
+    cx.update(|cx| {
+        mods.update(cx, |mods, cx| {
+            assert!(crate::ui::app(cx).add_tags(id, "medieval"));
+            mods.choose(Side::Active, id, cx);
+        })
+    });
+    assert_eq!(
+        offered("me", &mut cx),
+        ["mechs"],
+        "a tag the mod shown already has is not offered"
+    );
+}
+
+#[gpui::test]
+fn tags_typed_in_the_add_field_are_added_once_a_chip_takes_one_off_and_the_bin_takes_them_all() {
+    let (_tmp, mut cx, mods) = opened_with(|_| {});
+    let id = chosen(&mut cx, &mods, 4);
+    cx.update(|cx| {
+        crate::ui::app(cx).set_note_text(id, "a note");
+    });
+    let tags = |cx: &mut HeadlessAppContext| -> String {
+        cx.update(|cx| {
+            mods.read(cx)
+                .details
+                .as_ref()
+                .map(|d| d.tags.clone())
+                .unwrap_or_default()
+        })
+    };
+    let view = cx.update(|cx| mods.read(cx).details_view.clone());
+    let window = cx.update(|cx| cx.windows()[0]);
+    cx.update_window(window, |_, window, cx| {
+        let field = view.read(cx).tags.clone();
+        window.focus(&field.focus_handle(cx), cx);
+        field.update(cx, |field, cx| field.set_text("second, Third", cx));
+        window.dispatch_keystroke(gpui::Keystroke::parse("enter").unwrap(), cx);
+    })
+    .unwrap();
+    cx.run_until_parked();
+    assert_eq!(
+        tags(&mut cx),
+        "second, Third",
+        "the tags typed are added once, whatever their case"
+    );
+    cx.update_window(window, |_, window, cx| {
+        let field = view.read(cx).tags.clone();
+        assert_eq!(field.read(cx).text(), "", "the add field is cleared");
+        field.update(cx, |field, cx| field.set_text("SECOND", cx));
+        window.dispatch_keystroke(gpui::Keystroke::parse("enter").unwrap(), cx);
+    })
+    .unwrap();
+    cx.run_until_parked();
+    assert_eq!(
+        tags(&mut cx),
+        "second, Third",
+        "a tag the mod already has is not added again"
+    );
+    cx.update(|cx| mods.update(cx, |mods, cx| mods.remove_tag("SECOND", cx)));
+    assert_eq!(
+        tags(&mut cx),
+        "Third",
+        "one tag is taken off alone, the note stays"
+    );
+    cx.update(|cx| mods.update(cx, |mods, cx| mods.clear_tags(cx)));
+    assert_eq!(tags(&mut cx), "", "all tags are taken off");
+    cx.update(|cx| {
+        mods.update(cx, |mods, cx| {
+            mods.show(cx);
+            let note = mods.details.as_ref().unwrap().note.clone();
+            assert_eq!(note, "a note", "the note stays when the tags go");
+        })
+    });
 }
 
 fn shared_defs(root: &std::path::Path) {
