@@ -1766,5 +1766,8 @@
  "left where it is by Sort": "laissé à sa place par Trier",
  "a library no active mod needs": "une bibliothèque dont aucun mod actif n'a besoin",
  "bigger than this many megabytes": "plus gros que ce nombre de mégaoctets",
- "smaller than this many megabytes": "plus petit que ce nombre de mégaoctets"
+ "smaller than this many megabytes": "plus petit que ce nombre de mégaoctets",
+ "Names no Workshop item: it has no About/PublishedFileId.txt, so a check cannot tell its updates.": "Ne nomme aucun élément de l'Atelier : il n'a pas de About/PublishedFileId.txt, donc aucun contrôle ne peut connaître ses mises à jour.",
+ "No Workshop id": "Pas d'identifiant d'Atelier",
+ "missing a property, like a named Workshop item": "auxquels il manque une propriété, comme un élément de l'Atelier nommé"
 }

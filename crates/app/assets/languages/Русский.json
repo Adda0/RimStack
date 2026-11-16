@@ -1766,5 +1766,8 @@
  "left where it is by Sort": "left where it is by Sort",
  "a library no active mod needs": "a library no active mod needs",
  "bigger than this many megabytes": "bigger than this many megabytes",
- "smaller than this many megabytes": "smaller than this many megabytes"
+ "smaller than this many megabytes": "smaller than this many megabytes",
+ "Names no Workshop item: it has no About/PublishedFileId.txt, so a check cannot tell its updates.": "Names no Workshop item: it has no About/PublishedFileId.txt, so a check cannot tell its updates.",
+ "No Workshop id": "No Workshop id",
+ "missing a property, like a named Workshop item": "missing a property, like a named Workshop item"
 }

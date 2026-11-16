@@ -350,6 +350,8 @@ pub mod flag {
     pub const IN_SEARCH: u16 = 512;
     /// A library no active mod needs.
     pub const UNUSED: u16 = 1024;
+    /// Missing a property RimSort looks for: an About.xml that reads, a named Workshop item.
+    pub const INCOMPLETE: u16 = 2048;
 }
 
 impl GroupedList {

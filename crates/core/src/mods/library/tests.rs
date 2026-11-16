@@ -234,6 +234,7 @@ fn active_ids_resolve_in_order_whatever_their_case() {
         code: Code::default(),
         preview: None,
         git: false,
+        published: true,
         leftover: false,
         created: None,
     };

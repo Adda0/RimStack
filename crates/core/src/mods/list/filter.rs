@@ -98,6 +98,7 @@ impl Filter {
             Some(("is", "changed")) => self.flags |= flag::CHANGED,
             Some(("in", "search")) => self.flags |= flag::IN_SEARCH,
             Some(("is", "unused")) => self.flags |= flag::UNUSED,
+            Some(("is", "incomplete")) => self.flags |= flag::INCOMPLETE,
             _ => self.words.push(term.to_string()),
         }
     }

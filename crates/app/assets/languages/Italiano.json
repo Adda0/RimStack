@@ -1766,5 +1766,8 @@
  "left where it is by Sort": "lasciato al suo posto da Ordina",
  "a library no active mod needs": "una libreria che nessuna mod attiva richiede",
  "bigger than this many megabytes": "più grande di questi megabyte",
- "smaller than this many megabytes": "più piccolo di questi megabyte"
+ "smaller than this many megabytes": "più piccolo di questi megabyte",
+ "Names no Workshop item: it has no About/PublishedFileId.txt, so a check cannot tell its updates.": "Non indica alcun oggetto del Workshop: non ha About/PublishedFileId.txt, quindi nessun controllo può dire i suoi aggiornamenti.",
+ "No Workshop id": "Nessun id del Workshop",
+ "missing a property, like a named Workshop item": "a cui manca una proprietà, come un oggetto del Workshop indicato"
 }

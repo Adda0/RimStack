@@ -1766,5 +1766,8 @@
  "left where it is by Sort": "Sortowanie zostawia go na miejscu",
  "a library no active mod needs": "biblioteka, której nie potrzebuje żaden aktywny mod",
  "bigger than this many megabytes": "większy niż tyle megabajtów",
- "smaller than this many megabytes": "mniejszy niż tyle megabajtów"
+ "smaller than this many megabytes": "mniejszy niż tyle megabajtów",
+ "Names no Workshop item: it has no About/PublishedFileId.txt, so a check cannot tell its updates.": "Nie podaje żadnego elementu Warsztatu: nie ma About/PublishedFileId.txt, więc żadne sprawdzanie nie pozna jego aktualizacji.",
+ "No Workshop id": "Brak identyfikatora Warsztatu",
+ "missing a property, like a named Workshop item": "którym brakuje właściwości, na przykład nazwanego elementu Warsztatu"
 }

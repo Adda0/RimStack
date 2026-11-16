@@ -71,6 +71,9 @@ const TERMS: &[(&str, About)] = &[
     ("is:recent", |_| say!("updated by Steam in the last week")),
     ("is:duplicate", |_| say!("installed more than once")),
     ("is:unused", |_| say!("a library no active mod needs")),
+    ("is:incomplete", |_| {
+        say!("missing a property, like a named Workshop item")
+    }),
     ("size:>", |_| say!("bigger than this many megabytes")),
     ("size:<", |_| say!("smaller than this many megabytes")),
     ("in:search", |_| {

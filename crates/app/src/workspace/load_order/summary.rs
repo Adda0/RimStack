@@ -113,6 +113,8 @@ mod tests {
                 "<ModMetaData><packageId>{id}</packageId><name>{id}</name>{versions}</ModMetaData>"
             );
             std::fs::write(about.join("About.xml"), xml).unwrap();
+            // A local copy names the Workshop item it came from, so only the version warns.
+            std::fs::write(about.join("PublishedFileId.txt"), "1000").unwrap();
         }
         let active = "<li>ludeon.rimworld</li><li>ann.a</li><li>ann.b</li><li>ann.c</li>";
         std::fs::write(

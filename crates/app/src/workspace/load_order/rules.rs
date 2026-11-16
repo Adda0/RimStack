@@ -163,19 +163,22 @@ pub fn outdated(library: &Library, mods: &[Mod], trust: &Trust) -> Vec<Option<St
     describe::outdated(library, mods, trust.versions(&trust.trusted))
 }
 
+/// The problem keys ignored for each mod, by folded package id.
+pub fn ignored(app: &App) -> HashMap<String, HashSet<String>> {
+    let notes = app.notes().reading();
+    let ignored = notes
+        .ignored()
+        .map(|(id, keys)| (id.to_string(), keys.iter().cloned().collect()));
+    ignored.collect()
+}
+
 pub fn troubles(
     app: &App,
     library: &Library,
     mods: &[Mod],
     trust: &Trust,
 ) -> (Vec<Vec<Trouble>>, Vec<bool>) {
-    let ignored: HashMap<String, HashSet<String>> = {
-        let notes = app.notes().reading();
-        let ignored = notes
-            .ignored()
-            .map(|(id, keys)| (id.to_string(), keys.iter().cloned().collect()));
-        ignored.collect()
-    };
+    let ignored = ignored(app);
     let workshop = app.workshop_names();
     let mut found = describe::troubles(library, mods, trust.versions(&trust.trusted), &workshop);
     describe::without_ignored(&mut found, mods, &ignored);

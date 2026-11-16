@@ -483,6 +483,7 @@ impl LoadOrder {
             .flat_map(|about| about.dependencies.for_version(&library.game_version))
             .map(|dep| rimstack_core::rimworld::id::split_steam(dep).0)
             .collect();
+        let ignored = rules::ignored(app);
         let mods = self.list(side).mods().iter().enumerate();
         mods.map(|(at, m)| {
             let own = troubles.get(at).map(Vec::as_slice).unwrap_or_default();
@@ -492,6 +493,10 @@ impl LoadOrder {
             let marks = [
                 (own.iter().any(|t| t.error), flag::ERROR),
                 (own.iter().any(|t| !t.error), flag::WARNING),
+                (
+                    rimstack_core::mods::describe::incomplete(installed, &key, &ignored),
+                    flag::INCOMPLETE,
+                ),
                 (
                     m.installed.is_some_and(|i| in_conflict.contains(&i)),
                     flag::CONFLICT,
