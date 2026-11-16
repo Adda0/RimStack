@@ -69,6 +69,11 @@ pub enum Action {
     GroupMenu {
         mod_id: ModId,
     },
+    /// One entry, as the swatches are many: opens them in a menu of their own, searchable.
+    ColourMenu {
+        mod_id: ModId,
+        ids: Vec<ModId>,
+    },
     Trust {
         ids: Vec<ModId>,
         yes: bool,
@@ -183,6 +188,14 @@ impl Entry {
             ..Entry::item(Sentence::said(name, Vec::new()), "", action)
         }
     }
+
+    /// Carries a swatch along, as the row menu's colour entry shows the colour in use.
+    fn painted(self, name: &'static str) -> Self {
+        Entry {
+            swatch: name,
+            ..self
+        }
+    }
 }
 
 fn separated(groups: Vec<Vec<Entry>>) -> Vec<Entry> {
@@ -197,6 +210,14 @@ fn separated(groups: Vec<Vec<Entry>>) -> Vec<Entry> {
         entries.extend(group);
     }
     entries
+}
+
+/// The colour in use as one of the theme's swatch names, empty when it is not one.
+fn colour_of(colour: &str) -> &'static str {
+    SWATCHES
+        .iter()
+        .find(|(name, _, _)| *name == colour)
+        .map_or("", |(name, _, _)| *name)
 }
 
 pub struct Clicked<'a> {
@@ -602,7 +623,8 @@ impl LoadOrder {
         group
     }
 
-    /// Paints the chosen mods' rows, as RimSort and RimPy users do to spot mods at a glance.
+    /// Paints the chosen mods' rows, as RimSort and RimPy users do to spot mods at a glance:
+    /// one entry, showing the colour in use, whose menu narrows the swatches as one types.
     fn colouring(at: &Clicked, subject: &Subject) -> Vec<Entry> {
         let (Some(id), true) = (at.id, subject.group_choices.is_some()) else {
             return Vec::new();
@@ -611,13 +633,29 @@ impl LoadOrder {
             true => at.selected.to_vec(),
             false => vec![id],
         };
+        let item = Entry::item(
+            say!("Colour"),
+            "palette",
+            Action::ColourMenu { mod_id: id, ids },
+        );
+        match subject.colour.is_empty() {
+            true => vec![item],
+            false => vec![item.painted(colour_of(&subject.colour))],
+        }
+    }
+
+    /// The swatches for the chosen mods, one of the entries the menu's search narrows to,
+    /// and taking the colour off: opened by the row menu's one colour entry.
+    pub fn colour_menu(&mut self, app: &App, id: ModId, ids: &[ModId]) -> Vec<Entry> {
+        let subject = Subject::held(self.details(app, id));
         let paint = |name: &str| Action::Paint {
-            ids: ids.clone(),
+            ids: ids.to_vec(),
             name: name.to_string(),
         };
         let mut group = vec![Entry::title(say!("Colour"))];
         for (name, _, _) in SWATCHES {
-            group.push(Entry::swatch(name, name == subject.colour, paint(name)));
+            let picked = Entry::swatch(name, name == subject.colour, paint(name)).pick();
+            group.push(picked);
         }
         let none = Entry::item(say!("No colour"), "x", paint(""));
         group.push(none.off(subject.colour.is_empty()));
@@ -745,7 +783,7 @@ mod tests {
         let (_tmp, app) = installed();
         let mut order = LoadOrder::read(&app, true, None);
         let entries = menu(&mut order, &app, "ann.roads", &["ann.roads"]);
-        let mut wanted: Vec<String> = [
+        let wanted: Vec<String> = [
             "Activate",
             "-",
             "Open folder",
@@ -754,7 +792,9 @@ mod tests {
             "-",
             "Group under a tag",
             "-",
-            "# Colour",
+            "Colour",
+            "-",
+            "Move to the bin…",
         ]
         .iter()
         .map(|text| text.to_string())
@@ -921,39 +961,72 @@ mod tests {
         let mut order = LoadOrder::read(&app, true, None);
         let entries = menu(&mut order, &app, "ann.roads", &["ann.roads"]);
         let texts = shown(&entries);
-        let at = texts.iter().position(|t| t == "# Colour").unwrap();
+        let at = texts.iter().position(|t| t == "Colour").unwrap();
         let swatches: Vec<String> = SWATCHES
             .iter()
             .map(|(name, _, _)| name.to_string())
             .collect();
-        assert_eq!(texts[at + 1..at + 1 + swatches.len()], swatches[..]);
-        let none = at + 1 + swatches.len();
-        assert_eq!(texts[none], "No colour");
-        assert!(entries[none].off);
         let painting = |entry: &Entry| -> (Vec<ModId>, String) {
             match &entry.action {
                 Some(Action::Paint { ids, name }) => (ids.clone(), name.clone()),
                 _ => panic!("paints"),
             }
         };
-        let rose = entries
+        let (_, _, roads) = id_of(&order, "ann.roads");
+        let Some(Action::ColourMenu { mod_id, ids }) = &entries[at].action else {
+            panic!("opens the swatches in a menu of their own");
+        };
+        assert_eq!(
+            mod_id, &roads,
+            "the colour entry tells whose colour is in use"
+        );
+        assert_eq!(ids, &vec![roads], "the selected mods, none more");
+        assert!(
+            entries[at].swatch.is_empty(),
+            "no colour in use, no swatch shown"
+        );
+        let opened = order.colour_menu(&app, *mod_id, ids);
+        let texts = shown(&opened);
+        assert_eq!(texts[0], "# Colour");
+        assert_eq!(
+            texts[1..1 + swatches.len()].to_vec(),
+            swatches[..],
+            "the swatches live in the menu of their own"
+        );
+        assert!(
+            opened[1..1 + swatches.len()].iter().all(|e| e.pick),
+            "the swatches alone are narrowed by the search field"
+        );
+        let none = 1 + swatches.len();
+        assert_eq!(texts[none], "No colour");
+        assert!(opened[none].off);
+        assert!(!opened[none].pick);
+        let rose = opened
             .iter()
             .position(|e| e.text.as_ref().is_some_and(|t| t.to_string() == "Rose"))
             .unwrap();
-        assert!(!entries[rose].ticked);
-        let (ids, name) = painting(&entries[rose]);
+        assert!(!opened[rose].ticked);
+        let (ids, name) = painting(&opened[rose]);
         assert_eq!(name, "Rose");
         app.set_colour(&ids, &name);
         order.sync(&app);
         let entries = menu(&mut order, &app, "ann.roads", &["ann.roads"]);
-        let (_, _, roads) = id_of(&order, "ann.roads");
         assert_eq!(order.details(&app, roads).colour, "Rose");
-        let rose = entries
+        let colour = entries
+            .iter()
+            .position(|e| e.text.as_ref().is_some_and(|t| t.to_string() == "Colour"))
+            .unwrap();
+        assert_eq!(
+            entries[colour].swatch, "Rose",
+            "the entry shows the colour in use"
+        );
+        let opened = order.colour_menu(&app, roads, &[roads]);
+        let rose = opened
             .iter()
             .position(|e| e.text.as_ref().is_some_and(|t| t.to_string() == "Rose"))
             .unwrap();
-        assert!(entries[rose].ticked);
-        let none = entries
+        assert!(opened[rose].ticked);
+        let none = opened
             .iter()
             .position(|e| {
                 e.text
@@ -961,8 +1034,8 @@ mod tests {
                     .is_some_and(|t| t.to_string() == "No colour")
             })
             .unwrap();
-        assert!(!entries[none].off);
-        let (ids, name) = painting(&entries[none]);
+        assert!(!opened[none].off);
+        let (ids, name) = painting(&opened[none]);
         assert!(name.is_empty());
         app.set_colour(&ids, &name);
         order.sync(&app);

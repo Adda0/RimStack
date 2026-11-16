@@ -212,6 +212,9 @@ impl Mods {
                 crate::ui::navigate::go(crate::ui::navigate::Go::UpdateFromGit(*mod_id), cx)
             }
             Action::PutInSub { mod_id, tag } => self.group(vec![*mod_id], tag, cx),
+            Action::ColourMenu { mod_id, ids } => {
+                self.open_colour_menu(*mod_id, ids.clone(), window, cx)
+            }
             Action::GroupMenu { mod_id } => self.open_group_menu(*mod_id, window, cx),
             Action::NewSub { mod_id } => self.ask_name(vec![*mod_id], Naming::NewSub, window, cx),
             Action::Trust { ids, yes } => self.trust(ids.clone(), *yes, cx),
@@ -310,6 +313,23 @@ impl Mods {
         let entries = self
             .list
             .update(cx, |list, _| list.order.group_menu(&app, mod_id));
+        let Some(at) = at else { return };
+        self.open_entries(entries, at, window, cx);
+    }
+
+    /// The swatches in a menu of their own, where the row menu's single entry was.
+    pub(super) fn open_colour_menu(
+        &mut self,
+        mod_id: ModId,
+        ids: Vec<ModId>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let at = menu::shown_at(cx);
+        let app = crate::ui::app(cx);
+        let entries = self
+            .list
+            .update(cx, |list, _| list.order.colour_menu(&app, mod_id, &ids));
         let Some(at) = at else { return };
         self.open_entries(entries, at, window, cx);
     }
