@@ -145,6 +145,120 @@ impl Settings {
             ));
         }
 
+        rows.push(Row::Group(2, put(&say!("Your rules"))));
+        let github_user = crate::ui::field::Field {
+            id: "github-user",
+            text: &self.fields.github_user,
+            icon: "",
+            placeholder: put(&say!("None")),
+            found: None,
+            keys: None,
+        };
+        rows.push(Row::Line(
+            Line::new(2, "github-user", put(&say!("GitHub username")))
+                .tip(put(&say!(
+                    "Your own; kept in RimStack's settings and sent only to github.com, with the token."
+                )))
+                .changed(
+                    report.github_user.as_deref().is_some_and(|user| !user.is_empty()),
+                    |s, _, cx| {
+                        s.fields.github_user.update(cx, |field, cx| field.set_text("", cx));
+                        s.keep("githubUser", "", cx);
+                    },
+                )
+                .held(div().flex_1().min_w_0().child(github_user.render(theme, window, cx))),
+        ));
+        let github_token = crate::ui::field::Field {
+            id: "github-token",
+            text: &self.fields.github_token,
+            icon: "",
+            placeholder: put(&say!("None")),
+            found: None,
+            keys: None,
+        };
+        let mut token = Line::new(2, "github-token", put(&say!("GitHub token")))
+            .tip(put(&say!(
+                "Your own, a token that may fork, commit and open pull requests; kept in this computer's credential store and sent only to github.com."
+            )))
+            .held(div().flex_1().min_w_0().child(github_token.render(theme, window, cx)))
+            .held(
+                Btn::new("github-token-keep", put(&say!("Keep the token")))
+                    .primary()
+                    .enabled(!self.token_busy && !self.fields.github_token.read(cx).text().trim().is_empty())
+                    .on_click(cx.listener(|s, _, _, cx| s.keep_github_token(cx))),
+            );
+        if report.github_token {
+            token = token.held(
+                Btn::new("github-token-forget", put(&say!("Forget the token")))
+                    .enabled(!self.token_busy)
+                    .on_click(cx.listener(|s, _, _, cx| s.forget_github_token(cx))),
+            );
+        }
+        rows.push(Row::Line(token));
+        if self.token_busy {
+            rows.push(Row::Under(
+                2,
+                under(theme, c.ink3, theme.small(), put(&say!("Keeping…"))),
+            ));
+        }
+        if let Some(note) = &report
+            .github_token_note
+            .clone()
+            .or_else(|| self.token_failure.clone())
+        {
+            rows.push(Row::Under(2, under(theme, c.err, theme.body(), put(note))));
+        }
+        let rules_repo = crate::ui::field::Field {
+            id: "rules-repo",
+            text: &self.fields.rules_repo,
+            icon: "",
+            placeholder: report.rules_repo_default.clone(),
+            found: None,
+            keys: None,
+        };
+        rows.push(Row::Line(
+            Line::new(2, "rules-repo", put(&say!("Publish to")))
+                .tip(put(&say!(
+                    "The community rules repository, as a github.com address; empty for the community's own."
+                )))
+                .changed(
+                    report.rules_repo.as_deref().is_some_and(|repo| !repo.is_empty()),
+                    |s, _, cx| {
+                        s.fields.rules_repo.update(cx, |field, cx| field.set_text("", cx));
+                        s.keep("rulesRepo", "", cx);
+                    },
+                )
+                .held(div().flex_1().min_w_0().child(rules_repo.render(theme, window, cx))),
+        ));
+        let why_not = report.publish_why_not.clone();
+        let own = report.own_rules;
+        let target = report
+            .rules_repo
+            .clone()
+            .unwrap_or_else(|| report.rules_repo_default.clone());
+        let me = cx.entity().downgrade();
+        rows.push(Row::Line(
+            Line::new(2, "publish-rules", put(&say!("Publish my rules…")))
+                .tip(put(why_not.as_ref().unwrap_or(&say!(
+                    "Forks the repository from your account, writes your rules into its communityRules.json in a branch and opens a pull request with them."
+                ))))
+                .held(
+                    Btn::new("publish-rules", if self.publish_busy {
+                        put(&say!("Publishing…"))
+                    } else {
+                        put(&say_n!(own, "Publish {} rule", "Publish {} rules"))
+                    })
+                    .icon("send")
+                    .enabled(why_not.is_none() && !self.publish_busy)
+                    .on_click(move |_, window, cx| {
+                        let _ = me.update(cx, |settings, cx| {
+                            settings.ask_publish(own, target.clone(), window, cx)
+                        });
+                    }),
+                )
+                .filled(),
+        ));
+
         if report.rimsort || report.rimpy {
             rows.push(Row::Group(2, put(&say!("Other mod managers"))));
             if report.rimsort {

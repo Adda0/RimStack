@@ -1,11 +1,27 @@
 use rimstack_core::base::locks::Held;
 use rimstack_core::base::sentence::Sentence;
 use rimstack_core::say;
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 const SERVICE: &str = "RimStack";
-const NAME: &str = "Steam Web API key";
+
+/// The secrets RimStack keeps, each under its own credential-store name.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Secret {
+    SteamKey,
+    GithubToken,
+}
+
+impl Secret {
+    fn name(self) -> &'static str {
+        match self {
+            Self::SteamKey => "Steam Web API key",
+            Self::GithubToken => "GitHub token",
+        }
+    }
+}
 
 /// Longer than a keyring takes to be unlocked by its owner; shorter than a missing service that
 /// never answers.
@@ -13,23 +29,23 @@ const PATIENCE: Duration = Duration::from_secs(30);
 
 pub trait Vault: Send + Sync {
     /// `Ok(None)` when the store works and holds no key.
-    fn get(&self) -> Result<Option<String>, Sentence>;
+    fn get(&self, secret: Secret) -> Result<Option<String>, Sentence>;
 
-    fn set(&self, secret: &str) -> Result<(), Sentence>;
+    fn set(&self, secret: Secret, text: &str) -> Result<(), Sentence>;
 
-    fn delete(&self) -> Result<(), Sentence>;
+    fn delete(&self, secret: Secret) -> Result<(), Sentence>;
 }
 
 #[derive(Default)]
 pub struct Memory {
-    held: Mutex<Option<String>>,
+    held: Mutex<HashMap<Secret, String>>,
     broken: Option<Sentence>,
 }
 
 impl Memory {
-    pub fn holding(secret: &str) -> Self {
+    pub fn holding(secret: Secret, text: &str) -> Self {
         Memory {
-            held: Mutex::new(Some(secret.to_string())),
+            held: Mutex::new(HashMap::from([(secret, text.to_string())])),
             broken: None,
         }
     }
@@ -47,20 +63,20 @@ impl Memory {
 }
 
 impl Vault for Memory {
-    fn get(&self) -> Result<Option<String>, Sentence> {
+    fn get(&self, secret: Secret) -> Result<Option<String>, Sentence> {
         self.working()?;
-        Ok(self.held.held().clone())
+        Ok(self.held.held().get(&secret).cloned())
     }
 
-    fn set(&self, secret: &str) -> Result<(), Sentence> {
+    fn set(&self, secret: Secret, text: &str) -> Result<(), Sentence> {
         self.working()?;
-        *self.held.held() = Some(secret.to_string());
+        self.held.held().insert(secret, text.to_string());
         Ok(())
     }
 
-    fn delete(&self) -> Result<(), Sentence> {
+    fn delete(&self, secret: Secret) -> Result<(), Sentence> {
         self.working()?;
-        *self.held.held() = None;
+        self.held.held().remove(&secret);
         Ok(())
     }
 }
@@ -95,8 +111,8 @@ fn open() -> keyring_core::Result<Arc<keyring_core::api::CredentialStore>> {
     ))
 }
 
-fn entry() -> keyring_core::Result<keyring_core::Entry> {
-    open()?.build(SERVICE, NAME, None)
+fn entry(secret: Secret) -> keyring_core::Result<keyring_core::Entry> {
+    open()?.build(SERVICE, secret.name(), None)
 }
 
 /// The system's: Secret Service, Keychain or Credential Manager. Each ask runs on a thread of its
@@ -133,27 +149,29 @@ fn failed(problem: &keyring_core::Error) -> Sentence {
 }
 
 impl Vault for System {
-    fn get(&self) -> Result<Option<String>, Sentence> {
-        within(|| match entry().and_then(|e| e.get_password()) {
-            Ok(secret) => Ok(Some(secret)),
+    fn get(&self, secret: Secret) -> Result<Option<String>, Sentence> {
+        within(move || match entry(secret).and_then(|e| e.get_password()) {
+            Ok(text) => Ok(Some(text)),
             Err(keyring_core::Error::NoEntry) => Ok(None),
             Err(problem) => Err(failed(&problem)),
         })
     }
 
-    fn set(&self, secret: &str) -> Result<(), Sentence> {
-        let secret = secret.to_string();
+    fn set(&self, secret: Secret, text: &str) -> Result<(), Sentence> {
+        let text = text.to_string();
         within(move || {
-            let kept = entry().and_then(|e| e.set_password(&secret));
+            let kept = entry(secret).and_then(|e| e.set_password(&text));
             kept.map_err(|problem| failed(&problem))
         })
     }
 
-    fn delete(&self) -> Result<(), Sentence> {
-        within(|| match entry().and_then(|e| e.delete_credential()) {
-            Ok(()) | Err(keyring_core::Error::NoEntry) => Ok(()),
-            Err(problem) => Err(failed(&problem)),
-        })
+    fn delete(&self, secret: Secret) -> Result<(), Sentence> {
+        within(
+            move || match entry(secret).and_then(|e| e.delete_credential()) {
+                Ok(()) | Err(keyring_core::Error::NoEntry) => Ok(()),
+                Err(problem) => Err(failed(&problem)),
+            },
+        )
     }
 }
 

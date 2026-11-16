@@ -131,6 +131,96 @@ pub fn entry_for(later: &str, earlier: &str, earlier_name: &str, why: &str) -> S
     serde_json::to_string_pretty(&entry).unwrap_or_default()
 }
 
+/// The user's own rule in ids, not positions: `then` loads after `first`; `first_name` is the
+/// name a reviewer of the pull request reads, the package id itself when no better is known.
+#[derive(Debug, Clone)]
+pub struct OwnRule {
+    pub first: String,
+    pub then: String,
+    pub first_name: String,
+}
+
+/// What was merged into the upstream file's text: `added` are the rules the file did not know.
+pub struct Merged {
+    pub text: String,
+    pub added: Vec<OwnRule>,
+}
+
+/// `earlier` under `loadAfter` of `then`, named for a reviewer, as pair builders for the
+/// ordered writer: the target, the `loadAfter` pair, the whole entry of `then`.
+fn target(earlier: &str, earlier_name: &str) -> (String, ordered::Value) {
+    use ordered::Value as V;
+    (
+        id::fold(earlier),
+        V::Object(vec![(
+            "name".to_string(),
+            V::Array(vec![V::String(earlier_name.to_string())]),
+        )]),
+    )
+}
+
+fn one(key: &str, value: (String, ordered::Value)) -> (String, ordered::Value) {
+    let pair = vec![value];
+    (key.to_string(), ordered::Value::Object(pair))
+}
+
+/// The own rules the upstream file does not ask for already, as a whole file again: each new rule
+/// a `loadAfter` under `then`, kept ones untouched. A rule the file states in either direction is
+/// skipped, as is a duplicate inside `own`. Fails when the text is not a rules file.
+pub fn merge_own_rules(text: &str, own: &[OwnRule]) -> Result<Merged, Error> {
+    let folded: Vec<OwnRule> = own
+        .iter()
+        .map(|rule| OwnRule {
+            first: id::fold(&rule.first),
+            then: id::fold(&rule.then),
+            first_name: rule.first_name.clone(),
+        })
+        .filter(|rule| !rule.first.is_empty() && !rule.then.is_empty() && rule.first != rule.then)
+        .collect();
+    let mut known: std::collections::HashSet<String> = parse(text)?
+        .pairs()
+        .iter()
+        .map(|(first, then)| format!("{first}\0{then}"))
+        .collect();
+    let mut root = ordered::parse(text)?;
+    let rules = root
+        .object_mut()
+        .and_then(|pairs| ordered::pairs_mut(pairs, "rules").and_then(ordered::Value::object_mut))
+        .ok_or_else(|| Error::format(said!("community rules have no \"rules\" list")))?;
+    let mut added = Vec::new();
+    for rule in folded {
+        let mine = format!("{}\0{}", rule.first, rule.then);
+        let opposite = format!("{}\0{}", rule.then, rule.first);
+        if known.contains(&mine) || known.contains(&opposite) || !known.insert(mine) {
+            continue;
+        }
+        let target = target(&rule.first, &rule.first_name);
+        if let Some(value) = ordered::pairs_mut(rules, &rule.then) {
+            let entry = value.object_mut().ok_or_else(|| {
+                Error::format(said!("the entry of {} is not an object", rule.then))
+            })?;
+            if let Some(targets) = ordered::pairs_mut(entry, "loadAfter") {
+                targets
+                    .object_mut()
+                    .ok_or_else(|| {
+                        Error::format(said!("the loadAfter of {} is not an object", rule.then))
+                    })?
+                    .push(target);
+            } else {
+                entry.push(one("loadAfter", target));
+            }
+        } else {
+            rules.push(one(&rule.then, one("loadAfter", target)));
+        }
+        added.push(rule);
+    }
+    let newline = text.ends_with('\n');
+    Ok(Merged {
+        text: ordered::write(&root, newline)?,
+        added,
+    })
+}
+
 pub fn parse(text: &str) -> Result<Community, Error> {
     let root: Value = serde_json::from_str(text)
         .map_err(|e| Error::format(said!("community rules are not JSON: {}", e)))?;
@@ -254,6 +344,203 @@ pub fn download(to: &Path) -> Result<Community, Error> {
     store(&text, to)
 }
 
+// The rules file is written by RimSort as Python's `json.dumps(indent=4)`: keys in the order
+// they were added, four spaces a level, non-ASCII escaped. `merge_own_rules` keeps that shape,
+// so a published diff shows only the rules it adds.
+mod ordered {
+    use crate::base::error::Error;
+    use crate::said;
+    use serde::de::{MapAccess, SeqAccess, Visitor};
+
+    /// JSON as `serde_json::Value`, but an object keeps the order of its keys.
+    pub enum Value {
+        Null,
+        Bool(bool),
+        Number(serde_json::Number),
+        String(String),
+        Array(Vec<Self>),
+        Object(Vec<(String, Self)>),
+    }
+
+    impl Value {
+        pub fn object_mut(&mut self) -> Option<&mut Vec<(String, Self)>> {
+            match self {
+                Self::Object(pairs) => Some(pairs),
+                _ => None,
+            }
+        }
+    }
+
+    /// `key`'s value inside `pairs`, for writing.
+    pub fn pairs_mut<'v>(pairs: &'v mut [(String, Value)], key: &str) -> Option<&'v mut Value> {
+        pairs
+            .iter_mut()
+            .find(|(name, _)| name == key)
+            .map(|(_, value)| value)
+    }
+    pub fn parse(text: &str) -> Result<Value, Error> {
+        serde_json::from_str(text)
+            .map_err(|e| Error::format(said!("community rules are not JSON: {}", e)))
+    }
+
+    /// Four spaces a level, as the upstream file keeps it; `newline` ends the file with one.
+    pub fn write(root: &Value, newline: bool) -> Result<String, Error> {
+        let formatter = serde_json::ser::PrettyFormatter::with_indent(b"    ");
+        let mut bytes = Vec::new();
+        let mut writer = serde_json::Serializer::with_formatter(&mut bytes, formatter);
+        serde::Serialize::serialize(root, &mut writer)
+            .map_err(|e| Error::format(said!("the merged rules cannot be written: {}", e)))?;
+        let mut text = String::from_utf8(bytes)
+            .map_err(|e| Error::format(said!("the merged rules are not UTF-8: {}", e)))?;
+        text = escape(&text);
+        if newline {
+            text.push('\n');
+        }
+        Ok(text)
+    }
+
+    impl serde::Serialize for Value {
+        fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+            use serde::ser::{SerializeMap, SerializeSeq};
+            match self {
+                Value::Null => serializer.serialize_unit(),
+                Value::Bool(given) => serializer.serialize_bool(*given),
+                Value::Number(number) => number.serialize(serializer),
+                Value::String(given) => serializer.serialize_str(given),
+                Value::Array(items) => {
+                    let mut seq = serializer.serialize_seq(Some(items.len()))?;
+                    for item in items {
+                        seq.serialize_element(item)?;
+                    }
+                    seq.end()
+                }
+                Value::Object(pairs) => {
+                    let mut map = serializer.serialize_map(Some(pairs.len()))?;
+                    for (key, value) in pairs {
+                        map.serialize_key(key)?;
+                        map.serialize_value(value)?;
+                    }
+                    map.end()
+                }
+            }
+        }
+    }
+
+    /// Python escapes every non-ASCII character in a dumped string with `\uXXXX`.
+    fn escape(text: &str) -> String {
+        if text.bytes().all(|b| b.is_ascii() && b != 0x7f) {
+            return text.to_string();
+        }
+        let mut out = String::with_capacity(text.len() + 16);
+        for ch in text.chars() {
+            if ch.is_ascii() && ch != '\u{7f}' {
+                out.push(ch);
+                continue;
+            }
+            let mut units = [0; 2];
+            for unit in ch.encode_utf16(&mut units) {
+                out.push_str(&format!("\\u{unit:04x}"));
+            }
+        }
+        out
+    }
+
+    impl<'de> serde::Deserialize<'de> for Value {
+        fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+            struct Builds;
+            impl<'de> Visitor<'de> for Builds {
+                type Value = Value;
+
+                fn expecting(&self, out: &mut std::fmt::Formatter) -> std::fmt::Result {
+                    out.write_str("JSON")
+                }
+
+                fn visit_bool<E>(self, given: bool) -> Result<Value, E> {
+                    Ok(Value::Bool(given))
+                }
+
+                fn visit_u64<E>(self, given: u64) -> Result<Value, E> {
+                    Ok(Value::Number(given.into()))
+                }
+
+                fn visit_i64<E>(self, given: i64) -> Result<Value, E> {
+                    Ok(Value::Number(given.into()))
+                }
+
+                fn visit_f64<E: serde::de::Error>(self, given: f64) -> Result<Value, E> {
+                    match serde_json::Number::from_f64(given) {
+                        Some(number) => Ok(Value::Number(number)),
+                        None => Err(E::custom("a number that is not real")),
+                    }
+                }
+
+                fn visit_str<E>(self, given: &str) -> Result<Value, E> {
+                    Ok(Value::String(given.to_string()))
+                }
+
+                fn visit_string<E>(self, given: String) -> Result<Value, E> {
+                    Ok(Value::String(given))
+                }
+
+                fn visit_none<E>(self) -> Result<Value, E> {
+                    Ok(Value::Null)
+                }
+
+                fn visit_unit<E>(self) -> Result<Value, E> {
+                    Ok(Value::Null)
+                }
+
+                fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<Value, A::Error> {
+                    let mut items = Vec::with_capacity(seq.size_hint().unwrap_or(0));
+                    while let Some(item) = seq.next_element()? {
+                        items.push(item);
+                    }
+                    Ok(Value::Array(items))
+                }
+
+                fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<Value, A::Error> {
+                    let mut pairs = Vec::with_capacity(map.size_hint().unwrap_or(0));
+                    while let Some((name, value)) = map.next_entry()? {
+                        pairs.push((name, value));
+                    }
+                    Ok(Value::Object(pairs))
+                }
+            }
+            deserializer.deserialize_any(Builds)
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn order_and_readable_shape_survive_a_round_trip() {
+            let text = "{\"z\": 1, \"a\": [{\"b\": \"b\"}, null]}";
+            let parsed = parse(text).unwrap();
+            let Value::Object(pairs) = &parsed else {
+                panic!("not an object");
+            };
+            assert_eq!(pairs[0].0, "z");
+            assert_eq!(pairs[1].0, "a");
+            assert_eq!(
+                write(&parsed, false).unwrap(),
+                "{\n    \"z\": 1,\n    \"a\": [\n        {\n            \"b\": \"b\"\n        },\n        null\n    ]\n}"
+            );
+            assert!(write(&parsed, true).unwrap().ends_with('\n'));
+        }
+
+        #[test]
+        fn non_ascii_is_escaped_as_python_writes_it() {
+            let parsed = parse("{\"name\": \"Ääblaçké\"}").unwrap();
+            assert_eq!(
+                write(&parsed, false).unwrap(),
+                "{\n    \"name\": \"\\u00c4\\u00e4bla\\u00e7k\\u00e9\"\n}"
+            );
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -341,6 +628,89 @@ mod tests {
         assert!(community.loads_at_top("Top.Mod"));
         assert!(!community.loads_at_top("krkr.rocketman"));
         assert!(!community.loads_at_top("unknown.mod"));
+    }
+
+    #[test]
+    fn own_rules_merge_keeping_the_file_and_skipping_what_it_knows() {
+        let upstream = "{\n    \"timestamp\": 1,\n    \"rules\": {\n        \"b.mod\": {\n            \"loadAfter\": {\n                \"a.mod\": {\n                    \"name\": [\n                        \"A mod\"\n                    ]\n                }\n            }\n        }\n    }\n}\n";
+        let own = |first: &str, then: &str, first_name: &str| OwnRule {
+            first: first.to_string(),
+            then: then.to_string(),
+            first_name: first_name.to_string(),
+        };
+        let merged = merge_own_rules(
+            upstream,
+            &[
+                own("new.first", "New.Then", "New first"),
+                own("a.mod", "b.mod", "Already there"),
+                own("b.mod", "a.mod", "The file wants the opposite"),
+            ],
+        )
+        .unwrap();
+        assert_eq!(merged.added.len(), 1);
+        assert_eq!(merged.added[0].then, "new.then");
+        assert!(merged.text.ends_with('\n'));
+        // What was there is kept where it was; the new entry is appended to the rules.
+        assert!(merged.text.find("\"b.mod\"").unwrap() < merged.text.find("\"new.then\"").unwrap());
+        let rules = parse(&merged.text).unwrap();
+        assert_eq!(
+            rules.pairs(),
+            [
+                ("a.mod".to_string(), "b.mod".to_string()),
+                ("new.first".to_string(), "new.then".to_string())
+            ]
+        );
+        // The added entry carries the name a reviewer reads and no comment.
+        let writing = "\"new.then\": {\n            \"loadAfter\": {\n                \"new.first\": {\n                    \"name\": [\n                        \"New first\"\n                    ]\n                }\n            }\n        }";
+        assert!(merged.text.contains(writing), "{}", merged.text);
+        // Again over the merged text: nothing new.
+        assert!(
+            merge_own_rules(&merged.text, &merged.added)
+                .unwrap()
+                .added
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn an_own_rule_joins_an_existing_mod_and_its_load_after() {
+        let upstream = "{\n    \"rules\": {\n        \"then.mod\": {\n            \"bottom\": true,\n            \"loadAfter\": {\n                \"earlier.mod\": {\n                    \"name\": [\n                        \"Earlier\"\n                    ]\n                }\n            }\n        },\n        \"newer.mod\": {}\n    }\n}";
+        let merged = merge_own_rules(
+            upstream,
+            &[
+                OwnRule {
+                    first: "one".into(),
+                    then: "then.mod".into(),
+                    first_name: "One".into(),
+                },
+                OwnRule {
+                    first: "two".into(),
+                    then: "then.mod".into(),
+                    first_name: "Two".into(),
+                },
+                OwnRule {
+                    first: "three".into(),
+                    then: "newer.mod".into(),
+                    first_name: "Three".into(),
+                },
+            ],
+        )
+        .unwrap();
+        assert_eq!(merged.added.len(), 3);
+        let text = merged.text;
+        assert!(text.find("\"earlier.mod\"").unwrap() < text.find("\"one\"").unwrap());
+        assert!(text.find("\"one\"").unwrap() < text.find("\"two\"").unwrap());
+        assert!(text.contains("\"bottom\": true"));
+        assert_eq!(
+            parse(&text).unwrap().pairs(),
+            [
+                ("earlier.mod".to_string(), "then.mod".to_string()),
+                ("one".to_string(), "then.mod".to_string()),
+                ("three".to_string(), "newer.mod".to_string()),
+                ("two".to_string(), "then.mod".to_string())
+            ]
+        );
+        assert!(merge_own_rules("<html>", &[]).is_err());
     }
 
     #[test]

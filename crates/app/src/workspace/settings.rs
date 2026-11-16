@@ -1,4 +1,5 @@
 use super::App;
+use super::secret::Secret;
 use crate::changes::Changes;
 use crate::reports::{
     Database, FolderVerdict, KeptCount, LastLaunch, ReleaseSaid, SettingsReport, ShortContrast,
@@ -11,7 +12,8 @@ use rimstack_core::base::translate::{LOCALE, detected};
 use rimstack_core::kept::foreign;
 use rimstack_core::kept::owntheme;
 use rimstack_core::kept::settings::{Switch, UPDATE_EVERY};
-use rimstack_core::mods::community;
+use rimstack_core::mods::community::{self, OwnRule};
+use rimstack_core::mods::publish;
 use rimstack_core::rimworld::workshopdb;
 use rimstack_core::sources::replacements;
 use rimstack_core::{said, say, say_n};
@@ -163,7 +165,12 @@ impl App {
     pub fn settings_report(&self) -> SettingsReport {
         let paths = self.paths();
         let shown = |p: &Option<PathBuf>| p.as_ref().map(|p| p.to_string_lossy().into_owned());
+        let token_held = self.vault.get(Secret::GithubToken);
+        let publish_why_not = self.publish_why_not();
         let settings = self.settings();
+        let github_token =
+            settings.switch(Switch::GithubTokenKept) && matches!(&token_held, Ok(Some(_)));
+        let github_token_note = token_held.err();
         let owned = |name: &str| settings.get(name).map(String::from);
         let config = paths.mods_config();
         let backup = config
@@ -219,6 +226,13 @@ impl App {
                 .listed("replacementsIgnored")
                 .map(String::from)
                 .collect(),
+            github_user: owned("githubUser"),
+            github_token,
+            github_token_note,
+            rules_repo: owned("rulesRepo").filter(|repo| !repo.trim().is_empty()),
+            rules_repo_default: publish::COMMUNITY.to_string(),
+            own_rules: self.user_rules().reading().len(),
+            publish_why_not,
             setup_done: settings.get("setupDone").is_some(),
             rimsort: self.rimsort_rules_file().is_file() || self.rimsort_notes_file().is_file(),
             rimpy: self.rimpy_file().is_file(),
@@ -244,6 +258,104 @@ impl App {
             version: build_label(),
             orphan_settings: self.orphan_settings(),
         }
+    }
+
+    /// The repository `rulesRepo` names; the community's when none, why when it is unusable.
+    pub fn rules_repo(&self) -> Result<publish::Repo, Error> {
+        let kept = self
+            .settings()
+            .get("rulesRepo")
+            .map(str::trim)
+            .filter(|url| !url.is_empty())
+            .map(String::from);
+        publish::repo_of(kept.as_deref().unwrap_or(publish::COMMUNITY))
+    }
+
+    /// Why "Publish my rules" is off now; `None` when it may run.
+    fn publish_why_not(&self) -> Option<Sentence> {
+        if self.user_rules().reading().is_empty() {
+            return Some(say!("There are no own rules to publish yet."));
+        }
+        match self.vault.get(Secret::GithubToken) {
+            Err(why) => return Some(why),
+            Ok(Some(token)) if !token.trim().is_empty() => {}
+            Ok(_) => {
+                return Some(say!(
+                    "Put your GitHub token in the settings: the rules are published from your account."
+                ));
+            }
+        }
+        self.rules_repo()
+            .err()
+            .map(|problem| problem.sentence().clone())
+    }
+
+    /// The user's own rules as they would be published: the library's name of the earlier mod
+    /// for the reviewer to read, its folded id when that is not known.
+    fn own_rules_for_publish(&self) -> Vec<OwnRule> {
+        let pairs = self.user_rules().reading().pairs().to_vec();
+        let name_of = |first: &str| -> String {
+            let Ok((library, _)) = &*self.library() else {
+                return first.to_string();
+            };
+            library.name_of(first).unwrap_or_else(|| first.to_string())
+        };
+        pairs
+            .into_iter()
+            .map(|(first, then)| OwnRule {
+                first_name: name_of(&first),
+                first,
+                then,
+            })
+            .collect()
+    }
+
+    pub fn keep_github_token(&self, token: &str) -> Result<(), Sentence> {
+        let token = token.trim();
+        if token.is_empty() {
+            return Err(say!("Type the token first"));
+        }
+        self.vault.set(Secret::GithubToken, token)?;
+        self.mark_github_token(true);
+        self.publish(Changes::SETTINGS);
+        Ok(())
+    }
+
+    pub fn forget_github_token(&self) -> Result<(), Sentence> {
+        self.vault.delete(Secret::GithubToken)?;
+        self.mark_github_token(false);
+        self.publish(Changes::SETTINGS);
+        Ok(())
+    }
+
+    fn mark_github_token(&self, kept: bool) {
+        let value = if kept { "on" } else { "off" };
+        if let Err(problem) = self.set_setting(Switch::GithubTokenKept.name(), value) {
+            rimstack_core::problem!("github token flag: {problem}");
+        }
+    }
+
+    /// The user's own rules as a pull request to the community rules repository, from the
+    /// user's GitHub account. Blocks on the network; the token goes only to GitHub.
+    pub fn publish_rules(&self) -> Result<publish::Published, Error> {
+        let own = self.own_rules_for_publish();
+        if let Some(why_not) = self.publish_why_not() {
+            return Err(Error::refused(why_not));
+        }
+        let token = match self.vault.get(Secret::GithubToken) {
+            Ok(Some(token)) => token,
+            Ok(None) => {
+                return Err(Error::refused(say!(
+                    "Put your GitHub token in the settings: the rules are published from your account."
+                )));
+            }
+            Err(why) => return Err(Error::refused(why)),
+        };
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs() as i64;
+        publish::publish(&token, &self.rules_repo()?, &own, now)
     }
 
     pub fn summary(&self) -> Summary {

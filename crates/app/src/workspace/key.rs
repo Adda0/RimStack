@@ -1,6 +1,6 @@
 //! the mature-content choice changes. No record that reaches the window, a log or the history holds it.
 
-use super::secret::Vault;
+use super::secret::{Secret, Vault};
 use super::{App, Written, written};
 use crate::changes::Changes;
 use rimstack_core::base::locks::Held;
@@ -114,16 +114,17 @@ impl App {
 
     pub fn key_state(&self) -> KeyState {
         let refused = self.watch.refused();
-        let (stored, available, note) = match self.key_kept().then(|| self.vault.get()) {
-            None => (false, true, None),
-            Some(Ok(held)) => {
-                if held.is_none() {
-                    self.mark_key(false);
+        let (stored, available, note) =
+            match self.key_kept().then(|| self.vault.get(Secret::SteamKey)) {
+                None => (false, true, None),
+                Some(Ok(held)) => {
+                    if held.is_none() {
+                        self.mark_key(false);
+                    }
+                    (held.is_some(), true, None)
                 }
-                (held.is_some(), true, None)
-            }
-            Some(Err(why)) => (false, false, Some(why)),
-        };
+                Some(Err(why)) => (false, false, Some(why)),
+            };
         KeyState {
             stored,
             available,
@@ -148,14 +149,14 @@ impl App {
                 ));
             }
         }
-        self.vault.set(key.reveal())?;
+        self.vault.set(Secret::SteamKey, key.reveal())?;
         self.mark_key(true);
         self.key_changed();
         Ok(())
     }
 
     pub fn forget_key(&self) -> Result<(), Sentence> {
-        self.vault.delete()?;
+        self.vault.delete(Secret::SteamKey)?;
         self.mark_key(false);
         self.key_changed();
         Ok(())
@@ -188,7 +189,7 @@ impl App {
     }
 
     fn steam_source(&self, show_mature: bool) -> Option<Arc<dyn Browse>> {
-        let held = match self.vault.get().ok()? {
+        let held = match self.vault.get(Secret::SteamKey).ok()? {
             Some(held) => held,
             None => {
                 self.mark_key(false);

@@ -9,12 +9,13 @@ use super::theme::Theme;
 use crate::changes::Changes;
 use crate::jobs::Lane;
 use crate::reports::{Database, FolderVerdict, KeyShown, ReleaseSaid, SettingsReport};
+use crate::ui::prompt;
 use crate::words::put;
 use crate::workspace::KeyState;
 use gpui::{AppContext, Context, Entity, SharedString, Window};
 use rimstack_core::base::sentence::Sentence;
 use rimstack_core::kept::settings::UPDATE_EVERY;
-use rimstack_core::say;
+use rimstack_core::{say, say_n};
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::time::Duration;
@@ -30,9 +31,11 @@ struct Fields {
     launch: Entity<TextField>,
     kept_megabytes: Entity<TextField>,
     key: Entity<TextField>,
+    github_user: Entity<TextField>,
+    github_token: Entity<TextField>,
+    rules_repo: Entity<TextField>,
     fonts: Entity<TextField>,
 }
-
 #[derive(Default)]
 struct Said {
     language: String,
@@ -50,6 +53,7 @@ const READS: Changes = Changes::SETTINGS
     .or(Changes::LANGUAGE)
     .or(Changes::THEME)
     .or(Changes::KEY)
+    .or(Changes::RULES)
     .or(Changes::MOD_SETTINGS);
 
 pub struct Settings {
@@ -64,6 +68,10 @@ pub struct Settings {
     key: Option<KeyState>,
     key_checking: bool,
     key_failure: Option<Sentence>,
+    token_busy: bool,
+    token_failure: Option<Sentence>,
+    publish_busy: bool,
+    published: Option<crate::reports::Answer<rimstack_core::mods::publish::Published>>,
     community_busy: bool,
     community_current: bool,
     community_problem: Option<Sentence>,
@@ -98,9 +106,15 @@ impl Settings {
             launch: field(cx),
             kept_megabytes: field(cx),
             key: field(cx),
+            github_user: field(cx),
+            github_token: field(cx),
+            rules_repo: field(cx),
             fonts: field(cx),
         };
         fields.key.update(cx, |field, _| field.set_masked(true));
+        fields
+            .github_token
+            .update(cx, |field, _| field.set_masked(true));
         cx.subscribe(&fields.find, |settings, field, _: &Edited, cx| {
             settings.finding = field.read(cx).text().to_string();
             cx.notify();
@@ -123,8 +137,22 @@ impl Settings {
             settings.keep_later("keptModsMegabytes", typed, cx);
         })
         .detach();
+        cx.subscribe(&fields.github_user, |settings, field, _: &Edited, cx| {
+            let typed = field.read(cx).text().to_string();
+            settings.keep_later("githubUser", typed, cx);
+        })
+        .detach();
+        cx.subscribe(&fields.rules_repo, |settings, field, _: &Edited, cx| {
+            let typed = field.read(cx).text().to_string();
+            settings.keep_later("rulesRepo", typed, cx);
+        })
+        .detach();
         cx.subscribe(&fields.key, |settings, _, _: &Entered, cx| {
             settings.check_key(cx)
+        })
+        .detach();
+        cx.subscribe(&fields.github_token, |settings, _, _: &Entered, cx| {
+            settings.keep_github_token(cx)
         })
         .detach();
         cx.observe(&fields.fonts, |_, _, cx| cx.notify()).detach();
@@ -140,6 +168,10 @@ impl Settings {
             key: None,
             key_checking: false,
             key_failure: None,
+            token_busy: false,
+            token_failure: None,
+            publish_busy: false,
+            published: None,
             community_busy: false,
             community_current: false,
             community_problem: None,
@@ -166,7 +198,11 @@ impl Settings {
             settings.hear(cx);
         }
         settings.heard(
-            Changes::SETTINGS | Changes::LANGUAGE | Changes::COMMUNITY | Changes::KEY,
+            Changes::SETTINGS
+                | Changes::LANGUAGE
+                | Changes::COMMUNITY
+                | Changes::KEY
+                | Changes::RULES,
             cx,
         );
         settings
@@ -250,6 +286,14 @@ impl Settings {
         self.fields
             .kept_megabytes
             .update(cx, |field, cx| field.set_text(&kept, cx));
+        let github_user = report.github_user.clone().unwrap_or_default();
+        self.fields
+            .github_user
+            .update(cx, |field, cx| field.set_text(&github_user, cx));
+        let rules_repo = report.rules_repo.clone().unwrap_or_default();
+        self.fields
+            .rules_repo
+            .update(cx, |field, cx| field.set_text(&rules_repo, cx));
     }
 
     fn read_key(&mut self, cx: &mut Context<Self>) {
@@ -399,6 +443,128 @@ impl Settings {
             },
         );
         cx.notify();
+    }
+
+    fn keep_github_token(&mut self, cx: &mut Context<Self>) {
+        let typed = self.fields.github_token.read(cx).text().to_string();
+        if self.token_busy || typed.trim().is_empty() {
+            return;
+        }
+        self.fields
+            .github_token
+            .update(cx, |field, cx| field.set_text("", cx));
+        self.token_busy = true;
+        self.token_failure = None;
+        let app = super::app(cx);
+        crate::jobs::run(
+            "github token keep",
+            cx,
+            move || app.keep_github_token(&typed).err(),
+            |settings, failure, cx| {
+                settings.token_busy = false;
+                settings.token_failure = failure;
+                cx.notify();
+            },
+        );
+        cx.notify();
+    }
+
+    fn forget_github_token(&mut self, cx: &mut Context<Self>) {
+        if self.token_busy {
+            return;
+        }
+        self.token_busy = true;
+        self.token_failure = None;
+        let app = super::app(cx);
+        crate::jobs::run(
+            "github token forget",
+            cx,
+            move || app.forget_github_token().err(),
+            |settings, failure, cx| {
+                settings.token_busy = false;
+                settings.token_failure = failure;
+                cx.notify();
+            },
+        );
+        cx.notify();
+    }
+
+    fn publish_rules(&mut self, cx: &mut Context<Self>) {
+        if self.publish_busy || self.demo || self.report.publish_why_not.is_some() {
+            return;
+        }
+        self.publish_busy = true;
+        self.published = None;
+        let app = super::app(cx);
+        crate::jobs::run(
+            "rules publish",
+            cx,
+            move || crate::reports::Answer::from(app.publish_rules()),
+            |settings, published, cx| {
+                settings.published = Some(published.clone());
+                settings.publish_busy = false;
+                settings.said_publish(published, cx);
+                cx.notify();
+            },
+        );
+        cx.notify();
+    }
+
+    fn said_publish(
+        &mut self,
+        published: crate::reports::Answer<rimstack_core::mods::publish::Published>,
+        cx: &mut Context<Self>,
+    ) {
+        match published {
+            crate::reports::Answer::Done(published) => {
+                let said = say_n!(
+                    published.rules,
+                    "Published {} rule as a pull request",
+                    "Published {} rules as a pull request"
+                );
+                let url = published.url;
+                crate::ui::notices::offer(
+                    put(&said),
+                    put(&say!("Open it")),
+                    move |_, cx| cx.open_url(&url),
+                    cx,
+                );
+            }
+            crate::reports::Answer::Failed { problem } => {
+                crate::ui::notices::say(put(&problem), crate::ui::notices::Tone::Err, cx);
+            }
+        }
+    }
+
+    fn ask_publish(
+        &mut self,
+        own: usize,
+        target: String,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if self.publish_busy || self.demo || self.report.publish_why_not.is_some() {
+            return;
+        }
+        let me = cx.entity().downgrade();
+        prompt::ask(
+            prompt::Question {
+                title: put(&say_n!(
+                    own,
+                    "Publish {} rule to {}",
+                    "Publish {} rules to {}",
+                    target
+                )),
+                lines: Vec::new(),
+                label: put(&say!("Publish")),
+                danger: false,
+                run: Box::new(move |_, cx| {
+                    let _ = me.update(cx, |settings, cx| settings.publish_rules(cx));
+                }),
+            },
+            window,
+            cx,
+        );
     }
 
     fn download_community(&mut self, cx: &mut Context<Self>) {

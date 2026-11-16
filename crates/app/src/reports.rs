@@ -5,7 +5,7 @@ use rimstack_core::base::sentence::Sentence;
 use serde::Serialize;
 
 /// What was asked, done, or why not: `{ …what came of it }` or `{ problem }`.
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 #[serde(untagged)]
 pub enum Answer<T> {
     Done(T),
@@ -78,6 +78,13 @@ pub struct SettingsReport {
     pub setup_done: bool,
     pub rimsort: bool,
     pub rimpy: bool,
+    pub github_user: Option<String>,
+    pub github_token: bool,
+    pub github_token_note: Option<rimstack_core::base::sentence::Sentence>,
+    pub rules_repo: Option<String>,
+    pub rules_repo_default: String,
+    pub own_rules: usize,
+    pub publish_why_not: Option<rimstack_core::base::sentence::Sentence>,
     pub official: Vec<rimstack_core::rimworld::official::Official>,
     pub data_folder: String,
     pub local_mods: Option<String>,

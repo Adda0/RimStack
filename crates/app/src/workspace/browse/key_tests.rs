@@ -1,7 +1,7 @@
 use super::tests::asked;
 use super::*;
 use crate::workspace::key::{refusal, unreachable};
-use crate::workspace::secret::{Memory, Vault};
+use crate::workspace::secret::{Memory, Secret, Vault};
 use crate::workspace::tests::installed;
 use rimstack_core::kept::settings::Switch;
 use rimstack_core::rimworld::steamapi::{ApiKey, Call};
@@ -249,7 +249,9 @@ fn nothing_shown_holds_the_key() {
     for text in shown {
         assert!(!text.contains("SECRETKEY"), "{text}");
     }
-    let held: Option<String> = Memory::holding(SECRET).get().unwrap();
+    let held: Option<String> = Memory::holding(Secret::SteamKey, SECRET)
+        .get(Secret::SteamKey)
+        .unwrap();
     assert_eq!(
         held.as_deref(),
         Some(SECRET),
@@ -281,26 +283,33 @@ impl Counting {
 }
 
 impl Vault for Counting {
-    fn get(&self) -> Result<Option<String>, rimstack_core::base::sentence::Sentence> {
+    fn get(
+        &self,
+        secret: Secret,
+    ) -> Result<Option<String>, rimstack_core::base::sentence::Sentence> {
         self.count();
-        self.inner.get()
+        self.inner.get(secret)
     }
 
-    fn set(&self, secret: &str) -> Result<(), rimstack_core::base::sentence::Sentence> {
+    fn set(
+        &self,
+        secret: Secret,
+        text: &str,
+    ) -> Result<(), rimstack_core::base::sentence::Sentence> {
         self.count();
-        self.inner.set(secret)
+        self.inner.set(secret, text)
     }
 
-    fn delete(&self) -> Result<(), rimstack_core::base::sentence::Sentence> {
+    fn delete(&self, secret: Secret) -> Result<(), rimstack_core::base::sentence::Sentence> {
         self.count();
-        self.inner.delete()
+        self.inner.delete(secret)
     }
 }
 
 #[test]
 fn the_credential_store_is_not_touched_before_a_key_was_kept() {
     let (_tmp, app, _) = keyed();
-    let vault = Counting::new(Memory::holding(SECRET));
+    let vault = Counting::new(Memory::holding(Secret::SteamKey, SECRET));
     let app = app.with_vault(vault.clone());
     let state = app.key_state();
     assert!(!state.stored && state.available && state.note.is_none());
@@ -319,7 +328,7 @@ fn a_key_kept_is_read_again_and_a_key_deleted_outside_clears_the_flag() {
     app.check_and_keep(SECRET).unwrap();
     assert!(app.settings().switch(Switch::SteamKeyKept));
     assert!(app.key_state().stored && app.key_mode());
-    vault.inner.delete().unwrap();
+    vault.inner.delete(Secret::SteamKey).unwrap();
     assert!(!app.key_state().stored);
     assert!(!app.settings().switch(Switch::SteamKeyKept) && !app.key_mode());
     let before = vault.asked();
@@ -327,7 +336,7 @@ fn a_key_kept_is_read_again_and_a_key_deleted_outside_clears_the_flag() {
     assert_eq!(vault.asked(), before);
 
     app.check_and_keep(SECRET).unwrap();
-    vault.inner.delete().unwrap();
+    vault.inner.delete(Secret::SteamKey).unwrap();
     assert!(!app.key_state().stored);
     assert!(!app.settings().switch(Switch::SteamKeyKept));
     app.check_and_keep(SECRET).unwrap();

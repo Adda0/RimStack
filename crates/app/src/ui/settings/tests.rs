@@ -208,3 +208,36 @@ fn a_choice_of_many_ends_before_the_way_back_to_its_default() {
         }
     }
 }
+
+#[gpui::test]
+fn publishing_says_what_came_of_it(cx: &mut TestAppContext) {
+    let (_root, settings, cx) = settings(cx, 0);
+    let said = |cx: &mut VisualTestContext| {
+        cx.update(|_, cx| {
+            crate::ui::notices::earlier(cx)
+                .into_iter()
+                .map(|(text, _, _)| text.to_string())
+                .collect::<Vec<String>>()
+        })
+    };
+    let done = crate::reports::Answer::Done(rimstack_core::mods::publish::Published {
+        url: "https://github.com/RimSort/Community-Rules-Database/pull/7".into(),
+        rules: 2,
+    });
+    cx.update(|_, cx| {
+        settings.update(cx, |s, cx| s.said_publish(done, cx));
+    });
+    assert_eq!(
+        said(cx),
+        ["Published 2 rules as a pull request"],
+        "the notice names what was published"
+    );
+
+    let failed = crate::reports::Answer::Failed {
+        problem: rimstack_core::say!("GitHub did not answer"),
+    };
+    cx.update(|_, cx| {
+        settings.update(cx, |s, cx| s.said_publish(failed, cx));
+    });
+    assert!(said(cx).contains(&"GitHub did not answer".to_string()));
+}

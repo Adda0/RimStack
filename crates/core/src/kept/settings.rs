@@ -117,7 +117,7 @@ const SWITCH: Holds = Holds::Choice(&["on", "off"]);
 pub const UPDATE_EVERY: [&str; 6] = ["1", "5", "10", "15", "30", "60"];
 const UPDATE_EVERY_AT_FIRST: u64 = 10;
 
-const KNOWN: [(&str, Holds); 20] = [
+const KNOWN: [(&str, Holds); 22] = [
     ("game", Holds::Text),
     ("config", Holds::Text),
     ("workshop", Holds::Text),
@@ -137,6 +137,8 @@ const KNOWN: [(&str, Holds); 20] = [
     ("textureSkip", Holds::List),
     ("updates", Holds::Choice(&["stable", "nightly"])),
     ("updateEvery", Holds::Choice(&UPDATE_EVERY)),
+    ("rulesRepo", Holds::Text),
+    ("githubUser", Holds::Text),
     ("window", Holds::Text),
     ("windowMaximized", Holds::Choice(&["yes"])),
 ];
@@ -151,11 +153,12 @@ pub enum Switch {
     SelfCheck,
     ShowMature,
     SteamKeyKept,
+    GithubTokenKept,
     AutoUpdates,
 }
 
 impl Switch {
-    pub const ALL: [Switch; 9] = [
+    pub const ALL: [Switch; 10] = [
         Switch::CommunityRules,
         Switch::VersionWarnings,
         Switch::FileHints,
@@ -164,6 +167,7 @@ impl Switch {
         Switch::SelfCheck,
         Switch::ShowMature,
         Switch::SteamKeyKept,
+        Switch::GithubTokenKept,
         Switch::AutoUpdates,
     ];
 
@@ -177,6 +181,7 @@ impl Switch {
             Switch::SelfCheck => "selfCheck",
             Switch::ShowMature => "showMature",
             Switch::SteamKeyKept => "steamKeyKept",
+            Switch::GithubTokenKept => "githubTokenKept",
             Switch::AutoUpdates => "autoUpdates",
         }
     }
@@ -191,6 +196,7 @@ impl Switch {
             Switch::GitForWorkshop
             | Switch::ShowMature
             | Switch::SteamKeyKept
+            | Switch::GithubTokenKept
             | Switch::AutoUpdates => false,
         }
     }
