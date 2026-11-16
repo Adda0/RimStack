@@ -186,6 +186,8 @@ impl Render for Prompt {
         ));
         let sheet = div()
             .id("prompt-sheet")
+            .role(gpui::Role::Dialog)
+            .aria_label(asked.title.clone())
             .flex()
             .flex_col()
             .gap(theme::GAP_LARGE)

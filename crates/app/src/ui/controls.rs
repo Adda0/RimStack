@@ -465,7 +465,7 @@ impl RenderOnce for Choice {
                 div()
                     .id(("segment", at))
                     .role(Role::RadioButton)
-                    .aria_label(option.clone())
+                    .aria_label(put(&say!("{}", option)))
                     .aria_toggled(if on { Toggled::True } else { Toggled::False })
                     .flex()
                     .items_center()

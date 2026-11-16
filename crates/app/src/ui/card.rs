@@ -7,7 +7,7 @@ use gpui::{
     ParentElement, Pixels, StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder,
     px,
 };
-use rimstack_core::base::sentence::Sentence;
+use rimstack_core::{base::sentence::Sentence, say};
 
 pub type Fold = Box<dyn Fn(&ClickEvent, &mut Window, &mut Cx)>;
 
@@ -216,7 +216,7 @@ impl Card {
             .text_ellipsis()
             .sized_text(theme, theme.small())
             .text_color(c.ink3)
-            .child(self.note);
+            .child(self.note.clone());
         let card_id = self.id.clone();
         let head = div()
             .id("card-head")
@@ -262,7 +262,25 @@ impl Card {
                 true => gpui::Role::Button,
                 false => gpui::Role::Heading,
             })
-            .aria_label(self.title.clone())
+            .aria_label(
+                [
+                    self.title.clone(),
+                    self.note.clone(),
+                    self.folded
+                        .map(|folded| {
+                            if folded {
+                                put(&say!("folded"))
+                            } else {
+                                put(&say!("unfolded"))
+                            }
+                        })
+                        .unwrap_or_default(),
+                ]
+                .into_iter()
+                .filter(|part| !part.is_empty())
+                .collect::<Vec<_>>()
+                .join(", "),
+            )
             .when_some(spoken_meaning, |d, meaning| d.aria_description(meaning))
             .when_some(self.on_fold, |d, fold| {
                 d.cursor_pointer()

@@ -417,6 +417,8 @@ impl Menu {
             .id(("menu-entry", at))
             .role(Role::MenuItem)
             .aria_label(item.text.clone())
+            .when_some(item.note.clone(), |d, note| d.aria_description(note))
+            .aria_selected(reached)
             .relative()
             .flex()
             .flex_col()
@@ -566,6 +568,8 @@ impl Render for Menu {
         let list = div()
             .id("menu-list")
             .role(Role::Menu)
+            .aria_label("Menu")
+            .relative()
             .flex()
             .flex_col()
             .when_some(self.buttons, |d, letters| {

@@ -180,6 +180,17 @@ impl Render for Commands {
                         Some(
                             div()
                                 .id(("command", at))
+                                .role(gpui::Role::ListItem)
+                                .aria_label(format!(
+                                    "{}{}",
+                                    command.name,
+                                    if beside.is_empty() {
+                                        String::new()
+                                    } else {
+                                        format!(", {beside}")
+                                    }
+                                ))
+                                .aria_selected(current)
                                 .flex()
                                 .items_center()
                                 .gap(theme::GAP)
@@ -221,6 +232,8 @@ impl Render for Commands {
         );
         let popup = div()
             .id("commands")
+            .role(gpui::Role::Dialog)
+            .aria_label(put(&say!("Search mods, commands and settings")))
             .absolute()
             .top(theme.sized(90.))
             .left((window.viewport_size().width - width) / 2.)

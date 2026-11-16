@@ -2037,5 +2037,8 @@
  "their files put {} before {}": "their files put {} before {}",
  "would leave its category": "would leave its category",
  "{} rule could not be followed": "{} rule could not be followed",
- "{} rules could not be followed": "{} rules could not be followed|{} rules could not be followed"
+ "{} rules could not be followed": "{} rules could not be followed|{} rules could not be followed",
+ "folded": "folded",
+ "unfolded": "unfolded",
+ "{}": "{}"
 }

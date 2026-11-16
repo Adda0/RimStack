@@ -209,19 +209,20 @@ impl RenderOnce for Btn {
             theme.control()
         });
         let line = toned.unwrap_or(c.field_line);
+        // An icon's file name says nothing: a button showing only its icon is named by its tip.
         let spoken = self.spoken.clone().unwrap_or_else(|| {
             match (self.text.is_empty(), self.tip.is_empty()) {
                 (false, _) => self.text.clone(),
-                (true, false) => self.tip.clone(),
-                (true, true) => self.icon.unwrap_or_default().into(),
+                (true, _) => self.tip.clone(),
             }
         });
-        let bare_text = (self.text.is_empty() && self.tip.is_empty()).then(|| self.text.clone());
-        let tip = bare_text.unwrap_or_else(|| self.tip.clone());
+        let described = !self.tip.is_empty() && spoken != self.tip;
+        let tip = self.tip.clone();
         let control = div()
             .id(self.id)
             .role(Role::Button)
             .aria_label(spoken)
+            .when(described, |d| d.aria_description(self.tip.clone()))
             .relative()
             .flex()
             .flex_none()
@@ -418,11 +419,13 @@ impl RenderOnce for Chip {
             self.text.clone()
         };
         let pressed = self.on_click.is_some();
+        let described = !self.text.is_empty() && !self.tip.is_empty();
         let changed = super::motion::colour_change(&id, ground, window);
         let control = div()
             .id(id)
             .role(if pressed { Role::Button } else { Role::Label })
             .aria_label(spoken)
+            .when(described, |d| d.aria_description(self.tip.clone()))
             .relative()
             .flex()
             .flex_none()

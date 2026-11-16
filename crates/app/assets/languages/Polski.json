@@ -2037,5 +2037,8 @@
  "their files put {} before {}": "ich pliki stawiają {} przed {}",
  "would leave its category": "wyprowadziłaby moda z jego kategorii",
  "{} rule could not be followed": "Nie dało się zachować {} reguły",
- "{} rules could not be followed": "Nie dało się zachować {} reguł|Nie dało się zachować {} reguł"
+ "{} rules could not be followed": "Nie dało się zachować {} reguł|Nie dało się zachować {} reguł",
+ "folded": "zwinięte",
+ "unfolded": "rozwinięte",
+ "{}": "{}"
 }
