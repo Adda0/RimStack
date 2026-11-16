@@ -1,7 +1,5 @@
 use rimstack_core::base::sentence::Sentence;
-use rimstack_core::kept::{
-    foreign, journal, launches, lists, new_mods, orders, settings, steamcmd, updates,
-};
+use rimstack_core::kept::{foreign, journal, launches, lists, new_mods, orders, settings, updates};
 use rimstack_core::mods::list::{Category, GroupedList, Mod, offers};
 use rimstack_core::mods::rules::{Kind, Rule};
 use rimstack_core::mods::{bisect, hidden, lock, share_file, textures, userrules, xmlcheck};
@@ -878,15 +876,6 @@ fn readers() -> Vec<Reader> {
             },
         },
         Reader {
-            name: "steamcmd.json",
-            file: "steamcmd.json",
-            format: Format::Json,
-            made: |e| format!("{{\"at\":{{{}}}}}", keyed(e, "5")),
-            read: |dir| {
-                let _ = steamcmd::Downloaded::read(&dir.join("steamcmd.json"));
-            },
-        },
-        Reader {
             name: "textures.json",
             file: "textures.json",
             format: Format::Json,
@@ -1219,9 +1208,6 @@ fn no_text_parser_takes_quadratic_time_over_a_long_repeat() {
         ("modsconfig::parse", |t| {
             let _ = modsconfig::parse(t);
         }),
-        ("markup::rich", |t| {
-            let _ = markup::rich(t);
-        }),
         ("vdf::libraries", |t| {
             let _ = vdf::libraries(t);
         }),
@@ -1255,14 +1241,8 @@ fn no_text_parser_takes_quadratic_time_over_a_long_repeat() {
         ("workshop::parse_details", |t| {
             let _ = workshop::parse_details(t);
         }),
-        ("workshop::parse_search", |t| {
-            let _ = workshop::parse_search(t);
-        }),
         ("workshop::parse_collections", |t| {
             let _ = workshop::parse_collections(t);
-        }),
-        ("workshop::hidden_in", |t| {
-            let _ = workshop::hidden_in(t);
         }),
         ("workshop::installed_times", |t| {
             let _ = workshop::installed_times(t);

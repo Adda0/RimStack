@@ -128,10 +128,10 @@ impl LastCheck {
 
     /// The unanswered ids whose page is Steam's error page: removed or private.
     pub fn gone(&self) -> impl Iterator<Item = &String> {
-        let gone = |(id, looked)| {
-            (looked.page == Page::Gone && self.unanswered.contains(id)).then_some(id)
-        };
-        self.looked.iter().filter_map(gone)
+        self.looked
+            .iter()
+            .filter(|(id, looked)| looked.page == Page::Gone && self.unanswered.contains(*id))
+            .map(|(id, _)| id)
     }
 
     /// The unanswered ids whose page is to be looked at on the next check.
