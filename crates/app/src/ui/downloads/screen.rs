@@ -162,6 +162,16 @@ impl Downloads {
                 ));
                 d.child(Chip::new(said).tone(c.moved).icon("download"))
             })
+            .when(quiet && shown.hidden_unchecked > 0, |d| {
+                let said = put(&say_n!(
+                    shown.hidden_unchecked,
+                    "{} hidden item not checked yet",
+                    "{} hidden items not checked yet"
+                ));
+                d.child(Chip::new(said).icon("eye-off").tip(put(&say!(
+                    "Steam hides removed, private and unlisted items alike, so each one's Workshop page is looked at, a few per check: Steam refuses many at once. The next check goes on with these."
+                ))))
+            })
             .child(
                 div()
                     .flex_1()

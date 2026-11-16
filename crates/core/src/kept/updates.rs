@@ -1,5 +1,5 @@
 use crate::rimworld::paths::Source;
-use crate::rimworld::workshop::{Details, Version};
+use crate::rimworld::workshop::{Details, Page, Version};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::Path;
@@ -17,8 +17,9 @@ pub struct LastCheck {
     pub manifests: BTreeMap<String, u64>,
     /// Asked and not answered: unlisted by their authors, which Steam answers only to a login.
     pub unanswered: BTreeSet<String>,
-    /// Of `unanswered`, those whose public page is Steam's error page: removed or made private.
-    pub gone: BTreeSet<String>,
+    /// What the public page of each `unanswered` id showed, and when; one not looked at yet
+    /// has none.
+    pub looked: BTreeMap<String, Looked>,
     pub checkouts: BTreeMap<String, Remote>,
 }
 
@@ -32,6 +33,30 @@ pub struct Remote {
     /// Why the last update of the checkout did not apply, as `Sentence::to_kept` writes it.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub refused: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Looked {
+    pub page: Page,
+    /// Seconds since 1970.
+    pub at: u64,
+}
+
+/// A live page is looked at again after this long: the item may be removed since. A gone one
+/// is not: it stays gone until Steam answers for the item again.
+pub const LIVE_FOR: u64 = 30 * 24 * 60 * 60;
+
+fn due(looked: Option<&Looked>, now: u64) -> bool {
+    match looked {
+        None => true,
+        Some(Looked {
+            page: Page::Gone, ..
+        }) => false,
+        Some(Looked {
+            page: Page::Live,
+            at,
+        }) => now.saturating_sub(*at) >= LIVE_FOR,
+    }
 }
 
 impl LastCheck {
@@ -59,8 +84,60 @@ impl LastCheck {
 
     /// A missing or damaged file is no check yet.
     pub fn read(file: &Path) -> Self {
-        let kept = crate::base::atomic_file::read_json(file).map(serde_json::from_value);
-        kept.and_then(Result::ok).unwrap_or_default()
+        let Ok(mut json) = crate::base::atomic_file::read_json(file) else {
+            return Self::default();
+        };
+        // Before verdicts were kept, a file listed the ids found gone, without the live ones.
+        let older = json.get_mut("gone").map(serde_json::Value::take);
+        let mut kept: Self = serde_json::from_value(json).unwrap_or_default();
+        let ids = older.as_ref().and_then(serde_json::Value::as_array);
+        for id in ids
+            .into_iter()
+            .flatten()
+            .filter_map(serde_json::Value::as_str)
+        {
+            let gone = Looked {
+                page: Page::Gone,
+                at: kept.checked.unwrap_or(0),
+            };
+            kept.looked.entry(id.to_string()).or_insert(gone);
+        }
+        kept
+    }
+
+    /// Looks at the pages of the unanswered ids not looked at yet, or seen live longer than
+    /// `LIVE_FOR` ago, oldest first, until `page` gives `None` (refused): the next check goes
+    /// on from there. An id Steam answers again drops what its page showed.
+    pub fn look_at_hidden(&mut self, now: u64, mut page: impl FnMut(&str) -> Option<Page>) {
+        let unanswered = &self.unanswered;
+        self.looked.retain(|id, _| unanswered.contains(id));
+        let mut asked: Vec<(Option<u64>, &String)> = (unanswered.iter())
+            .filter(|id| due(self.looked.get(*id), now))
+            .map(|id| (self.looked.get(id).map(|l| l.at), id))
+            .collect();
+        asked.sort();
+        let mut seen = Vec::new();
+        for (_, id) in asked {
+            let Some(page) = page(id) else {
+                break;
+            };
+            seen.push((id.clone(), Looked { page, at: now }));
+        }
+        self.looked.extend(seen);
+    }
+
+    /// The unanswered ids whose page is Steam's error page: removed or private.
+    pub fn gone(&self) -> impl Iterator<Item = &String> {
+        let gone = |(id, looked): (&String, &Looked)| {
+            (looked.page == Page::Gone && self.unanswered.contains(id)).then_some(id)
+        };
+        self.looked.iter().filter_map(gone)
+    }
+
+    /// The unanswered ids whose page is to be looked at on the next check.
+    pub fn hidden_unchecked(&self, now: u64) -> usize {
+        let due = |id: &&String| due(self.looked.get(*id), now);
+        self.unanswered.iter().filter(due).count()
     }
 
     /// A refusal stays while the remote is as far ahead as when it was refused:
@@ -106,7 +183,13 @@ mod tests {
             now: BTreeMap::from([("100".to_string(), 7)]),
             manifests: BTreeMap::from([("100".to_string(), 70)]),
             unanswered: BTreeSet::from(["200".to_string(), "300".to_string()]),
-            gone: BTreeSet::from(["300".to_string()]),
+            looked: BTreeMap::from([(
+                "300".to_string(),
+                Looked {
+                    page: Page::Gone,
+                    at: 9,
+                },
+            )]),
             checkouts: BTreeMap::from([
                 (
                     "/mods/a".to_string(),
@@ -214,5 +297,67 @@ mod tests {
             assert!(!asks_git(Source::Workshop, false, on));
             assert!(!asks_git(Source::Official, true, on));
         }
+    }
+
+    #[test]
+    fn older_files_with_only_the_gone_ids_still_load() {
+        let tmp = tempfile::tempdir().unwrap();
+        let file = tmp.path().join("updates.json");
+        std::fs::write(
+            &file,
+            r#"{"checked":5,"unanswered":["200"],"gone":["200"]}"#,
+        )
+        .unwrap();
+        let older = LastCheck::read(&file);
+        assert_eq!(older.gone().collect::<Vec<_>>(), ["200"]);
+        assert_eq!(older.hidden_unchecked(5), 0);
+    }
+
+    const DAY: u64 = 24 * 60 * 60;
+
+    fn looked(page: Page, at: u64) -> Looked {
+        Looked { page, at }
+    }
+
+    #[test]
+    fn a_hidden_page_is_looked_at_once_until_stale_and_a_refusal_leaves_the_rest_for_later() {
+        let now = 400 * DAY;
+        let mut check = LastCheck {
+            unanswered: ["1", "2", "3", "4", "5"].map(String::from).into(),
+            looked: BTreeMap::from([
+                ("1".to_string(), looked(Page::Live, now - 10 * DAY)),
+                ("2".to_string(), looked(Page::Live, now - 31 * DAY)),
+                ("3".to_string(), looked(Page::Gone, now - 300 * DAY)),
+                // Answered with result 1 since: its verdict goes.
+                ("6".to_string(), looked(Page::Gone, now - DAY)),
+            ]),
+            ..LastCheck::default()
+        };
+        // Steam's pages as had: 4 is gone, 5 unlisted; the second page asked is refused.
+        let mut asked = Vec::new();
+        check.look_at_hidden(now, |id| {
+            asked.push(id.to_string());
+            (asked.len() == 1).then_some(Page::Gone)
+        });
+        assert_eq!(
+            asked,
+            ["4", "5"],
+            "the never looked at first; 1 is fresh, 3 stays gone"
+        );
+        assert_eq!(check.gone().collect::<Vec<_>>(), ["3", "4"]);
+        assert!(!check.looked.contains_key("6"));
+        assert_eq!(check.looked["2"], looked(Page::Live, now - 31 * DAY));
+        assert_eq!(check.hidden_unchecked(now), 2);
+        let later = now + DAY;
+        let mut asked = Vec::new();
+        check.look_at_hidden(later, |id| {
+            asked.push(id.to_string());
+            Some(Page::Live)
+        });
+        assert_eq!(asked, ["5", "2"], "the rest, the stale one last");
+        assert_eq!(check.looked["2"], looked(Page::Live, later));
+        assert_eq!(check.hidden_unchecked(later), 0);
+        // A month on, the live ones are stale too: the gone one never is.
+        assert_eq!(check.hidden_unchecked(later + 30 * DAY), 3);
     }
 }

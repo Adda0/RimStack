@@ -90,6 +90,8 @@ pub struct Updates {
     pub unanswered: Vec<Named>,
     pub checkouts: Vec<Checkout>,
     pub problem: Option<Sentence>,
+    /// The ids Steam does not answer whose page is still to be looked at.
+    pub hidden_unchecked: usize,
 }
 
 impl Updates {
@@ -134,6 +136,7 @@ pub struct UpdatesShown<'a> {
     pub checkouts_failed: Vec<CheckoutShown<'a>>,
     pub checkouts_due: Vec<CheckoutShown<'a>>,
     pub checkouts_said: Sentence,
+    pub hidden_unchecked: usize,
 }
 
 pub fn updates_shown<'a>(updates: &'a Updates, asked: &HashSet<String>) -> UpdatesShown<'a> {
@@ -172,6 +175,7 @@ pub fn updates_shown<'a>(updates: &'a Updates, asked: &HashSet<String>) -> Updat
             0 => say!("all up to date"),
             due => say!("{} behind", due),
         },
+        hidden_unchecked: updates.hidden_unchecked,
     }
 }
 
@@ -219,8 +223,7 @@ impl App {
         let problem = match workshop::fetch_details(&ids) {
             Ok(now) => {
                 kept.answered(&ids, &now, super::now_secs());
-                let unanswered: Vec<String> = kept.unanswered.iter().cloned().collect();
-                kept.gone = workshop::gone_of(&unanswered).into_iter().collect();
+                kept.look_at_hidden(super::now_secs(), workshop::pages());
                 None
             }
             Err(problem) => Some(problem.sentence().clone()),
@@ -281,10 +284,14 @@ impl App {
         let behind = downloads::behind(&[(&items, &in_steam), (&copies, &known)], &now);
         if kept.checked.is_some() {
             *self.behind().writing() = Some(behind.iter().map(|row| row.id.clone()).collect());
-            *self.removed().writing() = Some(kept.gone.iter().cloned().collect());
+            *self.removed().writing() = Some(kept.gone().cloned().collect());
         }
         // A gone item is no longer on the Workshop at all, not unlisted there.
-        let unlisted: BTreeSet<String> = kept.unanswered.difference(&kept.gone).cloned().collect();
+        let gone: BTreeSet<&String> = kept.gone().collect();
+        let unlisted: BTreeSet<String> = (kept.unanswered.iter())
+            .filter(|id| !gone.contains(id))
+            .cloned()
+            .collect();
         let refused = behind
             .iter()
             .filter(|row| row.origin == Origin::SteamCmd)
@@ -303,6 +310,7 @@ impl App {
             unanswered: downloads::unanswered([&items, &copies], &unlisted),
             checkouts: self.checkouts_of(library, &kept.checkouts),
             problem: None,
+            hidden_unchecked: kept.hidden_unchecked(super::now_secs()),
         }
     }
 

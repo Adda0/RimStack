@@ -292,20 +292,23 @@ pub fn fetch_batch(agent: &ureq::Agent, batch: &[String]) -> Result<Vec<Details>
 
 const PAGE_URL: &str = "https://steamcommunity.com/sharedfiles/filedetails/?id=";
 
-/// Of the ids the API does not answer, those whose public page is Steam's error page: removed
-/// or made private. An unlisted item's page still shows it. `page` gives a page's text, `None`
-/// when it was not had, which ends the asking: an id not seen gone is not gone.
-pub fn gone_among(hidden: &[String], mut page: impl FnMut(&str) -> Option<String>) -> Vec<String> {
-    let mut gone = Vec::new();
-    for id in hidden {
-        let Some(text) = page(id) else {
-            break;
-        };
+/// What an item's public page shows: the item, to anyone with the link (unlisted), or Steam's
+/// error page (removed or private).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Page {
+    Live,
+    Gone,
+}
+
+impl Page {
+    pub fn of(text: &str) -> Page {
         if text.contains(r#"<div class="error_ctn">"#) {
-            gone.push(id.clone());
+            Page::Gone
+        } else {
+            Page::Live
         }
     }
-    gone
 }
 
 fn page(agent: &ureq::Agent, id: &str) -> Option<String> {
@@ -318,11 +321,11 @@ fn page(agent: &ureq::Agent, id: &str) -> Option<String> {
     answer.body_mut().read_to_string().ok()
 }
 
-/// Blocks on the network: one page after another, as steamcommunity.com refuses many at once
-/// (HTTP 429).
-pub fn gone_of(hidden: &[String]) -> Vec<String> {
+/// Blocks on the network: one page at a time, as steamcommunity.com refuses many at once
+/// (HTTP 429). `None` when the page was not had.
+pub fn pages() -> impl FnMut(&str) -> Option<Page> {
     let agent = crate::base::web::agent(30);
-    gone_among(hidden, |id| page(&agent, id))
+    move |id| page(&agent, id).map(|text| Page::of(&text))
 }
 
 /// Blocks on the network. Steam is slow per item, so chunks of 100 go out in parallel.
@@ -400,50 +403,13 @@ mod tests {
 
     #[test]
     fn an_unanswered_item_is_gone_only_when_its_page_is_steams_error() {
-        let hidden = ["3288243760".to_string(), "9999999999".to_string()];
         // Trimmed from what steamcommunity.com serves a visitor not logged in.
         let shown = "<title>Steam Workshop::Salvaging</title>\n\
             <div class=\"workshopItemTitle\">Salvaging</div>";
         let error = "<title>Steam Community :: Error</title>\n<div class=\"error_ctn\">\n\
             <h3>There was a problem accessing the item.  Please try again.</h3>";
-        let pages = |id: &str| Some(if id == "3288243760" { shown } else { error }.to_string());
-        assert_eq!(gone_among(&hidden, pages), ["9999999999"]);
-        // A refused page (HTTP 429) ends the asking: the rest is not gone.
-        let mut asked = 0;
-        let refused = |_: &str| {
-            asked += 1;
-            None
-        };
-        assert!(gone_among(&hidden, refused).is_empty());
-        assert_eq!(asked, 1);
+        assert_eq!((Page::of(shown), Page::of(error)), (Page::Live, Page::Gone));
     }
-
-    const ACF: &str = r#""AppWorkshop"
-{
-	"appid"		"294100"
-	"TimeLastUpdated"		"1791750395"
-	"WorkshopItemsInstalled"
-	{
-		"705924057"
-		{
-			"size"		"1372735"
-			"timeupdated"		"1711286985"
-			"manifest"		"7900175110102980905"
-		}
-		"712141500"
-		{
-			"size"		"5310730"
-			"timeupdated"		"1710519878"
-		}
-	}
-	"WorkshopItemDetails"
-	{
-		"705924057"
-		{
-			"timeupdated"		"5"
-		}
-	}
-}"#;
 
     #[test]
     fn installed_times_come_from_the_installed_block_only() {

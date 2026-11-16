@@ -2077,5 +2077,8 @@
  "{} not played": "{} niegrane",
  "Removed from the Workshop or made private: Steam keeps no updates for it; keep a local copy": "Usunięta z Warsztatu lub ustawiona jako prywatna: Steam nie przechowuje dla niej aktualizacji; zachowaj lokalną kopię",
  "gone from the Workshop": "znikało z Warsztatu",
- "gone from the Workshop, or made private": "znikało z Warsztatu lub ustawione jako prywatne"
+ "gone from the Workshop, or made private": "znikało z Warsztatu lub ustawione jako prywatne",
+ "Steam hides removed, private and unlisted items alike, so each one's Workshop page is looked at, a few per check: Steam refuses many at once. The next check goes on with these.": "Steam ukrywa tak samo elementy usunięte, prywatne i niepubliczne, więc strona Workshop każdego z nich jest sprawdzana, po kilka przy każdym sprawdzeniu: Steam odmawia wielu naraz. Następne sprawdzenie zacznie od tych.",
+ "{} hidden item not checked yet": "{} ukryty element jeszcze niesprawdzony",
+ "{} hidden items not checked yet": "{} ukryte elementy jeszcze niesprawdzone|{} ukrytych elementów jeszcze niesprawdzonych"
 }
