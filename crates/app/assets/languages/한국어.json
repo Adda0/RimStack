@@ -2074,5 +2074,8 @@
  "Not played": "Not played",
  "On disk": "On disk",
  "Show these, biggest first": "Show these, biggest first",
- "{} not played": "{} not played"
+ "{} not played": "{} not played",
+ "Removed from the Workshop or made private: Steam keeps no updates for it; keep a local copy": "Removed from the Workshop or made private: Steam keeps no updates for it; keep a local copy",
+ "gone from the Workshop": "gone from the Workshop",
+ "gone from the Workshop, or made private": "gone from the Workshop, or made private"
 }

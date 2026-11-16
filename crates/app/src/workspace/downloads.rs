@@ -219,6 +219,8 @@ impl App {
         let problem = match workshop::fetch_details(&ids) {
             Ok(now) => {
                 kept.answered(&ids, &now, super::now_secs());
+                let unanswered: Vec<String> = kept.unanswered.iter().cloned().collect();
+                kept.gone = workshop::gone_of(&unanswered).into_iter().collect();
                 None
             }
             Err(problem) => Some(problem.sentence().clone()),
@@ -279,7 +281,10 @@ impl App {
         let behind = downloads::behind(&[(&items, &in_steam), (&copies, &known)], &now);
         if kept.checked.is_some() {
             *self.behind().writing() = Some(behind.iter().map(|row| row.id.clone()).collect());
+            *self.removed().writing() = Some(kept.gone.iter().cloned().collect());
         }
+        // A gone item is no longer on the Workshop at all, not unlisted there.
+        let unlisted: BTreeSet<String> = kept.unanswered.difference(&kept.gone).cloned().collect();
         let refused = behind
             .iter()
             .filter(|row| row.origin == Origin::SteamCmd)
@@ -295,7 +300,7 @@ impl App {
             items: behind,
             refused,
             untracked: downloads::untracked(&copies, &known, &kept.unanswered),
-            unanswered: downloads::unanswered([&items, &copies], &kept.unanswered),
+            unanswered: downloads::unanswered([&items, &copies], &unlisted),
             checkouts: self.checkouts_of(library, &kept.checkouts),
             problem: None,
         }

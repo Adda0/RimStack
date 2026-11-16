@@ -17,6 +17,8 @@ pub struct LastCheck {
     pub manifests: BTreeMap<String, u64>,
     /// Asked and not answered: unlisted by their authors, which Steam answers only to a login.
     pub unanswered: BTreeSet<String>,
+    /// Of `unanswered`, those whose public page is Steam's error page: removed or made private.
+    pub gone: BTreeSet<String>,
     pub checkouts: BTreeMap<String, Remote>,
 }
 
@@ -103,7 +105,8 @@ mod tests {
             asked: Some(2),
             now: BTreeMap::from([("100".to_string(), 7)]),
             manifests: BTreeMap::from([("100".to_string(), 70)]),
-            unanswered: BTreeSet::from(["200".to_string()]),
+            unanswered: BTreeSet::from(["200".to_string(), "300".to_string()]),
+            gone: BTreeSet::from(["300".to_string()]),
             checkouts: BTreeMap::from([
                 (
                     "/mods/a".to_string(),

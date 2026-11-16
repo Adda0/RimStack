@@ -166,6 +166,8 @@ pub struct App {
     facts_runs: AtomicU64,
     facts_counted: std::sync::atomic::AtomicUsize,
     behind: RwLock<Option<HashSet<String>>>,
+    /// Workshop ids whose item is gone; `None` until Downloads has asked Steam.
+    removed: RwLock<Option<HashSet<String>>>,
     /// Mods a save, a saved list or the order history names; `None` for not read yet.
     played: Arc<RwLock<Option<Arc<HashSet<String>>>>>,
     /// Each installed mod's bytes on disk, for the library read they were measured in.
@@ -267,6 +269,7 @@ impl App {
             facts_runs: AtomicU64::new(0),
             facts_counted: Default::default(),
             behind: RwLock::new(None),
+            removed: RwLock::new(None),
             played: Arc::new(RwLock::new(None)),
             folder_bytes: Derived::default(),
             community_problem: RwLock::new(None),
@@ -469,6 +472,11 @@ impl App {
     }
 
     /// `None` until Downloads has asked Steam.
+    /// Workshop folders whose item is gone; `None` until Downloads has asked Steam.
+    pub fn removed(&self) -> &RwLock<Option<HashSet<String>>> {
+        &self.removed
+    }
+
     pub fn behind(&self) -> &RwLock<Option<HashSet<String>>> {
         &self.behind
     }
@@ -593,6 +601,7 @@ impl App {
         self.install.put(fresh);
         *self.session() = Session::new(on_disk);
         *self.behind.writing() = None;
+        *self.removed.writing() = None;
         self.forget_list_on_disk();
         *self.log_read.held() = None;
         self.textures_changed();

@@ -358,6 +358,8 @@ pub mod flag {
     pub const UNPLAYED: u16 = 8192;
     /// Ships a dll an active mod also ships differently, or bundles 0Harmony.
     pub const ASSEMBLIES: u16 = 16384;
+    /// Its Workshop item is gone: removed or made private.
+    pub const REMOVED: u16 = 32768;
 }
 
 impl GroupedList {

@@ -2074,5 +2074,8 @@
  "Not played": "Niegrane",
  "On disk": "Na dysku",
  "Show these, biggest first": "Pokaż te, największe najpierw",
- "{} not played": "{} niegrane"
+ "{} not played": "{} niegrane",
+ "Removed from the Workshop or made private: Steam keeps no updates for it; keep a local copy": "Usunięta z Warsztatu lub ustawiona jako prywatna: Steam nie przechowuje dla niej aktualizacji; zachowaj lokalną kopię",
+ "gone from the Workshop": "znikało z Warsztatu",
+ "gone from the Workshop, or made private": "znikało z Warsztatu lub ustawione jako prywatne"
 }

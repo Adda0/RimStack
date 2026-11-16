@@ -85,6 +85,9 @@ const TERMS: &[(&str, About)] = &[
     ("is:assemblies", |_| {
         say!("ships a dll another active mod also ships, differently")
     }),
+    ("is:removed", |_| {
+        say!("gone from the Workshop, or made private")
+    }),
     ("is:incomplete", |_| {
         say!("missing a property, like a named Workshop item")
     }),

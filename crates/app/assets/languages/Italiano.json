@@ -2074,5 +2074,8 @@
  "Not played": "Mai giocate",
  "On disk": "Su disco",
  "Show these, biggest first": "Mostra questi, la più grande prima",
- "{} not played": "{} mai giocate"
+ "{} not played": "{} mai giocate",
+ "Removed from the Workshop or made private: Steam keeps no updates for it; keep a local copy": "Rimossa dal Workshop o resa privata: Steam non ne conserva gli aggiornamenti; tienine una copia locale",
+ "gone from the Workshop": "sparito dal Workshop",
+ "gone from the Workshop, or made private": "sparito dal Workshop o reso privato"
 }

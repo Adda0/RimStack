@@ -183,6 +183,23 @@ pub fn troubles(
     let ignored = ignored(app);
     let workshop = app.workshop_names();
     let mut found = describe::troubles(library, mods, trust.versions(&trust.trusted), &workshop);
+    let removed = app.removed().reading();
+    if let Some(gone) = removed.as_ref() {
+        for (m, own) in mods.iter().zip(&mut found) {
+            let folder = m.installed.and_then(|i| library.get(i));
+            if folder.is_some_and(|i| gone.contains(&i.folder)) {
+                own.push(Trouble {
+                    error: false,
+                    words: rimstack_core::say!(
+                        "Removed from the Workshop or made private: Steam keeps no updates for it; keep a local copy"
+                    ),
+                    short: rimstack_core::say!("gone from the Workshop"),
+                    fix: describe::Fix::None,
+                    key: String::new(),
+                });
+            }
+        }
+    }
     let known = app.conflicts().reading();
     if let Some(read) = known.as_ref() {
         for (m, own) in mods.iter().zip(&mut found) {
