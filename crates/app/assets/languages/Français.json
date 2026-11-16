@@ -1816,5 +1816,21 @@
  "Go on without selecting": "Avancer sans sélectionner",
  "Shift + click, Shift + Up, Shift + Down": "Maj + clic, Maj + Haut, Maj + Bas",
  "Shift, Ctrl": "Shift, Ctrl",
- "The same with Home, End, Page Up and Page Down": "The same with Home, End, Page Up and Page Down"
+ "The same with Home, End, Page Up and Page Down": "The same with Home, End, Page Up and Page Down",
+ "A RimSort or RimPy mod list, a save's list, a share code or a text list becomes the load order. Save writes it.": "Une liste de mods de RimSort ou RimPy, la liste d'une sauvegarde, un code de partage ou une liste en texte devient l'ordre de chargement. Sauvegarder l'écrit.",
+ "A link a line, one for each active Workshop mod; a friend's RimStack reads them into the downloads": "Un lien par ligne, un pour chaque mod actif du Workshop ; le RimStack d'un ami les lit dans les téléchargements",
+ "A list of mods copied as text, links or a share code, or a link to a Rentry.co page, becomes the load order. Save writes it.": "A list of mods copied as text, links or a share code, or a link to a Rentry.co page, becomes the load order. Save writes it.",
+ "CSV": "CSV",
+ "Copy the Workshop links": "Copier les liens du Workshop",
+ "Copy the share code": "Copier le code de partage",
+ "Export as ModsConfig": "Exporter en ModsConfig",
+ "Export as a RimSort list": "Exporter en liste RimSort",
+ "One active mod": "Un mod actif",
+ "The load order as a short code; this clipboard read into a friend's RimStack gives the same list, with the Workshop pages of its mods": "L'ordre de chargement en code court ; ce presse-papiers lu dans le RimStack d'un ami donne la même liste, avec les pages Workshop de ses mods",
+ "Writes the load order as a saved mod list (.rml), which RimSort and the game read": "Écrit l'ordre de chargement en liste de mods enregistrée (.rml), que RimSort et le jeu lisent",
+ "Writes the load order as the game's ModsConfig.xml": "Écrit l'ordre de chargement en ModsConfig.xml du jeu",
+ "a RimSort mod list": "une liste de mods RimSort",
+ "a game's ModsConfig": "un ModsConfig du jeu",
+ "{} active mods": "{} mods actifs",
+ "{} as {} in {}": "{} en {} dans {}"
 }

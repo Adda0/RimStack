@@ -4,7 +4,7 @@ use rimstack_core::base::error::Error;
 use rimstack_core::base::sentence::Sentence;
 use rimstack_core::kept::{journal, lists};
 use rimstack_core::mods::library::ModId;
-use rimstack_core::mods::share;
+use rimstack_core::mods::{share, share_file};
 use rimstack_core::rimworld::modsconfig;
 use rimstack_core::say;
 use rimstack_core::sources::rentry;
@@ -122,33 +122,55 @@ pub struct HistoryLine {
 }
 
 impl App {
+    /// `active` as the entries the clipboard texts and the exports are made of.
+    fn share_entries(&self, active: &[ModId]) -> Vec<share::Entry> {
+        let loaded = self.library();
+        let Ok((library, _)) = &*loaded else {
+            return Vec::new();
+        };
+        active
+            .iter()
+            .filter_map(|&id| library.get(id))
+            .map(share::Entry::of)
+            .collect()
+    }
+
     /// `active` as text, one a line, as `Copy the load order` gives them.
     pub fn listing(&self, active: &[ModId]) -> String {
-        use rimstack_core::mods::share::{Entry, listing};
         let loaded = self.library();
         let Ok((library, _)) = &*loaded else {
             return String::new();
         };
-        let entries: Vec<Entry> = active
-            .iter()
-            .filter_map(|&id| library.get(id))
-            .map(Entry::of)
-            .collect();
         let paths = self.paths();
         let version = paths
             .full_game_version
             .as_deref()
             .unwrap_or(&library.game_version);
-        listing(version, &entries)
+        share::listing(version, &self.share_entries(active))
+    }
+
+    /// `active` as the share code a friend's RimStack reads back into the same list.
+    pub fn share_code(&self, active: &[ModId]) -> String {
+        share::code(&self.share_entries(active))
+    }
+
+    /// A Workshop page a line, one for each active Workshop mod.
+    pub fn workshop_links(&self, active: &[ModId]) -> String {
+        share::workshop_links(&self.share_entries(active))
     }
 
     pub fn saved_lists(&self) -> Vec<lists::Saved> {
         lists::all(&self.lists_dir())
     }
 
-    /// `active` as RimSort's CSV export, at `path` with `.csv` added when it names no
-    /// extension; the file written and how many mods are in it.
-    pub fn export_csv(&self, active: &[ModId], path: &Path) -> Result<(PathBuf, usize), Error> {
+    /// `active` at `path` as RimSort's CSV, as the game's ModsConfig.xml or as a
+    /// RimSort .rml, by the name's ending (`.csv` when it names none); the file
+    /// written, how many mods are in it, and what it is, as the notice says it.
+    pub fn export_list(
+        &self,
+        active: &[ModId],
+        path: &Path,
+    ) -> Result<(PathBuf, usize, Sentence), Error> {
         use rimstack_core::mods::share_file::{self, Row};
         use rimstack_core::rimworld::paths::Source;
         let loaded = self.library();
@@ -186,9 +208,25 @@ impl App {
         if path.extension().is_none() {
             path.set_extension("csv");
         }
-        let written = rows.len();
-        rimstack_core::base::atomic_file::write(&path, share_file::csv(&rows))?;
-        Ok((path, written))
+        let ids: Vec<String> = rows
+            .iter()
+            .map(|row| row.package_id.clone())
+            .filter(|id| !id.is_empty())
+            .collect();
+        let kind = path
+            .extension()
+            .and_then(|end| end.to_str())
+            .map(str::to_lowercase);
+        let (text, what) = match kind.as_deref() {
+            Some("rml") => (share_file::rml_xml(&ids), say!("a RimSort mod list")),
+            Some("xml") => (
+                share_file::modsconfig_xml(&ids, &library.game_version),
+                say!("a game's ModsConfig"),
+            ),
+            _ => (share_file::csv(&rows), say!("CSV")),
+        };
+        rimstack_core::base::atomic_file::write(&path, text)?;
+        Ok((path, rows.len(), what))
     }
 
     /// Writes the load order as a lockfile: everything a friend needs to check they run the same.
@@ -308,7 +346,7 @@ impl App {
             Some(page) => rentry::fetch(&page)?,
             None => text.to_string(),
         };
-        Ok(share::ids_in(&text))
+        Ok(share_file::ids_from_text(&text).unwrap_or_default())
     }
 
     /// Blocks on the network.
@@ -435,18 +473,11 @@ mod tests {
     #[test]
     fn the_active_mods_are_written_as_rimsorts_csv() {
         let (tmp, app) = installed();
-        let loaded = app.library();
-        let (library, _) = loaded.as_ref().as_ref().unwrap();
-        let active: Vec<ModId> = library
-            .arrange(&["ludeon.rimworld".to_string()])
-            .active
-            .iter()
-            .filter_map(|m| m.installed)
-            .collect();
+        let active = active_of(&app);
         let asked = tmp.path().join("home/modlist");
-        let (written, count) = app.export_csv(&active, &asked).unwrap();
+        let (written, count, what) = app.export_list(&active, &asked).unwrap();
         assert_eq!(written, asked.with_extension("csv"));
-        assert_eq!(count, 1);
+        assert_eq!((count, what.to_string().as_str()), (1, "CSV"));
         let text = std::fs::read_to_string(&written).unwrap();
         let mut lines = text.split("\r\n");
         assert_eq!(
@@ -462,5 +493,88 @@ mod tests {
             )
         );
         assert_eq!(lines.next(), Some(""));
+    }
+
+    fn active_of(app: &App) -> Vec<ModId> {
+        let loaded = app.library();
+        let (library, _) = loaded.as_ref().as_ref().unwrap();
+        library
+            .arrange(&["ludeon.rimworld".to_string()])
+            .active
+            .iter()
+            .filter_map(|m| m.installed)
+            .collect()
+    }
+
+    /// A Workshop mod beside the game's and the local one, so links and ids have one.
+    fn with_workshop(app: &App, root: &std::path::Path) -> Vec<ModId> {
+        let about = root.join("workshop/2941000101/About");
+        std::fs::create_dir_all(&about).unwrap();
+        std::fs::write(
+            about.join("About.xml"),
+            "<ModMetaData><packageId>Fixture.Workshop</packageId><name>Fixture Workshop</name></ModMetaData>",
+        )
+        .unwrap();
+        std::fs::write(about.join("PublishedFileId.txt"), "2941000101").unwrap();
+        app.rescan();
+        let loaded = app.library();
+        let (library, _) = loaded.as_ref().as_ref().unwrap();
+        library
+            .arrange(&[
+                "ludeon.rimworld".to_string(),
+                "fixture.workshop".to_string(),
+            ])
+            .active
+            .iter()
+            .filter_map(|m| m.installed)
+            .collect()
+    }
+
+    #[test]
+    fn the_load_order_is_shared_as_a_code_that_reads_back_and_as_workshop_links() {
+        let (tmp, app) = installed();
+        let active = with_workshop(&app, tmp.path());
+        let code = app.share_code(&active);
+        assert!(code.starts_with("rimstack-list:1:"), "{code}");
+        let read = app.ids_in_copied(&code).unwrap();
+        let expected: Vec<String> = ["ludeon.rimworld", "fixture.workshop"]
+            .iter()
+            .map(|id| id.to_string())
+            .collect();
+        assert_eq!(read, expected);
+        assert_eq!(
+            app.workshop_links(&active),
+            "https://steamcommunity.com/sharedfiles/filedetails/?id=2941000101\n"
+        );
+        assert_eq!(
+            app.ids_in_copied("garbage after a code rimstack-list:1:not-a-code")
+                .unwrap(),
+            Vec::<String>::new()
+        );
+    }
+
+    #[test]
+    fn a_modsconfig_or_rml_export_reads_back_as_the_same_order() {
+        let (tmp, app) = installed();
+        let active = with_workshop(&app, tmp.path());
+        let expected: Vec<String> = ["ludeon.rimworld", "fixture.workshop"]
+            .iter()
+            .map(|id| id.to_string())
+            .collect();
+        for (name, what) in [
+            ("modlist.rml", "a RimSort mod list"),
+            ("ModsConfig.xml", "a game's ModsConfig"),
+        ] {
+            let (written, count, said) = app.export_list(&active, &tmp.path().join(name)).unwrap();
+            assert_eq!((count, said.to_string().as_str()), (2, what));
+            let read = share_file::file(&written).unwrap();
+            assert_eq!(read, expected, "{name}");
+        }
+        let pasted =
+            "<ModsConfigData><activeMods><li>Fixture.Workshop</li></activeMods></ModsConfigData>";
+        assert_eq!(
+            app.ids_in_copied(pasted).unwrap(),
+            ["fixture.workshop".to_string()]
+        );
     }
 }

@@ -348,7 +348,15 @@ impl App {
     }
 
     pub fn look_up(&self, pasted: &str) -> Result<Queue, Error> {
-        let ids = workshop::ids_in(pasted);
+        let mut ids = workshop::ids_in(pasted);
+        if let Some(pairs) = rimstack_core::mods::share::decode(pasted) {
+            let found = pairs.into_iter().filter_map(|(_, id)| id);
+            for id in found {
+                if !ids.contains(&id) {
+                    ids.push(id);
+                }
+            }
+        }
         let local = self.paths().local_mods();
         let repositories = downloads::repositories(pasted, local.as_deref());
         if ids.is_empty() {

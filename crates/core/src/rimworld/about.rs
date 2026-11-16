@@ -75,6 +75,10 @@ pub fn published_file_id(mod_root: &Path) -> Option<String> {
     let id = text.trim_start_matches('\u{feff}').trim();
     crate::rimworld::workshop::is_id(id).then(|| id.to_string())
 }
+/// Digits only, and not 0.
+pub fn is_workshop_id(text: &str) -> bool {
+    text.bytes().all(|b| b.is_ascii_digit()) && text.parse::<u64>().is_ok_and(|n| n > 0)
+}
 
 fn child_ignoring_case(dir: &Path, lower_name: &str) -> Option<PathBuf> {
     std::fs::read_dir(dir)

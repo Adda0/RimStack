@@ -1816,5 +1816,21 @@
  "Go on without selecting": "Go on without selecting",
  "Shift + click, Shift + Up, Shift + Down": "Shift + click, Shift + Up, Shift + Down",
  "Shift, Ctrl": "Shift, Ctrl",
- "The same with Home, End, Page Up and Page Down": "The same with Home, End, Page Up and Page Down"
+ "The same with Home, End, Page Up and Page Down": "The same with Home, End, Page Up and Page Down",
+ "A RimSort or RimPy mod list, a save's list, a share code or a text list becomes the load order. Save writes it.": "A RimSort or RimPy mod list, a save's list, a share code or a text list becomes the load order. Save writes it.",
+ "A link a line, one for each active Workshop mod; a friend's RimStack reads them into the downloads": "A link a line, one for each active Workshop mod; a friend's RimStack reads them into the downloads",
+ "A list of mods copied as text, links or a share code, or a link to a Rentry.co page, becomes the load order. Save writes it.": "A list of mods copied as text, links or a share code, or a link to a Rentry.co page, becomes the load order. Save writes it.",
+ "CSV": "CSV",
+ "Copy the Workshop links": "Copy the Workshop links",
+ "Copy the share code": "Copy the share code",
+ "Export as ModsConfig": "Export as ModsConfig",
+ "Export as a RimSort list": "Export as a RimSort list",
+ "One active mod": "One active mod",
+ "The load order as a short code; this clipboard read into a friend's RimStack gives the same list, with the Workshop pages of its mods": "The load order as a short code; this clipboard read into a friend's RimStack gives the same list, with the Workshop pages of its mods",
+ "Writes the load order as a saved mod list (.rml), which RimSort and the game read": "Writes the load order as a saved mod list (.rml), which RimSort and the game read",
+ "Writes the load order as the game's ModsConfig.xml": "Writes the load order as the game's ModsConfig.xml",
+ "a RimSort mod list": "a RimSort mod list",
+ "a game's ModsConfig": "a game's ModsConfig",
+ "{} active mods": "{} active mods",
+ "{} as {} in {}": "{} as {} in {}"
 }

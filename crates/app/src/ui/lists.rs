@@ -164,32 +164,33 @@ impl Lists {
         self.close(window, cx);
     }
 
-    /// Asks where the CSV goes, offering `modlist.csv` in the user's own folder, and writes it.
-    fn export_csv(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+    /// Asks where the list goes, offering `suggest` in the user's own folder, and writes it.
+    fn export(&mut self, suggest: &str, window: &mut Window, cx: &mut Context<Self>) {
         let home = super::app(cx).home_dir().to_path_buf();
-        let chosen = cx.prompt_for_new_path(&home, Some("modlist.csv"));
+        let chosen = cx.prompt_for_new_path(&home, Some(suggest));
         self.close(window, cx);
         cx.spawn_in(window, async move |lists, cx| {
             let Ok(Ok(Some(path))) = chosen.await else {
                 return;
             };
-            let _ = lists.update(cx, |lists, cx| lists.write_csv(path, cx));
+            let _ = lists.update(cx, |lists, cx| lists.write_list(path, cx));
         })
         .detach();
     }
 
-    fn write_csv(&mut self, path: std::path::PathBuf, cx: &mut Context<Self>) {
+    fn write_list(&mut self, path: std::path::PathBuf, cx: &mut Context<Self>) {
         let (app, active) = (super::app(cx), (*super::order::read(cx).active).clone());
         crate::jobs::run(
-            "csv export",
+            "list export",
             cx,
-            move || app.export_csv(&active, &path),
+            move || app.export_list(&active, &path),
             |_, done, cx| match done {
-                Ok((at, count)) => {
-                    let note = say_n!(
-                        count,
-                        "The active mod as CSV in {}",
-                        "{} active mods as CSV in {}",
+                Ok((at, count, what)) => {
+                    let counted = say_n!(count, "One active mod", "{} active mods");
+                    let note = say!(
+                        "{} as {} in {}",
+                        counted.inside(),
+                        what.inside(),
                         at.display()
                     );
                     notices::say(put(&note), notices::Tone::Ok, cx);
@@ -674,9 +675,22 @@ impl Lists {
                         })),
                 )
                 .child(
+                    Btn::new("copy-share-code", put(&say!("Copy the share code")))
+                        .icon("copy")
+                        .tip(put(&say!(
+                            "The load order as a short code; this clipboard read into a friend's RimStack gives the same list, with the Workshop pages of its mods"
+                        )))
+                        .on_click(cx.listener(|lists, _, window, cx| {
+                            let code =
+                                super::app(cx).share_code(&super::order::read(cx).active);
+                            cx.write_to_clipboard(gpui::ClipboardItem::new_string(code));
+                            lists.close(window, cx);
+                        })),
+                )
+                .child(
                     Btn::new("use-copied", put(&say!("Use the copied list")))
                         .enabled(!self.busy)
-                        .tip(put(&say!("A list of mods copied as text or as links, or a link to a Rentry.co page, becomes the load order. Save writes it.")))
+                        .tip(put(&say!("A list of mods copied as text, links or a share code, or a link to a Rentry.co page, becomes the load order. Save writes it.")))
                         .on_click(cx.listener(|lists, _, _, cx| lists.use_copied(cx))),
                 )
                 .child(
@@ -711,11 +725,27 @@ impl Lists {
                     Btn::new("export-csv", put(&say!("Export as CSV")))
                         .icon("download")
                         .tip(put(&say!("Writes the active mods as a CSV file, the columns of RimSort's export")))
-                        .on_click(cx.listener(|lists, _, window, cx| lists.export_csv(window, cx))),
+                        .on_click(cx.listener(|lists, _, window, cx| {
+                            lists.export("modlist.csv", window, cx)
+                        })),
+                )
+                .child(
+                    Btn::new("export-modsconfig", put(&say!("Export as ModsConfig")))
+                        .tip(put(&say!("Writes the load order as the game's ModsConfig.xml")))
+                        .on_click(cx.listener(|lists, _, window, cx| {
+                            lists.export("ModsConfig.xml", window, cx)
+                        })),
+                )
+                .child(
+                    Btn::new("export-rml", put(&say!("Export as a RimSort list")))
+                        .tip(put(&say!("Writes the load order as a saved mod list (.rml), which RimSort and the game read")))
+                        .on_click(cx.listener(|lists, _, window, cx| {
+                            lists.export("modlist.rml", window, cx)
+                        })),
                 )
                 .child(
                     Btn::new("use-file", put(&say!("Use a list from a file")))
-                        .tip(put(&say!("A RimSort or RimPy mod list, a save's list, or a text list becomes the load order. Save writes it.")))
+                        .tip(put(&say!("A RimSort or RimPy mod list, a save's list, a share code or a text list becomes the load order. Save writes it.")))
                         .on_click(cx.listener(|lists, _, window, cx| lists.use_file(window, cx))),
                 )
                 .into_any_element(),
@@ -730,6 +760,19 @@ impl Lists {
                 .flex()
                 .flex_wrap()
                 .gap(theme::GAP_SMALL)
+                .child(
+                    Btn::new("copy-workshop-links", put(&say!("Copy the Workshop links")))
+                        .icon("copy")
+                        .tip(put(&say!(
+                            "A link a line, one for each active Workshop mod; a friend's RimStack reads them into the downloads"
+                        )))
+                        .on_click(cx.listener(|lists, _, window, cx| {
+                            let links =
+                                super::app(cx).workshop_links(&super::order::read(cx).active);
+                            cx.write_to_clipboard(gpui::ClipboardItem::new_string(links));
+                            lists.close(window, cx);
+                        })),
+                )
                 .child(
                     Btn::new("lock-write", put(&say!("Write a lockfile…")))
                         .icon("send")

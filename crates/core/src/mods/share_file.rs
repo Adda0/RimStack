@@ -83,6 +83,38 @@ pub fn csv(rows: &[Row]) -> String {
     format!("\u{feff}{text}")
 }
 
+fn escaped(id: &str) -> String {
+    id.replace('&', "&amp;").replace('<', "&lt;")
+}
+
+/// The load order as a fresh `ModsConfig.xml`: the shape the game writes,
+/// so the file can be dropped into the game's Config folder or opened by
+/// RimSort or RimPy. `version` is the game version this order was made for.
+pub fn modsconfig_xml(ids: &[String], version: &str) -> String {
+    let shell = format!(
+        "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<ModsConfigData>\n  <version>{}</version>\n  <activeMods>\n  </activeMods>\n  <knownExpansions>\n  </knownExpansions>\n</ModsConfigData>\n",
+        escaped(version)
+    );
+    // with_active checks the written list reads back unchanged.
+    crate::rimworld::modsconfig::with_active(&shell, ids).unwrap_or(shell)
+}
+
+/// The load order as RimWorld's saved mod list (.rml): the shape RimSort's
+/// import and the game's own list files share.
+pub fn rml_xml(ids: &[String]) -> String {
+    let mut text = String::from(
+        "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<savedModList>\n  <meta>\n    <modIds>\n",
+    );
+    let mut once: Vec<&str> = Vec::new();
+    for id in ids {
+        if !id.trim().is_empty() && !once.contains(&id.as_str()) {
+            once.push(id);
+            text += &format!("      <li>{}</li>\n", escaped(id));
+        }
+    }
+    text + "    </modIds>\n  </meta>\n</savedModList>\n"
+}
+
 fn ids_of(walk: impl Iterator<Item = String>) -> Vec<String> {
     let mut ids: Vec<String> = Vec::new();
     for text in walk {
@@ -253,6 +285,7 @@ mod tests {
             crate::mods::share::Entry {
                 name: "Harmony".into(),
                 package_id: "brrainz.harmony".into(),
+                workshop_id: Some("2009463077".into()),
                 url: Some(
                     "https://steamcommunity.com/sharedfiles/filedetails/?id=2009463077".into(),
                 ),
@@ -260,6 +293,7 @@ mod tests {
             crate::mods::share::Entry {
                 name: "Ann.A".into(),
                 package_id: "ann.a".into(),
+                workshop_id: None,
                 url: None,
             },
         ];
@@ -275,5 +309,49 @@ mod tests {
     fn a_plain_text_list_reads_as_on_the_clipboard() {
         let text = ids_from_text("Created with RimStack\nTotal # of mods: 1\n\nHarmony [brrainz.harmony][https://steamcommunity.com/sharedfiles/filedetails/?id=2009463077]\n").unwrap();
         assert_eq!(text, ["brrainz.harmony"]);
+    }
+
+    #[test]
+    fn a_written_modsconfig_reads_back_through_the_import() {
+        let ids = vec!["ludeon.rimworld".to_string(), "brrainz.harmony".to_string()];
+        let text = modsconfig_xml(&ids, "1.6.4871 rev598");
+        assert!(text.starts_with("<?xml"));
+        assert!(text.contains("<version>1.6.4871 rev598</version>"));
+        assert_eq!(ids_in_list(&text).unwrap(), ids);
+    }
+
+    #[test]
+    fn a_written_rml_reads_back_through_the_import() {
+        let ids = vec!["ludeon.rimworld".to_string(), "brrainz.harmony".to_string()];
+        let text = rml_xml(&ids);
+        assert!(text.contains("<savedModList>"));
+        assert_eq!(ids_in_list(&text).unwrap(), ids);
+        // And the shape RimSort's validate_rimworld_mods_list walks:
+        let doc = Document::parse(&text).unwrap();
+        let walked = below(&doc.root_element(), &["meta", "modIds"]);
+        assert_eq!(items(walked).len(), 2);
+    }
+
+    #[test]
+    fn a_written_share_code_reads_back_through_the_import() {
+        let entries = [
+            crate::mods::share::Entry {
+                name: "RimWorld".into(),
+                package_id: "ludeon.rimworld".into(),
+                workshop_id: None,
+                url: None,
+            },
+            crate::mods::share::Entry {
+                name: "Harmony".into(),
+                package_id: "brrainz.harmony".into(),
+                workshop_id: Some("2009463077".into()),
+                url: None,
+            },
+        ];
+        let text = crate::mods::share::code(&entries);
+        assert_eq!(
+            ids_from_text(&text).unwrap(),
+            ["ludeon.rimworld", "brrainz.harmony"]
+        );
     }
 }

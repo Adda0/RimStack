@@ -1816,5 +1816,21 @@
  "Go on without selecting": "Przejdź dalej bez zaznaczania",
  "Shift + click, Shift + Up, Shift + Down": "Shift + kliknięcie, Shift + Góra, Shift + Dół",
  "Shift, Ctrl": "Shift, Ctrl",
- "The same with Home, End, Page Up and Page Down": "The same with Home, End, Page Up and Page Down"
+ "The same with Home, End, Page Up and Page Down": "The same with Home, End, Page Up and Page Down",
+ "A RimSort or RimPy mod list, a save's list, a share code or a text list becomes the load order. Save writes it.": "Lista modów z RimSort lub RimPy, lista zapisu gry, kod udostępnienia albo lista tekstowa staje się kolejnością ładowania. Zapis ją zapisuje.",
+ "A link a line, one for each active Workshop mod; a friend's RimStack reads them into the downloads": "Link w wierszu, po jednym dla każdego aktywnego moda z Warsztatu; RimStack znajomego wczyta je do pobrań",
+ "A list of mods copied as text, links or a share code, or a link to a Rentry.co page, becomes the load order. Save writes it.": "A list of mods copied as text, links or a share code, or a link to a Rentry.co page, becomes the load order. Save writes it.",
+ "CSV": "CSV",
+ "Copy the Workshop links": "Kopiuj linki Warsztatu",
+ "Copy the share code": "Kopiuj kod udostępnienia",
+ "Export as ModsConfig": "Eksportuj jako ModsConfig",
+ "Export as a RimSort list": "Eksportuj jako listę RimSort",
+ "One active mod": "Jeden aktywny mod",
+ "The load order as a short code; this clipboard read into a friend's RimStack gives the same list, with the Workshop pages of its mods": "Kolejność ładowania jako krótki kod; ten schowek wczytany w RimStacku znajomego daje tę samą listę, ze stronami Warsztatu jej modów",
+ "Writes the load order as a saved mod list (.rml), which RimSort and the game read": "Zapisuje kolejność ładowania jako zapisaną listę modów (.rml), którą odczytują RimSort i gra",
+ "Writes the load order as the game's ModsConfig.xml": "Zapisuje kolejność ładowania jako ModsConfig.xml gry",
+ "a RimSort mod list": "lista modów RimSort",
+ "a game's ModsConfig": "ModsConfig gry",
+ "{} active mods": "{} aktywnych modów",
+ "{} as {} in {}": "{} jako {} w {}"
 }
