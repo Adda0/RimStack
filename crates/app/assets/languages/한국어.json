@@ -1986,5 +1986,15 @@
  "Unsubscribe {} Workshop mods": "Unsubscribe {} Workshop mods",
  "Unsubscribe {} Workshop mods…": "Unsubscribe {} Workshop mods…",
  "Unsubscribe {} Workshop mod…": "Unsubscribe {} Workshop mod…",
- "inactive, in no save, saved list or remembered order": "inactive, in no save, saved list or remembered order"
+ "inactive, in no save, saved list or remembered order": "inactive, in no save, saved list or remembered order",
+ "A dll two active mods ship": "A dll two active mods ship",
+ "Ships its own 0Harmony.dll": "Ships its own 0Harmony.dll",
+ "Ships its own 0Harmony.dll, version {}, while Harmony [brrainz.harmony] provides version {}: a bundled copy can take the place of Harmony's and break the mods that use it, so this mod should depend on Harmony instead": "Ships its own 0Harmony.dll, version {}, while Harmony [brrainz.harmony] provides version {}: a bundled copy can take the place of Harmony's and break the mods that use it, so this mod should depend on Harmony instead",
+ "Ships its own 0Harmony.dll, version {}: a bundled copy can take the place of the one Harmony [brrainz.harmony] provides and break the mods that use it, so this mod should depend on Harmony instead": "Ships its own 0Harmony.dll, version {}: a bundled copy can take the place of the one Harmony [brrainz.harmony] provides and break the mods that use it, so this mod should depend on Harmony instead",
+ "Ships its own 0Harmony.dll: a bundled copy can take the place of the one Harmony [brrainz.harmony] provides and break the mods that use it, so this mod should depend on Harmony instead": "Ships its own 0Harmony.dll: a bundled copy can take the place of the one Harmony [brrainz.harmony] provides and break the mods that use it, so this mod should depend on Harmony instead",
+ "ships a dll another active mod also ships, differently": "ships a dll another active mod also ships, differently",
+ "{} dll another active mod also ships, differently; the game loads only the first copy: {}": "{} dll another active mod also ships, differently; the game loads only the first copy: {}",
+ "{} dlls other active mods also ship, differently; the game loads only the first copy: {}": "{} dlls other active mods also ship, differently; the game loads only the first copy: {}",
+ "{}, also in {}, which loads first: the game uses that copy": "{}, also in {}, which loads first: the game uses that copy",
+ "{}, also in {}: this mod loads first, so the game uses this copy": "{}, also in {}: this mod loads first, so the game uses this copy"
 }

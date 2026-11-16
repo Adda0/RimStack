@@ -65,6 +65,8 @@ pub struct Conflicts {
     pub xml_found: HashMap<library::ModId, rimstack_core::mods::xmlcheck::Found>,
     /// What removing mid-save would do, for the installed mods in the newest save.
     pub removal: HashMap<library::ModId, rimstack_core::mods::removal::Removal>,
+    /// Assemblies the mod ships that clash with what the game will load.
+    pub assemblies: HashMap<library::ModId, rimstack_core::mods::assemblies::Found>,
 }
 
 pub type Loaded = Result<(library::Library, Duration), rimstack_core::base::error::Error>;

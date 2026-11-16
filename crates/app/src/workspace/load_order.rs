@@ -489,6 +489,20 @@ impl LoadOrder {
             .flat_map(|about| about.dependencies.for_version(&library.game_version))
             .map(|dep| rimstack_core::rimworld::id::split_steam(dep).0)
             .collect();
+        let in_assembly_clash: HashSet<ModId> = match side {
+            Side::Active => {
+                let known = app.conflicts().reading();
+                (known.as_ref())
+                    .map(|read| {
+                        (read.assemblies.iter())
+                            .filter(|(_, found)| !found.is_empty())
+                            .map(|(id, _)| *id)
+                            .collect()
+                    })
+                    .unwrap_or_default()
+            }
+            Side::Inactive => HashSet::new(),
+        };
         let ignored = rules::ignored(app);
         let played = (side == Side::Inactive).then(|| app.played());
         let mods = self.list(side).mods().iter().enumerate();
@@ -544,6 +558,10 @@ impl LoadOrder {
                     // Named by no save, saved list or remembered order: a cleanup candidate.
                     played.as_deref().is_some_and(|p| !p.contains(&key)),
                     flag::UNPLAYED,
+                ),
+                (
+                    m.installed.is_some_and(|i| in_assembly_clash.contains(&i)),
+                    flag::ASSEMBLIES,
                 ),
             ];
             marks
@@ -757,6 +775,22 @@ impl App {
             &|name| names.contains(name),
             &|folded| library.name_of(folded).is_some(),
         );
+        let member_ids: Vec<String> = members
+            .iter()
+            .map(|&i| library.get(i).and_then(|m| m.key()).unwrap_or_default())
+            .collect();
+        let member_ids: Vec<&str> = member_ids.iter().map(String::as_str).collect();
+        let member_names: Vec<String> = members
+            .iter()
+            .map(|&i| {
+                library
+                    .get(i)
+                    .map(|m| m.display_name().to_string())
+                    .unwrap_or_default()
+            })
+            .collect();
+        let assemblies =
+            rimstack_core::mods::assemblies::check(&borrowed, &member_ids, &member_names);
         let member_of: HashMap<ModId, usize> = (members.iter().copied())
             .enumerate()
             .map(|(at, id)| (id, at))
@@ -803,6 +837,7 @@ impl App {
             scanned,
             xml_found: members.iter().copied().zip(xml).collect(),
             removal,
+            assemblies: members.iter().copied().zip(assemblies).collect(),
             members: members.clone(),
         };
         if !self.keep_facts(run, &loaded, members.iter().copied().zip(facts)) {

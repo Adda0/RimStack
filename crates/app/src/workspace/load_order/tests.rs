@@ -580,6 +580,7 @@ fn nothing_found() -> crate::workspace::Conflicts {
         scanned: Default::default(),
         xml_found: Default::default(),
         removal: Default::default(),
+        assemblies: Default::default(),
     }
 }
 
@@ -730,6 +731,26 @@ fn keys(order: &LoadOrder, side: Side) -> Vec<String> {
         .iter()
         .map(|m| m.id.clone())
         .collect()
+}
+
+#[test]
+fn an_active_mod_bundling_harmony_is_warned_about_and_filtered() {
+    let (tmp, app) = installed();
+    std::fs::create_dir_all(tmp.path().join("game/Mods/roads/Assemblies")).unwrap();
+    std::fs::write(
+        tmp.path().join("game/Mods/roads/Assemblies/0Harmony.dll"),
+        "not an assembly",
+    )
+    .unwrap();
+    let mut order = LoadOrder::read(&app, true, None);
+    order.take(&app, Side::Inactive, 0, None);
+    let members = order.files_to_read(&app).unwrap();
+    app.read_active_files(members);
+    order.recheck(&app);
+    let own = &order.troubles()[1];
+    assert!(own.iter().any(|t| t.key == "assembly-harmony"), "{own:?}");
+    order.set_filter("is:assemblies");
+    assert_eq!(order.list(Side::Active).matching(), 1);
 }
 
 #[test]

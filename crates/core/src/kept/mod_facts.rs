@@ -9,7 +9,8 @@ use std::collections::BTreeMap;
 use std::path::Path;
 use std::sync::Arc;
 
-pub const FORMAT: u32 = 3;
+/// 4: scans list the dlls each mod ships, for the assembly clash checks.
+pub const FORMAT: u32 = 4;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Record<T> {

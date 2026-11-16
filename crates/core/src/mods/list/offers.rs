@@ -82,6 +82,9 @@ const TERMS: &[(&str, About)] = &[
     ("is:unplayed", |_| {
         say!("inactive, in no save, saved list or remembered order")
     }),
+    ("is:assemblies", |_| {
+        say!("ships a dll another active mod also ships, differently")
+    }),
     ("is:incomplete", |_| {
         say!("missing a property, like a named Workshop item")
     }),

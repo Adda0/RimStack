@@ -1986,5 +1986,15 @@
  "Unsubscribe {} Workshop mods": "Cancelar a subscrição de {} mods do Workshop",
  "Unsubscribe {} Workshop mods…": "Cancelar a subscrição de {} mods do Workshop…",
  "Unsubscribe {} Workshop mod…": "Cancelar a subscrição de {} mod do Workshop…",
- "inactive, in no save, saved list or remembered order": "inativo, em nenhum jogo guardado, nenhuma lista guardada nem nenhuma ordem conservada"
+ "inactive, in no save, saved list or remembered order": "inativo, em nenhum jogo guardado, nenhuma lista guardada nem nenhuma ordem conservada",
+ "A dll two active mods ship": "Uma dll que dois mods ativos trazem",
+ "Ships its own 0Harmony.dll": "Traz a sua própria 0Harmony.dll",
+ "Ships its own 0Harmony.dll, version {}, while Harmony [brrainz.harmony] provides version {}: a bundled copy can take the place of Harmony's and break the mods that use it, so this mod should depend on Harmony instead": "Traz a sua própria 0Harmony.dll, versão {}, enquanto o Harmony [brrainz.harmony] fornece a versão {}: uma cópia incluída pode tomar o lugar da do Harmony e quebrar os mods que a usam, por isso este mod deveria depender do Harmony",
+ "Ships its own 0Harmony.dll, version {}: a bundled copy can take the place of the one Harmony [brrainz.harmony] provides and break the mods that use it, so this mod should depend on Harmony instead": "Traz a sua própria 0Harmony.dll, versão {}: uma cópia incluída pode tomar o lugar da que o Harmony [brrainz.harmony] fornece e quebrar os mods que a usam, por isso este mod deveria depender do Harmony",
+ "Ships its own 0Harmony.dll: a bundled copy can take the place of the one Harmony [brrainz.harmony] provides and break the mods that use it, so this mod should depend on Harmony instead": "Traz a sua própria 0Harmony.dll: uma cópia incluída pode tomar o lugar da que o Harmony [brrainz.harmony] fornece e quebrar os mods que a usam, por isso este mod deveria depender do Harmony",
+ "ships a dll another active mod also ships, differently": "traz uma dll que outro mod ativo também traz, diferente",
+ "{} dll another active mod also ships, differently; the game loads only the first copy: {}": "{} dll another active mod also ships, differently; the game loads only the first copy: {}",
+ "{} dlls other active mods also ship, differently; the game loads only the first copy: {}": "{} dlls other active mods also ship, differently; the game loads only the first copy: {}",
+ "{}, also in {}, which loads first: the game uses that copy": "{}, também em {}, que carrega primeiro: o jogo usa essa cópia",
+ "{}, also in {}: this mod loads first, so the game uses this copy": "{}, também em {}: este mod carrega primeiro, por isso o jogo usa esta cópia"
 }

@@ -1986,5 +1986,15 @@
  "Unsubscribe {} Workshop mods": "Se désabonner de {} mods du Workshop",
  "Unsubscribe {} Workshop mods…": "Se désabonner de {} mods du Workshop…",
  "Unsubscribe {} Workshop mod…": "Se désabonner de {} mod du Workshop…",
- "inactive, in no save, saved list or remembered order": "inactif, dans aucune sauvegarde, aucune liste enregistrée ni aucun ordre conservé"
+ "inactive, in no save, saved list or remembered order": "inactif, dans aucune sauvegarde, aucune liste enregistrée ni aucun ordre conservé",
+ "A dll two active mods ship": "Une dll que livrent deux mods actifs",
+ "Ships its own 0Harmony.dll": "Livre sa propre 0Harmony.dll",
+ "Ships its own 0Harmony.dll, version {}, while Harmony [brrainz.harmony] provides version {}: a bundled copy can take the place of Harmony's and break the mods that use it, so this mod should depend on Harmony instead": "Livre sa propre 0Harmony.dll, version {}, alors que Harmony [brrainz.harmony] fournit la version {} : une copie embarquée peut prendre la place de celle de Harmony et casser les mods qui l'utilisent, ce mod devrait donc plutôt dépendre de Harmony",
+ "Ships its own 0Harmony.dll, version {}: a bundled copy can take the place of the one Harmony [brrainz.harmony] provides and break the mods that use it, so this mod should depend on Harmony instead": "Livre sa propre 0Harmony.dll, version {} : une copie embarquée peut prendre la place de celle que fournit Harmony [brrainz.harmony] et casser les mods qui l'utilisent, ce mod devrait donc plutôt dépendre de Harmony",
+ "Ships its own 0Harmony.dll: a bundled copy can take the place of the one Harmony [brrainz.harmony] provides and break the mods that use it, so this mod should depend on Harmony instead": "Livre sa propre 0Harmony.dll : une copie embarquée peut prendre la place de celle que fournit Harmony [brrainz.harmony] et casser les mods qui l'utilisent, ce mod devrait donc plutôt dépendre de Harmony",
+ "ships a dll another active mod also ships, differently": "livre une dll qu'un autre mod actif livre aussi, différente",
+ "{} dll another active mod also ships, differently; the game loads only the first copy: {}": "{} dll another active mod also ships, differently; the game loads only the first copy: {}",
+ "{} dlls other active mods also ship, differently; the game loads only the first copy: {}": "{} dlls other active mods also ship, differently; the game loads only the first copy: {}",
+ "{}, also in {}, which loads first: the game uses that copy": "{}, aussi dans {}, qui se charge en premier : le jeu utilise cette copie-là",
+ "{}, also in {}: this mod loads first, so the game uses this copy": "{}, aussi dans {} : ce mod se charge en premier, le jeu utilise donc cette copie"
 }

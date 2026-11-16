@@ -356,6 +356,8 @@ pub mod flag {
     pub const DEFCLASH: u16 = 4096;
     /// Off, and named by no save, no saved list and no kept order: a cleanup candidate.
     pub const UNPLAYED: u16 = 8192;
+    /// Ships a dll an active mod also ships differently, or bundles 0Harmony.
+    pub const ASSEMBLIES: u16 = 16384;
 }
 
 impl GroupedList {

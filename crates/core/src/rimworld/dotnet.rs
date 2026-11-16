@@ -279,6 +279,18 @@ impl<'a> Assembly<'a> {
             .collect()
     }
 
+    /// The version the assembly names itself with: major, minor, build, revision.
+    pub fn version(&self) -> Option<[u16; 4]> {
+        if self.rows[ASSEMBLY] == 0 {
+            return None;
+        }
+        let at = self.starts[ASSEMBLY] + self.columns[ASSEMBLY][1].0;
+        let bytes = self.dll.get(at..at + 8)?;
+        Some(std::array::from_fn(|i| {
+            u16::from_le_bytes([bytes[2 * i], bytes[2 * i + 1]])
+        }))
+    }
+
     fn methods_of(&self, type_row: usize) -> std::ops::Range<usize> {
         // A damaged list starting at row 0 is taken from row 1.
         let first = self.cell(TYPE_DEF, type_row, 5).unwrap_or(1).max(1);
@@ -398,6 +410,20 @@ mod tests {
             Assembly::read(&dll).unwrap().references(),
             ["Assembly-CSharp", "0Harmony"]
         );
+    }
+
+    #[test]
+    fn the_version_comes_from_the_assembly_row() {
+        let mut b = Builder::new();
+        b.reference("Assembly-CSharp");
+        assert_eq!(Assembly::read(&b.finish()).unwrap().version(), None);
+        let mut b = Builder::new();
+        b.reference("Assembly-CSharp");
+        b.assembly("0Harmony", [2, 3, 1, 7]);
+        let dll = b.finish();
+        let assembly = Assembly::read(&dll).unwrap();
+        assert_eq!(assembly.version(), Some([2, 3, 1, 7]));
+        assert_eq!(assembly.references(), ["Assembly-CSharp"]);
     }
 
     #[test]
