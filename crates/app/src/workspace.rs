@@ -168,6 +168,8 @@ pub struct App {
     behind: RwLock<Option<HashSet<String>>>,
     /// Mods a save, a saved list or the order history names; `None` for not read yet.
     played: Arc<RwLock<Option<Arc<HashSet<String>>>>>,
+    /// Each installed mod's bytes on disk, for the library read they were measured in.
+    folder_bytes: Derived<usize, HashMap<library::ModId, u64>>,
     /// Why the community data last failed to download; `None` once one succeeds.
     community_problem: RwLock<Option<rimstack_core::base::sentence::Sentence>>,
     list_on_disk: Mutex<(u64, bool)>,
@@ -266,6 +268,7 @@ impl App {
             facts_counted: Default::default(),
             behind: RwLock::new(None),
             played: Arc::new(RwLock::new(None)),
+            folder_bytes: Derived::default(),
             community_problem: RwLock::new(None),
             list_on_disk: Mutex::new((0, false)),
             git: OnceLock::new(),
@@ -519,6 +522,35 @@ impl App {
 
     pub fn library(&self) -> Arc<Loaded> {
         self.install().library()
+    }
+
+    /// Bytes on disk of each installed mod: as Steam records a Workshop item, else its folder
+    /// measured, once for each reading of the mods.
+    pub fn folder_bytes(&self) -> Arc<HashMap<library::ModId, u64>> {
+        let loaded = self.library();
+        let read_as = Arc::as_ptr(&loaded) as usize;
+        self.folder_bytes.get(read_as, || {
+            let Ok((library, _)) = &*loaded else {
+                return HashMap::new();
+            };
+            let steam = self.steam_record();
+            (library.ids())
+                .map(|(id, m)| {
+                    let measured = || {
+                        rimstack_core::base::walk::whole_tree(&m.path).map_or(0, |tree| {
+                            (tree.into_iter())
+                                .filter_map(|entry| std::fs::metadata(&entry.path).ok())
+                                .map(|meta| meta.len())
+                                .sum()
+                        })
+                    };
+                    let recorded = (m.source == rimstack_core::rimworld::paths::Source::Workshop)
+                        .then(|| steam.sizes.get(&m.folder).copied())
+                        .flatten();
+                    (id, recorded.unwrap_or_else(measured))
+                })
+                .collect()
+        })
     }
 
     /// The mods as read, `None` while the first reading runs, never waiting on it.

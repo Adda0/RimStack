@@ -24,7 +24,7 @@ mod rules;
 mod sorting;
 mod summary;
 
-pub use details::{Details, Files, Overview, ProblemSaid, Textures};
+pub use details::{Details, Files, Overview, ProblemSaid, Textures, Usage};
 pub use menu::{Action, Ask, Clicked, Entry};
 pub use orders::{OrderEntry, Orders};
 pub use rows::{Level, Origin, RowView, sort_slides};

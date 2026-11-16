@@ -249,6 +249,20 @@ pub struct Overview {
     pub trusted: Vec<Named>,
     pub community_mods: Option<usize>,
     pub community_time: Option<i64>,
+    pub usage: Usage,
+}
+
+/// The lists' bytes on disk, for the summary's On disk card.
+#[derive(Serialize, Default, Clone, Copy, PartialEq, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct Usage {
+    pub active: u64,
+    pub inactive: u64,
+    pub workshop: u64,
+    pub local: u64,
+    pub git: u64,
+    /// Inactive mods no save, saved list or remembered order names.
+    pub unplayed: u64,
 }
 
 impl LoadOrder {
@@ -764,6 +778,43 @@ impl LoadOrder {
             trusted,
             community_mods: (*community).as_ref().map(|c| c.len()),
             community_time: (*community).as_ref().and_then(|c| c.timestamp),
+            usage: self.usage(app),
         }
+    }
+
+    pub fn usage(&self, app: &App) -> Usage {
+        let bytes = app.folder_bytes();
+        let played = app.played();
+        let of = |m: &Mod| {
+            m.installed
+                .and_then(|i| bytes.get(&i))
+                .copied()
+                .unwrap_or(0)
+        };
+        let mut usage = Usage::default();
+        for (side, mods) in [
+            (Side::Active, self.active.mods()),
+            (Side::Inactive, self.inactive.mods()),
+        ] {
+            for m in mods {
+                let b = of(m);
+                match side {
+                    Side::Active => usage.active += b,
+                    Side::Inactive => usage.inactive += b,
+                }
+                if m.workshop {
+                    usage.workshop += b;
+                } else if m.git {
+                    usage.git += b;
+                } else if m.local {
+                    usage.local += b;
+                }
+                let key = rimstack_core::rimworld::id::split_steam(&m.id).0;
+                if side == Side::Inactive && !played.contains(&key) {
+                    usage.unplayed += b;
+                }
+            }
+        }
+        usage
     }
 }

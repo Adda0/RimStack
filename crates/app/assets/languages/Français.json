@@ -2070,5 +2070,9 @@
  "{} cannot be renamed": "{} ne peut pas être renommé",
  "{} cannot name a setup: “Default” is taken, and slashes and the like are off": "{} ne peut pas nommer un ensemble : « Défaut » est pris, et les barres obliques et similaires sont interdites",
  "{} names a setup already": "{} nomme déjà un ensemble",
- "↑ ↓ ← → next texture": "↑ ↓ ← → texture suivante"
+ "↑ ↓ ← → next texture": "↑ ↓ ← → texture suivante",
+ "Not played": "Pas joués",
+ "On disk": "Sur le disque",
+ "Show these, biggest first": "Montrer ceux-ci, le plus gros d'abord",
+ "{} not played": "{} pas joués"
 }

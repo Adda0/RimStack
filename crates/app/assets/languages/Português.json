@@ -2070,5 +2070,9 @@
  "{} cannot be renamed": "Não é possível mudar o nome de {}",
  "{} cannot name a setup: “Default” is taken, and slashes and the like are off": "{} não pode nomear uma configuração: «Predefinição» já está ocupado, e barras e semelhantes não são permitidas",
  "{} names a setup already": "{} já dá nome a uma configuração",
- "↑ ↓ ← → next texture": "↑ ↓ ← → textura seguinte"
+ "↑ ↓ ← → next texture": "↑ ↓ ← → textura seguinte",
+ "Not played": "Nunca jogados",
+ "On disk": "Em disco",
+ "Show these, biggest first": "Mostrar estes, o maior primeiro",
+ "{} not played": "{} nunca jogados"
 }

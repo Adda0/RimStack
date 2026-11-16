@@ -2070,5 +2070,9 @@
  "{} cannot be renamed": "{} cannot be renamed",
  "{} cannot name a setup: “Default” is taken, and slashes and the like are off": "{} cannot name a setup: “Default” is taken, and slashes and the like are off",
  "{} names a setup already": "{} names a setup already",
- "↑ ↓ ← → next texture": "↑ ↓ ← → next texture"
+ "↑ ↓ ← → next texture": "↑ ↓ ← → next texture",
+ "Not played": "Not played",
+ "On disk": "On disk",
+ "Show these, biggest first": "Show these, biggest first",
+ "{} not played": "{} not played"
 }

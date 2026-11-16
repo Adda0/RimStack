@@ -135,6 +135,7 @@ impl DetailsView {
             .children(self.slowest(theme, cx))
             .when(!self.shown.demo, |d| {
                 d.children(self.kept(theme, window, cx))
+                    .children(self.on_disk(theme, window, cx))
             })
     }
 
@@ -408,6 +409,102 @@ impl DetailsView {
         let card = Card::new("overview-inventory", put(&say!("Kept")))
             .note(note)
             .body(lines);
+        Some(card.folds(folded, fold).render(theme, None))
+    }
+
+    /// The space the lists take; a line shows the mods it counts, biggest first.
+    fn on_disk(
+        &self,
+        theme: &Theme,
+        window: &gpui::Window,
+        cx: &mut Context<Self>,
+    ) -> Option<gpui::Stateful<gpui::Div>> {
+        let usage = self.shown.overview.as_ref()?.usage;
+        if usage.active + usage.inactive == 0 {
+            return None;
+        }
+        let text = |bytes: u64| {
+            put(&rimstack_core::base::sizes::together(bytes as f64 / 1_048_576.0, 0.0).0)
+        };
+        let (folded, fold) = self.fold("overview-disk", true, cx);
+        let note = match folded {
+            true => [
+                (usage.active, say!("{} active", text(usage.active))),
+                (usage.inactive, say!("{} inactive", text(usage.inactive))),
+                (usage.unplayed, say!("{} not played", text(usage.unplayed))),
+            ]
+            .into_iter()
+            .filter(|(bytes, _)| *bytes > 0)
+            .map(|(_, said)| put(&said))
+            .collect::<Vec<_>>()
+            .join(", "),
+            false => String::new(),
+        };
+        // "" for the active list, ordered by size; else the filter that shows the inactive ones.
+        let lines = [
+            (say!("Active"), usage.active, None),
+            (say!("Inactive"), usage.inactive, Some("is:inactive")),
+            (say!("Workshop"), usage.workshop, Some("is:workshop")),
+            (say!("local"), usage.local, Some("is:local")),
+            (say!("Git"), usage.git, Some("is:git")),
+            (
+                say!("Not played"),
+                usage.unplayed,
+                Some("is:inactive is:unplayed"),
+            ),
+        ];
+        let lines: Vec<_> = lines
+            .into_iter()
+            .filter(|(_, bytes, _)| *bytes > 0)
+            .collect();
+        let labels: Vec<String> = lines.iter().map(|(said, _, _)| put(said)).collect();
+        let named = labels
+            .iter()
+            .map(|said| {
+                crate::ui::widgets::measure(window, theme, said, theme.body(), FontWeight::NORMAL)
+            })
+            .fold(gpui::px(0.), gpui::Pixels::max)
+            + theme::GAP;
+        let body =
+            lines
+                .into_iter()
+                .zip(labels)
+                .enumerate()
+                .map(|(at, ((_, bytes, filter), said))| {
+                    let show = self.on_mods(move |mods, cx| match filter {
+                        None => mods.order_active("size down", cx),
+                        Some(filter) => {
+                            mods.filter_by(filter, cx);
+                            mods.order_inactive("size down", cx);
+                        }
+                    });
+                    let line = div()
+                        .id(("disk-line", at))
+                        .flex()
+                        .cursor_pointer()
+                        .child(
+                            label(theme, theme.body(), theme.colours.ink2, said)
+                                .flex_none()
+                                .w(named),
+                        )
+                        .child(
+                            div()
+                                .flex_1()
+                                .min_w_0()
+                                .overflow_hidden()
+                                .whitespace_nowrap()
+                                .text_ellipsis()
+                                .sized_text(theme, theme.body())
+                                .text_color(theme.colours.ink)
+                                .child(text(bytes)),
+                        )
+                        .on_click(show);
+                    crate::ui::tip::tipped(line, put(&say!("Show these, biggest first")).into())
+                        .into_any_element()
+                });
+        let card = Card::new("overview-disk", put(&say!("On disk")))
+            .note(note)
+            .body(body.collect());
         Some(card.folds(folded, fold).render(theme, None))
     }
 }
