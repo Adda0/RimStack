@@ -129,12 +129,15 @@ fn deflate(text: &str) -> Vec<u8> {
     to.finish().unwrap_or_default()
 }
 
+/// Far more than the longest list unpacks to; a code that unpacks to more is refused.
+const UNPACKED_LIMIT: u64 = 16 << 20;
+
 fn inflate(bytes: &[u8]) -> Option<Vec<u8>> {
     use std::io::Read;
-    let mut from = flate2::read::ZlibDecoder::new(bytes);
+    let from = flate2::read::ZlibDecoder::new(bytes);
     let mut text = Vec::new();
-    from.read_to_end(&mut text).ok()?;
-    Some(text)
+    from.take(UNPACKED_LIMIT + 1).read_to_end(&mut text).ok()?;
+    (text.len() as u64 <= UNPACKED_LIMIT).then_some(text)
 }
 
 /// A package id a line, its Workshop id beside it when known, compressed and
@@ -164,11 +167,12 @@ pub fn decode(text: &str) -> Option<Vec<(String, Option<String>)>> {
         };
         let bytes = from_url64(rest.strip_prefix("1:")?)?;
         let text = String::from_utf8(inflate(&bytes)?).ok()?;
+        let mut seen = std::collections::HashSet::new();
         let mut pairs: Vec<(String, Option<String>)> = Vec::new();
         for line in text.lines() {
             let mut parts = line.split_whitespace();
             let id = crate::rimworld::id::fold(parts.next()?);
-            if id.is_empty() || pairs.iter().any(|(own, _)| own == &id) {
+            if id.is_empty() || !seen.insert(id.clone()) {
                 continue;
             }
             let workshop = parts
@@ -192,12 +196,13 @@ pub fn ids_in(text: &str) -> Vec<String> {
         let lettered = s.chars().any(|c| c.is_ascii_alphabetic());
         s.contains('.') && lettered && s.chars().all(plain)
     };
+    let mut seen: std::collections::HashSet<String> = shared.iter().cloned().collect();
     let mut ids: Vec<String> = shared;
     for line in text.lines().map(str::trim) {
         let tagged = tagged_ids(line);
         if !tagged.is_empty() {
             for id in tagged.into_iter().map(crate::rimworld::id::fold) {
-                if !ids.contains(&id) {
+                if seen.insert(id.clone()) {
                     ids.push(id);
                 }
             }
@@ -210,7 +215,7 @@ pub fn ids_in(text: &str) -> Vec<String> {
         let found = bracketed.map(str::trim).find(|part| reads_as_id(part));
         let id = found.or(Some(line).filter(|l| reads_as_id(l)));
         if let Some(id) = id.map(crate::rimworld::id::fold)
-            && !ids.contains(&id)
+            && seen.insert(id.clone())
         {
             ids.push(id);
         }
@@ -382,5 +387,32 @@ PackageId:
             ["author.tools", "ludeon.rimworld", "brrainz.harmony"]
         );
         assert!(ids_in("nothing here\n1.6\n").is_empty());
+    }
+
+    #[test]
+    fn a_code_that_unpacks_past_the_limit_is_refused() {
+        // The smallest blast, to cross the 16 MB the unpack allows without a big fixture.
+        let mut half = String::from("ludeon.rimworld\n");
+        while half.len() < UNPACKED_LIMIT as usize / 2 {
+            half += &half;
+        }
+        let big = format!(
+            "rimstack-list:1:{}",
+            url64(&deflate(&format!("{half}{half}{half}")))
+        );
+        assert_eq!(decode(&big), None);
+        let fit = format!("rimstack-list:1:{}", url64(&deflate(&half)));
+        assert!(decode(&fit).is_some());
+    }
+
+    #[test]
+    fn a_million_line_list_keeps_each_id_once() {
+        let lines = (0..1_000_000)
+            .map(|at| format!("mod.{}.example\n", at % 500_000))
+            .collect::<String>();
+        let ids = ids_in(&lines);
+        assert_eq!(ids.len(), 500_000);
+        assert_eq!(ids[0], "mod.0.example");
+        assert_eq!(ids.last(), Some(&"mod.499999.example".to_string()));
     }
 }
