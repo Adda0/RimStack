@@ -172,6 +172,7 @@ fn ask(window: &mut Window, cx: &mut Context<Shell>) {
         label: put(&say!("Set aside")),
         danger: false,
         run: Box::new(|_, _| {}),
+        second: None,
     };
     prompt::ask(question, window, cx);
 }

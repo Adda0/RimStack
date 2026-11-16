@@ -162,6 +162,7 @@ fn lists_menu(text_scale: f32, window: &dyn Fn(&Theme) -> Size<Pixels>) -> Vec<S
         app.keep_list(
             "A medieval run with the big overhauls",
             Some(vec!["Ludeon.RimWorld".to_string()]),
+            false,
         )
     });
     let text = crate::ui::made_up::text_system();

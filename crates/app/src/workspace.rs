@@ -283,8 +283,6 @@ impl App {
             records_waiting: Arc::default(),
             records_writes: crate::jobs::Single::default(),
             bus: Arc::default(),
-            setup: RwLock::new(setup),
-            data_dir,
         }
     }
 

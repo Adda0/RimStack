@@ -297,9 +297,9 @@ pub fn order_troubles(
                 .unwrap_or_else(|| "order".to_string());
             vec![Trouble {
                 error: false,
-                words: say!("Should load {}.", words.inside()),
+                words: rimstack_core::say!("Should load {}.", words.inside()),
                 items: Vec::new(),
-                short: say!("Should load {}.", words.inside()),
+                short: rimstack_core::say!("Should load {}.", words.inside()),
                 fix: describe::Fix::Move(other, after),
                 key,
                 kind: describe::TroubleKind::OutOfOrder,

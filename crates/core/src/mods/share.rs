@@ -392,9 +392,12 @@ PackageId:
     #[test]
     fn a_code_that_unpacks_past_the_limit_is_refused() {
         // The smallest blast, to cross the 16 MB the unpack allows without a big fixture.
-        let mut half = String::from("ludeon.rimworld\n");
+        let mut half = String::with_capacity(UNPACKED_LIMIT as usize / 2 + 16);
+        half.push_str("ludeon.rimworld\n");
+        // Doubling the text grows toward the smallest unpacked blast the limit refuses.
         while half.len() < UNPACKED_LIMIT as usize / 2 {
-            half += &half;
+            let more = half.clone();
+            half.push_str(&more);
         }
         let big = format!(
             "rimstack-list:1:{}",

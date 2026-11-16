@@ -108,6 +108,7 @@ impl Mods {
                     };
                     notices::say(said, tone, cx);
                 }),
+                second: None,
             },
             window,
             cx,

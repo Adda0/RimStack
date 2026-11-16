@@ -413,7 +413,7 @@ pub fn watched(
 
 #[cfg(test)]
 pub mod watch {
-    use gpui::{Bounds, Pixels, SharedString, Window};
+    use gpui::{Bounds, Pixels, SharedString, Styled, Window};
     use std::cell::RefCell;
 
     #[derive(Debug)]

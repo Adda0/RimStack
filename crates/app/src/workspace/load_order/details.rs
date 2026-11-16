@@ -4,7 +4,7 @@ use rimstack_core::base::locks::Shared;
 use rimstack_core::base::sentence::Sentence;
 use rimstack_core::mods::describe::{self, Trouble, TroubleKind};
 use rimstack_core::mods::details::{self, Clash, Named, OwnRule, Slow};
-use rimstack_core::mods::library::ModId;
+use rimstack_core::mods::library::{Library, ModId};
 use rimstack_core::mods::list::{Category, Mod};
 use rimstack_core::mods::tree::folder_tree;
 use rimstack_core::rimworld::loadfolders;
@@ -475,7 +475,14 @@ impl LoadOrder {
             Source::Official => None,
             _ => rimstack_core::rimworld::about::published_file_id(&m.path)
                 .or_else(|| {
-                    let twin = library.copies(id).filter(|c| c.workshop != id)?.workshop;
+                    // A local copy may name the same package id in another folder; its Workshop
+                    // sibling answers which item.
+                    let twin = library.copies(id)?.all.into_iter().find(|at| {
+                        *at != id
+                            && library
+                                .get(*at)
+                                .is_some_and(|c| c.source == Source::Workshop)
+                    })?;
                     Some(library.get(twin)?.folder.clone())
                 })
                 .or_else(|| Some(app.workshop_names().get(&m.key()?)?.workshop_id.clone())),

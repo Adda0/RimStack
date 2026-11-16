@@ -277,6 +277,7 @@ impl Textures {
             run: Box::new(move |_, cx| {
                 let _ = me.update(cx, |textures, cx| textures.delete_spare(cx));
             }),
+            second: None,
         };
         prompt::ask(question, window, cx);
     }
@@ -306,6 +307,7 @@ impl Textures {
             run: Box::new(move |_, cx| {
                 let _ = me.update(cx, |textures, cx| textures.set_refused_aside(cx));
             }),
+            second: None,
         };
         prompt::ask(question, window, cx);
     }

@@ -964,7 +964,7 @@ mod tests {
             id: ids.first().copied(),
             selected: &ids,
         };
-        let entries = order.row_menu(&app, &at);
+        let entries = order.row_menu(&app, &at, "");
         let bin = entries
             .iter()
             .find(|entry| matches!(entry.action, Some(Action::BinMany { .. })))

@@ -39,6 +39,8 @@ pub struct Question {
     pub label: String,
     pub danger: bool,
     pub run: Answer,
+    /// A second choice, drawn between Cancel and the main answer.
+    pub second: Option<(String, Answer)>,
 }
 
 pub struct Prompt {
@@ -50,6 +52,8 @@ pub struct Prompt {
     answer_keys: FocusHandle,
     /// Answered or cancelled, drawn only while it fades out; its answer is gone.
     fading: Option<Question>,
+    /// The second choice's label, kept only so the fading sheet shows it.
+    fading_second_label: Option<String>,
 }
 
 struct Asking(Entity<Prompt>);
@@ -64,6 +68,7 @@ pub fn install(cx: &mut App) -> Entity<Prompt> {
         turn: 0,
         answer_keys: cx.focus_handle().tab_stop(false),
         fading: None,
+        fading_second_label: None,
     });
     cx.set_global(Asking(prompt.clone()));
     prompt
@@ -80,6 +85,7 @@ pub fn ask(question: Question, window: &mut Window, cx: &mut App) {
         prompt.before = before;
         prompt.turn = super::motion::opening();
         prompt.fading = None;
+        prompt.fading_second_label = None;
         match field {
             Some(field) => {
                 cx.subscribe_in(
@@ -100,19 +106,34 @@ pub fn ask(question: Question, window: &mut Window, cx: &mut App) {
 }
 
 impl Prompt {
-    fn close(&mut self, window: &mut Window, cx: &mut Context<Self>) -> Option<Answer> {
+    fn close(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Option<(Answer, Option<Answer>)> {
         let run = self.asked.take().map(|mut asked| {
             let run = std::mem::replace(&mut asked.run, Box::new(|_, _| {}));
+            let (second, label) = asked
+                .second
+                .take()
+                .map_or((None, None), |(label, mut run)| {
+                    (
+                        Some(std::mem::replace(&mut run, Box::new(|_, _| {}))),
+                        Some(label),
+                    )
+                });
             if super::motion::fades_out(cx) {
                 self.fading = Some(asked);
+                self.fading_second_label = label;
                 let turn = self.turn;
                 super::motion::after_fade(cx, move |prompt: &mut Self, cx| {
                     if prompt.turn == turn && prompt.fading.take().is_some() {
+                        prompt.fading_second_label = None;
                         cx.notify();
                     }
                 });
             }
-            run
+            (run, second)
         });
         if let Some(before) = self.before.take() {
             window.focus(&before, cx);
@@ -125,7 +146,16 @@ impl Prompt {
         if self.asked.as_ref().is_some_and(|asked| !asked.filled(cx)) {
             return;
         }
-        if let Some(run) = self.close(window, cx) {
+        if let Some((run, _)) = self.close(window, cx) {
+            run(window, cx);
+        }
+    }
+
+    fn answer_second(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.asked.as_ref().is_some_and(|asked| !asked.filled(cx)) {
+            return;
+        }
+        if let Some((_, Some(run))) = self.close(window, cx) {
             run(window, cx);
         }
     }
@@ -179,6 +209,22 @@ impl Render for Prompt {
             .primary_if(!asked.danger)
             .when(asked.danger, Btn::danger)
             .on_click(cx.listener(|prompt, _, window, cx| prompt.answer(window, cx)));
+        let second_label = asked
+            .second
+            .as_ref()
+            .map(|(label, _)| label.clone())
+            .or_else(|| {
+                if fading {
+                    self.fading_second_label.clone()
+                } else {
+                    None
+                }
+            });
+        let second = second_label.map(|label| {
+            Btn::new("prompt-second", label)
+                .enabled(asked.filled(cx))
+                .on_click(cx.listener(|prompt, _, window, cx| prompt.answer_second(window, cx)))
+        });
         let cancel = Btn::new("prompt-cancel", put(&say!("Cancel"))).on_click(cx.listener(
             |prompt, _, window, cx| {
                 prompt.close(window, cx);
@@ -223,6 +269,7 @@ impl Render for Prompt {
                     .justify_end()
                     .gap(theme::GAP)
                     .child(cancel)
+                    .children(second)
                     .child(answer),
             );
         let dimmed = div()

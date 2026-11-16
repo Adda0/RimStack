@@ -230,6 +230,7 @@ fn menus_questions_lists_and_the_tray_fade_out_and_go() {
             label: "Yes".into(),
             danger: false,
             run: Box::new(|_, _| {}),
+            second: None,
         };
         super::prompt::ask(question, window, cx);
     })

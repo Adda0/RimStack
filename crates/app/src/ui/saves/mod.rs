@@ -143,7 +143,7 @@ impl Saves {
         crate::jobs::run(
             "list kept",
             cx,
-            move || app.keep_list(&name, Some(ids)),
+            move || app.keep_list(&name, Some(ids), false),
             |saves, kept, cx| {
                 match kept {
                     Ok(()) => {

@@ -75,7 +75,7 @@ mod tests {
         assert!(played.contains("ann.roads") && played.contains("ludeon.rimworld"));
         assert!(Arc::ptr_eq(&played, &app.played()));
 
-        app.keep_list("mine", Some(vec!["ann.hats".to_string()]))
+        app.keep_list("mine", Some(vec!["ann.hats".to_string()]), false)
             .unwrap();
         let played = app.played();
         assert!(played.contains("ann.hats") && played.contains("ann.roads"));

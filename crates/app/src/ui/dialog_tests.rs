@@ -77,6 +77,7 @@ fn ask(
             label: "Run".into(),
             danger: false,
             run: Box::new(move |_, _| ran.set(ran.get() + 1)),
+            second: None,
         };
         super::prompt::ask(question, window, cx);
     })

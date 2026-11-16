@@ -5,16 +5,16 @@ use super::notices;
 use super::prompt::{self, Line, Question};
 use super::text_field::{Entered, TextField};
 use super::theme::{self, Theme};
-use super::widgets::{TextSized, label, measure, watched};
+use super::widgets::{TextSized, label};
 use crate::changes::Changes;
 use crate::ui::controls::Toggle;
 use crate::words::put;
 use crate::workspace::lists::{Comparison, HistoryLine, PastOrder, Snapshot};
 use crate::workspace::logs::{clock, moment};
 use gpui::{
-    AnyElement, AppContext, Bounds, Context, Entity, FocusHandle, FontWeight, InteractiveElement,
-    IntoElement, KeyDownEvent, ParentElement, Pixels, Render, SharedString,
-    StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder, px,
+    AnyElement, AppContext, Bounds, Context, Entity, FocusHandle, InteractiveElement, IntoElement,
+    KeyDownEvent, ParentElement, Pixels, Render, StatefulInteractiveElement, Styled, Window, div,
+    prelude::FluentBuilder, px,
 };
 use rimstack_core::base::error::Error;
 use rimstack_core::base::sentence::Sentence;
@@ -45,28 +45,6 @@ struct PastShown {
 }
 
 const READS: Changes = Changes::LISTS.or(Changes::LANGUAGE);
-
-/// The width of a line that cannot wrap: its parts and the gaps between them.
-fn line(parts: &[Pixels]) -> Pixels {
-    parts.iter().fold(Pixels::ZERO, |all, part| all + *part)
-        + theme::GAP_SMALL * parts.len().saturating_sub(1) as f32
-}
-
-fn title_width(window: &Window, theme: &Theme, text: &str) -> Pixels {
-    measure(window, theme, text, theme.title(), theme.semibold)
-}
-
-fn text_width(window: &Window, theme: &Theme, text: &str, size: Pixels) -> Pixels {
-    measure(window, theme, text, size, FontWeight::NORMAL)
-}
-
-/// The width of a line that wraps: its widest button, the line taking it.
-fn widest_button(buttons: &[Btn], window: &Window, theme: &Theme) -> Pixels {
-    buttons
-        .iter()
-        .map(|button| button.width(window, theme))
-        .fold(Pixels::ZERO, |most, wide| most.max(wide))
-}
 
 /// The key of the load order, the right side of every comparison until changed.
 const CURRENT: &str = "current";
@@ -137,14 +115,11 @@ impl Lists {
         super::hear(cx, READS, |lists: &mut Self, _, cx| lists.read(cx));
     }
 
-    /// Kept lists for the layout checks, where `demo` reads none: seeded from the App the
-    /// check built, in place of the background read `read` does.
-    #[cfg(test)]
+    /// Every kept list's file is read and parsed: off the window's thread.
     pub(crate) fn kept_for_checks(&mut self, saved: Vec<Saved>) {
         self.saved = saved;
     }
 
-    /// Every kept list's file is read and parsed: off the window's thread.
     fn read(&mut self, cx: &mut Context<Self>) {
         let app = super::app(cx);
         self.reading.run(
@@ -813,8 +788,7 @@ impl Lists {
         theme: &Theme,
         window: &mut Window,
         cx: &mut Context<Self>,
-    ) -> (Vec<AnyElement>, Pixels) {
-        let mut widest = Pixels::ZERO;
+    ) -> Vec<AnyElement> {
         let c = &theme.colours;
         let current = self.list_name(cx);
         let row = |d: gpui::Div| {
@@ -823,9 +797,15 @@ impl Lists {
                 .gap(theme::GAP_SMALL)
                 .h(theme.sized(28.))
         };
-        let saved_lists = put(&say!("Saved lists"));
-        let new = Btn::new("new-list", put(&say!("New")))
-            .keys(self.keys.clone())
+        let mut shown = vec![
+            div()
+                .flex()
+                .items_center()
+                .gap(theme::GAP_SMALL)
+                .child(div().flex_1().min_w_0().child(Self::title(theme, put(&say!("Saved lists")))))
+                .child(
+                    Btn::new("new-list", put(&say!("New")))
+                        .keys(self.keys.clone())
                         .icon("plus")
                         .tip(put(&say!("Start a load order from the game alone or with its expansions; one Undo brings the old one back")))
                         .pops({
@@ -844,29 +824,12 @@ impl Lists {
                                 ];
                                 menu::open(below, entries, window, cx);
                             }
-                        });
-        widest = widest.max(line(&[
-            title_width(window, theme, &saved_lists),
-            new.width(window, theme),
-        ]));
-        let mut shown = vec![
-            div()
-                .flex()
-                .items_center()
-                .gap(theme::GAP_SMALL)
-                .child(
-                    div()
-                        .flex_1()
-                        .min_w_0()
-                        .child(Self::title(theme, saved_lists)),
+                        }),
                 )
-                .child(new)
                 .into_any_element(),
         ];
         if self.saved.is_empty() {
-            let none = put(&say!("None"));
-            widest = widest.max(text_width(window, theme, &none, theme.body()));
-            shown.push(label(theme, theme.body(), c.ink2, none).into_any_element());
+            shown.push(label(theme, theme.body(), c.ink2, put(&say!("None"))).into_any_element());
         }
         for (at, saved) in self.saved.iter().enumerate() {
             let name = saved.name.clone();
@@ -889,28 +852,6 @@ impl Lists {
             .on_click(cx.listener(move |lists, _, _, cx| {
                 lists.keep(&kept, false, cx);
             }));
-            let counted = put(&say_n!(saved.mods, "{} mod", "{} mods"));
-            let use_list = Btn::new(("use-list", at), put(&say!("Use"))).on_click(cx.listener(
-                move |lists, _, window, cx| {
-                    if let Some(ids) = super::app(cx).list_named(&used) {
-                        lists.use_ids(ids, &used, window, cx);
-                    } else {
-                        lists.close(window, cx);
-                    }
-                },
-            ));
-            let delete = Btn::new(("delete-list", at), "")
-                .icon("trash-2")
-                .tip(put(&say!("Delete {}", name.clone())))
-                .on_click(move |_, _, cx| super::app(cx).delete_list(&deleted));
-            widest = widest.max(line(&[
-                text_width(window, theme, &name, theme.body()),
-                text_width(window, theme, &counted, theme.small()),
-                update.width(window, theme),
-                use_list.width(window, theme),
-                delete.width(window, theme),
-            ]));
-
             shown.push(
                 row(div())
                     .child(
@@ -968,20 +909,18 @@ impl Lists {
                             .on_click(cx.listener(move |lists, _, window, cx| {
                                 lists.compare(&format!("list:{compared}"), window, cx);
                             })),
-                    )    .child(label(theme, theme.small(), c.ink3, counted))
-                    .child(update)
-                    .child(use_list)
-                    .child(delete)
+                    )
+                    .child(
+                        Btn::new(("delete-list", at), "")
+                            .icon("trash-2")
+                            .tip(put(&say!("Delete {}", name)))
+                            .on_click(move |_, _, cx| super::app(cx).delete_list(&deleted)),
+                    )
                     .into_any_element(),
             );
         }
         shown.push(div().h(px(1.)).bg(c.line).into_any_element());
         let typed = !self.name.read(cx).text().trim().is_empty();
-        let keep = Btn::new("keep-list", put(&say!("Keep")))
-            .icon("save")
-            .enabled(typed)
-            .on_click(cx.listener(|lists, _, _, cx| lists.keep_typed(cx)));
-        widest = widest.max(keep.width(window, theme));
         shown.push(
             div()
                 .flex()
@@ -1000,7 +939,12 @@ impl Lists {
                         .render(theme, window, cx),
                     ),
                 )
-                .child(keep)
+                .child(
+                    Btn::new("keep-list", put(&say!("Keep")))
+                        .icon("save")
+                        .enabled(typed)
+                        .on_click(cx.listener(|lists, _, _, cx| lists.keep_typed(cx))),
+                )
                 .into_any_element(),
         );
         shown.push(
@@ -1046,30 +990,14 @@ impl Lists {
             shown.push(wrapped(self.problem.clone(), c.err));
         }
         if !self.snapshots.is_empty() {
-            let earlier = put(&say!("Earlier"));
-            widest = widest.max(title_width(window, theme, &earlier));
             shown.push(
-                Self::title(theme, earlier)
+                Self::title(theme, put(&say!("Earlier")))
                     .pt(theme::GAP_SMALL)
                     .into_any_element(),
             );
         }
         for (at, snapshot) in self.snapshots.iter().enumerate() {
             let name = snapshot.name.clone();
-            let titled = put(&snapshot.title);
-            let use_earlier = Btn::new(("use-earlier", at), put(&say!("Use"))).on_click(
-                cx.listener(move |lists, _, window, cx| {
-                    if let Some(ids) = super::app(cx).snapshot_named(&name) {
-                        lists.use_ids(ids, "", window, cx);
-                    } else {
-                        lists.close(window, cx);
-                    }
-                }),
-            );
-            widest = widest.max(line(&[
-                text_width(window, theme, &titled, theme.body()),
-                use_earlier.width(window, theme),
-            ]));
             shown.push(
                 row(div())
                     .child(
@@ -1081,73 +1009,84 @@ impl Lists {
                             .text_ellipsis()
                             .sized_text(theme, theme.body())
                             .text_color(c.ink2)
-                            .child(titled),
+                            .child(put(&snapshot.title)),
                     )
-                    .child(use_earlier)
+                    .child(
+                        Btn::new(("use-earlier", at), put(&say!("Use"))).on_click(cx.listener(
+                            move |lists, _, window, cx| {
+                                if let Some(ids) = super::app(cx).snapshot_named(&name) {
+                                    lists.use_ids(ids, "", window, cx);
+                                } else {
+                                    lists.close(window, cx);
+                                }
+                            },
+                        )),
+                    )
                     .into_any_element(),
             );
         }
-        let past = Btn::new("past-orders", put(&say!("History…")))
-            .icon("history")
-            .tip(put(&say!(
-                "Every order saved or written by the game or another tool, with a way to use one again or keep it as a saved list"
-            )))
-            .on_click(cx.listener(|lists, _, window, cx| {
-                lists.show_past(window, cx);
-            }));
-        widest = widest.max(past.width(window, theme));
-        shown.push(past.into_any_element());
-        let clipboard = put(&say!("Clipboard and Rentry.co"));
-        widest = widest.max(title_width(window, theme, &clipboard));
         shown.push(
-            Self::title(theme, clipboard)
+            Btn::new("past-orders", put(&say!("History…")))
+                .icon("history")
+                .tip(put(&say!(
+                    "Every order saved or written by the game or another tool, with a way to use one again or keep it as a saved list"
+                )))
+                .on_click(cx.listener(|lists, _, window, cx| {
+                    lists.show_past(window, cx);
+                }))
+                .into_any_element(),
+        );
+        shown.push(
+            Self::title(theme, put(&say!("Clipboard and Rentry.co")))
                 .pt(theme::GAP_SMALL)
                 .into_any_element(),
         );
-        let buttons: Vec<Btn> = vec![
-                Btn::new("copy-order", put(&say!("Copy the load order")))
-                    .icon("copy")
-                    .tip(put(&say!("The active mods as text, one a line")))
-                    .on_click(cx.listener(|lists, _, window, cx| {
-                        let listing =
-                            super::app(cx).listing(&super::order::read(cx).active);
-                        cx.write_to_clipboard(gpui::ClipboardItem::new_string(listing));
-                        lists.close(window, cx);
-                    })),
-                Btn::new("copy-share-code", put(&say!("Copy the share code")))
-                    .icon("copy")
-                    .tip(put(&say!(
-                        "The load order as a short code; this clipboard read into a friend's RimStack gives the same list, with the Workshop pages of its mods"
-                    )))
-                    .on_click(cx.listener(|lists, _, window, cx| {
-                        let code =
-                            super::app(cx).share_code(&super::order::read(cx).active);
-                        cx.write_to_clipboard(gpui::ClipboardItem::new_string(code));
-                        lists.close(window, cx);
-                    })),
-                Btn::new("use-copied", put(&say!("Use the copied list")))
-                    .enabled(!self.busy)
-                    .tip(put(&say!("A list of mods copied as text, links or a share code, or a link to a Rentry.co page, becomes the load order. Save writes it.")))
-                    .on_click(cx.listener(|lists, _, _, cx| lists.use_copied(cx))),
-                Btn::new("share-rentry", put(&say!("Share on Rentry.co")))
-                    .icon("share-2")
-                    .enabled(!self.busy)
-                    .tip(put(&say!("Publishes the load order as a page at Rentry.co and copies its link")))
-                    .on_click(cx.listener(|lists, _, window, cx| lists.ask_share(window, cx))),
-        ];
-        widest = widest.max(widest_button(&buttons, window, theme));
         shown.push(
             div()
                 .flex()
                 .flex_wrap()
                 .gap(theme::GAP_SMALL)
-                .children(buttons)
+                .child(
+                    Btn::new("copy-order", put(&say!("Copy the load order")))
+                        .icon("copy")
+                        .tip(put(&say!("The active mods as text, one a line")))
+                        .on_click(cx.listener(|lists, _, window, cx| {
+                            let listing =
+                                super::app(cx).listing(&super::order::read(cx).active);
+                            cx.write_to_clipboard(gpui::ClipboardItem::new_string(listing));
+                            lists.close(window, cx);
+                        })),
+                )
+                .child(
+                    Btn::new("copy-share-code", put(&say!("Copy the share code")))
+                        .icon("copy")
+                        .tip(put(&say!(
+                            "The load order as a short code; this clipboard read into a friend's RimStack gives the same list, with the Workshop pages of its mods"
+                        )))
+                        .on_click(cx.listener(|lists, _, window, cx| {
+                            let code =
+                                super::app(cx).share_code(&super::order::read(cx).active);
+                            cx.write_to_clipboard(gpui::ClipboardItem::new_string(code));
+                            lists.close(window, cx);
+                        })),
+                )
+                .child(
+                    Btn::new("use-copied", put(&say!("Use the copied list")))
+                        .enabled(!self.busy)
+                        .tip(put(&say!("A list of mods copied as text, links or a share code, or a link to a Rentry.co page, becomes the load order. Save writes it.")))
+                        .on_click(cx.listener(|lists, _, _, cx| lists.use_copied(cx))),
+                )
+                .child(
+                    Btn::new("share-rentry", put(&say!("Share on Rentry.co")))
+                        .icon("share-2")
+                        .enabled(!self.busy)
+                        .tip(put(&say!("Publishes the load order as a page at Rentry.co and copies its link")))
+                        .on_click(cx.listener(|lists, _, window, cx| lists.ask_share(window, cx))),
+                )
                 .into_any_element(),
         );
         if self.busy {
-            let waiting = put(&say!("Waiting for Rentry.co…"));
-            widest = widest.max(text_width(window, theme, &waiting, theme.body()));
-            shown.push(wrapped(waiting, c.ink2));
+            shown.push(wrapped(put(&say!("Waiting for Rentry.co…")), c.ink2));
         }
         if !self.clipboard_problem.is_empty() {
             shown.push(wrapped(self.clipboard_problem.clone(), c.err));
@@ -1155,10 +1094,8 @@ impl Lists {
         if !self.problem.is_empty() {
             shown.push(wrapped(self.problem.clone(), c.err));
         }
-        let files = put(&say!("Files"));
-        widest = widest.max(title_width(window, theme, &files));
         shown.push(
-            Self::title(theme, files)
+            Self::title(theme, put(&say!("Files")))
                 .pt(theme::GAP_SMALL)
                 .into_any_element(),
         );
@@ -1179,100 +1116,135 @@ impl Lists {
                     .on_click(cx.listener(|lists, _, window, cx| {
                         lists.export("modlist.rml", window, cx)
                     })),
+                Btn::new("use-file", put(&say!("Use a list from a file")))
+                    .tip(put(&say!("A RimSort or RimPy mod list, a save's list, a share code or a text list becomes the load order. Save writes it.")))
+                    .on_click(cx.listener(|lists, _, window, cx| lists.use_file(window, cx))),
                 Btn::new("check-files", put(&say!("Check the files")))
                     .icon("search")
                     .tip(put(&say!(
                         "Reads every installed mod's About.xml and PublishedFileId.txt again and says how many hold no problem: a Workshop mod's files naming another item than its folder, an About.xml missing or broken, or a package id the game cannot take"
                     )))
                     .on_click(cx.listener(|lists, _, window, cx| lists.check_files(window, cx))),
-                Btn::new("use-file", put(&say!("Use a list from a file")))
-                    .tip(put(&say!("A RimSort or RimPy mod list, a save's list, a share code or a text list becomes the load order. Save writes it.")))
-                    .on_click(cx.listener(|lists, _, window, cx| lists.use_file(window, cx))),
         ];
-        widest = widest.max(widest_button(&buttons, window, theme));
         shown.push(
             div()
                 .flex()
                 .flex_wrap()
                 .gap(theme::GAP_SMALL)
-                .children(buttons)
+                .child(
+                    Btn::new("export-csv", put(&say!("Export as CSV")))
+                        .icon("download")
+                        .tip(put(&say!("Writes the active mods as a CSV file, the columns of RimSort's export")))
+                        .on_click(cx.listener(|lists, _, window, cx| {
+                            lists.export("modlist.csv", window, cx)
+                        })),
+                )
+                .child(
+                    Btn::new("export-modsconfig", put(&say!("Export as ModsConfig")))
+                        .tip(put(&say!("Writes the load order as the game's ModsConfig.xml")))
+                        .on_click(cx.listener(|lists, _, window, cx| {
+                            lists.export("ModsConfig.xml", window, cx)
+                        })),
+                )
+                .child(
+                    Btn::new("export-rml", put(&say!("Export as a RimSort list")))
+                        .tip(put(&say!("Writes the load order as a saved mod list (.rml), which RimSort and the game read")))
+                        .on_click(cx.listener(|lists, _, window, cx| {
+                            lists.export("modlist.rml", window, cx)
+                        })),
+                )
+                .child(
+                    Btn::new("use-file", put(&say!("Use a list from a file")))
+                        .tip(put(&say!("A RimSort or RimPy mod list, a save's list, a share code or a text list becomes the load order. Save writes it.")))
+                        .on_click(cx.listener(|lists, _, window, cx| lists.use_file(window, cx))),
+                )
+                .child(
+                    Btn::new("check-files", put(&say!("Check the files")))
+                        .icon("search")
+                        .tip(put(&say!("Reads every installed mod's About.xml and PublishedFileId.txt again and says how many hold no problem")))
+                        .on_click(cx.listener(|lists, _, window, cx| lists.check_files(window, cx))),
+                )
                 .into_any_element(),
         );
-        let friend = put(&say!("For a friend"));
-        widest = widest.max(title_width(window, theme, &friend));
         shown.push(
-            Self::title(theme, friend)
+            Self::title(theme, put(&say!("For a friend")))
                 .pt(theme::GAP_SMALL)
                 .into_any_element(),
         );
-        let buttons: Vec<Btn> = vec![
-                Btn::new("copy-workshop-links", put(&say!("Copy the Workshop links")))
-                    .icon("copy")
-                    .tip(put(&say!(
-                        "A link a line, one for each active Workshop mod; a friend's RimStack reads them into the downloads"
-                    )))
-                    .on_click(cx.listener(|lists, _, window, cx| {
-                        let links =
-                            super::app(cx).workshop_links(&super::order::read(cx).active);
-                        cx.write_to_clipboard(gpui::ClipboardItem::new_string(links));
-                        lists.close(window, cx);
-                    })),
-                Btn::new("lock-write", put(&say!("Write a lockfile…")))
-                    .icon("send")
-                    .tip(put(&say!("The load order, with each mod's source and when the Workshop last published its version, as a small file to give a friend")))
-                    .on_click(cx.listener(|lists, _, window, cx| lists.lock_write(window, cx))),
-                Btn::new("lock-read", put(&say!("Check a lockfile…")))
-                    .tip(put(&say!("Tells which of a friend's mods are missing, extra, in another order or another version here")))
-                    .on_click(cx.listener(|lists, _, window, cx| lists.lock_read(window, cx))),
-        ];
-        widest = widest.max(widest_button(&buttons, window, theme));
         shown.push(
             div()
                 .flex()
                 .flex_wrap()
                 .gap(theme::GAP_SMALL)
-                .children(buttons)
+                .child(
+                    Btn::new("copy-workshop-links", put(&say!("Copy the Workshop links")))
+                        .icon("copy")
+                        .tip(put(&say!(
+                            "A link a line, one for each active Workshop mod; a friend's RimStack reads them into the downloads"
+                        )))
+                        .on_click(cx.listener(|lists, _, window, cx| {
+                            let links =
+                                super::app(cx).workshop_links(&super::order::read(cx).active);
+                            cx.write_to_clipboard(gpui::ClipboardItem::new_string(links));
+                            lists.close(window, cx);
+                        })),
+                )
+                .child(
+                    Btn::new("lock-write", put(&say!("Write a lockfile…")))
+                        .icon("send")
+                        .tip(put(&say!("The load order, with each mod's source and when the Workshop last published its version, as a small file to give a friend")))
+                        .on_click(cx.listener(|lists, _, window, cx| lists.lock_write(window, cx))),
+                )
+                .child(
+                    Btn::new("lock-read", put(&say!("Check a lockfile…")))
+                        .tip(put(&say!("Tells which of a friend's mods are missing, extra, in another order or another version here")))
+                        .on_click(cx.listener(|lists, _, window, cx| lists.lock_read(window, cx))),
+                )
                 .into_any_element(),
         );
 
         if let Some(report) = &self.lock_report {
             if report.same {
-                let lockfile = put(&say!("Lockfile of the load order"));
-                let same = put(&say!(
-                    "The load order is the lockfile's, every mod the same."
-                ));
-                widest = widest
-                    .max(title_width(window, theme, &lockfile))
-                    .max(text_width(window, theme, &same, theme.body()));
                 shown.push(
-                    Self::title(theme, lockfile)
+                    Self::title(theme, put(&say!("Lockfile of the load order")))
                         .pt(theme::GAP_SMALL)
                         .into_any_element(),
                 );
-                shown.push(label(theme, theme.body(), c.ink, same).into_any_element());
+                shown.push(
+                    label(
+                        theme,
+                        theme.body(),
+                        c.ink,
+                        put(&say!(
+                            "The load order is the lockfile's, every mod the same."
+                        )),
+                    )
+                    .into_any_element(),
+                );
             } else {
                 for sentence in &report.said {
-                    let said = sentence.to_string();
-                    widest = widest.max(text_width(window, theme, &said, theme.body()));
-                    shown.push(label(theme, theme.body(), c.ink2, said).into_any_element());
+                    shown.push(
+                        label(theme, theme.body(), c.ink2, sentence.to_string()).into_any_element(),
+                    );
                 }
             }
             if report.present && !report.ids.is_empty() {
                 let ids = report.ids.clone();
-                let apply = Btn::new("apply-lock-file", put(&say!("Use this order")))
-                    .tip(put(&say!(
-                        "Makes the lockfile's order the load order. Save writes it."
-                    )))
-                    .on_click(cx.listener(move |lists, _, window, cx| {
-                        super::navigate::go(super::navigate::Go::TakeList(ids.clone()), cx);
-                        lists.close(window, cx);
-                    }));
-                widest = widest.max(apply.width(window, theme));
-                shown.push(apply.into_any_element());
+                shown.push(
+                    Btn::new("apply-lock-file", put(&say!("Use this order")))
+                        .tip(put(&say!(
+                            "Makes the lockfile's order the load order. Save writes it."
+                        )))
+                        .on_click(cx.listener(move |lists, _, window, cx| {
+                            super::navigate::go(super::navigate::Go::TakeList(ids.clone()), cx);
+                            lists.close(window, cx);
+                        }))
+                        .into_any_element(),
+                );
             }
         }
 
-        (shown, widest)
+        shown
     }
 
     /// Either side of a comparison, with the groups the two orders differ by.
@@ -1474,7 +1446,7 @@ impl Lists {
                     )
                     .child(
                         div()
-                            .flex_initial()
+                            .flex_1()
                             .min_w_0()
                             .flex()
                             .flex_col()
@@ -1525,7 +1497,6 @@ impl Lists {
                                 lists.keep_past(at, window, cx);
                             })),
                     )
-                    .child(div().flex_1())
                     .into_any_element(),
             );
         }
@@ -1555,7 +1526,7 @@ impl Lists {
                     .items_start()
                     .gap(theme::GAP)
                     .child(label(theme, theme.small(), c.ink3, moment(line.time)).w(theme.sized(112.)))
-                    .child(div().flex_initial().min_w_0().sized_text(theme, theme.body()).text_color(c.ink).child(said.clone()))
+                    .child(div().flex_1().min_w_0().sized_text(theme, theme.body()).text_color(c.ink).child(said.clone()))
                     .when(reverts, |d| {
                         d.child(
                             Btn::new(("revert", at), match restores {
@@ -1571,7 +1542,6 @@ impl Lists {
                             .on_click(cx.listener(move |lists, _, window, cx| lists.revert(&held, window, cx))),
                         )
                     })
-                    .child(div().flex_1())
                     .into_any_element(),
             );
         }
@@ -1614,11 +1584,11 @@ impl Render for Lists {
         let theme = cx.global::<Theme>().clone();
         let c = theme.colours;
         let viewport = window.viewport_size();
-        let (content, widest) = match which {
+        let content = match which {
             Which::Lists => self.lists_popup(&theme, window, cx),
-            Which::History => (self.history_popup(&theme, cx), Pixels::ZERO),
-            Which::Past => (self.past_popup(&theme, cx), Pixels::ZERO),
-            Which::Compare => (self.compare_popup(&theme, cx), Pixels::ZERO),
+            Which::History => self.history_popup(&theme, cx),
+            Which::Past => self.past_popup(&theme, cx),
+            Which::Compare => self.compare_popup(&theme, cx),
         };
         let column = div()
             .flex()
@@ -1635,27 +1605,12 @@ impl Render for Lists {
             .border_color(c.line)
             .when(!fading, |d| d.occlude())
             .on_mouse_down(gpui::MouseButton::Left, |_, _, cx| cx.stop_propagation());
-        // Under the layout checks, the popup tells its bounds so the checks can tell its texts
-        // apart from the page's under it.
-        #[cfg(test)]
-        let popup = popup.child(super::widgets::watch::marked());
         let popup = match which {
-            Which::Lists => {
-                // As wide as its widest line, stopping at the window's edge, where a name too
-                // long for any window is still cut short by the ellipsis.
-                let width = (widest + theme::GAP_LARGE * 2.)
-                    .max(theme.sized(380.))
-                    .min(viewport.width - theme::GAP * 2.);
-                let left = below
-                    .left()
-                    .min(viewport.width - width - theme::GAP)
-                    .max(theme::GAP);
-                popup
-                    .left(left)
-                    .top(below.bottom() + px(6.))
-                    .w(width)
-                    .child(column)
-            }
+            Which::Lists => popup
+                .left(below.left())
+                .top(below.bottom() + px(6.))
+                .w(theme.sized(380.))
+                .child(column),
             Which::History => popup
                 .right(viewport.width - below.right())
                 .bottom(viewport.height - below.top() + px(8.))

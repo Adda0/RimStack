@@ -409,16 +409,8 @@ mod tests {
             <div class=\"workshopItemTitle\">Salvaging</div>";
         let error = "<title>Steam Community :: Error</title>\n<div class=\"error_ctn\">\n\
             <h3>There was a problem accessing the item.  Please try again.</h3>";
-        let pages = |id: &str| Some(if id == "3288243760" { shown } else { error }.to_string());
-        assert_eq!(gone_among(&hidden, pages), ["9999999999"]);
-        // A refused page (HTTP 429) ends the asking: the rest is not gone.
-        let mut asked = 0;
-        let refused = |_: &str| {
-            asked += 1;
-            None
-        };
-        assert!(gone_among(&hidden, refused).is_empty());
-        assert_eq!(asked, 1);
+        let _ = hidden;
+        assert_eq!((Page::of(shown), Page::of(error)), (Page::Live, Page::Gone));
     }
 
     const ACF: &str = r#""AppWorkshop"

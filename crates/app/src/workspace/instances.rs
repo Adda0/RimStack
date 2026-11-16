@@ -369,7 +369,6 @@ impl App {
                 | Changes::LAUNCHES
                 | Changes::LOGS
                 | Changes::SAVES
-                | Changes::SEARCH
                 | Changes::UPDATES,
         );
         Ok(())
@@ -414,7 +413,7 @@ mod tests {
         let (tmp, app) = installed();
         app.keep_setting("launchArguments", "-quicktest -savedatafolder=/x")
             .unwrap();
-        app.keep_list("Default's", None).unwrap();
+        app.keep_list("Default's", None, false).unwrap();
         app.notes()
             .writing()
             .set("ann.roads", note("kept by Default"));
@@ -439,7 +438,7 @@ mod tests {
 
         app.keep_setting("launchArguments", "-popupwindow").unwrap();
         app.keep_setting("font", "Mono").unwrap();
-        app.keep_list("Second's", None).unwrap();
+        app.keep_list("Second's", None, false).unwrap();
         app.notes()
             .writing()
             .set("ann.roads", note("kept by Second"));

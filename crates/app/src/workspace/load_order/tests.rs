@@ -369,7 +369,7 @@ fn a_kind_of_warning_kept_to_the_problems_panel_leaves_the_rows_and_errors_stay_
     // A need nothing installed meets is an error; no PublishedFileId.txt, a warning.
     let about = "<ModMetaData><packageId>Ann.Roads</packageId><name>Ann.Roads</name><supportedVersions><li>1.6</li></supportedVersions><modDependencies><li><packageId>gone.lib</packageId></li></modDependencies></ModMetaData>";
     std::fs::write(tmp.path().join("game/Mods/roads/About/About.xml"), about).unwrap();
-    let mut order = LoadOrder::read(&app, true, Arrange::Category);
+    let mut order = LoadOrder::read(&app, true, None);
     order.take(&app, Side::Inactive, 0, None);
     let kinds: Vec<&str> = order.troubles()[1].iter().map(|t| t.kind.key()).collect();
     assert_eq!(kinds, ["needed-missing", "no-workshop-id"]);
@@ -388,8 +388,8 @@ fn a_kind_of_warning_kept_to_the_problems_panel_leaves_the_rows_and_errors_stay_
     assert_eq!(order.errors_and_warnings(), (1, 0));
     assert_eq!(warned(&mut order), 0);
     let rows = order.rows(&app, Side::Active);
-    let row = rows.iter().find(|r| r.mod_index == 1).unwrap();
-    assert_eq!(row.trouble, 2);
+    let row = rows.iter().find(|r| r.mod_index == Some(1)).unwrap();
+    assert_eq!(row.trouble, crate::workspace::load_order::Level::Error);
     assert_eq!(
         row.trouble_tip.to_string(),
         "Needs gone.lib, which is not installed."
@@ -412,7 +412,7 @@ fn a_kind_of_warning_kept_to_the_problems_panel_leaves_the_rows_and_errors_stay_
     drop(order);
     drop(app);
     let again = installed_app_again(&tmp);
-    let mut order = LoadOrder::read(&again, true, Arrange::Category);
+    let mut order = LoadOrder::read(&again, true, None);
     order.take(&again, Side::Inactive, 0, None);
     assert_eq!(order.errors_and_warnings(), (1, 0));
     again.show_in_list("no-workshop-id", true).unwrap();
@@ -1192,7 +1192,7 @@ fn an_inactive_mod_in_no_save_no_list_and_no_kept_order_is_unplayed() {
     .unwrap();
     // A save names a.b (the game folds the _steam suffix away), a kept list a.c, a snapshot a.d.
     app.snapshot("history", &["a.d".to_string()]).unwrap();
-    app.keep_list("mine", Some(vec!["a.c".to_string()]))
+    app.keep_list("mine", Some(vec!["a.c".to_string()]), false)
         .unwrap();
     app.rescan();
     let mut order = LoadOrder::read(&app, true, None);

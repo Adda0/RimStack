@@ -4,8 +4,8 @@ use crate::ui::theme::{self, Theme};
 use crate::ui::widgets::{Btn, Chip, TextSized, label};
 use crate::words::{count, put};
 use gpui::{
-    AnyElement, Context, FontWeight, IntoElement, ParentElement, Styled, div,
-    prelude::FluentBuilder,
+    AnyElement, Context, FontWeight, InteractiveElement, IntoElement, ParentElement,
+    StatefulInteractiveElement, Styled, div, prelude::FluentBuilder,
 };
 use rimstack_core::{say, say_n};
 

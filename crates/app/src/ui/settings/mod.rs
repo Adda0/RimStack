@@ -620,6 +620,7 @@ impl Settings {
                 run: Box::new(move |_, cx| {
                     let _ = me.update(cx, |settings, cx| settings.publish_rules(cx));
                 }),
+                second: None,
             },
             window,
             cx,

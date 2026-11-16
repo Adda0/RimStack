@@ -721,6 +721,7 @@ impl Settings {
             label: put(&say!("Set aside")),
             danger: false,
             run,
+            second: None,
         };
         prompt::ask(question, window, cx);
     }
@@ -752,6 +753,7 @@ impl Settings {
             label: put(&say!("Set aside")),
             danger: true,
             run,
+            second: None,
         };
         prompt::ask(question, window, cx);
     }

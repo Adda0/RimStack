@@ -420,6 +420,7 @@ impl Mods {
                 run: Box::new(move |_, cx| {
                     let _ = me.update(cx, |mods, cx| mods.delete_group(&tag, cx));
                 }),
+                second: None,
             },
             window,
             cx,
@@ -522,6 +523,7 @@ impl Mods {
                         Naming::NewSub | Naming::Group => mods.group(ids, &name, cx),
                     });
                 }),
+                second: None,
             },
             window,
             cx,
@@ -592,6 +594,7 @@ impl Mods {
                         );
                     });
                 }),
+                second: None,
             },
             window,
             cx,
@@ -628,6 +631,7 @@ impl Mods {
                 run: Box::new(move |_, cx| {
                     crate::ui::navigate::go(crate::ui::navigate::Go::UnsubscribeMany(ids), cx);
                 }),
+                second: None,
             },
             window,
             cx,
@@ -665,6 +669,7 @@ impl Mods {
                         mods.bin_many(ids, cx);
                     });
                 }),
+                second: None,
             },
             window,
             cx,
@@ -717,6 +722,7 @@ impl Mods {
                 run: Box::new(move |_, cx| {
                     crate::ui::navigate::go(crate::ui::navigate::Go::Unsubscribe(id), cx);
                 }),
+                second: None,
             },
             window,
             cx,
@@ -757,6 +763,7 @@ fn ask_with(
             label: put(&ask.label),
             danger,
             run: Box::new(move |_, cx| then(cx)),
+            second: None,
         },
         window,
         cx,

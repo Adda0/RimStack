@@ -55,6 +55,7 @@ impl Downloads {
                 label: put(&say!("Download")),
                 danger: false,
                 run,
+                second: None,
             },
             window,
             cx,
