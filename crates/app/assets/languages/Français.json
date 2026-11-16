@@ -1870,5 +1870,7 @@
  "To the next or the previous pane": "Au volet suivant ou précédent",
  "Alt + N": "Alt + N",
  "Close, cancel, discard a sort preview, clear the selection, end the hints, leave a launch's record": "Close, cancel, discard a sort preview, clear the selection, end the hints, leave a launch's record",
- "To the newest notice's button": "To the newest notice's button"
+ "To the newest notice's button": "To the newest notice's button",
+ "Copy a description, or the log's marked line": "Copy a description, or the log's marked line",
+ "Ctrl + C": "Ctrl + C"
 }

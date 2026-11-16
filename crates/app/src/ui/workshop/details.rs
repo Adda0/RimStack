@@ -368,33 +368,43 @@ impl Workshop {
                     }
                     picks[at].clone()
                 };
-                let piece = div()
-                    .flex()
-                    .flex_col()
-                    .gap(theme::GAP_SMALL)
-                    .child(
-                        pick.holding(div().flex().flex_col().gap(theme::GAP_SMALL).children(
-                            rich::blocks("description", theme, &part.blocks, &link, Some(&pick)),
-                        )),
-                    )
-                    .when_some(part.note.as_ref(), |d, note| {
-                        d.child(
-                            div()
-                                .italic()
-                                .sized_text(theme, theme.small())
-                                .text_color(c.ink3)
-                                .child(put(note)),
+                let piece =
+                    div()
+                        .flex()
+                        .flex_col()
+                        .gap(theme::GAP_SMALL)
+                        .child(
+                            pick.holding(
+                                div().flex().flex_col().gap(theme::GAP_SMALL).children(
+                                    rich::blocks(
+                                        "description",
+                                        theme,
+                                        &part.blocks,
+                                        &link,
+                                        Some(&pick),
+                                    ),
+                                ),
+                                theme,
+                            ),
                         )
-                    })
-                    .when(!part.image.is_empty(), |d| {
-                        d.child(
-                            pictures
-                                .img(PathBuf::from(&part.image))
-                                .id(("description-picture", at))
-                                .w(width)
-                                .object_fit(ObjectFit::Contain),
-                        )
-                    });
+                        .when_some(part.note.as_ref(), |d, note| {
+                            d.child(
+                                div()
+                                    .italic()
+                                    .sized_text(theme, theme.small())
+                                    .text_color(c.ink3)
+                                    .child(put(note)),
+                            )
+                        })
+                        .when(!part.image.is_empty(), |d| {
+                            d.child(
+                                pictures
+                                    .img(PathBuf::from(&part.image))
+                                    .id(("description-picture", at))
+                                    .w(width)
+                                    .object_fit(ObjectFit::Contain),
+                            )
+                        });
                 column = column.child(piece);
             }
             parts.push(column.into_any_element());

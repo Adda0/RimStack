@@ -61,7 +61,7 @@ impl Selection {
     pub fn new<V: 'static>(cx: &mut gpui::Context<V>) -> Self {
         Self {
             picked: Rc::default(),
-            focus: cx.focus_handle(),
+            focus: cx.focus_handle().tab_stop(true),
             view: cx.entity_id(),
         }
     }
@@ -70,15 +70,23 @@ impl Selection {
         self.picked.borrow().said()
     }
 
-    pub fn holding(&self, blocks: gpui::Div) -> gpui::Stateful<gpui::Div> {
+    /// `blocks` reached by Tab; Ctrl + C copies the words selected, or all of them when none are.
+    pub fn holding(&self, blocks: gpui::Div, theme: &Theme) -> gpui::Stateful<gpui::Div> {
         let (copied, released) = (self.picked.clone(), self.picked.clone());
+        let tint = with_alpha(theme.colours.focus, 0.1);
         blocks
             .id("selectable")
             .track_focus(&self.focus)
+            .rounded(theme::CORNER)
+            .focus_visible(move |s| s.bg(tint))
             .on_key_down(move |event: &gpui::KeyDownEvent, _, cx| {
                 let keys = &event.keystroke;
                 if keys.key == "c" && keys.modifiers.secondary(cx) && !keys.modifiers.alt {
-                    let said = copied.borrow().said();
+                    let picked = copied.borrow();
+                    let said = match picked.said() {
+                        said if said.is_empty() => picked.texts.join("\n"),
+                        said => said,
+                    };
                     if !said.is_empty() {
                         cx.write_to_clipboard(gpui::ClipboardItem::new_string(said));
                         cx.stop_propagation();

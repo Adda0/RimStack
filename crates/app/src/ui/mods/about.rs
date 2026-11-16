@@ -866,21 +866,20 @@ impl DetailsView {
         shown.extend(self.before_play(theme, details, inner, window));
         if !details.description_blocks.is_empty() {
             let link: Link = Rc::new(|url, _, cx| cx.open_url(url));
-            let text =
-                self.description
-                    .holding(
-                        div()
-                            .flex()
-                            .flex_col()
-                            .gap(theme::GAP_SMALL)
-                            .children(rich::blocks(
-                                "mod-description",
-                                theme,
-                                &details.description_blocks,
-                                &link,
-                                Some(&self.description),
-                            )),
-                    );
+            let text = self.description.holding(
+                div()
+                    .flex()
+                    .flex_col()
+                    .gap(theme::GAP_SMALL)
+                    .children(rich::blocks(
+                        "mod-description",
+                        theme,
+                        &details.description_blocks,
+                        &link,
+                        Some(&self.description),
+                    )),
+                theme,
+            );
             shown.push(
                 Card::new("about-description", put(&say!("Description")))
                     .body(vec![text.into_any_element()])

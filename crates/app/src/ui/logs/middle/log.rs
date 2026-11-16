@@ -229,6 +229,10 @@ impl Logs {
             .position(|l| l + 1 == self.marked)
             .unwrap_or(0);
         let (keys_lines, keys_tops) = (self.lines.clone(), tops);
+        let marked_text = self
+            .report
+            .as_ref()
+            .and_then(|report| report.text.get(self.marked.checked_sub(1)?).cloned());
         let line = theme.row();
         div()
             .id("log")
@@ -239,6 +243,14 @@ impl Logs {
             .flex_1()
             .min_h_0()
             .on_key_down(cx.listener(move |logs, event: &KeyDownEvent, _, cx| {
+                let keys = &event.keystroke;
+                if keys.key == "c" && keys.modifiers.secondary(cx) && !keys.modifiers.alt {
+                    if let Some(text) = &marked_text {
+                        cx.write_to_clipboard(gpui::ClipboardItem::new_string(text.to_string()));
+                        cx.stop_propagation();
+                    }
+                    return;
+                }
                 let page = page_of(&logs.log_scroll, line);
                 if let Some(to) = step(event, current, count, page) {
                     logs.marked = keys_lines[to] + 1;

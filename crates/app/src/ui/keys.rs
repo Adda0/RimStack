@@ -158,10 +158,16 @@ fn groups() -> Vec<(Sentence, Vec<(Sentence, Sentence)>)> {
         ),
         (
             say!("Dialogs and menus"),
-            vec![(
-                say!("Enter"),
-                say!("Press the focused button or menu entry; a dialog opens on its main one"),
-            )],
+            vec![
+                (
+                    say!("Enter"),
+                    say!("Press the focused button or menu entry; a dialog opens on its main one"),
+                ),
+                (
+                    say!("Ctrl + C"),
+                    say!("Copy a description, or the log's marked line"),
+                ),
+            ],
         ),
     ]
 }

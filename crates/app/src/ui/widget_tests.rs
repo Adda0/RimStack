@@ -319,6 +319,52 @@ fn a_toast_holding_the_keys_stays_until_they_leave(cx: &mut TestAppContext) {
     assert_eq!(shown(cx), 0, "and goes once they leave");
 }
 
+struct Described {
+    selection: super::rich::Selection,
+    focus: gpui::FocusHandle,
+}
+
+impl Render for Described {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let theme = cx.global::<super::theme::Theme>().clone();
+        let blocks = rimstack_core::base::markup::blocks("First part.\n\nSecond part.");
+        let link: super::rich::Link = std::rc::Rc::new(|_, _, _| {});
+        div()
+            .size_full()
+            .track_focus(&self.focus)
+            .on_action(|_: &focus::Next, window, cx| window.focus_next(cx))
+            .child(self.selection.holding(
+                div().children(super::rich::blocks(
+                    "described",
+                    &theme,
+                    &blocks,
+                    &link,
+                    Some(&self.selection),
+                )),
+                &theme,
+            ))
+    }
+}
+
+#[gpui::test]
+fn tab_reaches_a_description_and_ctrl_c_copies_all_of_it(cx: &mut TestAppContext) {
+    let (_root, _bench, _) = bench(cx);
+    let (view, cx) = cx.add_window_view(|_, cx| Described {
+        selection: super::rich::Selection::new(cx),
+        focus: cx.focus_handle(),
+    });
+    cx.update(|window, cx| {
+        let focus = view.read(cx).focus.clone();
+        window.focus(&focus, cx);
+    });
+    cx.run_until_parked();
+    press(cx, "tab");
+    assert!(cx.update(|window, cx| window.focused(cx)).is_some());
+    press(cx, "ctrl-c");
+    let copied = cx.update(|_, cx| cx.read_from_clipboard().and_then(|item| item.text()));
+    assert_eq!(copied.as_deref(), Some("First part.\n\nSecond part."));
+}
+
 struct Asking {
     drawn: usize,
 }
