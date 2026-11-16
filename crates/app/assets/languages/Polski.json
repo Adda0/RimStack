@@ -1892,5 +1892,8 @@
  "Saved from RimStack": "Zapisano w RimStack",
  "This order becomes the load order. Save writes it.": "Ta kolejność staje się kolejnością wczytywania. Zapisz ją zapisuje.",
  "the same order as now": "taka sama kolejność jak teraz",
- "{}, {}": "{}, {}"
+ "{}, {}": "{}, {}",
+ "Rewritten by RimWorld as it started": "Nadpisano przez RimWorld przy starcie",
+ "RimWorld rewrote the load order as it started and now lists {} mod; the list here has {}.": "RimWorld nadpisał kolejność wczytywania przy starcie; zawiera teraz {} mod, a lista tutaj ma {}.",
+ "RimWorld rewrote the load order as it started and now lists {} mods; the list here has {}.": "RimWorld nadpisał kolejność wczytywania przy starcie; zawiera teraz {} mody, a lista tutaj ma {}.|RimWorld nadpisał kolejność wczytywania przy starcie; zawiera teraz {} modów, a lista tutaj ma {}."
 }

@@ -6,6 +6,8 @@ use std::time::Duration;
 pub enum Told {
     /// The game emptied its list on a new version; the last launch from RimStack had these.
     ResetByGame(Vec<String>),
+    /// The game rewrote ModsConfig.xml as it started and now lists these.
+    RewrittenByGame(Vec<String>),
     /// ModsConfig.xml was written outside RimStack and now lists these.
     WrittenOutside(Vec<String>),
     NotStarted(String),
@@ -92,13 +94,21 @@ impl Game {
                 }
                 skipped = 0;
                 let app = app.clone();
-                let looked =
-                    crate::jobs::off_thread("watch", move || (app.game_running(), app.stamps()));
-                let Ok((running, stamps)) = looked.await else {
+                let looked = crate::jobs::off_thread("watch", move || {
+                    (
+                        app.game_running(),
+                        app.last_start().map_or(0, |start| start.time),
+                        crate::workspace::now_secs(),
+                        app.stamps(),
+                    )
+                });
+                let Ok((running, launched, now, stamps)) = looked.await else {
                     return;
                 };
                 if game
-                    .update(cx, |game, cx| game.looked(running, stamps, cx))
+                    .update(cx, |game, cx| {
+                        game.looked(running, launched, now, stamps, cx)
+                    })
                     .is_err()
                 {
                     return;
@@ -108,7 +118,14 @@ impl Game {
         .detach();
     }
 
-    fn looked(&mut self, running: bool, stamps: Stamps, cx: &mut Context<Self>) {
+    fn looked(
+        &mut self,
+        running: bool,
+        launched: u64,
+        now: u64,
+        stamps: Stamps,
+        cx: &mut Context<Self>,
+    ) {
         let app = super::app(cx);
         if running != self.running {
             self.running = running;
@@ -119,7 +136,15 @@ impl Game {
             cx.notify();
         }
         let held = (self.held)(cx) || cx.has_active_drag();
-        let noticed = self.watcher.look(stamps, running, held);
+        let noticed = self.watcher.look(
+            stamps,
+            rimstack_core::base::watch::Game {
+                running,
+                launched,
+                now,
+            },
+            held,
+        );
         if noticed.mods {
             app.rescan_soon();
         }
@@ -152,21 +177,34 @@ impl Game {
                 },
             );
         }
-        // Never taken unasked: the game empties the file when it first starts on a new version.
+        // Never taken unasked: the game empties the file when it first starts on a new version,
+        // and rewrites it as it starts: that is its own change, named in its own notice.
         if noticed.mods_config {
+            let by_game = noticed.mods_config_by_game;
             crate::jobs::run(
                 "mods config",
                 cx,
                 move || {
                     let ids = app.mods_config_list();
                     if let Some(ids) = &ids {
-                        app.record_order(rimstack_core::kept::orders::How::Outside, ids);
+                        app.record_order(
+                            if by_game {
+                                rimstack_core::kept::orders::How::Game
+                            } else {
+                                rimstack_core::kept::orders::How::Outside
+                            },
+                            ids,
+                        );
                     }
-                    ids
+                    (ids, by_game)
                 },
-                |_, ids, cx| {
+                |_, (ids, by_game), cx| {
                     if let Some(ids) = ids {
-                        cx.emit(Told::WrittenOutside(ids));
+                        cx.emit(if by_game {
+                            Told::RewrittenByGame(ids)
+                        } else {
+                            Told::WrittenOutside(ids)
+                        });
                     }
                 },
             );

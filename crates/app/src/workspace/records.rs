@@ -154,6 +154,20 @@ mod tests {
     }
 
     #[test]
+    fn an_order_the_game_wrote_as_it_started_is_named_as_its_own() {
+        let (_tmp, app) = installed();
+        app.record_order(orders::How::Game, &["x.y".to_string()]);
+        app.settle_writes();
+        let past = app.past_orders();
+        assert_eq!(past.len(), 1);
+        assert_eq!(
+            past[0].said,
+            rimstack_core::say!("Rewritten by RimWorld as it started")
+        );
+        assert_eq!(past[0].mods, 1);
+    }
+
+    #[test]
     fn two_snapshots_in_one_second_are_both_kept() {
         let (_tmp, app) = installed();
         let first = app.snapshot("@saving", &["a".to_string()]).unwrap();

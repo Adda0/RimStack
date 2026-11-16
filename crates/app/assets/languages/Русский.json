@@ -1892,5 +1892,8 @@
  "Saved from RimStack": "Saved from RimStack",
  "This order becomes the load order. Save writes it.": "This order becomes the load order. Save writes it.",
  "the same order as now": "the same order as now",
- "{}, {}": "{}, {}"
+ "{}, {}": "{}, {}",
+ "Rewritten by RimWorld as it started": "Rewritten by RimWorld as it started",
+ "RimWorld rewrote the load order as it started and now lists {} mod; the list here has {}.": "RimWorld rewrote the load order as it started and now lists {} mod; the list here has {}.",
+ "RimWorld rewrote the load order as it started and now lists {} mods; the list here has {}.": "RimWorld rewrote the load order as it started and now lists {} mods; the list here has {}.|RimWorld rewrote the load order as it started and now lists {} mods; the list here has {}."
 }

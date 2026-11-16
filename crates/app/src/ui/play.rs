@@ -64,6 +64,30 @@ impl Shell {
                     cx,
                 );
             }
+            Told::RewrittenByGame(ids) => {
+                let here = self
+                    .sections
+                    .mods
+                    .read(cx)
+                    .list
+                    .read(cx)
+                    .count(crate::workspace::load_order::Side::Active);
+                let said = say_n!(
+                    ids.len(),
+                    "RimWorld rewrote the load order as it started and now lists {} mod; the list here has {}.",
+                    "RimWorld rewrote the load order as it started and now lists {} mods; the list here has {}.",
+                    here
+                );
+                let mods = self.sections.mods.downgrade();
+                notices::offer(
+                    put(&said),
+                    put(&say!("Use the file's")),
+                    move |_, cx| {
+                        let _ = mods.update(cx, |mods, cx| mods.keep_file(true, cx));
+                    },
+                    cx,
+                );
+            }
             Told::WrittenOutside(ids) => {
                 let here = self
                     .sections
