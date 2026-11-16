@@ -429,7 +429,7 @@ impl DetailsView {
                 .child(crate::ui::tip::tipped(
                     div()
                         .id("files-folder")
-                        .flex_1()
+                        .flex_initial()
                         .min_w_0()
                         .overflow_hidden()
                         .whitespace_nowrap()
@@ -451,6 +451,7 @@ impl DetailsView {
                             cx.write_to_clipboard(gpui::ClipboardItem::new_string(copied.clone()))
                         }),
                 )
+                .child(div().flex_1())
                 .into_any_element(),
         );
         shown.push(div().h(px(8.)).into_any_element());

@@ -110,6 +110,7 @@ pub(super) fn words(
 impl Settings {
     pub(super) fn line(&self, line: Line, theme: &Theme, cx: &mut Context<Self>) -> AnyElement {
         let c = &theme.colours;
+        let reset = line.reset.clone().filter(|_| line.changed);
         let name = div()
             .flex()
             .flex_none()
@@ -131,13 +132,23 @@ impl Settings {
             })
             .child(
                 div()
-                    .flex_1()
+                    .flex_initial()
                     .min_w_0()
                     .sized_text(theme, theme.body())
                     .text_color(c.ink)
                     .child(line.title.clone()),
-            );
-        let reset = line.reset.clone().filter(|_| line.changed);
+            )
+            .when_some(reset, |d, reset| {
+                d.child(
+                    Btn::new((line.id, 1usize), "")
+                        .icon("undo-2")
+                        .tip(put(&say!("Back to the default")))
+                        .on_click(
+                            cx.listener(move |settings, _, window, cx| reset(settings, window, cx)),
+                        ),
+                )
+            })
+            .child(div().flex_1());
         div()
             .flex()
             .flex_col()
@@ -158,17 +169,7 @@ impl Settings {
                             .items_center()
                             .gap(theme::GAP)
                             .children(line.held),
-                    )
-                    .when_some(reset, |d, reset| {
-                        d.child(
-                            Btn::new((line.id, 1usize), "")
-                                .icon("undo-2")
-                                .tip(put(&say!("Back to the default")))
-                                .on_click(cx.listener(move |settings, _, window, cx| {
-                                    reset(settings, window, cx)
-                                })),
-                        )
-                    }),
+                    ),
             )
             .when(!line.tip.is_empty(), |d| {
                 d.child(
@@ -302,7 +303,7 @@ pub(super) fn path(
     let (copied, opened) = (path.clone(), path.clone());
     let text = div()
         .id((id, 0usize))
-        .flex_1()
+        .flex_initial()
         .min_w_0()
         .whitespace_nowrap()
         .overflow_hidden()
@@ -344,5 +345,6 @@ pub(super) fn path(
                     .on_click(move |_, _, cx| cx.open_with_system(std::path::Path::new(&opened))),
             )
         })
+        .child(div().flex_1())
         .into_any_element()
 }

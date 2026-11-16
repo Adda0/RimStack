@@ -552,7 +552,7 @@ impl DetailsView {
                             .child(crate::ui::tip::tipped(
                                 div()
                                     .id("facts-folder")
-                                    .flex_1()
+                                    .flex_initial()
                                     .min_w_0()
                                     .overflow_hidden()
                                     .whitespace_nowrap()
@@ -583,7 +583,8 @@ impl DetailsView {
                                     .on_click(move |_, _, cx| {
                                         cx.open_with_system(std::path::Path::new(&opened))
                                     }),
-                            ),
+                            )
+                            .child(div().flex_1()),
                     )
                     .into_any_element(),
             );
