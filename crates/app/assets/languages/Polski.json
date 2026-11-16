@@ -1753,5 +1753,9 @@
  "{} active mods as CSV in {}": "{} active mods as CSV in {}",
  "Not filtered": "Bez filtra",
  "filters the inactive list; the load order shows all its mods": "filters the inactive list; the load order shows all its mods",
- "filters the load order; the inactive list shows all its mods": "filters the load order; the inactive list shows all its mods"
+ "filters the load order; the inactive list shows all its mods": "filters the load order; the inactive list shows all its mods",
+ "Apply sort": "Zastosuj sortowanie",
+ "Close, cancel, discard a sort preview, clear the selection": "Zamknij, anuluj, odrzuć podgląd sortowania, wyczyść zaznaczenie",
+ "Discard changes": "Odrzuć zmiany",
+ "Discard sort": "Odrzuć sortowanie"
 }

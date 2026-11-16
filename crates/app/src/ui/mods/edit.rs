@@ -200,7 +200,7 @@ impl Mods {
         }
     }
 
-    pub(super) fn discard_changes(&mut self, cx: &mut Context<Self>) {
+    pub fn discard_changes(&mut self, cx: &mut Context<Self>) {
         let app = super::super::app(cx);
         self.edit_list(cx, |list, _| list.order.discard_changes(&app));
         self.changed(cx);
@@ -289,7 +289,7 @@ impl Mods {
         }
     }
 
-    pub(super) fn end_sort(&mut self, keep: bool, cx: &mut Context<Self>) {
+    pub fn end_sort(&mut self, keep: bool, cx: &mut Context<Self>) {
         let app = super::super::app(cx);
         if !keep {
             self.edit_list(cx, |list, _| list.order.drop_sort(&app));
@@ -649,6 +649,10 @@ impl Mods {
 
     pub fn next_problem(&mut self, cx: &mut Context<Self>) {
         self.show_problem(true, cx);
+    }
+
+    pub fn previous_problem(&mut self, cx: &mut Context<Self>) {
+        self.show_problem(false, cx);
     }
 
     pub fn open_problems(&mut self, cx: &mut Context<Self>) {

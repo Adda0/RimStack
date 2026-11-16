@@ -64,6 +64,8 @@ impl Render for Mods {
                     mods.set_drawer(false, cx);
                 } else if mods.chosen_reads.picking.is_some() {
                     mods.start_picking(None, cx);
+                } else if mods.list.read(cx).previewing() {
+                    mods.end_sort(false, cx);
                 } else if !mods.list.read(cx).selection.is_empty() {
                     mods.select(None, true, cx);
                 } else {

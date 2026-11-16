@@ -140,6 +140,7 @@ impl Shell {
             ..
         } = list.session_standing().clone();
         let (errors, warnings) = list.problems();
+        let previewing = list.previewing();
         let mut push = |when: bool, name: Sentence, group: &Sentence, keys: Sentence, run: Run| {
             if when {
                 all.push(command(put(&name), group, put(&keys), run));
@@ -267,6 +268,45 @@ impl Shell {
                     .sections
                     .mods
                     .update(cx, |mods, cx| mods.next_problem(cx));
+            }),
+        );
+        push(
+            errors + warnings > 0,
+            say!("Previous problem"),
+            &order,
+            none.clone(),
+            Rc::new(|shell, _, cx| {
+                shell.go(crate::ui::section::Section::Mods, cx);
+                shell
+                    .sections
+                    .mods
+                    .update(cx, |mods, cx| mods.previous_problem(cx));
+            }),
+        );
+        for (keep, name) in [(true, say!("Apply sort")), (false, say!("Discard sort"))] {
+            push(
+                previewing,
+                name,
+                &order,
+                none.clone(),
+                Rc::new(move |shell, _, cx| {
+                    shell
+                        .sections
+                        .mods
+                        .update(cx, |mods, cx| mods.end_sort(keep, cx));
+                }),
+            );
+        }
+        push(
+            dirty && !previewing,
+            say!("Discard changes"),
+            &order,
+            none.clone(),
+            Rc::new(|shell, _, cx| {
+                shell
+                    .sections
+                    .mods
+                    .update(cx, |mods, cx| mods.discard_changes(cx));
             }),
         );
         push(

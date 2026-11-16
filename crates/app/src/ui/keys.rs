@@ -79,7 +79,10 @@ fn groups() -> Vec<(Sentence, Vec<(Sentence, Sentence)>)> {
                 (Sentence::Plain("?".into()), say!("This page")),
                 (say!("Left, Right"), say!("Move a choice or the section")),
                 (say!("Tab"), say!("Next control")),
-                (say!("Esc"), say!("Close, cancel, clear the selection")),
+                (
+                    say!("Esc"),
+                    say!("Close, cancel, discard a sort preview, clear the selection"),
+                ),
             ],
         ),
         (
