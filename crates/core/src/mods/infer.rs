@@ -51,6 +51,23 @@ pub(crate) fn subfolder(folder: &Path, name: &str) -> Option<PathBuf> {
     found.map(|e| e.path()).filter(|p| p.is_dir())
 }
 
+/// `text` without its `<!-- -->` comments: the game reads nothing written in one, and mods
+/// often keep whole defs and patch operations commented out.
+fn uncommented(text: &str) -> std::borrow::Cow<'_, str> {
+    if !text.contains("<!--") {
+        return text.into();
+    }
+    let mut kept = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(at) = rest.find("<!--") {
+        kept.push_str(&rest[..at]);
+        let inside = &rest[at + 4..];
+        rest = inside.find("-->").map_or("", |end| &inside[end + 3..]);
+    }
+    kept.push_str(rest);
+    kept.into()
+}
+
 fn between<'a>(text: &'a str, open: &'a str, close: &'a str) -> impl Iterator<Item = &'a str> {
     let mut rest = text;
     std::iter::from_fn(move || {
@@ -167,6 +184,7 @@ pub fn scan_xml(load_folders: &[PathBuf]) -> Scanned {
             let Ok(text) = std::fs::read_to_string(&file) else {
                 continue;
             };
+            let text = uncommented(&text);
             found.defines.extend(defs_of(&text));
             // `ParentName=` also ends in `Name=`; only a bare ` Name=` is a base.
             found.bases.extend(
@@ -186,6 +204,7 @@ pub fn scan_xml(load_folders: &[PathBuf]) -> Scanned {
             let Ok(text) = std::fs::read_to_string(&file) else {
                 continue;
             };
+            let text = uncommented(&text);
             // Selections are written inside <xpath>, with entities for quotes.
             for xpath in between(&text, "<xpath>", "</xpath>") {
                 let xpath = xpath.replace("&quot;", "\"").replace("&apos;", "'");
@@ -448,6 +467,38 @@ mod tests {
         let found = scan(&[root], &HashSet::new());
         let names: Vec<&str> = found.defines.iter().map(|d| d.name.as_str()).collect();
         assert_eq!(names, ["Kept"]);
+    }
+
+    #[test]
+    fn what_is_commented_out_is_not_read() {
+        let (_t, root) = a_mod(&[
+            (
+                "Defs/bows.xml",
+                r#"<Defs>
+                <ThingStyleDef ParentName="RotateWeapons"><defName>Great_Bow</defName></ThingStyleDef>
+                <!--<ThingStyleDef ParentName="OldWeapons">
+                    <defName>Long_Bow</defName>
+                </ThingStyleDef>-->
+                <!-- <ThingDef Name="GoneBase"/> --><ThingDef><defName>Arrow</defName></ThingDef>
+                </Defs>"#,
+            ),
+            (
+                "Patches/p.xml",
+                r#"<Patch><!-- <Operation Class="PatchOperationFindMod"><mods><li>Old Mod</li></mods>
+                <match><xpath>Defs/ThingDef[defName="Old_Bed"]</xpath></match></Operation> -->
+                <Operation><xpath>Defs/ThingDef[defName="Bed"]</xpath></Operation></Patch>"#,
+            ),
+        ]);
+        let found = scan(&[root], &HashSet::new());
+        let mut names: Vec<&str> = found.defines.iter().map(|d| d.name.as_str()).collect();
+        names.sort_unstable();
+        assert_eq!(names, ["Arrow", "Great_Bow"]);
+        let parents: Vec<&str> = found.parents.iter().map(|(p, _)| p.as_str()).collect();
+        assert_eq!(parents, ["RotateWeapons"]);
+        assert!(found.bases.is_empty());
+        let patched: Vec<&str> = found.patched.iter().map(|(p, _)| p.as_str()).collect();
+        assert_eq!(patched, ["Bed"]);
+        assert!(found.asks_for.is_empty());
     }
 
     fn scanned(
