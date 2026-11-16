@@ -426,14 +426,32 @@ pub mod watch {
 
     thread_local! {
         static SEEN: RefCell<Option<Vec<Seen>>> = const { RefCell::new(None) };
+        static MARKED: RefCell<Option<Bounds<Pixels>>> = const { RefCell::new(None) };
     }
 
     pub fn start() {
         SEEN.with_borrow_mut(|seen| *seen = Some(Vec::new()));
+        MARKED.with_borrow_mut(|marked| *marked = None);
     }
 
     pub fn take() -> Vec<Seen> {
         SEEN.with_borrow_mut(|seen| seen.take().unwrap_or_default())
+    }
+
+    /// Laid inside what it covers, telling its bounds: a scene drawn over the page keeps only
+    /// the texts of the thing drawn there, as the page's own show around it.
+    pub(in crate::ui) fn marked() -> impl gpui::IntoElement {
+        gpui::canvas(
+            |bounds, _, _| MARKED.with_borrow_mut(|marked| *marked = Some(bounds)),
+            |_, _, _, _| {},
+        )
+        .absolute()
+        .inset_0()
+    }
+
+    /// The bounds `marked` last told, if it was drawn.
+    pub fn take_marked() -> Option<Bounds<Pixels>> {
+        MARKED.with_borrow_mut(|marked| marked.take())
     }
 
     /// Only the part shown counts: a row half under the list's edge is cut there.

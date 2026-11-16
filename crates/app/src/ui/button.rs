@@ -147,6 +147,23 @@ impl Btn {
         self.keys = Some(keys);
         self
     }
+    /// The width `render` lays this button out at, and no wider, for sizing what wraps around it.
+    pub fn width(&self, window: &Window, theme: &Theme) -> Pixels {
+        let icon = self.icon.is_some();
+        let measured =
+            super::widgets::btn_width_of(window, theme, &self.text, icon, self.menu, self.large);
+        // A primary or toned small label is drawn medium, wider than the weight measured.
+        let medium = self.primary || self.tone.is_some();
+        if self.large || !medium || self.text.is_empty() {
+            measured
+        } else {
+            let size = theme.small();
+            let plain =
+                super::widgets::measure(window, theme, &self.text, size, FontWeight::NORMAL);
+            let drawn = super::widgets::measure(window, theme, &self.text, size, theme.medium);
+            measured - plain + drawn
+        }
+    }
 }
 
 impl RenderOnce for Btn {
