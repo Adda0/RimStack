@@ -24,6 +24,7 @@ pub(super) fn m(name: &str, author: &str, category: Category) -> Mod {
         filed: category,
         chosen: false,
         held_by: String::new(),
+        pinned: false,
         needs_dlcs: Vec::new(),
         translation: false,
         name: name.into(),
@@ -356,6 +357,24 @@ fn a_needs_term_shows_the_mods_depending_on_that_dlc() {
     list.set_filter("needs:ludeon.rimworld");
     assert_eq!(shown(&list), names);
     list.set_filter("!needs:royalty");
+    assert_eq!(shown(&list).len(), 5);
+}
+
+#[test]
+fn a_pinned_term_shows_the_mods_sort_leaves_alone() {
+    let mut mods = sample().mods().to_vec();
+    mods[1].pinned = true; // Core
+    let mut list = GroupedList::flat(mods);
+    let shown = |list: &GroupedList| -> Vec<String> {
+        let name = |r: &Row| match r {
+            Row::Mod { index } => Some(list.mods()[*index].name.clone()),
+            _ => None,
+        };
+        list.rows().iter().filter_map(name).collect()
+    };
+    list.set_filter("is:pinned");
+    assert_eq!(shown(&list), ["Core"]);
+    list.set_filter("!is:pinned");
     assert_eq!(shown(&list).len(), 5);
 }
 #[test]

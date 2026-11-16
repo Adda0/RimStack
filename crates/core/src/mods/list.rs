@@ -119,6 +119,8 @@ pub struct Mod {
     pub chosen: bool,
     /// The mod that has to load after it and keeps it in an earlier category than `filed`.
     pub held_by: String,
+    /// Sort leaves it where it is.
+    pub pinned: bool,
     /// Its folders hold only translations, of a keyed strings Languages folder.
     pub translation: bool,
     /// Folded package ids of the official DLCs it lists as dependencies.

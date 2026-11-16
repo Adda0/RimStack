@@ -85,6 +85,18 @@ impl Mods {
         self.show(cx);
     }
 
+    pub(super) fn pin(&mut self, on: bool, cx: &mut Context<Self>) {
+        let ids = self.list.read(cx).selection.clone();
+        if ids.is_empty() {
+            return;
+        }
+        let app = super::super::app(cx);
+        if app.set_pinned(&ids, on) {
+            self.describe(cx);
+        }
+        self.show(cx);
+    }
+
     pub(super) fn draft_note(&mut self, tags: String, note: String, cx: &mut Context<Self>) {
         if let Some(id) = self.selected_id(cx) {
             self.chosen_reads.drafts.note = Some((id, tags, note));

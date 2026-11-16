@@ -21,6 +21,7 @@ pub(super) struct Filter {
     pub(super) leftover: bool,
     translation: bool,
     code: bool,
+    pinned: bool,
     patches: Vec<String>,
     needs: Vec<String>,
     has: Vec<Has>,
@@ -64,6 +65,7 @@ impl Filter {
             Some(("is", "leftover")) => self.leftover = true,
             Some(("is", "translation")) => self.translation = true,
             Some(("is", "active")) => self.ask(Side::Active),
+            Some(("is", "pinned")) => self.pinned = true,
             Some(("is", "inactive")) => self.ask(Side::Inactive),
             Some(("has", "code")) => self.code = true,
             Some(("patches", method)) if !method.is_empty() => {
@@ -168,6 +170,7 @@ impl Filter {
             && (!self.workshop || m.workshop)
             && (!self.git || m.git)
             && (!self.leftover || m.leftover)
+            && (!self.pinned || m.pinned)
             && (!self.code || m.code)
             && (!self.translation || m.translation)
             && self

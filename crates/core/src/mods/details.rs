@@ -244,6 +244,7 @@ mod tests {
             filed: Category::Content,
             chosen: false,
             held_by: String::new(),
+            pinned: false,
             needs_dlcs: Vec::new(),
             translation: false,
         };

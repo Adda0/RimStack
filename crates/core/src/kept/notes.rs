@@ -17,6 +17,8 @@ pub struct Note {
     pub ignored: Vec<String>,
     /// The name of the swatch its row is painted with; empty for none.
     pub colour: String,
+    /// Sort leaves it where it is.
+    pub pinned: bool,
 }
 
 impl Note {
@@ -88,6 +90,7 @@ impl Notes {
                     .and_then(Value::as_str)
                     .unwrap_or("")
                     .to_string(),
+                pinned: v.get("pinned").and_then(Value::as_bool).unwrap_or(false),
             };
             // An older file's `sub` is read as the first tag.
             if let Some(sub) = v.get("sub").and_then(Value::as_str) {
@@ -121,6 +124,9 @@ impl Notes {
                 if !n.colour.is_empty() {
                     entry["colour"] = json!(n.colour);
                 }
+                if n.pinned {
+                    entry["pinned"] = json!(true);
+                }
                 (k.clone(), entry)
             })
             .collect();
@@ -140,7 +146,8 @@ impl Notes {
         let keeps = note.version_ok
             || !note.category.is_empty()
             || !note.ignored.is_empty()
-            || !note.colour.is_empty();
+            || !note.colour.is_empty()
+            || note.pinned;
         if says_nothing && !keeps {
             self.by_id.remove(&key);
         } else {
@@ -288,6 +295,22 @@ mod tests {
         notes.set("a.a", painted.clone());
         notes.write(&path).unwrap();
         assert_eq!(Notes::read(&path).get("a.a"), Some(&painted));
+        notes.set("a.a", Note::default());
+        assert!(notes.is_empty());
+    }
+
+    #[test]
+    fn a_pin_alone_is_kept_and_read_back() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("notes.json");
+        let mut notes = Notes::default();
+        let pinned = Note {
+            pinned: true,
+            ..Note::default()
+        };
+        notes.set("a.a", pinned.clone());
+        notes.write(&path).unwrap();
+        assert_eq!(Notes::read(&path).get("a.a"), Some(&pinned));
         notes.set("a.a", Note::default());
         assert!(notes.is_empty());
     }

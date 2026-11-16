@@ -62,6 +62,7 @@ const TERMS: &[(&str, About)] = &[
     ("is:workshop", |_| say!("from the Workshop")),
     ("is:local", |_| say!("in the game's Mods folder")),
     ("is:git", |_| say!("a git checkout")),
+    ("is:pinned", |_| say!("left where it is by Sort")),
     ("is:leftover", |_| say!("no About.xml")),
     ("is:translation", |_| say!("translates another mod")),
     ("is:notinsave", |_| {

@@ -2,6 +2,7 @@ use super::chosen::DetailsView;
 use super::notes::Picking;
 use crate::ui::button::Btn;
 use crate::ui::card::group_title;
+use crate::ui::controls::Toggle;
 use crate::ui::theme::{self, Theme};
 use crate::ui::widgets::{TextSized, breakable, elide_middle_in, label};
 use crate::words::put;
@@ -97,6 +98,27 @@ impl DetailsView {
                 .child(position)
                 .into_any_element(),
         );
+        if active {
+            let pinned = details.pinned;
+            let title = put(&say!("Pinned: Sort leaves it here"));
+            shown.push(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap(theme::GAP)
+                    .pb(theme::GAP_SMALL)
+                    .child(
+                        Toggle::new("pinned", pinned, title.clone()).on_flip(crate::ui::act(
+                            cx,
+                            move |chosen: &mut DetailsView, on: bool, _, cx| {
+                                let _ = chosen.mods.update(cx, |mods, cx| mods.pin(on, cx));
+                            },
+                        )),
+                    )
+                    .child(label(theme, theme.small(), c.ink2, title))
+                    .into_any_element(),
+            );
+        }
         shown.extend(names(
             theme,
             put(&say!("Requires")),

@@ -1761,5 +1761,7 @@
  "Colour": "Farbe",
  "No colour": "Keine Farbe",
  "painted with this colour": "in dieser Farbe markiert",
- "{}  ✓": "{}  ✓"
+ "{}  ✓": "{}  ✓",
+ "Pinned: Sort leaves it here": "Angeheftet: Sortieren lässt ihn hier",
+ "left where it is by Sort": "von Sortieren an seinem Platz gelassen"
 }

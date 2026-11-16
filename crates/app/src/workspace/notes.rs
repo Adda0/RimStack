@@ -114,6 +114,11 @@ impl App {
         self.change_notes(ids, Changes::NOTES, |note| note.colour = name.clone())
     }
 
+    /// Sort leaves these mods where they are, or no longer.
+    pub fn set_pinned(&self, ids: &[ModId], on: bool) -> bool {
+        self.change_notes(ids, Changes::NOTES, |note| note.pinned = on)
+    }
+
     /// How many mods sit under the group `name`.
     pub fn group_size(&self, name: &str) -> usize {
         self.notes().reading().in_group(name).len()

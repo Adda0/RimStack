@@ -163,6 +163,7 @@ fn a_mod(name: &str, category: Category) -> Mod {
         filed: category,
         chosen: false,
         held_by: String::new(),
+        pinned: false,
         needs_dlcs: Vec::new(),
         translation: false,
     }
