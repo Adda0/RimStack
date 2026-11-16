@@ -84,7 +84,7 @@ impl LastCheck {
 
     /// A missing or damaged file is no check yet.
     pub fn read(file: &Path) -> Self {
-        let Ok(mut json) = crate::base::atomic_file::read_json(file) else {
+        let Some(mut json) = crate::base::atomic_file::read_json(file) else {
             return Self::default();
         };
         // Before verdicts were kept, a file listed the ids found gone, without the live ones.
@@ -128,7 +128,7 @@ impl LastCheck {
 
     /// The unanswered ids whose page is Steam's error page: removed or private.
     pub fn gone(&self) -> impl Iterator<Item = &String> {
-        let gone = |(id, looked): (&String, &Looked)| {
+        let gone = |(id, looked)| {
             (looked.page == Page::Gone && self.unanswered.contains(id)).then_some(id)
         };
         self.looked.iter().filter_map(gone)
