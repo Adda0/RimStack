@@ -534,3 +534,79 @@ fn shift_ctrl_and_ctrl_a_choose_from_the_keyboard() {
     );
     assert_eq!(first(&mut cx), Some(top), "keeping the first one chosen");
 }
+
+#[test]
+fn alt_moves_the_selected_mods_together_and_enter_takes_them_across() {
+    let (_tmp, mut cx, mods) = opened();
+    let window = cx.update(|cx| cx.windows()[0]);
+    let keys = |keys: &'static str, cx: &mut HeadlessAppContext| {
+        cx.update_window(window, |_, window, cx| {
+            let parsed = gpui::Keystroke::parse(keys).unwrap();
+            window.dispatch_keystroke(parsed, cx);
+        })
+        .unwrap();
+        cx.run_until_parked();
+    };
+    let place = |id: ModId, cx: &mut HeadlessAppContext| {
+        cx.update(|cx| {
+            mods.read(cx)
+                .list
+                .read(cx)
+                .order
+                .list(Side::Active)
+                .position_of(id)
+        })
+    };
+    let chosen =
+        |cx: &mut HeadlessAppContext| cx.update(|cx| mods.read(cx).list.read(cx).selection.clone());
+    let count = |side: Side, cx: &mut HeadlessAppContext| {
+        cx.update(|cx| mods.read(cx).list.read(cx).count(side))
+    };
+    cx.update_window(window, |_, window, cx| {
+        let handle = mods.read(cx).list(Side::Active).read(cx).focus_handle();
+        window.focus(&handle, cx);
+    })
+    .unwrap();
+    cx.run_until_parked();
+    keys("home", &mut cx);
+    keys("shift-down", &mut cx);
+    let pair = chosen(&mut cx);
+    let places = |pair: &[ModId], cx: &mut HeadlessAppContext| {
+        pair.iter().map(|id| place(*id, cx)).collect::<Vec<_>>()
+    };
+    let (before, total) = (places(&pair, &mut cx), count(Side::Active, &mut cx));
+    keys("alt-down", &mut cx);
+    let moved = places(&pair, &mut cx);
+    assert!(
+        moved
+            .iter()
+            .zip(&before)
+            .enumerate()
+            .all(|(at, (now, was))| {
+                let (Some(now), Some(was)) = (now, was) else {
+                    return false;
+                };
+                *now == was + 1 || moved[..at].contains(&Some(*now))
+            }),
+        "Alt + Down moves every chosen mod one place, keeping their order"
+    );
+    keys("alt-home", &mut cx);
+    let edged = places(&pair, &mut cx);
+    assert!(
+        edged
+            .iter()
+            .zip(moved.iter())
+            .all(|(at, was)| { at.is_some_and(|at| was.is_some_and(|was| at <= was)) }),
+        "Alt + Home takes them up without splitting them"
+    );
+    keys("enter", &mut cx);
+    assert_eq!(
+        count(Side::Active, &mut cx),
+        total - 2,
+        "Enter moves every chosen mod across"
+    );
+    assert!(
+        pair.iter().all(|id| place(*id, &mut cx).is_none()),
+        "and they leave the active list"
+    );
+}

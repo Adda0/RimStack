@@ -127,6 +127,9 @@ impl Mods {
         let (Some(position), false) = (list.position_of(first), state.order.previewing()) else {
             return;
         };
+        if state.selection.len() > 1 {
+            return self.move_selected(cx);
+        }
         let next = list.beside_mod(first);
         self.take(side, position, None, cx);
         if let Some(next) = next {
@@ -171,16 +174,33 @@ impl Mods {
     }
 
     fn nudge(&mut self, side: Side, by: isize, cx: &mut Context<Self>) {
-        let Some(first) = self.selected_id(cx) else {
-            return;
-        };
+        let ids = self.ids(cx);
         let sorted_by_column = side == Side::Active && !self.orders.active_key.is_empty();
-        if self.list.read(cx).order.previewing() || sorted_by_column {
+        if ids.is_empty() || self.list.read(cx).order.previewing() || sorted_by_column {
             return;
         }
-        if let Some((from, to)) = self.list.read(cx).order.list(side).nudged(first, by) {
-            self.move_mod(side, from, to, cx);
-            self.reveal_selected(side, false, cx);
+        let slides: std::collections::HashMap<ModId, i32> = {
+            let state = self.list.read(cx);
+            let list = state.order.list(side);
+            list.nudged(&ids, by)
+                .unwrap_or_default()
+                .iter()
+                .filter_map(|(from, to)| {
+                    let id = list.mods().get(*from)?.installed?;
+                    Some((id, *from as i32 - *to as i32))
+                })
+                .collect()
+        };
+        let app = super::super::app(cx);
+        if !self.edit_list(cx, |list, _| list.order.nudge(&app, side, &ids, by)) {
+            return;
+        }
+        self.changed(cx);
+        self.list(side)
+            .update(cx, |list, cx| list.slide(slides, cx));
+        let cursor = self.list.read(cx).cursor.or_else(|| ids.first().copied());
+        if let Some(id) = cursor {
+            self.reveal_mod(side, id, false, cx);
         }
     }
 
@@ -189,6 +209,7 @@ impl Mods {
         let app = super::super::app(cx);
         self.edit_list(cx, |list, _| list.order.to_edge(&app, &ids, top));
         self.changed(cx);
+        self.reveal_selected(Side::Active, false, cx);
         self.done_said(say_n!(ids.len(), "Moved {} mod", "Moved {} mods"), cx);
     }
 
@@ -452,8 +473,9 @@ impl Mods {
         cx.notify();
     }
 
-    /// The arrows step through the list and Alt moves the chosen mod; Enter moves it across;
-    /// Ctrl + A chooses every mod and Ctrl + I the others.
+    /// The arrows step through the list and Alt moves the chosen mods, Alt + Home and Alt + End
+    /// to the edge of their category; Enter moves them across; Ctrl + A chooses every mod and
+    /// Ctrl + I the others.
     pub(super) fn list_key(
         &mut self,
         side: Side,
@@ -490,6 +512,13 @@ impl Mods {
             .and_then(|row| self.shown(side).rows.get(row))
             .and_then(|r| r.mod_id);
         match keys.key.as_str() {
+            "home" | "end" if alt && side == Side::Active => {
+                let state = self.list.read(cx);
+                let in_load_order = self.orders.active_key.is_empty() && !state.order.previewing();
+                if in_load_order && state.selected_active && !state.selection.is_empty() {
+                    self.to_edge(keys.key == "home", cx);
+                }
+            }
             "up" | "down" | "pageup" | "pagedown" | "home" | "end" if alt => {
                 self.nudge(side, by, cx)
             }

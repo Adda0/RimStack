@@ -1895,5 +1895,9 @@
  "{}, {}": "{}, {}",
  "Rewritten by RimWorld as it started": "Réécrit par RimWorld au démarrage",
  "RimWorld rewrote the load order as it started and now lists {} mod; the list here has {}.": "RimWorld a réécrit l'ordre de chargement au démarrage et liste maintenant {} mod ; la liste ici en a {}.",
- "RimWorld rewrote the load order as it started and now lists {} mods; the list here has {}.": "RimWorld a réécrit l'ordre de chargement au démarrage et liste maintenant {} mods ; la liste ici en a {}."
+ "RimWorld rewrote the load order as it started and now lists {} mods; the list here has {}.": "RimWorld a réécrit l'ordre de chargement au démarrage et liste maintenant {} mods ; la liste ici en a {}.",
+ "Activate or deactivate the selected mods": "Activer ou désactiver les mods sélectionnés",
+ "Alt + Home, Alt + End": "Alt + Début, Alt + Fin",
+ "Move the selected mods one place": "Déplacer les mods sélectionnés d'une place",
+ "To the top or the bottom of their category": "En haut ou en bas de leur catégorie"
 }

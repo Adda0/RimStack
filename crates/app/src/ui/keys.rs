@@ -120,8 +120,18 @@ fn groups() -> Vec<(Sentence, Vec<(Sentence, Sentence)>)> {
             say!("A list of mods"),
             vec![
                 (say!("Up, Down"), say!("Select the mod above or below")),
-                (say!("Enter"), say!("Activate or deactivate")),
-                (say!("Alt + Up, Alt + Down"), say!("Move the mod one place")),
+                (
+                    say!("Enter"),
+                    say!("Activate or deactivate the selected mods"),
+                ),
+                (
+                    say!("Alt + Up, Alt + Down"),
+                    say!("Move the selected mods one place"),
+                ),
+                (
+                    say!("Alt + Home, Alt + End"),
+                    say!("To the top or the bottom of their category"),
+                ),
                 (
                     say!("Shift + click, Shift + Up, Shift + Down"),
                     say!("Select through"),
