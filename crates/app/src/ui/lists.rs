@@ -8,7 +8,7 @@ use super::theme::{self, Theme};
 use super::widgets::{TextSized, label};
 use crate::changes::Changes;
 use crate::words::put;
-use crate::workspace::lists::{Comparison, HistoryLine, Snapshot};
+use crate::workspace::lists::{Comparison, HistoryLine, PastOrder, Snapshot};
 use crate::workspace::logs::{clock, moment};
 use gpui::{
     AnyElement, AppContext, Bounds, Context, Entity, FocusHandle, InteractiveElement, IntoElement,
@@ -23,6 +23,8 @@ use rimstack_core::{say, say_n};
 pub enum Which {
     Lists,
     History,
+    /// The load orders ModsConfig.xml held over time, newest first.
+    Past,
     /// A saved list beside the load order: which mods each holds alone, and which moved.
     Compare,
 }
@@ -32,6 +34,11 @@ struct Comparing {
     name: String,
     /// None until the mods are read.
     groups: Option<Comparison>,
+}
+
+/// The orders the history card shows, read fresh while it is open.
+struct PastShown {
+    orders: Vec<PastOrder>,
 }
 
 const READS: Changes = Changes::LISTS.or(Changes::LANGUAGE);
@@ -47,6 +54,7 @@ pub struct Lists {
     open: Option<(Which, Bounds<Pixels>)>,
     lock_report: Option<rimstack_core::mods::lock::Report>,
     comparing: Option<Comparing>,
+    past: Option<PastShown>,
     turn: usize,
     /// Closed, and drawn only while it fades out.
     fading: Option<(Which, Bounds<Pixels>)>,
@@ -75,6 +83,7 @@ impl Lists {
             open: None,
             lock_report: None,
             comparing: None,
+            past: None,
             turn: 0,
             fading: None,
             focus: cx.focus_handle(),
@@ -129,7 +138,9 @@ impl Lists {
             .iter()
             .any(|line| !line.restore.is_empty() || !line.bring_back.is_empty());
         let first = match (which, reverts) {
-            (Which::Lists, _) | (Which::History, true) | (Which::Compare, _) => self.keys.clone(),
+            (Which::Lists, _) | (Which::History, true) | (Which::Past, _) | (Which::Compare, _) => {
+                self.keys.clone()
+            }
             (Which::History, false) => self.focus.clone(),
         };
         window.focus(&first, cx);
@@ -245,6 +256,53 @@ impl Lists {
         }
         super::navigate::go(super::navigate::Go::Activate(groups.addable.clone()), cx);
         self.compare_again(cx);
+    }
+
+    /// The load orders ModsConfig.xml held over time, newest first, read fresh
+    /// each time: the card opens where the lists did.
+    fn show_past(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let below = self.open.map_or_else(Bounds::default, |(_, below)| below);
+        self.past = Some(PastShown { orders: Vec::new() });
+        self.toggle(Which::Past, below, window, cx);
+        self.past_again(cx);
+    }
+
+    fn past_again(&mut self, cx: &mut Context<Self>) {
+        let app = super::app(cx);
+        crate::jobs::run(
+            "past orders",
+            cx,
+            move || app.past_orders(),
+            move |lists, orders, cx| {
+                if let Some(shown) = &mut lists.past {
+                    shown.orders = orders;
+                    cx.notify();
+                }
+            },
+        );
+    }
+
+    /// Keeps the order `at` in the history as a saved list named by its time.
+    fn keep_past(&mut self, at: usize, window: &mut Window, cx: &mut Context<Self>) {
+        let app = super::app(cx);
+        let Some(ids) = app.past_order(at) else {
+            return;
+        };
+        let Some(shown) = &self.past else {
+            return;
+        };
+        let Some(order) = shown.orders.get(at) else {
+            return;
+        };
+        let name = moment(order.time);
+        let kept = app.keep_list(&name, Some(ids));
+        match kept {
+            Ok(()) => {
+                notices::say(put(&say!("Kept as {}", name)), notices::Tone::Ok, cx);
+                self.close(window, cx);
+            }
+            Err(problem) => notices::say(crate::words::said_of(&problem), notices::Tone::Err, cx),
+        }
     }
 
     /// Asks where the list goes, offering `suggest` in the user's own folder, and writes it.
@@ -749,6 +807,17 @@ impl Lists {
             );
         }
         shown.push(
+            Btn::new("past-orders", put(&say!("History…")))
+                .icon("history")
+                .tip(put(&say!(
+                    "Every order saved or written by the game or another tool, with a way to use one again or keep it as a saved list"
+                )))
+                .on_click(cx.listener(|lists, _, window, cx| {
+                    lists.show_past(window, cx);
+                }))
+                .into_any_element(),
+        );
+        shown.push(
             Self::title(theme, put(&say!("Clipboard and Rentry.co")))
                 .pt(theme::GAP_SMALL)
                 .into_any_element(),
@@ -1006,6 +1075,113 @@ impl Lists {
         shown
     }
 
+    fn past_popup(&self, theme: &Theme, cx: &mut Context<Self>) -> Vec<AnyElement> {
+        let c = &theme.colours;
+        let Some(shown_orders) = &self.past else {
+            return Vec::new();
+        };
+        let mut shown = vec![
+            div()
+                .flex()
+                .items_center()
+                .gap(theme::GAP_SMALL)
+                .child(div().flex_1().min_w_0().child(Self::title(
+                    theme,
+                    put(&say!("Load order history")),
+                )))
+                .child(
+                    Btn::new("past-close", put(&say!("Close")))
+                        .keys(self.keys.clone())
+                        .on_click(cx.listener(|lists, _, window, cx| lists.close(window, cx))),
+                )
+                .into_any_element(),
+            label(
+                theme,
+                theme.body(),
+                c.ink2,
+                put(&say!(
+                    "Every order saved from RimStack, and every order the game or another tool wrote instead. Using one makes it the load order; Save writes it."
+                )),
+            )
+            .into_any_element(),
+        ];
+        if shown_orders.orders.is_empty() {
+            shown.push(
+                label(theme, theme.body(), c.ink2, put(&say!("Nothing yet"))).into_any_element(),
+            );
+        }
+        for (at, order) in shown_orders.orders.iter().enumerate() {
+            let mut parts = Vec::new();
+            if order.added > 0 {
+                parts.push(format!("+{}", order.added));
+            }
+            if order.removed > 0 {
+                parts.push(format!("\u{2212}{}", order.removed));
+            }
+            if order.moved > 0 {
+                parts.push(put(&say_n!(order.moved, "{} moved", "{} moved")));
+            }
+            // The same-order line is hidden, as the QML view hid its empty difference.
+            let difference = parts.join(", ");
+            shown.push(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap(theme::GAP)
+                    .child(
+                        label(theme, theme.small(), c.ink3, moment(order.time))
+                            .w(theme.sized(112.)),
+                    )
+                    .child(
+                        div()
+                            .flex_1()
+                            .min_w_0()
+                            .flex()
+                            .flex_col()
+                            .gap(theme::GAP_SMALL)
+                            .child(label(
+                                theme,
+                                theme.body(),
+                                c.ink,
+                                put(&say!(
+                                    "{}, {}",
+                                    order.said.clone().inside(),
+                                    say_n!(order.mods, "{} mod", "{} mods").inside()
+                                )),
+                            ))
+                            .when(!parts.is_empty(), move |d| {
+                                d.child(label(theme, theme.small(), c.ink3, difference.clone()))
+                            }),
+                    )
+                    .child(
+                        Btn::new(("past-use", at), put(&say!("Use")))
+                            .tip(put(&say!(
+                                "This order becomes the load order. Save writes it."
+                            )))
+                            .on_click(cx.listener(move |lists, _, window, cx| {
+                                if let Some(ids) = super::app(cx).past_order(at) {
+                                    lists.use_ids(ids, "", window, cx);
+                                } else {
+                                    lists.close(window, cx);
+                                }
+                            })),
+                    )
+                    .child(
+                        Btn::new(("past-keep", at), "")
+                            .icon("save")
+                            .tip(put(&say!(
+                                "Keeps this order as a saved list named by its time"
+                            )))
+                            .on_click(cx.listener(move |lists, _, window, cx| {
+                                lists.keep_past(at, window, cx);
+                            })),
+                    )
+                    .into_any_element(),
+            );
+        }
+        shown
+    }
+
     fn history_popup(&self, theme: &Theme, cx: &mut Context<Self>) -> Vec<AnyElement> {
         let c = &theme.colours;
         let mut first_revert = false;
@@ -1090,6 +1266,7 @@ impl Render for Lists {
         let content = match which {
             Which::Lists => self.lists_popup(&theme, window, cx),
             Which::History => self.history_popup(&theme, cx),
+            Which::Past => self.past_popup(&theme, cx),
             Which::Compare => self.compare_popup(&theme, cx),
         };
         let column = div()
@@ -1123,6 +1300,21 @@ impl Render for Lists {
                         .max_h(
                             theme.sized(520.).min(below.top() - theme::GAP_LARGE)
                                 - theme::GAP_LARGE * 2.,
+                        )
+                        .overflow_y_scroll()
+                        .child(column),
+                ),
+            Which::Past => popup
+                .left(below.left())
+                .top(below.bottom() + px(6.))
+                .w(theme.sized(480.))
+                .child(
+                    div()
+                        .id("past-lines")
+                        .max_h(
+                            theme
+                                .sized(520.)
+                                .min(viewport.height - below.bottom() - theme::GAP_LARGE * 2.),
                         )
                         .overflow_y_scroll()
                         .child(column),

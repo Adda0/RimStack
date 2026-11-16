@@ -2,7 +2,7 @@ use super::App;
 use crate::changes::Changes;
 use rimstack_core::base::locks::Held;
 use rimstack_core::base::sentence::Sentence;
-use rimstack_core::kept::{journal, lists};
+use rimstack_core::kept::{journal, lists, orders};
 use std::path::PathBuf;
 
 const SNAPSHOTS_KEPT: usize = 30;
@@ -14,6 +14,28 @@ impl App {
 
     pub fn lists_dir(&self) -> PathBuf {
         self.data_dir().join("lists")
+    }
+
+    pub fn orders_file(&self) -> PathBuf {
+        self.data_dir().join("orders.json")
+    }
+
+    /// A load order ModsConfig.xml held is kept for the history: the ones
+    /// saved from RimStack, the ones the game or another tool wrote instead.
+    pub fn record_order(&self, how: orders::How, ids: &[String]) {
+        if ids.is_empty() {
+            return;
+        }
+        let entry = orders::Entry {
+            time: super::now_secs(),
+            how,
+            ids: ids.to_vec(),
+        };
+        match orders::record(&self.orders_file(), entry) {
+            Ok(true) => self.publish(Changes::LISTS),
+            Ok(false) => {}
+            Err(problem) => rimstack_core::problem!("{problem}"),
+        }
     }
 
     pub fn journal_file(&self) -> PathBuf {
@@ -87,7 +109,7 @@ impl App {
 #[cfg(test)]
 mod tests {
     use crate::workspace::tests::installed;
-    use rimstack_core::kept::{journal, lists};
+    use rimstack_core::kept::{journal, lists, orders};
 
     #[test]
     fn a_snapshot_is_kept_by_its_kind_and_named_in_the_history() {
@@ -104,6 +126,31 @@ mod tests {
         let kept = journal::read(&app.journal_file());
         assert_eq!(kept.len(), 1);
         assert_eq!(kept[0].revert, format!("list {name}"));
+    }
+
+    #[test]
+    fn the_orders_saved_and_seen_are_kept_newest_first() {
+        let (_tmp, app) = installed();
+        app.record_order(orders::How::Saved, &["a.b".to_string(), "c.d".to_string()]);
+        app.record_order(
+            orders::How::Outside,
+            &["C.D".to_string(), "a.B".to_string()],
+        );
+        // The outside write holds the same order, only elsewhere: it is kept.
+        // The same order written again is not.
+        app.record_order(
+            orders::How::Outside,
+            &["c.d".to_string(), "a.b".to_string()],
+        );
+        // Kept oldest first; `past_order` counts back from the newest.
+        let past = orders::read(&app.orders_file());
+        assert_eq!(past.len(), 2);
+        assert_eq!(past[0].how, orders::How::Saved);
+        assert_eq!(past[1].how, orders::How::Outside);
+        assert_eq!(past[1].ids, ["C.D", "a.B"]);
+        assert_eq!(app.past_order(0).unwrap(), ["C.D", "a.B"]);
+        assert_eq!(app.past_order(1).unwrap(), ["a.b", "c.d"]);
+        assert!(app.past_order(2).is_none());
     }
 
     #[test]

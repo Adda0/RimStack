@@ -1881,5 +1881,16 @@
  "Only in the saved list": "Only in the saved list",
  "Placed differently": "Placed differently",
  "Shows the mods {} and the load order hold apart or in a different order, and merges the missing ones": "Montre les mods que {} et l'ordre de chargement ne partagent pas ou placent différemment, et fusionne ceux qui manquent",
- "The saved list and the load order hold the same mods in the same order": "The saved list and the load order hold the same mods in the same order"
+ "The saved list and the load order hold the same mods in the same order": "The saved list and the load order hold the same mods in the same order",
+ "Changed outside RimStack": "Modifié hors de RimStack",
+ "Every order saved from RimStack, and every order the game or another tool wrote instead. Using one makes it the load order; Save writes it.": "Chaque ordre enregistré depuis RimStack, et chaque ordre écrit à la place par le jeu ou un autre outil. En utiliser un en fait l'ordre de chargement ; Enregistrer l'écrit.",
+ "Every order saved or written by the game or another tool, with a way to use one again or keep it as a saved list": "Chaque ordre enregistré ou écrit par le jeu ou un autre outil, qu'on peut réutiliser ou garder comme liste enregistrée",
+ "History…": "Historique…",
+ "Keeps this order as a saved list named by its time": "Garde cet ordre comme liste enregistrée, nommée d'après son heure",
+ "Kept as {}": "Gardé sous {}",
+ "Load order history": "Historique de l'ordre de chargement",
+ "Saved from RimStack": "Enregistré depuis RimStack",
+ "This order becomes the load order. Save writes it.": "Cet ordre devient l'ordre de chargement. Enregistrer l'écrit.",
+ "the same order as now": "le même ordre qu'actuellement",
+ "{}, {}": "{}, {}"
 }

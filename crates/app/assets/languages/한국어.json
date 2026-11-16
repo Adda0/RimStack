@@ -1881,5 +1881,16 @@
  "Only in the saved list": "Only in the saved list",
  "Placed differently": "Placed differently",
  "Shows the mods {} and the load order hold apart or in a different order, and merges the missing ones": "Shows the mods {} and the load order hold apart or in a different order, and merges the missing ones",
- "The saved list and the load order hold the same mods in the same order": "The saved list and the load order hold the same mods in the same order"
+ "The saved list and the load order hold the same mods in the same order": "The saved list and the load order hold the same mods in the same order",
+ "Changed outside RimStack": "Changed outside RimStack",
+ "Every order saved from RimStack, and every order the game or another tool wrote instead. Using one makes it the load order; Save writes it.": "Every order saved from RimStack, and every order the game or another tool wrote instead. Using one makes it the load order; Save writes it.",
+ "Every order saved or written by the game or another tool, with a way to use one again or keep it as a saved list": "Every order saved or written by the game or another tool, with a way to use one again or keep it as a saved list",
+ "History…": "History…",
+ "Keeps this order as a saved list named by its time": "Keeps this order as a saved list named by its time",
+ "Kept as {}": "Kept as {}",
+ "Load order history": "Load order history",
+ "Saved from RimStack": "Saved from RimStack",
+ "This order becomes the load order. Save writes it.": "This order becomes the load order. Save writes it.",
+ "the same order as now": "the same order as now",
+ "{}, {}": "{}, {}"
 }

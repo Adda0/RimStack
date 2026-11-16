@@ -8,6 +8,7 @@ pub mod lists;
 pub mod mod_facts;
 pub mod new_mods;
 pub mod notes;
+pub mod orders;
 pub mod owntheme;
 pub mod prefs;
 pub mod searches;

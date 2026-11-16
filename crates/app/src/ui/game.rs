@@ -157,7 +157,13 @@ impl Game {
             crate::jobs::run(
                 "mods config",
                 cx,
-                move || app.mods_config_list(),
+                move || {
+                    let ids = app.mods_config_list();
+                    if let Some(ids) = &ids {
+                        app.record_order(rimstack_core::kept::orders::How::Outside, ids);
+                    }
+                    ids
+                },
                 |_, ids, cx| {
                     if let Some(ids) = ids {
                         cx.emit(Told::WrittenOutside(ids));
