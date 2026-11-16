@@ -1,4 +1,6 @@
-use super::{FocusFilter, Mods, Redo, Save, Undo, pane_widths};
+use super::{
+    FocusFilter, Mods, NextPane, NextTab, PreviousPane, PreviousTab, Redo, Save, Undo, pane_widths,
+};
 use crate::ui::theme::{self, Theme};
 use gpui::{
     Context, Focusable, InteractiveElement, IntoElement, ParentElement, Render, Styled, Window,
@@ -73,6 +75,12 @@ impl Render for Mods {
                 }
                 cx.stop_propagation();
             }))
+            .on_action(cx.listener(|mods, _: &NextPane, window, cx| mods.step_pane(1, window, cx)))
+            .on_action(
+                cx.listener(|mods, _: &PreviousPane, window, cx| mods.step_pane(-1, window, cx)),
+            )
+            .on_action(cx.listener(|mods, _: &NextTab, _, cx| mods.step_tab(1, cx)))
+            .on_action(cx.listener(|mods, _: &PreviousTab, _, cx| mods.step_tab(-1, cx)))
             .on_action(cx.listener(|mods, _: &Undo, _, cx| mods.undo(cx)))
             .on_action(cx.listener(|mods, _: &Redo, _, cx| mods.redo(cx)))
             .on_action(cx.listener(|mods, _: &Save, _, cx| {

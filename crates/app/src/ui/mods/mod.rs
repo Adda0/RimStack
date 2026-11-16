@@ -48,7 +48,19 @@ pub struct Shown {
     pub rows: Rc<Vec<RowView>>,
 }
 
-gpui::actions!(mods, [FocusFilter, Undo, Redo, Save]);
+gpui::actions!(
+    mods,
+    [
+        FocusFilter,
+        Undo,
+        Redo,
+        Save,
+        NextPane,
+        PreviousPane,
+        NextTab,
+        PreviousTab
+    ]
+);
 
 pub use columns::Menu;
 pub use edit::{acting, acting_from_afar};

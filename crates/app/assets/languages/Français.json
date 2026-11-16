@@ -1860,5 +1860,12 @@
  "Down, Enter": "Bas, Entrée",
  "From an empty filter, tag box or note back to the list": "D'un filtre, d'un champ d'étiquettes ou d'une note vides, retour à la liste",
  "From the filter to the list": "Du filtre à la liste",
- "From an empty filter, the tag box or the note back to the list": "From an empty filter, the tag box or the note back to the list"
+ "From an empty filter, the tag box or the note back to the list": "From an empty filter, the tag box or the note back to the list",
+ "Ctrl + Page Up, Ctrl + Page Down": "Ctrl + Page préc., Ctrl + Page suiv.",
+ "Ctrl + Up, Ctrl + Down, Ctrl + Home, Ctrl + End": "Ctrl + Haut, Ctrl + Bas, Ctrl + Début, Ctrl + Fin",
+ "F6, Shift + F6": "F6, Maj + F6",
+ "Select through to an end or a page further": "Sélectionner jusqu'à un bout ou une page plus loin",
+ "Shift + Home, Shift + End, Shift + Page Up, Shift + Page Down": "Maj + Début, Maj + Fin, Maj + Page préc., Maj + Page suiv.",
+ "The previous or the next tab of the details": "L'onglet précédent ou suivant des détails",
+ "To the next or the previous pane": "Au volet suivant ou précédent"
 }

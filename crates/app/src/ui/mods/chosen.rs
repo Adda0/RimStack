@@ -76,6 +76,8 @@ pub struct DetailsView {
     pub(crate) tags: gpui::Entity<crate::ui::text_field::TextField>,
     pub(super) note: gpui::Entity<crate::ui::text_field::TextField>,
     pub(super) small_picture: bool,
+    /// The pane's own, which F6 gives the keys to.
+    pub(super) focus: gpui::FocusHandle,
     paging: crate::ui::page::Paging,
     copyable: std::cell::RefCell<
         std::collections::HashMap<&'static str, gpui::Entity<crate::ui::text_field::TextField>>,
@@ -107,6 +109,7 @@ impl DetailsView {
             tags,
             note,
             small_picture: false,
+            focus: cx.focus_handle(),
             pictures: Default::default(),
             copyable: Default::default(),
             paging: crate::ui::page::Paging::new(cx.global::<Theme>().appearance.reduce_motion),
@@ -202,6 +205,17 @@ impl DetailsView {
         cx.notify();
     }
 
+    /// The tab before or after the shown one, round the ends, when a mod's details are shown.
+    pub(super) fn step_tab(&mut self, by: isize, cx: &mut Context<Self>) {
+        if self.shown.details.is_none() {
+            return;
+        }
+        let count = tabs(0).len() as isize;
+        self.tab = (self.tab as isize + by).rem_euclid(count) as usize;
+        cx.emit(Asked::Tab(self.tab));
+        cx.notify();
+    }
+
     pub fn show(&mut self, shown: DetailsShown, cx: &mut Context<Self>) {
         let other = self.shown.details.as_ref().map(|d| d.path.clone())
             != shown.details.as_ref().map(|d| d.path.clone());
@@ -236,7 +250,10 @@ impl gpui::Render for DetailsView {
             0 => pane.into_any_element(),
             turn => crate::ui::motion::appear(pane, ("details-appear", turn)).into_any_element(),
         };
+        let focused = self.focus.is_focused(window);
         div()
+            .track_focus(&self.focus)
+            .relative()
             .size_full()
             .bg(theme.colours.panel)
             .child(crate::ui::page::page(
@@ -246,6 +263,16 @@ impl gpui::Render for DetailsView {
                 cx.entity_id(),
                 pane,
             ))
+            .when(focused, |d| {
+                d.child(
+                    div()
+                        .absolute()
+                        .inset(theme::GAP_LINE)
+                        .rounded(theme::CORNER)
+                        .border_2()
+                        .border_color(theme.colours.focus),
+                )
+            })
     }
 }
 

@@ -101,6 +101,14 @@ fn groups() -> Vec<(Sentence, Vec<(Sentence, Sentence)>)> {
                     say!("Esc"),
                     say!("From an empty filter, the tag box or the note back to the list"),
                 ),
+                (
+                    say!("F6, Shift + F6"),
+                    say!("To the next or the previous pane"),
+                ),
+                (
+                    say!("Ctrl + Page Up, Ctrl + Page Down"),
+                    say!("The previous or the next tab of the details"),
+                ),
             ],
         ),
         (
@@ -114,7 +122,7 @@ fn groups() -> Vec<(Sentence, Vec<(Sentence, Sentence)>)> {
                     say!("Select through"),
                 ),
                 (
-                    say!("Ctrl + Up, Ctrl + Down"),
+                    say!("Ctrl + Up, Ctrl + Down, Ctrl + Home, Ctrl + End"),
                     say!("Go on without selecting"),
                 ),
                 (
@@ -122,8 +130,8 @@ fn groups() -> Vec<(Sentence, Vec<(Sentence, Sentence)>)> {
                     say!("Add or remove one from the selection"),
                 ),
                 (
-                    say!("Shift, Ctrl"),
-                    say!("The same with Home, End, Page Up and Page Down"),
+                    say!("Shift + Home, Shift + End, Shift + Page Up, Shift + Page Down"),
+                    say!("Select through to an end or a page further"),
                 ),
                 (say!("Ctrl + A"), say!("Select every mod shown")),
                 (say!("Ctrl + I"), say!("Invert the selection")),

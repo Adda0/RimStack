@@ -110,6 +110,8 @@ impl Mods {
         if open && !self.layout.drawer_open {
             self.layout.drawer_turn = crate::ui::motion::opening();
         }
+        // Closing the drawer gives the keys back to the load order.
+        self.focus_wanted |= !open && self.layout.drawer_open;
         self.layout.drawer_open = open;
         if open {
             let text = self.filter.read(cx).text().to_string();
@@ -117,6 +119,38 @@ impl Mods {
                 .update(cx, |field, cx| field.set_text_quietly(&text, cx));
         }
         cx.notify();
+    }
+
+    /// F6 and Shift+F6: the keys go round the inactive mods, the load order and the details,
+    /// the drawer opening when the inactive mods are hidden and shutting when the keys leave it.
+    pub(super) fn step_pane(&mut self, by: isize, window: &mut Window, cx: &mut Context<Self>) {
+        if self.comparing.is_some() {
+            return;
+        }
+        let panes = [
+            self.inactive_list.read(cx).focus_handle(),
+            self.active_list.read(cx).focus_handle(),
+            self.details_view.read(cx).focus.clone(),
+        ];
+        let at = panes
+            .iter()
+            .position(|pane| pane.contains_focused(window, cx))
+            .unwrap_or(1);
+        let to = (at as isize + by).rem_euclid(panes.len() as isize) as usize;
+        if self.view.inactive_hidden {
+            match to {
+                0 => self.set_drawer(true, cx),
+                _ => self.layout.drawer_open = false,
+            }
+        }
+        window.focus(&panes[to], cx);
+        cx.notify();
+    }
+
+    /// Ctrl+Page Up and Ctrl+Page Down: the chosen mod's details tab before or after.
+    pub(super) fn step_tab(&mut self, by: isize, cx: &mut Context<Self>) {
+        self.details_view
+            .update(cx, |view, cx| view.step_tab(by, cx));
     }
 
     pub(super) fn drag_grip(

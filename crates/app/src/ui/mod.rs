@@ -413,6 +413,10 @@ fn install_with(app: Arc<App>, options: &Options, fonts: Fonts, cx: &mut Cx) {
         #[cfg(not(target_os = "macos"))]
         gpui::KeyBinding::new("ctrl-y", mods::Redo, None),
         gpui::KeyBinding::new(crate::command!("s"), mods::Save, None),
+        gpui::KeyBinding::new("f6", mods::NextPane, None),
+        gpui::KeyBinding::new("shift-f6", mods::PreviousPane, None),
+        gpui::KeyBinding::new("ctrl-pagedown", mods::NextTab, None),
+        gpui::KeyBinding::new("ctrl-pageup", mods::PreviousTab, None),
     ]);
     cx.bind_keys([gpui::KeyBinding::new(
         crate::command!("shift-f"),

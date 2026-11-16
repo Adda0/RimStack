@@ -423,6 +423,61 @@ fn esc_in_an_empty_filter_and_down_give_the_list_the_keys() {
 }
 
 #[test]
+fn f6_goes_round_the_panes_and_ctrl_page_keys_round_the_tabs() {
+    let (_tmp, mut cx, mods) = opened();
+    let window = cx.update(|cx| cx.windows()[0]);
+    let keys = |keys: &'static str, cx: &mut HeadlessAppContext| {
+        for key in keys.split(' ') {
+            cx.update_window(window, |_, window, cx| {
+                let parsed = gpui::Keystroke::parse(key).unwrap();
+                window.dispatch_keystroke(parsed, cx);
+            })
+            .unwrap();
+            cx.run_until_parked();
+        }
+    };
+    let pane = |cx: &mut HeadlessAppContext| {
+        cx.update_window(window, |_, window, cx| {
+            let mods = mods.read(cx);
+            [
+                mods.list(Side::Inactive).read(cx).focus_handle(),
+                mods.list(Side::Active).read(cx).focus_handle(),
+                mods.details_view.read(cx).focus.clone(),
+            ]
+            .iter()
+            .position(|pane| pane.is_focused(window))
+        })
+        .unwrap()
+    };
+    let tab = |cx: &mut HeadlessAppContext| cx.update(|cx| mods.read(cx).details_view.read(cx).tab);
+    cx.update_window(window, |_, window, cx| {
+        let handle = mods.read(cx).list(Side::Active).read(cx).focus_handle();
+        window.focus(&handle, cx);
+    })
+    .unwrap();
+    cx.run_until_parked();
+    keys("home", &mut cx);
+    keys("f6", &mut cx);
+    assert_eq!(
+        pane(&mut cx),
+        Some(2),
+        "F6 goes from the load order to the details"
+    );
+    keys("f6", &mut cx);
+    assert_eq!(pane(&mut cx), Some(0), "and round to the inactive mods");
+    keys("shift-f6", &mut cx);
+    assert_eq!(pane(&mut cx), Some(2), "Shift+F6 goes back");
+    keys("f6 f6", &mut cx);
+    assert_eq!(pane(&mut cx), Some(1));
+    assert_eq!(tab(&mut cx), 0);
+    keys("ctrl-pagedown", &mut cx);
+    assert_eq!(tab(&mut cx), 1, "Ctrl+Page Down shows the next tab");
+    keys("ctrl-pageup ctrl-pageup", &mut cx);
+    assert_eq!(tab(&mut cx), 3, "Ctrl+Page Up goes round to the last");
+    assert_eq!(pane(&mut cx), Some(1), "the list keeps the keys");
+}
+
+#[test]
 fn shift_ctrl_and_ctrl_a_choose_from_the_keyboard() {
     let (_tmp, mut cx, mods) = opened();
     let window = cx.update(|cx| cx.windows()[0]);
