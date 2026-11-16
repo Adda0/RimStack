@@ -498,11 +498,6 @@ impl DetailsView {
             ),
             ("fact-code", say!("Code"), put(&details.code)),
             ("fact-load", say!("Load time"), details.load_time.clone()),
-            (
-                "fact-package",
-                say!("Package id"),
-                details.package_id.clone(),
-            ),
         ];
         let mut lines: Vec<AnyElement> = facts
             .into_iter()
@@ -524,6 +519,37 @@ impl DetailsView {
                     .into_any_element()
             })
             .collect();
+        if !details.package_id.is_empty() {
+            let copied = details.package_id.clone();
+            lines.push(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap(theme::GAP)
+                    .child(
+                        label(theme, theme.body(), c.ink2, put(&say!("Package id"))).w(label_width),
+                    )
+                    .child(self.copyable(
+                        "fact-package",
+                        &details.package_id,
+                        theme.body(),
+                        FontWeight::NORMAL,
+                        c.ink,
+                        cx,
+                    ))
+                    .child(
+                        Btn::new("copy-package", "")
+                            .icon("copy")
+                            .tip(put(&say!("Copy package id")))
+                            .on_click(move |_, _, cx| {
+                                cx.write_to_clipboard(gpui::ClipboardItem::new_string(
+                                    copied.clone(),
+                                ))
+                            }),
+                    )
+                    .into_any_element(),
+            );
+        }
         if !details.path.is_empty() {
             let button = theme.icon() + theme.sized(14.);
             let room = inner - label_width - theme::GAP - (button + theme::GAP_SMALL) * 2.;
