@@ -302,6 +302,8 @@ impl LoadOrder {
         groups.push(Self::fetching(at, &subject));
         if subject.workshop {
             groups.push(Self::workshop(app, at, &subject));
+        } else if !subject.workshop_page.is_empty() {
+            groups.push(Self::workshop_page(&subject));
         }
         if !subject.repository.is_empty() {
             groups.push(Self::git(at, &subject));
@@ -380,6 +382,25 @@ impl LoadOrder {
             group.push(Entry::item(say!("Subscribe again"), "download", action));
         }
         group
+    }
+
+    /// A local copy of a Workshop item: its page only; copying, downloading again and
+    /// unsubscribing stay with Workshop mods.
+    fn workshop_page(subject: &Subject) -> Vec<Entry> {
+        let page = subject.workshop_page.clone();
+        let open = |url: &str| Action::OpenUrl {
+            url: url.to_string(),
+        };
+        vec![
+            Entry::title(say!("Steam Workshop")),
+            Entry::item(
+                say!("Page in Steam"),
+                "external-link",
+                open(&subject.steam_page),
+            ),
+            Entry::item(say!("Page in the browser"), "external-link", open(&page)),
+            Entry::item(say!("Copy link"), "copy", Action::CopyText { value: page }),
+        ]
     }
 
     fn workshop(app: &App, at: &Clicked, subject: &Subject) -> Vec<Entry> {

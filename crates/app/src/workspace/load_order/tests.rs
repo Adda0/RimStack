@@ -884,3 +884,35 @@ fn a_library_no_active_mod_needs_is_unused_until_one_does() {
     assert_eq!(unused(&order, Side::Active), 0);
     assert_eq!(unused(&order, Side::Inactive), 0);
 }
+
+#[test]
+fn a_local_copy_has_the_page_of_the_workshop_item_it_is_known_by() {
+    use rimstack_core::rimworld::workshopdb;
+    let (tmp, app) = installed();
+    let mut order = LoadOrder::read(&app, true, None);
+    let id = roads(&order, Side::Inactive);
+    let page = |order: &mut LoadOrder| {
+        let said = serde_json::to_value(order.details(&app, id)).unwrap();
+        (said["workshopPage"].clone(), said["steamPage"].clone())
+    };
+    assert_eq!(
+        page(&mut order),
+        (serde_json::Value::Null, serde_json::Value::Null)
+    );
+    // Known to the Workshop database by its package id.
+    std::fs::write(workshopdb::file_in(app.data_dir()), "ann.roads\t555\tRoads").unwrap();
+    assert_eq!(
+        page(&mut order),
+        (
+            "https://steamcommunity.com/sharedfiles/filedetails/?id=555".into(),
+            "steam://url/CommunityFilePage/555".into()
+        )
+    );
+    // The item the copy names itself wins.
+    let named = tmp.path().join("game/Mods/roads/About/PublishedFileId.txt");
+    std::fs::write(named, "777\n").unwrap();
+    assert_eq!(
+        page(&mut order).0,
+        "https://steamcommunity.com/sharedfiles/filedetails/?id=777"
+    );
+}
