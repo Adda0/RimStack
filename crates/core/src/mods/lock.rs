@@ -335,6 +335,7 @@ mod tests {
                     git,
                     created: None,
                     leftover: false,
+                    named: None,
                     published: m.workshop.is_some(),
                 }
             })

@@ -35,6 +35,8 @@ pub struct Installed {
     pub git: bool,
     /// It names the Workshop item it is a copy of: a Workshop folder, or `PublishedFileId.txt`.
     pub published: bool,
+    /// `About/PublishedFileId.txt` as written, when the mod has one; may not be a Workshop id.
+    pub named: Option<String>,
     /// When its folder was made, in seconds since 1970: where the system records it.
     pub created: Option<u64>,
     /// A Workshop folder without an About.xml, as Steam can leave one it unsubscribed from.
@@ -192,6 +194,7 @@ fn read_mod(path: PathBuf, source: Source, kept: &mut Entry, tally: &Tally) -> I
         published,
         created: created(&path),
         leftover,
+        named,
         about,
         source,
         path,

@@ -60,6 +60,9 @@ pub enum TroubleKind {
     OwnHarmony,
     DllClash,
     LoadFoldersCase,
+    WrongWorkshopId,
+    AboutBroken,
+    BadPackageId,
 }
 
 impl TroubleKind {
@@ -80,6 +83,9 @@ impl TroubleKind {
             TroubleKind::OwnHarmony => named("Ships its own 0Harmony.dll"),
             TroubleKind::DllClash => named("Dlls other active mods also ship"),
             TroubleKind::LoadFoldersCase => named("LoadFolders.xml letter case"),
+            TroubleKind::WrongWorkshopId => named("Files naming another Workshop item"),
+            TroubleKind::AboutBroken => named("About.xml missing or broken"),
+            TroubleKind::BadPackageId => named("Package ids the game cannot take"),
         }
     }
 
@@ -101,6 +107,9 @@ impl TroubleKind {
             TroubleKind::OwnHarmony => "assembly-harmony",
             TroubleKind::DllClash => "assembly-clash",
             TroubleKind::LoadFoldersCase => "loadfolders-case",
+            TroubleKind::WrongWorkshopId => "wrong-workshop-id",
+            TroubleKind::AboutBroken => "about-broken",
+            TroubleKind::BadPackageId => "bad-package-id",
         }
     }
 }

@@ -236,6 +236,7 @@ fn active_ids_resolve_in_order_whatever_their_case() {
         git: false,
         published: true,
         leftover: false,
+        named: None,
         created: None,
     };
     assert_eq!(unnamed(Source::Official).display_name(), "Royalty");

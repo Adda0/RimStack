@@ -16,6 +16,7 @@ use gpui::{
     StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder, px,
 };
 use rimstack_core::base::error::Error;
+use rimstack_core::base::sentence::Sentence;
 use rimstack_core::kept::lists::Saved;
 use rimstack_core::{say, say_n};
 
@@ -188,6 +189,47 @@ impl Lists {
 
     pub fn is_open(&self, which: Which) -> bool {
         self.open.is_some_and(|(open, _)| open == which)
+    }
+
+    /// Reads every installed mod's own files afresh; the fresh readings become the next scan's.
+    fn check_files(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let app = super::app(cx);
+        let loaded = app.library();
+        let library = match &*loaded {
+            Ok((library, _)) => library.clone(),
+            Err(problem) => {
+                notices::say(crate::words::said_of(problem), notices::Tone::Err, cx);
+                return;
+            }
+        };
+        self.close(window, cx);
+        crate::jobs::run(
+            "files checked",
+            cx,
+            move || rimstack_core::mods::integrity::check(&library.installed),
+            move |_, (checked, bad), cx| {
+                let fine = checked.saturating_sub(bad);
+                let said = Sentence::joined(
+                    ", ",
+                    vec![
+                        say_n!(
+                            checked,
+                            "Checked the files of {} mod",
+                            "Checked the files of {} mods"
+                        ),
+                        say_n!(fine, "{} is fine", "{} are fine"),
+                        say_n!(bad, "{} has a problem", "{} have problems"),
+                    ],
+                );
+                let tone = if bad == 0 {
+                    notices::Tone::Ok
+                } else {
+                    notices::Tone::Err
+                };
+                notices::say(put(&said), tone, cx);
+                super::app(cx).rescan();
+            },
+        );
     }
 
     fn close(&mut self, window: &mut Window, cx: &mut Context<Self>) {
@@ -948,6 +990,12 @@ impl Lists {
                     .on_click(cx.listener(|lists, _, window, cx| {
                         lists.export("modlist.rml", window, cx)
                     })),
+                Btn::new("check-files", put(&say!("Check the files")))
+                    .icon("search")
+                    .tip(put(&say!(
+                        "Reads every installed mod's About.xml and PublishedFileId.txt again and says how many hold no problem: a Workshop mod's files naming another item than its folder, an About.xml missing or broken, or a package id the game cannot take"
+                    )))
+                    .on_click(cx.listener(|lists, _, window, cx| lists.check_files(window, cx))),
                 Btn::new("use-file", put(&say!("Use a list from a file")))
                     .tip(put(&say!("A RimSort or RimPy mod list, a save's list, a share code or a text list becomes the load order. Save writes it.")))
                     .on_click(cx.listener(|lists, _, window, cx| lists.use_file(window, cx))),

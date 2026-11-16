@@ -16,6 +16,7 @@ pub mod facts;
 pub mod find;
 pub mod hidden;
 pub mod infer;
+pub mod integrity;
 pub mod library;
 pub mod list;
 pub mod lock;
