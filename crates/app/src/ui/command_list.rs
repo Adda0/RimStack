@@ -88,7 +88,8 @@ impl Shell {
         let list = mods.list.read(cx);
         let mut all = Vec::new();
         let setting = say!("Setting");
-        let settings: [(Sentence, usize); 28] = [
+        let settings: [(Sentence, usize); 29] = [
+            (say!("Setups"), 0),
             (say!("RimWorld folder"), 0),
             (say!("Config and saves folder"), 0),
             (say!("Workshop mods folder"), 0),

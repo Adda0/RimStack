@@ -117,7 +117,9 @@ const SWITCH: Holds = Holds::Choice(&["on", "off"]);
 pub const UPDATE_EVERY: [&str; 6] = ["1", "5", "10", "15", "30", "60"];
 const UPDATE_EVERY_AT_FIRST: u64 = 10;
 
-const KNOWN: [(&str, Holds); 22] = [
+const KNOWN: [(&str, Holds); 23] = [
+    // The setup in use: decided and written by a switch, never typed.
+    ("instance", Holds::Text),
     ("game", Holds::Text),
     ("config", Holds::Text),
     ("workshop", Holds::Text),

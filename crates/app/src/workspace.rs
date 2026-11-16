@@ -23,6 +23,7 @@ pub mod fetch;
 pub mod find;
 mod game;
 mod install;
+mod instances;
 mod key;
 pub mod lists;
 pub mod load_order;
@@ -119,12 +120,17 @@ pub struct App {
     system_languages: Vec<String>,
     detected_language: Derived<u64, String>,
     settings: RwLock<Settings>,
+    /// The setup in use; `settings` always holds its merged view. Written, and
+    /// then `settings`, never the other way around.
+    setup: RwLock<instances::Setup>,
     prefs: Arc<Derived<Written, rimstack_core::kept::prefs::Prefs>>,
     /// The prefs kept and not yet written, with the turn of their keeping: read in place of the
     /// file until written.
     prefs_kept: Arc<Mutex<(u64, Option<rimstack_core::kept::prefs::Prefs>)>>,
     prefs_writes: crate::jobs::Single<(u64, rimstack_core::kept::prefs::Prefs)>,
     settings_writes: crate::jobs::Single<Settings>,
+    /// The own file of a setup other than "Default".
+    setup_writes: crate::jobs::Single<Settings>,
     notes_writes: crate::jobs::Single<Notes>,
     rules_writes: crate::jobs::Single<UserRules>,
     activated_writes: crate::jobs::Single<rimstack_core::kept::activated::Since>,
@@ -210,19 +216,23 @@ impl App {
     ) -> Self {
         let settings_dir = settings_root.join("RimStack");
         let web: Arc<dyn Transport> = Arc::new(Web::default());
+        let data_dir = data_root.join("RimStack");
+        let setup = instances::Setup::read(&data_dir, &settings_dir.join("settings.json"));
         Self {
-            settings: RwLock::new(Settings::read(&settings_dir.join("settings.json"))),
+            settings: RwLock::new(setup.merged()),
+            setup: RwLock::new(setup),
             prefs: Arc::default(),
             prefs_kept: Arc::default(),
             prefs_writes: crate::jobs::Single::default(),
             settings_writes: crate::jobs::Single::default(),
+            setup_writes: crate::jobs::Single::default(),
             notes_writes: crate::jobs::Single::default(),
             rules_writes: crate::jobs::Single::default(),
             activated_writes: crate::jobs::Single::default(),
             activated_kept: Mutex::default(),
             home,
             settings_dir,
-            data_dir: data_root.join("RimStack"),
+            data_dir,
             given,
             system_languages: Vec::new(),
             detected_language: Derived::default(),
@@ -267,6 +277,8 @@ impl App {
             records_waiting: Arc::default(),
             records_writes: crate::jobs::Single::default(),
             bus: Arc::default(),
+            setup: RwLock::new(setup),
+            data_dir,
         }
     }
 
@@ -330,7 +342,7 @@ impl App {
     }
 
     pub fn launches_file(&self) -> PathBuf {
-        self.data_dir.join("launches.json")
+        self.own_dir().join("launches.json")
     }
 
     /// What the last scan read from each mod's About.xml and dlls.
@@ -339,7 +351,7 @@ impl App {
     }
 
     pub fn kept_logs_dir(&self) -> PathBuf {
-        self.data_dir.join("logs")
+        self.own_dir().join("logs")
     }
 
     pub fn git(&self) -> &Option<String> {
@@ -347,7 +359,7 @@ impl App {
     }
 
     pub fn notes_file(&self) -> PathBuf {
-        self.data_dir.join("notes.json")
+        self.own_dir().join("notes.json")
     }
 
     pub fn user_rules_file(&self) -> PathBuf {
@@ -355,7 +367,7 @@ impl App {
     }
 
     pub fn seen_file(&self) -> PathBuf {
-        self.data_dir.join("seen.txt")
+        self.own_dir().join("seen.txt")
     }
 
     pub fn settings(&self) -> RwLockReadGuard<'_, Settings> {
@@ -368,23 +380,28 @@ impl App {
         name: &str,
         value: &str,
     ) -> Result<(), rimstack_core::base::error::Error> {
-        let kept = {
-            let mut settings = self.settings.writing();
-            settings.set(name, value)?;
-            settings.clone()
+        let (shared, file, kept) = {
+            let mut setup = self.setup.writing();
+            let kept = setup.set(&self.data_dir, name, value)?;
+            *self.settings.writing() = setup.merged();
+            kept
         };
-        write_behind(
-            &self.settings_writes,
-            self.settings_file(),
-            kept,
-            Settings::write,
-        );
+        match shared {
+            true => write_behind(
+                &self.settings_writes,
+                self.settings_file(),
+                kept,
+                Settings::write,
+            ),
+            false => write_behind(&self.setup_writes, file, kept, Settings::write),
+        }
         Ok(())
     }
 
     /// Once every file kept from memory is written: before the program ends.
     pub fn settle_writes(&self) {
         while !(self.settings_writes.idle()
+            && self.setup_writes.idle()
             && self.prefs_writes.idle()
             && self.notes_writes.idle()
             && self.rules_writes.idle()
@@ -420,7 +437,12 @@ impl App {
     }
 
     fn find_paths(&self) -> paths::Paths {
-        let mut given = self.given.clone();
+        // Under "Default" the environment answers first, as ever; another
+        // setup names its own folders, or falls back to it.
+        let mut given = match self.setup_is_default() {
+            true => self.given.clone(),
+            false => paths::Overrides::default(),
+        };
         let settings = self.settings();
         let set = |name: &str| settings.get(name).map(PathBuf::from);
         given.game = given.game.or(set("game"));
@@ -586,10 +608,28 @@ impl App {
         let Some(config) = paths.config.as_ref() else {
             return Vec::new();
         };
-        vec![
+        let mut logs = vec![
             config.join("Player.log"),
             config.join("Logs").join("Player.log"),
-        ]
+        ];
+        // Unity's own log ignores `-savedatafolder`: under another setup it
+        // can still land in the game's everyday settings folder.
+        if !self.setup_is_default() {
+            let native = paths::native_settings(
+                rimstack_core::rimworld::paths::Os::running(),
+                &self.home,
+                // Steam's home for the game, as `paths` would find it without the game's folder.
+                &self.home,
+                paths.game_version.as_deref(),
+            );
+            for dir in native {
+                let log = dir.join("Player.log");
+                if !logs.contains(&log) {
+                    logs.push(log);
+                }
+            }
+        }
+        logs
     }
 
     pub fn log_written(&self) -> u64 {

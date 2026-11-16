@@ -264,7 +264,14 @@ fn on_unity(game_version: Option<&str>) -> bool {
     game_version.and_then(Engine::read) == Some(Engine::Unity)
 }
 
-fn native_settings(os: Os, home: &Path, seen: &Path, game_version: Option<&str>) -> Vec<PathBuf> {
+/// The settings folders the game itself names, before any choice of
+/// RimStack's: where Unity's own log lands even under `-savedatafolder=`.
+pub fn native_settings(
+    os: Os,
+    home: &Path,
+    seen: &Path,
+    game_version: Option<&str>,
+) -> Vec<PathBuf> {
     match os {
         Os::Linux => {
             let sandboxes = SANDBOXES.map(|sandbox| home.join(sandbox));

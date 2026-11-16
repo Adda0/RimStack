@@ -35,6 +35,7 @@ struct Fields {
     github_token: Entity<TextField>,
     rules_repo: Entity<TextField>,
     fonts: Entity<TextField>,
+    setup_name: Entity<TextField>,
 }
 #[derive(Default)]
 struct Said {
@@ -115,6 +116,7 @@ impl Settings {
             github_token: field(cx),
             rules_repo: field(cx),
             fonts: field(cx),
+            setup_name: field(cx),
         };
         fields.key.update(cx, |field, _| field.set_masked(true));
         fields
@@ -357,6 +359,52 @@ impl Settings {
             .err()
             .map(|e| e.sentence().clone());
         cx.notify();
+    }
+
+    /// A setup made, renamed, removed or switched to; refused, the reason shows as any setting's.
+    fn setup(
+        &mut self,
+        done: Result<(), rimstack_core::base::error::Error>,
+        cx: &mut Context<Self>,
+    ) {
+        self.problem = done.err().map(|e| e.sentence().clone());
+        cx.notify();
+    }
+
+    fn add_setup(&mut self, cx: &mut Context<Self>) {
+        let name = self.fields.setup_name.read(cx).text().to_string();
+        let done = super::app(cx).add_setup(&name);
+        if done.is_ok() {
+            self.fields
+                .setup_name
+                .update(cx, |field, cx| field.set_text("", cx));
+        }
+        self.setup(done, cx);
+    }
+
+    /// The setup in use answers to the typed name.
+    fn rename_setup(&mut self, cx: &mut Context<Self>) {
+        let name = self.fields.setup_name.read(cx).text().to_string();
+        let app = super::app(cx);
+        let done = app.rename_setup(&app.setup_in_use(), &name);
+        if done.is_ok() {
+            self.fields
+                .setup_name
+                .update(cx, |field, cx| field.set_text("", cx));
+        }
+        self.setup(done, cx);
+    }
+
+    fn use_setup(&mut self, name: &str, cx: &mut Context<Self>) {
+        let app = super::app(cx);
+        let done = app.use_setup(name);
+        if done.is_ok() {
+            // The saved list the load order went by belongs to the setup left.
+            let _ = app.keep_pref("Mods", "listName", "");
+            super::around::change(cx, |around| around.list_name.clear());
+            self.filled = false;
+        }
+        self.setup(done, cx);
     }
 
     fn keep_update_every(&mut self, at: usize, cx: &mut Context<Self>) {

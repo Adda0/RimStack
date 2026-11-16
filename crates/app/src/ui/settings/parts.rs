@@ -24,6 +24,77 @@ pub(super) fn said(options: &[rimstack_core::base::sentence::Sentence]) -> Vec<S
 }
 
 impl Settings {
+    fn setups_part(
+        &self,
+        theme: &Theme,
+        window: &Window,
+        cx: &mut Context<Self>,
+        rows: &mut Vec<Row>,
+    ) {
+        rows.push(Row::Group(0, put(&say!("Setups"))));
+        rows.push(Row::Note(
+            0,
+            put(&say!(
+                "A setup keeps its own game, Config and saves, and Workshop folders, launch arguments, lists, notes, launches and logs. Everything else is shared. “Default” is as RimStack always was."
+            )),
+        ));
+        let mut in_use = Line::new(0, "setup-in-use", put(&say!("Setup in use"))).tip(put(&say!(
+            "Switching reads the mod folders of the setups it leaves and comes to again."
+        )));
+        for (at, setup) in self.report.setups.iter().enumerate() {
+            let shown = put(&setup.shown);
+            let name = setup.name.clone();
+            in_use = in_use.held(
+                Btn::new(("setup-use", at), shown.clone())
+                    .primary_if(setup.current)
+                    .enabled(!setup.current)
+                    .tip(put(&say!("Switch to {}", shown.clone())))
+                    .on_click(cx.listener(move |s, _, _, cx| s.use_setup(&name, cx))),
+            );
+            if setup.removable && !setup.current {
+                let name = setup.name.clone();
+                in_use = in_use.held(
+                    Btn::new(("setup-remove", at), String::new())
+                        .icon("trash-2")
+                        .tip(put(&say!(
+                            "Remove {}: its folder is kept, only aside",
+                            shown
+                        )))
+                        .on_click(cx.listener(move |s, _, _, cx| {
+                            let done = crate::ui::app(cx).delete_setup(&name);
+                            s.setup(done, cx);
+                        })),
+                );
+            }
+        }
+        rows.push(Row::Line(in_use.filled()));
+        let named = crate::ui::field::Field {
+            id: "setup-name",
+            text: &self.fields.setup_name,
+            icon: "",
+            placeholder: put(&say!("A name for it")),
+            found: None,
+            keys: None,
+        };
+        rows.push(Row::Line(
+            Line::new(0, "setup-new", put(&say!("New setup")))
+                .tip(put(&say!(
+                    "It starts with the folders and launch of the one in use, under a Config and saves folder of its own. Rename names the setup in use."
+                )))
+                .held(div().flex_1().min_w_0().child(named.render(theme, window, cx)))
+                .held(
+                    Btn::new("setup-add", put(&say!("Add")))
+                        .tip(put(&say!("The named setup is made, still not in use")))
+                        .on_click(cx.listener(|s, _, _, cx| s.add_setup(cx))),
+                )
+                .held(
+                    Btn::new("setup-rename", put(&say!("Rename")))
+                        .tip(put(&say!("The setup in use answers to the typed name")))
+                        .on_click(cx.listener(|s, _, _, cx| s.rename_setup(cx))),
+                ),
+        ));
+    }
+
     pub(super) fn game_part(
         &self,
         theme: &Theme,
@@ -33,6 +104,7 @@ impl Settings {
     ) {
         let c = &theme.colours;
         let report = self.report.clone();
+        self.setups_part(theme, window, cx, rows);
         rows.push(Row::Group(0, put(&say!("Folders"))));
         rows.push(Row::Note(
             0,

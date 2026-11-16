@@ -9,11 +9,11 @@ const SNAPSHOTS_KEPT: usize = 30;
 
 impl App {
     pub fn snapshots_dir(&self) -> PathBuf {
-        self.data_dir().join("snapshots")
+        self.own_dir().join("snapshots")
     }
 
     pub fn lists_dir(&self) -> PathBuf {
-        self.data_dir().join("lists")
+        self.own_dir().join("lists")
     }
 
     pub fn orders_file(&self) -> PathBuf {
@@ -39,7 +39,7 @@ impl App {
     }
 
     pub fn journal_file(&self) -> PathBuf {
-        self.data_dir().join("journal.json")
+        self.own_dir().join("journal.json")
     }
 
     /// Named by `@kind`, local time to the second, then a counter; written off this thread, in
