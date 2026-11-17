@@ -315,6 +315,17 @@ impl DetailsView {
         field
     }
 
+    #[cfg(test)]
+    pub(super) fn copyable_field(
+        &self,
+        key: &str,
+    ) -> Option<gpui::Entity<crate::ui::text_field::TextField>> {
+        self.copyable
+            .borrow()
+            .get(&gpui::ElementId::from(key.to_owned()))
+            .cloned()
+    }
+
     /// The About tab with its tags and note open, and the keys in the tags or the note, as T and
     /// N on the list ask.
     pub(super) fn edit_notes(&mut self, tags: bool, window: &mut Window, cx: &mut Context<Self>) {

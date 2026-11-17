@@ -461,3 +461,29 @@ fn copied_tags_replace_a_mods_tags_or_join_them_and_one_undo_gives_each_its_own_
     );
     assert_eq!(group(&mut cx, other), "pointer-own");
 }
+
+#[test]
+fn a_short_fact_takes_one_line_rather_than_one_letter_a_line() {
+    let (_tmp, mut cx, mods) = opened_with(|_| {});
+    chosen(&mut cx, &mods, 3);
+    let window = cx.update(|cx| cx.windows()[0]);
+    for _ in 0..3 {
+        cx.run_until_parked();
+        cx.update_window(window, |_, window, cx| window.draw(cx).clear(cx))
+            .unwrap();
+    }
+    let field = cx
+        .update(|cx| {
+            mods.read(cx)
+                .details_view
+                .read(cx)
+                .copyable_field("fact-contains")
+        })
+        .expect("the mod's contents are shown");
+    let (text, rows) = cx.update(|cx| {
+        let field = field.read(cx);
+        (field.text().to_owned(), field.rows_drawn())
+    });
+    assert!(text.len() > 3, "a fact long enough to tell: {text:?}");
+    assert_eq!(rows, 1, "{text:?} fits one line of the details pane");
+}

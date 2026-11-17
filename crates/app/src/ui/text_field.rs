@@ -224,6 +224,12 @@ impl TextField {
         self
     }
 
+    /// The lines the last paint wrapped the text into.
+    #[cfg(test)]
+    pub fn rows_drawn(&self) -> usize {
+        self.rows_drawn.get()
+    }
+
     pub fn kept_on_escape(mut self) -> Self {
         self.kept_on_escape = true;
         self

@@ -624,14 +624,15 @@ impl DetailsView {
                     .gap(theme::GAP_TINY)
                     .child(label(theme, theme.body(), c.ink2, put(&name)).w(label_width))
                     .child(
+                        // The value is a field that wraps by its own width: sized by what it
+                        // holds, it would have none and break after every letter.
                         div()
-                            .flex_initial()
+                            .flex_1()
                             .min_w_0()
                             .sized_text(theme, theme.body())
                             .text_color(c.ink)
                             .child(value),
                     )
-                    .child(div().flex_1())
                     .into_any_element()
             })
             .collect();
